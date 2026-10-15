@@ -1,7 +1,10 @@
 """Scholarly search without keys: OpenAlex (published work, with abstracts and citation counts) and arXiv
 (preprints). Semantic Scholar answers 429 to unauthenticated requests, and Crossref rarely has abstracts.
 
-  OPENALEX_MAILTO  optional contact address; OpenAlex gives such requests a faster, steadier pool
+  OPENALEX_API_KEY free key from openalex.org/settings/api. Since 2026-02-13 OpenAlex bills usage: a
+                   search costs $0.001; without a key the daily budget is $0.10 (~100 searches), with a
+                   free key $1 (~1,000 searches), reset at midnight UTC.
+  OPENALEX_MAILTO  optional contact address
 """
 from __future__ import annotations
 
@@ -52,10 +55,14 @@ def _abstract(inverted: dict | None) -> str:
 async def openalex(query: str, limit: int, client: httpx.AsyncClient) -> list[Paper]:
     params = {"search": query, "per-page": limit, "select": "id,doi,display_name,publication_year,authorships,"
               "primary_location,cited_by_count,abstract_inverted_index,open_access"}
-    mailto = settings().get("OPENALEX_MAILTO", "")
-    if mailto:
-        params["mailto"] = mailto
+    config = settings()
+    if config.get("OPENALEX_MAILTO"):
+        params["mailto"] = config["OPENALEX_MAILTO"]
+    if config.get("OPENALEX_API_KEY"):
+        params["api_key"] = config["OPENALEX_API_KEY"]
     response = await client.get("https://api.openalex.org/works", params=params)
+    if response.status_code == 429:
+        raise WebError("OpenAlex 今天的免费额度已用完（不带 key 约 100 次检索/天），可在 .env 配置 OPENALEX_API_KEY 或改用 arXiv")
     if response.status_code != 200:
         raise WebError(f"OpenAlex 返回 HTTP {response.status_code}")
     papers = []
