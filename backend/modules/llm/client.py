@@ -193,7 +193,11 @@ class ChatClient:
         partial: dict[int, dict] = {}  # tool calls arrive in pieces, keyed by index
         try:
             request = self.http.build_request("POST", "/chat/completions", json=self.body(messages, max_tokens, tools))
-            response = await before_deadline(self.http.send(request, stream=True))
+            try:
+                response = await before_deadline(self.http.send(request, stream=True))
+            except httpx.TransportError:
+                # A pooled keep-alive connection the server already closed: one fresh attempt.
+                response = await before_deadline(self.http.send(request, stream=True))
             if response.status_code >= 400:
                 code, message, retryable = HTTP_ERRORS.get(
                     response.status_code, ("upstream", f"模型服务暂时不可用（HTTP {response.status_code}）", True))
