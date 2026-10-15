@@ -145,3 +145,52 @@ def test_asked_ranges():
     assert asked_ranges("06:10 到 06:40 她在画什么") == [("06:10", "06:40")]
     assert asked_ranges("1:02:03-1:02:30 和 05:30 时") == [("1:02:03", "1:02:30"), ("320.0", "340.0")]
     assert asked_ranges("她提到了 MBTI 吗") == []
+
+
+def test_narration_before_tools_stays_out_of_the_answer(tmp_path):
+    requests = []
+
+    def handler(request):
+        requests.append(1)
+        if len(requests) == 1:
+            return httpx.Response(200, text=sse(
+                {"choices": [{"delta": {"content": "我来查一下转写。"}}]},
+                {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "c1", "function": {"name": "search_transcript", "arguments": "{\"query\": \"体重\"}"}}]}}]}))
+        return httpx.Response(200, text=sse({"choices": [{"delta": {"content": "在 [04:10]。"}, "finish_reason": "stop"}]}))
+
+    client = ChatClient(LLMConfig("https://api.deepseek.com", "deepseek-flash", "k"), transport=httpx.MockTransport(handler))
+
+    async def go():
+        return [e async for e in run_agent(make_job(tmp_path), client, "q")]
+    events = asyncio.run(go())
+    assert "".join(e["delta"] for e in events if e["type"] == "assistant.message.delta") == "在 [04:10]。"
+    assert any(e["type"] == "progress.update" and e["step"] == "我来查一下转写。" for e in events)
+
+
+def test_research_question_cannot_skip_the_lookup(tmp_path, monkeypatch):
+    import modules.agent.web as web_module
+
+    async def fake_search(query, limit=6):
+        return [web_module.SearchResult("CMAJ 2012", "https://cmaj.ca/x", "85 drugs")]
+    monkeypatch.setattr(web_module, "search", fake_search)
+    requests = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        requests.append(body)
+        if len(requests) == 1:  # answers from memory, claiming to have searched
+            return httpx.Response(200, text=sse({"choices": [{"delta": {"content": "我查了资料，" * 20}, "finish_reason": "stop"}]}))
+        if len(requests) == 2:
+            return httpx.Response(200, text=sse({"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "c1", "function": {
+                "name": "web_search", "arguments": "{\"query\": \"grapefruit 85 drugs\"}"}}]}}]}))
+        return httpx.Response(200, text=sse({"choices": [{"delta": {"content": "出处是 CMAJ 2012（https://cmaj.ca/x）。"}, "finish_reason": "stop"}]}))
+
+    client = ChatClient(LLMConfig("https://api.deepseek.com", "deepseek-flash", "k"), transport=httpx.MockTransport(handler))
+
+    async def go():
+        return [e async for e in run_agent(make_job(tmp_path), client, "85 种药物这个说法可靠吗？帮我上网核实一下")]
+    events = asyncio.run(go())
+    answer = "".join(e["delta"] for e in events if e["type"] == "assistant.message.delta")
+    assert answer == "出处是 CMAJ 2012（https://cmaj.ca/x）。"  # the unresearched first answer never reached the user
+    assert requests[1]["messages"][-1]["content"].startswith("你还没有调用")
+    assert any(e["type"] == "tool_call.started" and e["tool_name"] == "web.search" for e in events)
