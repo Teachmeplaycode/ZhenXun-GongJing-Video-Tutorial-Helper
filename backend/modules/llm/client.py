@@ -81,10 +81,40 @@ def read_key_file(path: Path) -> str:
 
 
 @dataclass
+class ToolCall:
+    id: str
+    name: str
+    arguments: dict
+
+
+@dataclass
 class Usage:
+    """What a stream reported besides its text: token counts, why it stopped, requested tool calls."""
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     finish_reason: str | None = None
+    tool_calls: list[ToolCall] = field(default_factory=list)
+
+
+def assistant_message(text: str, calls: list[ToolCall]) -> dict:
+    """The model's turn that asked for tools, in the OpenAI format both clients accept."""
+    return {"role": "assistant", "content": text, "tool_calls": [
+        {"id": c.id, "type": "function", "function": {"name": c.name, "arguments": json.dumps(c.arguments, ensure_ascii=False)}}
+        for c in calls]}
+
+
+def tool_message(call: ToolCall, content: str) -> dict:
+    return {"role": "tool", "tool_call_id": call.id, "name": call.name, "content": content}
+
+
+def parse_arguments(raw) -> dict:
+    if isinstance(raw, dict):
+        return raw
+    try:
+        value = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 HTTP_ERRORS = {
@@ -139,17 +169,20 @@ class ChatClient:
     async def aclose(self) -> None:
         await self.http.aclose()
 
-    def body(self, messages: list[dict], max_tokens: int) -> dict:
+    def body(self, messages: list[dict], max_tokens: int, tools: list[dict] | None = None) -> dict:
         body = {
             "model": self.config.model, "messages": messages, "stream": True,
             "stream_options": {"include_usage": True}, "max_tokens": max_tokens, "temperature": 0.3,
         }
+        if tools:
+            body["tools"] = tools
         if "deepseek" in self.config.base_url:
             body["thinking"] = {"type": "disabled"}  # keep reasoning text out of the answer stream
         return body
 
-    async def stream(self, messages: list[dict], usage: Usage, max_tokens: int = 2048) -> AsyncIterator[str]:
-        """Yield content deltas; fills `usage` as the stream reports it.
+    async def stream(self, messages: list[dict], usage: Usage, max_tokens: int = 2048,
+                     tools: list[dict] | None = None) -> AsyncIterator[str]:
+        """Yield content deltas; fills `usage` (incl. requested tool calls) as the stream reports it.
 
         Each read is bounded by the time left before the deadline (never held across a `yield`):
         `first_token_timeout` until content starts, then `answer_timeout` for the rest.
@@ -157,8 +190,9 @@ class ChatClient:
         deadline = Deadline(self.first_token_timeout, self.answer_timeout)
         before_deadline = deadline.wait
         response = None
+        partial: dict[int, dict] = {}  # tool calls arrive in pieces, keyed by index
         try:
-            request = self.http.build_request("POST", "/chat/completions", json=self.body(messages, max_tokens))
+            request = self.http.build_request("POST", "/chat/completions", json=self.body(messages, max_tokens, tools))
             response = await before_deadline(self.http.send(request, stream=True))
             if response.status_code >= 400:
                 code, message, retryable = HTTP_ERRORS.get(
@@ -182,10 +216,19 @@ class ChatClient:
                 for choice in chunk.get("choices") or []:
                     if choice.get("finish_reason"):
                         usage.finish_reason = choice["finish_reason"]
+                    for piece in (choice.get("delta") or {}).get("tool_calls") or []:
+                        deadline.start()
+                        call = partial.setdefault(piece.get("index", 0), {"id": "", "name": "", "args": ""})
+                        call["id"] = piece.get("id") or call["id"]
+                        function = piece.get("function") or {}
+                        call["name"] = function.get("name") or call["name"]
+                        call["args"] += function.get("arguments") or ""
                     delta = (choice.get("delta") or {}).get("content")
                     if delta:
                         deadline.start()
                         yield delta
+            usage.tool_calls = [ToolCall(c["id"] or f"call_{i}", c["name"], parse_arguments(c["args"]))
+                                for i, c in sorted(partial.items()) if c["name"]]
         except httpx.TimeoutException:
             raise LLMError("timeout", "模型响应超时，请重试", True)
         except httpx.TransportError:
@@ -220,6 +263,14 @@ class OllamaClient:
     def native_messages(messages: list[dict]) -> list[dict]:
         out = []
         for m in messages:
+            if m["role"] == "tool":
+                out.append({"role": "tool", "tool_name": m.get("name", ""), "content": m["content"]})
+                continue
+            if m.get("tool_calls"):
+                out.append({"role": "assistant", "content": m.get("content") or "", "tool_calls": [
+                    {"function": {"name": c["function"]["name"], "arguments": parse_arguments(c["function"]["arguments"])}}
+                    for c in m["tool_calls"]]})
+                continue
             if isinstance(m["content"], str):
                 out.append({"role": m["role"], "content": m["content"]})
                 continue
@@ -235,19 +286,23 @@ class OllamaClient:
                     current["images"].append(part["image_url"]["url"].split(",", 1)[-1])
         return out
 
-    def body(self, messages: list[dict], max_tokens: int) -> dict:
-        return {
+    def body(self, messages: list[dict], max_tokens: int, tools: list[dict] | None = None) -> dict:
+        body = {
             "model": self.config.model, "messages": self.native_messages(messages), "stream": True,
             "think": False,  # thinking would delay the first word by minutes on a local model
             "keep_alive": "30m",
             "options": {"num_ctx": self.config.num_ctx, "num_predict": max_tokens, "temperature": 0.3},
         }
+        if tools:
+            body["tools"] = tools
+        return body
 
-    async def stream(self, messages: list[dict], usage: Usage, max_tokens: int = 2048) -> AsyncIterator[str]:
+    async def stream(self, messages: list[dict], usage: Usage, max_tokens: int = 2048,
+                     tools: list[dict] | None = None) -> AsyncIterator[str]:
         deadline = Deadline(self.first_token_timeout, self.answer_timeout)
         response = None
         try:
-            request = self.http.build_request("POST", "/api/chat", json=self.body(messages, max_tokens))
+            request = self.http.build_request("POST", "/api/chat", json=self.body(messages, max_tokens, tools))
             response = await deadline.wait(self.http.send(request, stream=True))
             if response.status_code == 404:
                 raise LLMError("model_not_found", f"Ollama 里没有模型 {self.config.model}，请先 ollama pull {self.config.model}")
@@ -265,7 +320,14 @@ class OllamaClient:
                 chunk = json.loads(line)
                 if chunk.get("error"):
                     raise LLMError("upstream", f"Ollama 出错：{chunk['error'][:200]}", True)
-                delta = (chunk.get("message") or {}).get("content")
+                message = chunk.get("message") or {}
+                for i, call in enumerate(message.get("tool_calls") or []):
+                    deadline.start()
+                    function = call.get("function") or {}
+                    if function.get("name"):
+                        usage.tool_calls.append(ToolCall(call.get("id") or f"call_{len(usage.tool_calls)}",
+                                                         function["name"], parse_arguments(function.get("arguments"))))
+                delta = message.get("content")
                 if delta:
                     deadline.start()
                     yield delta

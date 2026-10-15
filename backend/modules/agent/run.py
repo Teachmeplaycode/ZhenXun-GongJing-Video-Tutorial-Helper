@@ -8,14 +8,25 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 import time
 from collections.abc import AsyncIterator
 
 from modules.frames import FrameJob
-from modules.llm import ChatClient, LLMError, OllamaClient, Usage
+from modules.llm import ChatClient, LLMError, OllamaClient, Usage, assistant_message, tool_message
+
+from .tools import DEFINITIONS, TRACE_NAMES, AgentTools, parse_time
 
 HISTORY_MESSAGES = 8      # earlier turns sent back as plain text (frames only go with the current turn)
 HISTORY_CHARS = 4000
+TOOL_GUIDE = """
+
+你可以调用工具获取更多信息：
+- search_transcript：在语音转写里搜关键词，找某个话题或某句话在什么时候说的；
+- read_transcript：读某个时间段的完整转写；
+- view_frames：在某个时间段内截取更多画面看细节（已有关键帧间隔太大、看不清时用）。
+用户问到某个时间段的画面细节（动作、部位、颜色、文字等），而这一段只有一两张关键帧时，先用 view_frames 看清楚再回答，不要凭稀疏的画面推测。
+其他情况下，已有的画面和转写足够回答就直接回答，不要为了调用而调用。最多调用 {rounds} 轮。"""
 LINE_SECONDS = 12         # transcript segments are merged into lines of about this length
 FRAME_WINDOW = 10         # with selected frames, speech within this many seconds of each is sent
 
@@ -70,6 +81,38 @@ def pick_frames(job: FrameJob, requested: list[int] | None, limit: int) -> tuple
         notes.append(f"从 {len(chosen)} 帧中均匀选取 {limit} 帧")
         chosen = spread(chosen, limit)
     return chosen, notes
+
+
+TIME = r"(\d{1,2}:\d{2}(?::\d{2})?)"
+RANGE_RE = re.compile(TIME + r"\s*(?:到|至|~|～|-|–|—)\s*" + TIME)
+POINT_RE = re.compile(TIME)
+POINT_WINDOW = 10  # seconds around a single time the question names
+
+
+def asked_ranges(question: str) -> list[tuple[str, str]]:
+    """Time ranges the question names explicitly ("06:10 到 06:40", or ±10 s around "05:30")."""
+    ranges = [(a, b) for a, b in RANGE_RE.findall(question)]
+    rest = RANGE_RE.sub(" ", question)
+    for point in POINT_RE.findall(rest):
+        t = parse_time(point) or 0
+        ranges.append((str(max(0, t - POINT_WINDOW)), str(t + POINT_WINDOW)))
+    return ranges[:2]
+
+
+def tool_rounds() -> int:
+    """Rounds of tool calls before the model must answer; 0 (LLM_TOOLS=off) disables tools."""
+    if os.environ.get("LLM_TOOLS", "on").lower() in ("off", "0", "false"):
+        return 0
+    return max(0, int(os.environ.get("LLM_MAX_TOOL_ROUNDS", "3")))
+
+
+def image_message(images: list[tuple[str, "os.PathLike"]]) -> dict:
+    content: list[dict] = []
+    for label, path in images:
+        data = base64.b64encode(open(path, "rb").read()).decode()
+        content.append({"type": "text", "text": label})
+        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}})
+    return {"role": "user", "content": content}
 
 
 def max_transcript_chars() -> int:
@@ -176,34 +219,93 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield tool("speech", "output", stdout="\n".join([note, *preview]), exit_code=0)
     yield tool("speech", "completed", result_count=len(lines))
 
-    yield {"type": "progress.update", "step": "模型分析", "percent": 35}
-    steps += 1
     model = client.config.model
-    yield tool("model", "started", tool_name=f"vision.{model}")
-    yield tool("model", "input", input={"kind": "params", "params": {"model": model, "images": len(chosen), "transcript_lines": len(lines), "question": question}})
-    usage = Usage()
-    answered = False
-    try:
-        messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript)
-        async for delta in client.stream(messages, usage):
-            if not answered:
-                answered = True
-                yield {"type": "progress.update", "step": "生成回答", "percent": 70}
-            yield {"type": "assistant.message.delta", "delta": delta}
-        if not answered and usage.finish_reason is None:
-            # The server closed the stream without a word (a busy DeepSeek does this after ~10 minutes).
-            raise LLMError("empty", "模型没有返回任何内容，请稍后重试", True)
-    except LLMError as err:
-        yield tool("model", "output", stderr=err.message, exit_code=1)
-        yield tool("model", "completed", result_count=0)
-        yield {"type": "run.error", "code": err.code, "message": err.message, "retryable": err.retryable}
-        return
+    rounds = tool_rounds()
+    tools = AgentTools(job)
+    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript)
 
-    tokens = f"输入 {usage.prompt_tokens if usage.prompt_tokens is not None else '?'} · 输出 {usage.completion_tokens if usage.completion_tokens is not None else '?'} tokens"
-    truncated = usage.finish_reason == "length"
-    yield tool("model", "output", stdout=f"{tokens}\nfinish_reason={usage.finish_reason}", exit_code=2 if truncated else 0)
-    yield tool("model", "completed", result_count=len(chosen))
-    if truncated:
+    # A question naming a time range gets a closer look at it up front: a small local model
+    # rarely decides on its own that the sampled frames are too sparse there.
+    zoomed = []
+    for i, (a, b) in enumerate(asked_ranges(question)):
+        steps += 1
+        tid = f"zoom{i}"
+        yield tool(tid, "started", tool_name="frames.view")
+        yield tool(tid, "input", input={"kind": "params", "params": {"start": a, "end": b, "count": 6, "reason": "问题指定了时间段"}})
+        result = await tools.run("view_frames", {"start": a, "end": b, "count": 6})
+        yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0)
+        yield tool(tid, "completed", result_count=result.count)
+        zoomed += result.images
+    if zoomed:
+        question_part = messages[-1]["content"].pop()  # keep the question last
+        messages[-1]["content"] += [{"type": "text", "text": "问题所问时间段的加密画面："}] + image_message(zoomed)["content"] + [question_part]
+    if rounds:
+        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds)}
+    prompt_tokens = completion_tokens = 0
+    tool_calls = 0
+    usage = Usage()
+    answered = False  # any answer text streamed so far
+    for round_no in range(rounds + 1):
+        last = round_no == rounds  # the final round gets no tools, so the model has to answer
+        call_id = f"model{round_no}"
+        yield {"type": "progress.update", "step": "模型分析" if round_no == 0 else f"继续分析（第 {round_no + 1} 轮）",
+               "percent": min(90, 35 + round_no * 15)}
+        steps += 1
+        yield tool(call_id, "started", tool_name=f"vision.{model}")
+        yield tool(call_id, "input", input={"kind": "params", "params": {
+            "model": model, "images": len(chosen), "transcript_lines": len(lines), "round": round_no + 1,
+            "tools": "可用" if not last and rounds else "不可用", "question": question}})
+        usage = Usage()
+        text = []
+        try:
+            async for delta in client.stream(messages, usage, tools=None if last else DEFINITIONS):
+                if not answered:
+                    answered = True
+                    yield {"type": "progress.update", "step": "生成回答", "percent": 70}
+                text.append(delta)
+                yield {"type": "assistant.message.delta", "delta": delta}
+            if not text and not usage.tool_calls and usage.finish_reason is None:
+                # The server closed the stream without a word (a busy DeepSeek does this after ~10 minutes).
+                raise LLMError("empty", "模型没有返回任何内容，请稍后重试", True)
+        except LLMError as err:
+            yield tool(call_id, "output", stderr=err.message, exit_code=1)
+            yield tool(call_id, "completed", result_count=0)
+            yield {"type": "run.error", "code": err.code, "message": err.message, "retryable": err.retryable}
+            return
+        prompt_tokens += usage.prompt_tokens or 0
+        completion_tokens += usage.completion_tokens or 0
+        asked = usage.tool_calls
+        yield tool(call_id, "output", stdout=(
+            f"输入 {usage.prompt_tokens} · 输出 {usage.completion_tokens} tokens\n"
+            + (f"请求工具：{'、'.join(c.name for c in asked)}" if asked else f"finish_reason={usage.finish_reason}")),
+            exit_code=2 if usage.finish_reason == "length" else 0)
+        yield tool(call_id, "completed", result_count=len(chosen) + len(zoomed))  # images it looked at
+        if not asked:
+            break
+
+        # Run the requested tools, hand the results back, and let the model continue.
+        messages.append(assistant_message("".join(text), asked))
+        images = []
+        for call in asked:
+            tool_calls += 1
+            steps += 1
+            tid = f"tool{tool_calls}"
+            yield tool(tid, "started", tool_name=TRACE_NAMES.get(call.name, call.name))
+            yield tool(tid, "input", input={"kind": "params", "params": call.arguments})
+            result = await tools.run(call.name, call.arguments)
+            yield tool(tid, "output", stdout=result.text,
+                       exit_code=1 if result.error else 0)
+            yield tool(tid, "completed", result_count=result.count)
+            messages.append(tool_message(call, result.text))
+            images += result.images
+        if images:
+            messages.append(image_message(images))
+        if text:
+            yield {"type": "assistant.message.delta", "delta": "\n\n"}
+
+    tokens = f"输入 {prompt_tokens} · 输出 {completion_tokens} tokens"
+    if usage.finish_reason == "length":
         yield {"type": "assistant.message.delta", "delta": "\n\n（回答达到长度上限，已截断）"}
+    extra = f" · 调用工具 {tool_calls} 次" if tool_calls else ""
     yield {"type": "run.completed", "steps": steps, "elapsed_ms": round((time.perf_counter() - started) * 1000),
-           "summary": f"分析 {len(chosen)} 帧 · {len(lines)} 行语音 · {model} · {tokens}"}
+           "summary": f"分析 {len(chosen)} 帧 · {len(lines)} 行语音{extra} · {model} · {tokens}"}
