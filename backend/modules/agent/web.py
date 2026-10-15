@@ -1,7 +1,9 @@
 """Web access for the agent, run by this backend: search, and fetch a page as plain text.
 
-Search uses the open-source ddgs metasearch library (Bing, Brave, Google, DuckDuckGo, Wikipedia; no
-keys, no Chinese engines), or a self-hosted SearXNG instance when SEARXNG_URL is set. Pages are fetched with httpx and reduced to their main text with trafilatura.
+Search providers, tried in order (SEARCH_PROVIDERS): a self-hosted SearXNG (SEARXNG_URL), Tavily
+(TAVILY_API_KEY), Bocha 博查 (BOCHA_API_KEY), then the keyless open-source ddgs metasearch library
+(Bing, Brave, Google, DuckDuckGo, Wikipedia). Providers without configuration are skipped. In testing
+Tavily's results were by far the best; Bocha's Chinese results included unrelated content-farm pages. Pages are fetched with httpx and reduced to their main text with trafilatura.
 
 Fetching follows URLs a model chose, possibly from text on other pages, so every request and every
 redirect hop is checked: only http(s) to public addresses, never this machine or the local network.
@@ -70,14 +72,15 @@ def _text(fragment: str) -> str:
 DEFAULT_BACKENDS = "bing,brave,google,duckduckgo,wikipedia"
 
 
-def _ddgs(query: str, limit: int, backends: list[str], region: str) -> tuple[list[SearchResult], list[str]]:
+def _ddgs(query: str, limit: int, backends: list[str], region: str, freshness: str = "") -> tuple[list[SearchResult], list[str]]:
     from ddgs import DDGS
     from ddgs.exceptions import DDGSException
 
     failures = []
     for backend in backends:
         try:
-            rows = DDGS(timeout=10).text(query, region=region, max_results=limit, backend=backend)
+            rows = DDGS(timeout=10).text(query, region=region, max_results=limit, backend=backend,
+                                         timelimit=FRESHNESS[freshness][1] if freshness in FRESHNESS else None)
         except DDGSException as exc:
             failures.append(f"{backend}: {str(exc)[:60]}")
             continue
@@ -88,30 +91,128 @@ def _ddgs(query: str, limit: int, backends: list[str], region: str) -> tuple[lis
     return [], failures
 
 
-async def search(query: str, limit: int = 8, *, client: httpx.AsyncClient | None = None) -> list[SearchResult]:
-    """SEARXNG_URL if set; otherwise ddgs over SEARCH_BACKENDS (comma list) in SEARCH_REGION (default us-en)."""
+def setting(config: dict, *names: str) -> str:
+    """First non-empty value among several spellings (the .env may use e.g. Tavily_API_KEY)."""
+    return next((config[n].strip() for n in names if config.get(n, "").strip()), "")
+
+
+# freshness → each provider's own notation
+FRESHNESS = {"oneDay": ("day", "d"), "oneWeek": ("week", "w"), "oneMonth": ("month", "m"), "oneYear": ("year", "y")}
+
+
+async def _tavily(query: str, limit: int, key: str, client: httpx.AsyncClient, freshness: str = "") -> list[SearchResult]:
+    body = {"query": query, "max_results": limit, "search_depth": "basic"}
+    if freshness in FRESHNESS:
+        body["time_range"] = FRESHNESS[freshness][0]
+    response = await client.post("https://api.tavily.com/search", headers={"Authorization": f"Bearer {key}"}, json=body)
+    if response.status_code in (401, 403):
+        raise WebError("Tavily key 无效")
+    if response.status_code in (429, 432, 433):
+        raise WebError("Tavily 额度已用完或请求过多")
+    if response.status_code != 200:
+        raise WebError(f"Tavily 返回 HTTP {response.status_code}")
+    return [SearchResult(r.get("title", ""), r.get("url", ""), " ".join((r.get("content") or "").split())[:400])
+            for r in response.json().get("results", []) if r.get("url")]
+
+
+async def _bocha(query: str, limit: int, key: str, client: httpx.AsyncClient, freshness: str = "") -> list[SearchResult]:
+    response = await client.post("https://api.bochaai.com/v1/web-search", headers={"Authorization": f"Bearer {key}"},
+                                 json={"query": query, "count": limit, "summary": True, "freshness": freshness if freshness in FRESHNESS else "noLimit"})
+    payload = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+    if response.status_code != 200 or payload.get("code") not in (200, None):
+        raise WebError(f"博查返回错误（{payload.get('code') or response.status_code}）：{payload.get('msg') or ''}".rstrip("："))
+    pages = ((payload.get("data") or {}).get("webPages") or {}).get("value") or []
+    return [SearchResult(p.get("name", ""), p.get("url", ""),
+                         " ".join((p.get("summary") or p.get("snippet") or "").split())[:400]) for p in pages if p.get("url")]
+
+
+async def _searxng(query: str, limit: int, base: str, client: httpx.AsyncClient, freshness: str = "") -> list[SearchResult]:
+    params = {"q": query, "format": "json"}
+    if freshness in FRESHNESS:
+        params["time_range"] = FRESHNESS[freshness][0]
+    response = await client.get(f"{base}/search", params=params)
+    if response.status_code != 200:
+        raise WebError(f"SearXNG 返回 HTTP {response.status_code}（检查它是否开启了 JSON 输出）")
+    return [SearchResult(r.get("title", ""), r.get("url", ""), r.get("content", ""))
+            for r in response.json().get("results", [])[:limit] if r.get("url")]
+
+
+DEFAULT_PROVIDERS = "searxng,tavily,bocha,ddgs"
+# Bocha's rerank API, off unless SEARCH_RERANK=on. Tested 2026-10-15: on Bocha's Chinese results it scored a
+# content-farm page 0.77 and a professional medical article 0.19 (relevance, not reliability), and on
+# OpenAlex it barely changed an already good order, so by default it isn't worth the extra call.
+RERANK_MODEL = "gte-rerank"  # Bocha's own bocha-semantic-reranker-* answered 500 on the test account
+RERANK_FLOOR = 0.15          # results scoring below this are dropped (at least RERANK_KEEP stay)
+RERANK_KEEP = 3
+
+
+async def rerank(query: str, documents: list[str], client: httpx.AsyncClient) -> list[tuple[int, float]] | None:
+    """(index, relevance) best first via Bocha's rerank API, or None without a key or on any failure."""
+    key = setting(settings(), "BOCHA_API_KEY", "BOCHA_API", "Bocha_API_KEY")
+    if not key or len(documents) < 2 or settings().get("SEARCH_RERANK", "off").lower() not in ("on", "1", "true"):
+        return None
+    try:
+        response = await client.post("https://api.bochaai.com/v1/rerank", headers={"Authorization": f"Bearer {key}"},
+                                     json={"model": RERANK_MODEL, "query": query, "documents": documents,
+                                           "top_n": len(documents), "return_documents": False}, timeout=15)
+        rows = ((response.json() or {}).get("data") or {}).get("results") or []
+        ranked = [(int(r["index"]), float(r["relevance_score"])) for r in rows]
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        return None
+    return ranked if len(ranked) == len(documents) else None
+
+
+async def rerank_results(query: str, results: list[SearchResult], client: httpx.AsyncClient) -> list[SearchResult]:
+    """Order results by semantic relevance and drop clear misses (e.g. content-farm pages)."""
+    ranked = await rerank(query, [f"{r.title}\n{r.snippet}" for r in results], client)
+    if ranked is None:
+        return results
+    kept = [results[i] for n, (i, score) in enumerate(ranked) if score >= RERANK_FLOOR or n < RERANK_KEEP]
+    return kept
+
+
+async def search(query: str, limit: int = 8, freshness: str = "", *, client: httpx.AsyncClient | None = None) -> list[SearchResult]:
+    """Try SEARCH_PROVIDERS in order (default searxng, tavily, bocha, ddgs), skipping those without
+    configuration; the first one that returns results wins, a failure moves on to the next."""
     config = settings()
-    searx = config.get("SEARXNG_URL", "").rstrip("/")
-    if searx:
-        own = client is None
-        client = client or httpx.AsyncClient(timeout=15, headers=HEADERS, trust_env=False)
-        try:
-            response = await client.get(f"{searx}/search", params={"q": query, "format": "json"})
-            response.raise_for_status()
-            return [SearchResult(r.get("title", ""), r.get("url", ""), r.get("content", ""))
-                    for r in response.json().get("results", [])[:limit] if r.get("url")]
-        except httpx.HTTPError:
-            raise WebError("SearXNG 请求失败，请检查 SEARXNG_URL 和它的 JSON 输出设置") from None
-        finally:
-            if own:
-                await client.aclose()
-    backends = [b.strip() for b in config.get("SEARCH_BACKENDS", DEFAULT_BACKENDS).split(",") if b.strip()]
-    async with DDGS_PACE:
-        results, failures = await asyncio.to_thread(_ddgs, query, limit, backends, config.get("SEARCH_REGION", "us-en"))
-    if not results and len(failures) == len(backends) and all("无结果" not in f for f in failures):
-        # ddgs reports "no results" both for empty searches and for engines that blocked the request.
-        raise WebError("搜索引擎都没有返回结果（可能被拦截），换个关键词或稍后再试")
-    return results
+    keyed = {
+        "searxng": setting(config, "SEARXNG_URL").rstrip("/"),
+        "tavily": setting(config, "TAVILY_API_KEY", "Tavily_API_KEY", "TAVILY_API"),
+        "bocha": setting(config, "BOCHA_API_KEY", "BOCHA_API", "Bocha_API_KEY"),
+        "ddgs": "builtin",
+    }
+    providers = [p.strip().lower() for p in config.get("SEARCH_PROVIDERS", DEFAULT_PROVIDERS).split(",")]
+    providers = [p for p in providers if keyed.get(p)]
+    own = client is None
+    client = client or httpx.AsyncClient(timeout=20, headers=HEADERS, trust_env=False)
+    failures = []
+    try:
+        for provider in providers:
+            try:
+                if provider == "ddgs":
+                    backends = [b.strip() for b in config.get("SEARCH_BACKENDS", DEFAULT_BACKENDS).split(",") if b.strip()]
+                    async with DDGS_PACE:
+                        results, _ = await asyncio.to_thread(_ddgs, query, limit, backends, config.get("SEARCH_REGION", "us-en"), freshness)
+                    if not results:
+                        failures.append("ddgs 的搜索引擎都没有返回结果（可能被拦截）")
+                else:
+                    fetcher = {"tavily": _tavily, "bocha": _bocha, "searxng": _searxng}[provider]
+                    results = await fetcher(query, limit, keyed[provider], client, freshness)
+            except WebError as exc:
+                failures.append(str(exc))
+                continue
+            except (httpx.HTTPError, ValueError):
+                failures.append(f"{provider} 连接失败")
+                continue
+            if results:
+                return await rerank_results(query, results[:limit], client)
+        if failures:
+            # ddgs reports "no results" both for empty searches and for engines that blocked the request.
+            raise WebError("搜索没有返回结果：" + "；".join(failures) + "。换个关键词或稍后再试")
+        return []
+    finally:
+        if own:
+            await client.aclose()
 
 
 # Proxy tools in fake-IP mode (Clash, Surge…) answer every name with an address from these ranges
