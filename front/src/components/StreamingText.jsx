@@ -1,11 +1,10 @@
 import React from 'react'
+import { renderMarkdown } from '../lib/markdown'
 
-// §9.2 assistant.message.delta — appended text with a blinking block cursor while streaming.
-export default function StreamingText({ text, streaming }) {
-  return (
-    <div className="streaming-text">
-      {text}
-      {streaming ? <span className="streaming-text__cursor" aria-hidden="true">█</span> : null}
-    </div>
-  )
+// §9.2 assistant.message.delta — the answer so far, rendered as Markdown, with a blinking block
+// cursor while streaming. onTime(seconds): a time in the answer was clicked.
+export default function StreamingText({ text, streaming, onTime = null, duration = null }) {
+  const cursor = streaming ? <span className="streaming-text__cursor" aria-hidden="true">█</span> : null
+  const body = renderMarkdown(text, { onTime, duration, tail: cursor })
+  return <div className="streaming-text">{body.length ? body : cursor}</div>
 }

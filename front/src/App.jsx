@@ -68,6 +68,8 @@ export default function App() {
   const [sessions, setSessions] = useState([])
   const [sessionsError, setSessionsError] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
+  // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
+  const [seek, setSeek] = useState(null)
 
   const sculptureLayerRef = useRef(null)
   const uiLayerRef = useRef(null)
@@ -569,6 +571,8 @@ export default function App() {
               frames={frames}
               coverage={coverage}
               transcript={analysis.transcript}
+              duration={meta?.duration}
+              onSeek={(time) => setSeek({ time, key: Date.now() })}
               selected={selected}
               onClearSelection={() => setSelected([])}
               onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
@@ -598,6 +602,7 @@ export default function App() {
           onClear={() => setSelected([])}
           onRetry={canRetry ? retryMissing : null}
           retrying={retrying}
+          seek={seek}
         />
       ) : null}
     </div>

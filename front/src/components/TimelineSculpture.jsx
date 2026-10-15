@@ -1,12 +1,13 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { fmtTime, frameNo } from '../lib/format'
+import { fmtClock, fmtTime, frameNo } from '../lib/format'
 import { prefersReducedMotion } from '../lib/motion'
 
 const NEIGHBOR_RADIUS = 3
 const PREVIEW_DELAY = 400 // ms
 const PREVIEW_WIDTH = 220
 const HOVER_LIFT = -8 // px
+const SEEK_HOLD = 2500 // ms a sheet pointed at from an answer stays raised
 const REST_ANGLE = -52 // deg, sheets stand obliquely like a deck seen from the side
 const HOVER_ANGLE = -12 // deg, hovered sheet turns its face to the viewer
 const CARD_HEIGHT = 60 // px
@@ -20,7 +21,8 @@ const bell = (d) => 0.5 + 0.5 * Math.cos((Math.PI * d) / (NEIGHBOR_RADIUS + 1))
 // hatched and can't be selected. Local-file frames have no status and are always available.
 const isAvailable = (f) => Boolean(f.src) && (!f.status || f.status === 'ok')
 
-export default function TimelineSculpture({ frames, duration, selected, onToggle, onClear, onRetry = null, retrying = false }) {
+// seek: { time, key } from a time clicked in an answer — the nearest sheet rises and shows its preview.
+export default function TimelineSculpture({ frames, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null }) {
   const trackRef = useRef(null)
   const deckRef = useRef(null)
   const bodies = useRef([])
@@ -85,6 +87,20 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
   }
   useEffect(() => () => clearTimeout(timer.current), [])
 
+  const [seeking, setSeeking] = useState(null) // index raised by a seek, for its accent outline
+  useEffect(() => {
+    if (!seek || !frames.length) return undefined
+    const nearest = frames.reduce((best, f, i) => (Math.abs(f.time - seek.time) < Math.abs(frames[best].time - seek.time) ? i : best), 0)
+    hover(nearest)
+    clearTimeout(timer.current)
+    setPreview({ index: nearest, seek: seek.time })
+    setSeeking(nearest)
+    const release = setTimeout(() => { hover(null); setSeeking(null) }, SEEK_HOLD)
+    return () => clearTimeout(release)
+    // Only a new seek should move the timeline, not frames arriving in the background.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seek])
+
   const slot = trackWidth / Math.max(1, count)
   // Face width ~2 slots: rotated sheets overlap slightly like a fanned deck.
   const cardWidth = Math.round(Math.max(18, Math.min(64, slot * 2)))
@@ -129,7 +145,7 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
               <button
                 key={f.index}
                 type="button"
-                className={`tl-sheet ${isSel ? 'is-selected' : ''} ${f.status === 'missing' ? 'is-missing' : ''} ${f.status === 'pending' ? 'is-pending' : ''}`}
+                className={`tl-sheet ${isSel ? 'is-selected' : ''} ${seeking === i ? 'is-seeking' : ''} ${f.status === 'missing' ? 'is-missing' : ''} ${f.status === 'pending' ? 'is-pending' : ''}`}
                 style={{ left: `${(i / count) * 100}%`, width: `${100 / count}%` }}
                 onPointerEnter={() => hover(i)}
                 onFocus={() => hover(i)}
@@ -159,6 +175,9 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
             )}
             <div className="sheet-preview__meta">
               <span className="mono-sm">{fmtTime(previewFrame.time)}</span>
+              {preview.seek != null && Math.abs(preview.seek - previewFrame.time) >= 1 ? (
+                <span className="mono-sm muted">≈ {fmtClock(preview.seek)}</span>
+              ) : null}
               <span className="mono-sm muted">{frameNo(previewFrame.index)}</span>
               {selectedSet.has(previewFrame.index) ? <span className="tag tag--active">已选</span> : null}
             </div>

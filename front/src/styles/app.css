@@ -269,7 +269,24 @@ img { display: block; }
 .progress-pill__pct { color: var(--text-inverse-dim); }
 @keyframes pulse { 50% { opacity: 0.3; } }
 
-.streaming-text { white-space: pre-wrap; }
+.streaming-text { overflow-wrap: anywhere; }
+/* Markdown subset (lib/markdown.jsx) */
+.md-p, .md-h { margin: 0 0 var(--sp-12); }
+.md-p:last-child, .md-h:last-child, .md-li:last-child { margin-bottom: 0; }
+.md-h { font-weight: 600; line-height: 1.4; }
+.md-h--1, .md-h--2 { font-size: var(--fs-h2); }
+.md-h--3 { font-size: var(--fs-body); }
+.md-li { display: flex; gap: var(--sp-8); margin: 0 0 var(--sp-6); padding-left: calc(var(--depth, 0) * var(--sp-20)); }
+.md-li + .md-p, .md-li + .md-h { margin-top: var(--sp-12); }
+.md-li__marker { flex: none; min-width: var(--sp-12); font-family: var(--font-mono); font-size: var(--fs-mono-sm); line-height: 1.9; color: var(--text-tertiary); }
+.md-code { padding: 0 var(--sp-4); border-radius: var(--radius-xs); background: var(--bg-surface-alt); font-family: var(--font-mono); font-size: 0.9em; }
+/* A time in an answer: points the timeline at that moment. */
+.ts-chip {
+  display: inline; padding: 0 var(--sp-4); border: 1px solid var(--border-default); border-radius: var(--radius-xs);
+  background: var(--bg-surface-alt); font-family: var(--font-mono); font-size: 0.86em; color: var(--text-primary); cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-enter), border-color var(--dur-micro) var(--ease-enter);
+}
+.ts-chip:hover, .ts-chip:focus-visible { background: var(--accent-active); border-color: var(--accent-active-dim); }
 .streaming-text__cursor { display: inline-block; margin-left: var(--sp-2); animation: blink 1s steps(1) infinite; color: var(--text-primary); }
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -416,6 +433,8 @@ img { display: block; }
 .tl-sheet:hover .tl-card__face--front, .tl-sheet:focus-visible .tl-card__face--front { border-color: var(--accent-active); }
 .tl-sheet:hover .tl-card__face--front img, .tl-sheet:focus-visible .tl-card__face--front img { opacity: 1; filter: none; }
 .tl-sheet.is-selected .tl-card__face--front { border: 2px solid var(--accent-active); }
+.tl-sheet.is-seeking .tl-card__face--front { border-color: var(--accent-active); }
+.tl-sheet.is-seeking .tl-card__face--front img { opacity: 1; filter: none; }
 .tl-sheet.is-selected .tl-card__face--front img { opacity: 1; filter: none; }
 .tl-sheet.is-selected .tl-card__face--side { background: var(--accent-active-dim); }
 .tl-sheet:focus-visible { outline: none; }
