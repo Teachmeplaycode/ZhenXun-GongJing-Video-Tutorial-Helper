@@ -1,0 +1,18 @@
+# OS / editors
+.DS_Store
+
+# Secrets: model keys, Yuanbao cookie
+.env
+.env.*
+
+# Python
+__pycache__/
+.pytest_cache/
+backend/.venv/
+
+# Runtime data: sampled frames and the sessions database
+backend/data/
+
+# Frontend
+front/node_modules/
+front/dist/

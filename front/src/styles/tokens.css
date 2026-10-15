@@ -1,0 +1,90 @@
+/* Design tokens — single source of truth (design_2.md §1–§3, §12).
+   Components must reference these variables, never raw hex / px values. */
+:root {
+  /* §1.2 colors */
+  --bg-canvas: #F5F3EF;
+  --bg-surface: #FFFFFF;
+  --bg-surface-alt: #FAF8F5;
+  --bg-inverse: #1A1A1A;
+  --grid-line: #EDEAE5;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-tertiary: #9B9B9B;
+  --text-inverse: #FFFFFF;
+  --text-inverse-dim: color-mix(in srgb, var(--text-inverse) 58%, transparent);
+
+  --accent-active: #C8F04A;
+  --accent-active-dim: #A8CC3A;
+  --accent-processing: #F5A623;
+  --accent-error: #E5484D;
+  --accent-success: #5A9E3A;
+
+  --border-default: #E0DDD8;
+  --border-strong: #C8C4BD;
+  --border-focus: #1A1A1A;
+  --border-inverse: color-mix(in srgb, var(--text-inverse) 16%, transparent);
+
+  --sculpture-light: #F0EDE8;
+  --sculpture-dark: #2A2A2A;
+  --sculpture-shadow: #D8D4CE;
+
+  /* §9.2 diff colors */
+  --diff-added: #E8F5D8;
+  --diff-removed: #FBE0E0;
+
+  /* §2.2 typography */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', Menlo, monospace;
+  --font-display: Unbounded, Inter, sans-serif; /* wordmark only */
+
+  --fs-display: 32px;
+  --fs-h1: 24px;
+  --fs-h2: 18px;
+  --fs-body: 15px;
+  --fs-body-sm: 14px;
+  --fs-caption: 12px;
+  --fs-mono: 13px;
+  --fs-mono-sm: 12px;
+
+  /* §3 spacing scale */
+  --sp-0: 0;
+  --sp-2: 2px;
+  --sp-4: 4px;
+  --sp-6: 6px;
+  --sp-8: 8px;
+  --sp-10: 10px; /* only used where the spec pins padding to 10px (pill / user bubble) */
+  --sp-12: 12px;
+  --sp-14: 14px; /* user bubble horizontal padding per §10 */
+  --sp-16: 16px;
+  --sp-20: 20px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+  --sp-40: 40px;
+  --sp-48: 48px;
+  --sp-64: 64px;
+  --sp-80: 80px;
+  --sp-96: 96px;
+
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 999px;
+
+  --border-hairline: 1px solid var(--border-default);
+  --border-strong-line: 1px solid var(--border-strong);
+
+  --page-max-width: 1440px;
+  --page-padding: 24px;
+  --content-max-width: 960px;
+
+  /* §12 motion */
+  --dur-micro: 0.2s;
+  --dur-short: 0.4s;
+  --dur-medium: 0.8s;
+  --ease-enter: cubic-bezier(0.215, 0.61, 0.355, 1);   /* power2.out */
+  --ease-exit: cubic-bezier(0.55, 0.055, 0.675, 0.19);  /* power2.in */
+  --ease-move: cubic-bezier(0.645, 0.045, 0.355, 1);    /* power2.inOut */
+}

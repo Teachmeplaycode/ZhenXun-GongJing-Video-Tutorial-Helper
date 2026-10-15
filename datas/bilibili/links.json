@@ -1,0 +1,1149 @@
+{
+  "platform": "bilibili",
+  "description": "B 站链接解析与远程抽帧的实测样本。expect 为解析结果的校验项；observed 为最近一次完整抽帧的实测记录。",
+  "cases": [
+    {
+      "id": "bili-legacy-av2",
+      "category": "normal",
+      "note": "B 站最早的公开视频（av2），老视频、单 P、34 分钟，匿名只有 360p 级别的流",
+      "input": "https://www.bilibili.com/video/BV1xx411c7mD",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1xx411c7mD",
+        "part": 1,
+        "part_count": 1,
+        "duration": 2055,
+        "title": "字幕君交流场所"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 64,
+        "frames_total": 64,
+        "first_frame_sec": 3.7,
+        "sixteen_frames_sec": 16.7,
+        "total_sec": 62.1
+      }
+    },
+    {
+      "id": "bili-multipart-share-text",
+      "category": "multipart",
+      "note": "4P 视频，输入为带标题的分享文本，链接里 ?p=3 指定第 3P，附带 share_source 参数",
+      "input": "【明日方舟：终末地】 https://www.bilibili.com/video/BV1fspq6cEty/?p=3&share_source=copy_web",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1fspq6cEty",
+        "part": 3,
+        "part_count": 4,
+        "duration": 203,
+        "title": "《明日方舟：终末地》干员叙事 [祀：洒扫庭除]"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 64,
+        "frames_total": 64,
+        "first_frame_sec": 3.3,
+        "sixteen_frames_sec": 17.8,
+        "total_sec": 60.5
+      }
+    },
+    {
+      "id": "bili-long-bare-bv",
+      "category": "long",
+      "note": "新视频、32 分钟，输入只有 BV 号",
+      "input": "BV14JpC6ZE3U",
+      "expect": {
+        "ok": true,
+        "video_id": "BV14JpC6ZE3U",
+        "part": 1,
+        "part_count": 1,
+        "duration": 1925,
+        "title": "77天1400公里独自横穿羌塘，杨柳松与北方的空地"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 64,
+        "frames_total": 64,
+        "first_frame_sec": 3.6,
+        "sixteen_frames_sec": 18.4,
+        "total_sec": 56.7
+      }
+    },
+    {
+      "id": "bili-short-share-text",
+      "category": "short",
+      "note": "2 分钟短视频，在浏览器里完整走过链接 → 抽帧 → 对话；也用于签名失效的故障注入（自动重取地址后 12/12 帧）",
+      "input": "【测试】 https://www.bilibili.com/video/BV1atp96AE8j/?share_source=copy_web",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1atp96AE8j",
+        "part": 1,
+        "part_count": 1,
+        "duration": 138,
+        "title": "老了也要保持卡点上班的优雅习惯【AI全民制作人】",
+        "author": "桃子carena"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 64,
+        "frames_total": 64,
+        "total_sec": 69.5,
+        "via": "browser"
+      }
+    },
+    {
+      "id": "bili-error-part-not-found",
+      "category": "error",
+      "note": "单 P 视频请求第 5P",
+      "input": "https://www.bilibili.com/video/BV1atp96AE8j?p=5",
+      "expect": {
+        "ok": false,
+        "code": "part_not_found"
+      }
+    },
+    {
+      "id": "bili-error-bangumi",
+      "category": "error",
+      "note": "番剧页面，暂不支持",
+      "input": "https://www.bilibili.com/bangumi/play/ep12345",
+      "expect": {
+        "ok": false,
+        "code": "unsupported_content"
+      }
+    },
+    {
+      "id": "bili-error-not-found",
+      "category": "error",
+      "note": "已不存在的视频（接口返回 -404）",
+      "input": "BV1GJ411x7h7",
+      "expect": {
+        "ok": false,
+        "code": "not_found"
+      }
+    },
+    {
+      "id": "bili-old-BV1xx411c79H",
+      "category": "old",
+      "note": "老视频 · 2009 年 · 同人·手书 · 3 分 39 秒 · 输入：标准链接",
+      "input": "https://www.bilibili.com/video/BV1xx411c79H",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1xx411c79H",
+        "part": 1,
+        "part_count": 1,
+        "duration": 219.0,
+        "title": "【東方】Bad Apple!! ＰＶ【影絵】",
+        "author": "折射"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 18.0
+      }
+    },
+    {
+      "id": "bili-old-BV1ix411c7Ye",
+      "category": "old",
+      "note": "老视频 · 2010 年 · MAD·AMV · 2 分 32 秒 · 输入：网页分享链接（带 share_source / vd_source 参数）",
+      "input": "https://www.bilibili.com/video/BV1ix411c7Ye/?share_source=copy_web&vd_source=3f2a9c1d7e5b4a6c8d0e1f2a3b4c5d6e",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1ix411c7Ye",
+        "part": 1,
+        "part_count": 1,
+        "duration": 152.0,
+        "title": "【穿越】绿光",
+        "author": "小太"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 59.1
+      }
+    },
+    {
+      "id": "bili-old-BV1fx411c7v6",
+      "category": "old",
+      "note": "老视频 · 2011 年 · 人力VOCALOID · 16 分 0 秒 · 输入：带标题的分享文本",
+      "input": "【【BILIBILI大合作】无限循环祭】 https://www.bilibili.com/video/BV1fx411c7v6/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1fx411c7v6",
+        "part": 1,
+        "part_count": 1,
+        "duration": 960.0,
+        "title": "【BILIBILI大合作】无限循环祭",
+        "author": "平安夜的噩梦"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 69.1
+      }
+    },
+    {
+      "id": "bili-old-BV1hx411w7MG",
+      "category": "old",
+      "note": "老视频 · 2012 年 · MAD·AMV · 4 分 18 秒 · 输入：App 分享文本（b23.tv 短链）",
+      "input": "【【拜年祭】【合唱】only my bilibili-哔哩哔哩】 https://b23.tv/lxzvjEe",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1hx411w7MG",
+        "part": 1,
+        "part_count": 1,
+        "duration": 258.0,
+        "title": "【拜年祭】【合唱】only my bilibili",
+        "author": "秋风AKIKAZE"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 17.7
+      }
+    },
+    {
+      "id": "bili-old-BV1js411f7jY",
+      "category": "old",
+      "note": "老视频 · 2013 年 · 单机游戏 · 5 分 21 秒 · 输入：只有 BV 号",
+      "input": "BV1js411f7jY",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1js411f7jY",
+        "part": 1,
+        "part_count": 1,
+        "duration": 321.0,
+        "title": "惊艳！半年良心作★Minecraft★World of Ansesuta",
+        "author": "火鸟台风"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 20.3
+      }
+    },
+    {
+      "id": "bili-old-BV1Ss411o7vY",
+      "category": "old",
+      "note": "老视频 · 2014 年 · 人力VOCALOID · 2 分 55 秒 · 输入：BV 号夹在一句话里",
+      "input": "帮我看看 BV1Ss411o7vY 这个视频讲了什么",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Ss411o7vY",
+        "part": 1,
+        "part_count": 1,
+        "duration": 175.0,
+        "title": "【红日】梁逸峰你朗诵这么屌你家里人知道吗？",
+        "author": "吃素的狮子"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 14.0
+      }
+    },
+    {
+      "id": "bili-old-BV1Yx411A7wM",
+      "category": "old",
+      "note": "老视频 · 2015 年 · 鬼畜调教 · 2 分 50 秒 · 输入：av 号链接",
+      "input": "https://www.bilibili.com/video/av2023391/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Yx411A7wM",
+        "part": 1,
+        "part_count": 1,
+        "duration": 170.0,
+        "title": "【成龙】我的洗发液",
+        "author": "绯色toy"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 49.1
+      }
+    },
+    {
+      "id": "bili-old-BV1Xs411X7wh",
+      "category": "old",
+      "note": "老视频 · 2016 年 · 鬼畜调教 · 1 分 45 秒 · 输入：只有 av 号",
+      "input": "av3771373",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Xs411X7wh",
+        "part": 1,
+        "part_count": 1,
+        "duration": 105.0,
+        "title": "【矢泽妮可】妮可酱，给我来一发最带感的Niconiconi！",
+        "author": "约谈人参"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 72.2
+      }
+    },
+    {
+      "id": "bili-old-BV1Sx41117dD",
+      "category": "old",
+      "note": "老视频 · 2017 年 · VOCALOID·UTAU · 5 分 7 秒 · 输入：手机版链接 m.bilibili.com",
+      "input": "https://m.bilibili.com/video/BV1Sx41117dD",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Sx41117dD",
+        "part": 1,
+        "part_count": 1,
+        "duration": 307.0,
+        "title": "【2017拜年祭单品】万神纪【星尘原创曲】",
+        "author": "写歌的海鲜面"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 32.0
+      }
+    },
+    {
+      "id": "bili-old-BV1dW411n7La",
+      "category": "old",
+      "note": "老视频 · 2018 年 · 同人·手书 · 7 分 3 秒 · 输入：没有 https:// 前缀的链接",
+      "input": "www.bilibili.com/video/BV1dW411n7La/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1dW411n7La",
+        "part": 1,
+        "part_count": 1,
+        "duration": 423.0,
+        "title": "【FGO手书/完结纪念】诀别之时已至，其为放手世界之人",
+        "author": "泛式"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 26.6
+      }
+    },
+    {
+      "id": "bili-old-BV1Jb411U7u2",
+      "category": "old",
+      "note": "老视频 · 2019 年 · VOCALOID·UTAU · 3 分 4 秒 · 输入：带 spm_id_from 追踪参数",
+      "input": "https://www.bilibili.com/video/BV1Jb411U7u2/?spm_id_from=333.1007.tianma.1-1-1.click",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Jb411U7u2",
+        "part": 1,
+        "part_count": 1,
+        "duration": 184.0,
+        "title": "洛天依，原创《勾指起誓》",
+        "author": "ilem"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 15.2
+      }
+    },
+    {
+      "id": "bili-old-BV1w7411P7jJ",
+      "category": "old",
+      "note": "老视频 · 2020 年 · 短片 · 18 分 53 秒 · 输入：带 ?t= 时间点参数",
+      "input": "https://www.bilibili.com/video/BV1w7411P7jJ/?t=42.5",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1w7411P7jJ",
+        "part": 1,
+        "part_count": 1,
+        "duration": 1133.0,
+        "title": "受够了，我真的不行了。好想逃。",
+        "author": "浅葱喵asagiinyo"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 23.1
+      }
+    },
+    {
+      "id": "bili-old-BV16X4y1g7wT",
+      "category": "old",
+      "note": "老视频 · 2021 年 · 极客DIY · 11 分 57 秒 · 输入：活动页链接（bvid 在参数里）",
+      "input": "https://www.bilibili.com/festival/2026bnj?bvid=BV16X4y1g7wT",
+      "expect": {
+        "ok": true,
+        "video_id": "BV16X4y1g7wT",
+        "part": 1,
+        "part_count": 1,
+        "duration": 717.0,
+        "title": "【才浅】15天花20万元用500克黄金敲数万锤纯手工打造三星堆黄金面具",
+        "author": "才疏学浅的才浅"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 32.2
+      }
+    },
+    {
+      "id": "bili-old-BV1dR4y1F7Aq",
+      "category": "old",
+      "note": "老视频 · 2022 年 · MAD·AMV · 1 分 51 秒 · 输入：标准链接",
+      "input": "https://www.bilibili.com/video/BV1dR4y1F7Aq",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1dR4y1F7Aq",
+        "part": 1,
+        "part_count": 1,
+        "duration": 111.0,
+        "title": "⚡️ 中 国 人 不 蹦 洋 迪 ⚡️",
+        "author": "钓可尔太曼"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 25.4
+      }
+    },
+    {
+      "id": "bili-old-BV1qm4y1r7BB",
+      "category": "old",
+      "note": "老视频 · 2023 年 · 时尚潮流 · 3 分 55 秒 · 输入：网页分享链接（带 share_source / vd_source 参数）",
+      "input": "https://www.bilibili.com/video/BV1qm4y1r7BB/?share_source=copy_web&vd_source=3f2a9c1d7e5b4a6c8d0e1f2a3b4c5d6e",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1qm4y1r7BB",
+        "part": 1,
+        "part_count": 1,
+        "duration": 235.0,
+        "title": "『从头看她』1920-2020，中国女性发型的百年变迁",
+        "author": "朵朵花林"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 35.2
+      }
+    },
+    {
+      "id": "bili-multipart-BV1vx411K7jb-p69",
+      "category": "multipart",
+      "note": "多 P · 2014 年 · 单机游戏 · 23 分 5 秒 · 共 69 P，取第 69 P · 输入：网页分享链接（带 share_source / vd_source 参数）",
+      "input": "https://www.bilibili.com/video/BV1vx411K7jb/?share_source=copy_web&vd_source=3f2a9c1d7e5b4a6c8d0e1f2a3b4c5d6e&p=69",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1vx411K7jb",
+        "part": 69,
+        "part_count": 69,
+        "duration": 1385.0,
+        "title": "【散人】大型励志剧 娱乐圈小助理养成计划（20.2.20更新 叶琛番外 程语柔表白遭拒绝）",
+        "author": "逍遥散人"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 48.7
+      }
+    },
+    {
+      "id": "bili-multipart-BV1ts411D7mf-p100",
+      "category": "multipart",
+      "note": "多 P · 2015 年 · 演奏 · 2 分 37 秒 · 共 138 P，取第 100 P · 输入：带标题的分享文本",
+      "input": "【【Animenz】动漫钢琴演奏合集】 https://www.bilibili.com/video/BV1ts411D7mf/?p=100",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1ts411D7mf",
+        "part": 100,
+        "part_count": 138,
+        "duration": 157.0,
+        "title": "【Animenz】动漫钢琴演奏合集",
+        "author": "Animenzzz"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 75.8
+      }
+    },
+    {
+      "id": "bili-multipart-BV1CC4y1a7ee-p17",
+      "category": "multipart",
+      "note": "多 P · 2020 年 · 影视杂谈 · 80 分 26 秒 · 共 17 P，取第 17 P · 输入：av 号链接",
+      "input": "https://www.bilibili.com/video/av796036736/?p=17",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1CC4y1a7ee",
+        "part": 17,
+        "part_count": 17,
+        "duration": 4826.0,
+        "title": "【木鱼微剧场】《红楼梦》（全集）",
+        "author": "木鱼水心"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 16.0
+      }
+    },
+    {
+      "id": "bili-multipart-BV1dx411P79c-p3",
+      "category": "multipart",
+      "note": "多 P · 2014 年 · GMV · 3 分 21 秒 · 共 3 P，取第 3 P · 输入：带 spm_id_from 追踪参数",
+      "input": "https://www.bilibili.com/video/BV1dx411P79c/?spm_id_from=333.1007.tianma.1-1-1.click&p=3",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1dx411P79c",
+        "part": 3,
+        "part_count": 3,
+        "duration": 201.0,
+        "title": "【燃向】得入暴雪门，无悔游人生（更新OW归来版）",
+        "author": "暴雪大法好"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 67.4
+      }
+    },
+    {
+      "id": "bili-multipart-BV1yTpH64Eev-p2",
+      "category": "multipart",
+      "note": "多 P · 2026 年 · 鬼畜剧场 · 0 分 21 秒 · 共 2 P，取第 2 P · 输入：带 ?t= 时间点参数",
+      "input": "https://www.bilibili.com/video/BV1yTpH64Eev/?t=42.5&p=2",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1yTpH64Eev",
+        "part": 2,
+        "part_count": 2,
+        "duration": 21.0,
+        "title": "若不是你突然闯进❤️我的世界❤️",
+        "author": "嗨皮的小剪刀"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 15.5
+      }
+    },
+    {
+      "id": "bili-short-BV1MKWF6kER1",
+      "category": "short",
+      "note": "一分钟内短视频 · 2026 年 · 日常 · 0 分 21 秒 · 输入：手机版链接 m.bilibili.com",
+      "input": "https://m.bilibili.com/video/BV1MKWF6kER1",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1MKWF6kER1",
+        "part": 1,
+        "part_count": 1,
+        "duration": 21.0,
+        "title": "赶时间",
+        "author": "不是唐嘉琦"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 19.2
+      }
+    },
+    {
+      "id": "bili-short-BV1EuWc6bELC",
+      "category": "short",
+      "note": "一分钟内短视频 · 2026 年 · 仿妆cos · 0 分 18 秒 · 输入：没有 https:// 前缀的链接",
+      "input": "www.bilibili.com/video/BV1EuWc6bELC/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1EuWc6bELC",
+        "part": 1,
+        "part_count": 1,
+        "duration": 18.0,
+        "title": "我对象说老吴两声都比我正片流量好",
+        "author": "鸽子_mp4"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 19.2
+      }
+    },
+    {
+      "id": "bili-short-BV17uWc6bEWk",
+      "category": "short",
+      "note": "一分钟内短视频 · 2026 年 · 同人·手书 · 0 分 31 秒 · 输入：带 spm_id_from 追踪参数",
+      "input": "https://www.bilibili.com/video/BV17uWc6bEWk/?spm_id_from=333.1007.tianma.1-1-1.click",
+      "expect": {
+        "ok": true,
+        "video_id": "BV17uWc6bEWk",
+        "part": 1,
+        "part_count": 1,
+        "duration": 31.0,
+        "title": "“性转马尔福和性转罗恩二选一？”【PSG鸣潮小剧场】",
+        "author": "灰鴉迦的叁石"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 17.4
+      }
+    },
+    {
+      "id": "bili-short-BV1aBWF6SEU4",
+      "category": "short",
+      "note": "一分钟内短视频 · 2026 年 · 日常 · 0 分 32 秒 · 输入：带 ?t= 时间点参数",
+      "input": "https://www.bilibili.com/video/BV1aBWF6SEU4/?t=42.5",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1aBWF6SEU4",
+        "part": 1,
+        "part_count": 1,
+        "duration": 32.0,
+        "title": "挑战实拍刃牙动漫没有的场景！宫本vs郭海皇？（预告）",
+        "author": "大晶本人"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 32.3
+      }
+    },
+    {
+      "id": "bili-short-BV1uVpX69Ek6",
+      "category": "short",
+      "note": "一分钟内短视频 · 2026 年 · 同人·手书 · 0 分 20 秒 · 输入：活动页链接（bvid 在参数里）",
+      "input": "https://www.bilibili.com/festival/2026bnj?bvid=BV1uVpX69Ek6",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1uVpX69Ek6",
+        "part": 1,
+        "part_count": 1,
+        "duration": 20.0,
+        "title": "【Nandupal】中秋节最后一天，返程高速上的即兴舞蹈",
+        "author": "Nandupal"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 25.0
+      }
+    },
+    {
+      "id": "bili-long-BV1yPp96UEQU",
+      "category": "long",
+      "note": "一小时以上长视频 · 2026 年 · 单机游戏 · 82 分 42 秒 · 输入：标准链接",
+      "input": "https://www.bilibili.com/video/BV1yPp96UEQU",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1yPp96UEQU",
+        "part": 1,
+        "part_count": 1,
+        "duration": 4962.0,
+        "title": "王老菊教你法式烧烤",
+        "author": "怕上火暴王老菊"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 58.6
+      }
+    },
+    {
+      "id": "bili-long-BV1z4pq6fENo",
+      "category": "long",
+      "note": "一小时以上长视频 · 2026 年 · 时尚潮流 · 61 分 7 秒 · 输入：网页分享链接（带 share_source / vd_source 参数）",
+      "input": "https://www.bilibili.com/video/BV1z4pq6fENo/?share_source=copy_web&vd_source=3f2a9c1d7e5b4a6c8d0e1f2a3b4c5d6e",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1z4pq6fENo",
+        "part": 1,
+        "part_count": 1,
+        "duration": 3667.0,
+        "title": "时装周还能再抓马一点吗?! 秀场撞衫，比拼高定，揭秘真实的高定世界！",
+        "author": "AHALOLO"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 19.7
+      }
+    },
+    {
+      "id": "bili-long-BV1fnp269Ew9",
+      "category": "long",
+      "note": "一小时以上长视频 · 2026 年 · 明星综合 · 69 分 18 秒 · 输入：带标题的分享文本",
+      "input": "【【TF家族练习生】《成长档案NO.0915-不熄灭的歌》张奕然生日纪录片】 https://www.bilibili.com/video/BV1fnp269Ew9/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1fnp269Ew9",
+        "part": 1,
+        "part_count": 1,
+        "duration": 4158.0,
+        "title": "【TF家族练习生】《成长档案NO.0915-不熄灭的歌》张奕然生日纪录片",
+        "author": "TF家族"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 72.7
+      }
+    },
+    {
+      "id": "bili-recent-BV1Zpp26pEoK",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 美妆护肤 · 12 分 11 秒 · 输入：App 分享文本（b23.tv 短链）",
+      "input": "【时隔9年，我好像变了一个人…-哔哩哔哩】 https://b23.tv/Jm60ycx",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Zpp26pEoK",
+        "part": 1,
+        "part_count": 1,
+        "duration": 731.0,
+        "title": "时隔9年，我好像变了一个人…",
+        "author": "宝剑嫂"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 18.7
+      }
+    },
+    {
+      "id": "bili-recent-BV1xup26AEJ7",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 乐评盘点 · 13 分 41 秒 · 输入：只有 BV 号",
+      "input": "BV1xup26AEJ7",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1xup26AEJ7",
+        "part": 1,
+        "part_count": 1,
+        "duration": 821.0,
+        "title": "Bili_Board术力口周榜第123期2026年10月14日第41周",
+        "author": "Bili-Board_Atel"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 21.9
+      }
+    },
+    {
+      "id": "bili-recent-BV12LWw6VEkd",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 田园美食 · 33 分 18 秒 · 输入：BV 号夹在一句话里",
+      "input": "帮我看看 BV12LWw6VEkd 这个视频讲了什么",
+      "expect": {
+        "ok": true,
+        "video_id": "BV12LWw6VEkd",
+        "part": 1,
+        "part_count": 1,
+        "duration": 1998.0,
+        "title": "云南藏着仙人掌家族盛宴！火龙果｜燕窝果｜多色仙人掌果一次集齐～【滇西小哥】",
+        "author": "滇西小哥"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 104.7
+      }
+    },
+    {
+      "id": "bili-recent-BV1WFWA6VEoS",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 出行 · 11 分 18 秒 · 输入：av 号链接",
+      "input": "https://www.bilibili.com/video/av117432593156049/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1WFWA6VEoS",
+        "part": 1,
+        "part_count": 1,
+        "duration": 678.0,
+        "title": "你敢信苏联真的做过人猿杂交实验？走进地图上不存在的国家，探访那座被废弃的实验基地",
+        "author": "小钟Johnny"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 49.8
+      }
+    },
+    {
+      "id": "bili-recent-BV1PZpq6BEgQ",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 三农 · 9 分 50 秒 · 输入：只有 av 号",
+      "input": "av117433062921493",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1PZpq6BEgQ",
+        "part": 1,
+        "part_count": 1,
+        "duration": 590.0,
+        "title": "漠叔做好事被拍，意外走红网络",
+        "author": "大漠叔叔"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 17.8
+      }
+    },
+    {
+      "id": "bili-recent-BV1vDp16LExk",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 搞笑 · 2 分 28 秒 · 输入：手机版链接 m.bilibili.com",
+      "input": "https://m.bilibili.com/video/BV1vDp16LExk",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1vDp16LExk",
+        "part": 1,
+        "part_count": 1,
+        "duration": 148.0,
+        "title": "当老师在晚自习放电影！",
+        "author": "一串大福"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 19.5
+      }
+    },
+    {
+      "id": "bili-recent-BV1L8p26UEm8",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 美食记录 · 13 分 46 秒 · 输入：没有 https:// 前缀的链接",
+      "input": "www.bilibili.com/video/BV1L8p26UEm8/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1L8p26UEm8",
+        "part": 1,
+        "part_count": 1,
+        "duration": 826.0,
+        "title": "李秀满新团A2O LITE很好但…",
+        "author": "长腿嗑叽君"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 19.3
+      }
+    },
+    {
+      "id": "bili-recent-BV1fEpy67E9v",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 野生技能协会 · 6 分 53 秒 · 输入：带 spm_id_from 追踪参数",
+      "input": "https://www.bilibili.com/video/BV1fEpy67E9v/?spm_id_from=333.1007.tianma.1-1-1.click",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1fEpy67E9v",
+        "part": 1,
+        "part_count": 1,
+        "duration": 413.0,
+        "title": "火羽ひのめ这2081天，都在B站发了些什么？｜《信》",
+        "author": "丰川大肥鱼"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 20.8
+      }
+    },
+    {
+      "id": "bili-recent-BV1E4pq6fE8A",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 网络游戏 · 10 分 11 秒 · 输入：带 ?t= 时间点参数",
+      "input": "https://www.bilibili.com/video/BV1E4pq6fE8A/?t=42.5",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1E4pq6fE8A",
+        "part": 1,
+        "part_count": 1,
+        "duration": 611.0,
+        "title": "【Karsa】终于跟RNG老队友重逢了🥺｜上海VLOG EP2",
+        "author": "Karsa"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 17.3
+      }
+    },
+    {
+      "id": "bili-recent-BV1J4pz6qE1o",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 新能源车 · 18 分 18 秒 · 输入：活动页链接（bvid 在参数里）",
+      "input": "https://www.bilibili.com/festival/2026bnj?bvid=BV1J4pz6qE1o",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1J4pz6qE1o",
+        "part": 1,
+        "part_count": 1,
+        "duration": 1098.0,
+        "title": "在中国最年轻的县城开店！我挣到了人生第一桶金？",
+        "author": "大鹏快开车"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 29.0
+      }
+    },
+    {
+      "id": "bili-recent-BV1CUpy6oEiY",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 手机游戏 · 4 分 31 秒 · 输入：标准链接",
+      "input": "https://www.bilibili.com/video/BV1CUpy6oEiY",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1CUpy6oEiY",
+        "part": 1,
+        "part_count": 1,
+        "duration": 271.0,
+        "title": "【亚某爆料时间】王者十一周年限定盾山传说皮限时活动免费换",
+        "author": "王者荣耀"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 28.5
+      }
+    },
+    {
+      "id": "bili-recent-BV1Ghpy6gE5x",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 计算机技术 · 3 分 31 秒 · 输入：网页分享链接（带 share_source / vd_source 参数）",
+      "input": "https://www.bilibili.com/video/BV1Ghpy6gE5x/?share_source=copy_web&vd_source=3f2a9c1d7e5b4a6c8d0e1f2a3b4c5d6e",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1Ghpy6gE5x",
+        "part": 1,
+        "part_count": 1,
+        "duration": 211.0,
+        "title": "你知道吗，其实你的deepseek还可以优化27倍token，少吃白饭！",
+        "author": "魔法师風雪"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 15.7
+      }
+    },
+    {
+      "id": "bili-recent-BV14Tpq6kExw",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 音乐综合 · 3 分 35 秒 · 输入：带标题的分享文本",
+      "input": "【【宋雨琦】 ‘Stay’ LIVE CLIP】 https://www.bilibili.com/video/BV14Tpq6kExw/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV14Tpq6kExw",
+        "part": 1,
+        "part_count": 1,
+        "duration": 215.0,
+        "title": "【宋雨琦】 ‘Stay’ LIVE CLIP",
+        "author": "i-dle_official"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 17.3
+      }
+    },
+    {
+      "id": "bili-recent-BV1NZpz6jE6h",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 综艺 · 20 分 29 秒 · 输入：App 分享文本（b23.tv 短链）",
+      "input": "【百万撤离，一命通关！花少2最大心脏之人——宁静-哔哩哔哩】 https://b23.tv/v1klNIp",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1NZpz6jE6h",
+        "part": 1,
+        "part_count": 1,
+        "duration": 1229.0,
+        "title": "百万撤离，一命通关！花少2最大心脏之人——宁静",
+        "author": "郭本尼"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 18.3
+      }
+    },
+    {
+      "id": "bili-recent-BV132pr6aEXS",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 电子竞技 · 8 分 13 秒 · 输入：只有 BV 号",
+      "input": "BV132pr6aEXS",
+      "expect": {
+        "ok": true,
+        "video_id": "BV132pr6aEXS",
+        "part": 1,
+        "part_count": 1,
+        "duration": 493.0,
+        "title": "2026全球总决赛LPL赛区出征片《风起今朝》",
+        "author": "英雄联盟赛事"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 18.6
+      }
+    },
+    {
+      "id": "bili-recent-BV1a2pr6aEn3",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 数码 · 7 分 35 秒 · 输入：BV 号夹在一句话里",
+      "input": "帮我看看 BV1a2pr6aEn3 这个视频讲了什么",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1a2pr6aEn3",
+        "part": 1,
+        "part_count": 1,
+        "duration": 455.0,
+        "title": "全网吹的华为Mate90 Pro真的好用吗？我用了一周告诉你真实体验！",
+        "author": "冷君ColdDream"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 24.3
+      }
+    },
+    {
+      "id": "bili-recent-BV1YZpB64EDT",
+      "category": "recent",
+      "note": "近期视频 · 2026 年 · 汽车生活 · 11 分 48 秒 · 输入：av 号链接",
+      "input": "https://www.bilibili.com/video/av117434824524938/",
+      "expect": {
+        "ok": true,
+        "video_id": "BV1YZpB64EDT",
+        "part": 1,
+        "part_count": 1,
+        "duration": 708.0,
+        "title": "怒亏30万！这车真不能留了…",
+        "author": "极速拍档-Berlin"
+      },
+      "observed": {
+        "date": "2026-10-14",
+        "frames_ok": 16,
+        "frames_total": 16,
+        "total_sec": 26.1
+      }
+    },
+    {
+      "id": "bili-error-space-page",
+      "category": "error",
+      "note": "用户主页，不是视频页面",
+      "input": "https://space.bilibili.com/2",
+      "expect": {
+        "ok": false,
+        "code": "not_video_page"
+      }
+    },
+    {
+      "id": "bili-error-live-room",
+      "category": "error",
+      "note": "直播间，不是视频页面",
+      "input": "https://live.bilibili.com/1",
+      "expect": {
+        "ok": false,
+        "code": "not_video_page"
+      }
+    },
+    {
+      "id": "bili-error-cheese",
+      "category": "error",
+      "note": "课程页面，暂不支持",
+      "input": "https://www.bilibili.com/cheese/play/ep1",
+      "expect": {
+        "ok": false,
+        "code": "unsupported_content"
+      }
+    },
+    {
+      "id": "bili-error-bangumi-season",
+      "category": "error",
+      "note": "番剧 season 页面，暂不支持",
+      "input": "https://www.bilibili.com/bangumi/play/ss28747",
+      "expect": {
+        "ok": false,
+        "code": "unsupported_content"
+      }
+    },
+    {
+      "id": "bili-error-no-link",
+      "category": "error",
+      "note": "没有链接的普通文字",
+      "input": "这个视频讲了什么？",
+      "expect": {
+        "ok": false,
+        "code": "no_link"
+      }
+    },
+    {
+      "id": "bili-error-truncated-bv",
+      "category": "error",
+      "note": "BV 号少了一位（复制不完整）",
+      "input": "BV1xx411c7m",
+      "expect": {
+        "ok": false,
+        "code": "no_link"
+      }
+    },
+    {
+      "id": "bili-error-part-out-of-range",
+      "category": "error",
+      "note": "3P 视频请求第 99P",
+      "input": "https://www.bilibili.com/video/BV1dx411P79c?p=99",
+      "expect": {
+        "ok": false,
+        "code": "part_not_found"
+      }
+    },
+    {
+      "id": "bili-error-av-not-found",
+      "category": "error",
+      "note": "不存在的 av 号",
+      "input": "av1",
+      "expect": {
+        "ok": false,
+        "code": "not_found"
+      }
+    }
+  ]
+}
