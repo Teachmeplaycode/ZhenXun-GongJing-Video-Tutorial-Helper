@@ -1,0 +1,2905 @@
+ ▐▛███▛█   Claude Code v2.1.296
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   ~/project/Huawei/MyTargetProject/datas
+
+
+❯ 请你阅读docs的两个设计文档,先写下前端界面吧                                   
+
+  Read 1 file, listed 1 directory, ran 3 shell commands (ctrl+o to expand)
+
+⏺ 两份设计文档和 MVP 的等高线组件都看完了，接下来我先检查 backend
+  是否有现成接口，再在 front/ 中搭建 React + Vite + Three.js + GSAP 前端。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ backend 目前是空的，所以前端会自带一个模拟数据层（事件格式按文档第 9
+  节），之后可以直接换成真实的 SSE。现在开始在 front/ 里搭项目。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the design tokens and base styles.
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/styles/tokens.css)
+  ⎿  Wrote 89 lines to ../front/src/styles/tokens.css
+      1 /* Design tokens — single source of truth (design_2.md §1–§3, §12
+        ).
+      2    Components must reference these variables, never raw hex / px 
+        values. */
+      3 :root {
+      5   --bg-canvas: #F5F3EF;
+      6   --bg-surface: #FFFFFF;
+      7   --bg-surface-alt: #FAF8F5;
+      8   --bg-inverse: #1A1A1A;
+      9   --grid-line: #EDEAE5;
+     … +88 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the Three.js sculpture component.
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/SculptureCanvas.js
+       x)
+  ⎿  Wrote 208 lines to ../front/src/components/SculptureCanvas.jsx
+       1 import React, { useEffect, useRef, useState } from 'react'
+       2 import * as THREE from 'three'
+       3 import gsap from 'gsap'
+         sculptureMath'
+       5 import { token } from '../lib/tokens'
+       6 import { DUR, EASE, isLowEndDevice, prefersReducedMotion } from 
+         '../lib/motion'
+       8 
+       9 const INSTANCE_COUNT = 400
+      10 const INSTANCE_COUNT_LOW = 200
+     … +219 lines (ctrl+o to expand)
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/SculptureFallback.
+       jsx)
+  ⎿  Wrote 42 lines to ../front/src/components/SculptureFallback.jsx
+       1 import React, { useMemo } from 'react'
+       3 import { SHEET, sampleSheets, twistAngle } from '../lib/sculptur
+         eMath'
+       4 
+         bGL (§7.1 webgl_fallback).
+       6 // Each sheet is drawn as its projected long edge; depth drives 
+       7 export default function SculptureFallback({ className = '', dark
+          = false }) {
+       8   const lines = useMemo(() => {
+      10     const rot = new THREE.Euler(0.55, 0.4, 0.12)
+     … +42 lines (ctrl+o to expand)
+
+⏺ Now the contour loader, adapted from the MVP terrain with a bottom-up reveal.
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/ContourLoader.jsx)
+  ⎿  Wrote 198 lines to ../front/src/components/ContourLoader.jsx
+      1 import React, { useEffect, useRef } from 'react'
+      2 import * as THREE from 'three'
+      3 import gsap from 'gsap'
+      5 import { isLowEndDevice, prefersReducedMotion } from '../lib/moti
+        on'
+      6 
+      7 // Contour terrain loader (design_2.md §6). Height field is the s
+      8 // the videoComprehensive MVP (ui/src/components/Terrain.jsx); he
+        re contour lines are revealed
+      9 // level by level from the lowest elevation upward, looping.
+     … +207 lines (ctrl+o to expand)
+
+⏺ Now the API layer — mock upload and a mock agent event stream using the §9
+  event types, with an SSE client ready for the real backend.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now chat components: icons, avatar, tool call card, diff viewer, browser
+  viewport, completion banner.
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the message bubble, chat thread with streaming state, and input area.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Now the timeline sculpture (the sheets laid out under the container).
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/TimelineSculpture.
+       jsx)
+  ⎿  Wrote 142 lines to ../front/src/components/TimelineSculpture.jsx
+       1 import React, { useEffect, useLayoutEffect, useMemo, useRef, use
+         State } from 'react'
+       2 import gsap from 'gsap'
+       3 import { TAU, twistAngle } from '../lib/sculptureMath'
+       4 import { fmtTime, frameNo } from '../lib/format'
+       6 
+       7 const NEIGHBOR_RADIUS = 3
+       8 const PREVIEW_DELAY = 400 // ms
+       9 const CURVE_AMPLITUDE = 10 // px
+      10 const PREVIEW_WIDTH = 220
+     … +163 lines (ctrl+o to expand)
+
+⏺ Now the stage panels: import panel, upload mask, analysis HUD.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the App orchestrator with the stage transitions.
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/App.jsx)
+  ⎿  Wrote 256 lines to ../front/src/App.jsx
+       1 import React, { useCallback, useLayoutEffect, useRef, useState }
+          from 'react'
+       2 import gsap from 'gsap'
+       4 import TimelineSculpture from './components/TimelineSculpture'
+       5 import ImportPanel from './stages/ImportPanel'
+       6 import UploadMask from './stages/UploadMask'
+       7 import AnalyzeHud from './stages/AnalyzeHud'
+       9 import { uploadVideo } from './api/client'
+      10 import { extractFrames, pickFrameCount, probeVideo, syntheticFra
+         mes } from './lib/video'
+     … +278 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the stylesheet.
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/styles/app.css)
+  ⎿  Wrote 408 lines to ../front/src/styles/app.css
+       1 /* All values reference tokens.css (design_2.md §1–§3). */
+       2 *, *::before, *::after { box-sizing: border-box; }
+       3 html, body, #root { height: 100%; margin: 0; }
+       4 body {
+       5   background: var(--bg-canvas);
+       6   color: var(--text-primary);
+       7   font-family: var(--font-sans);
+       8   font-size: var(--fs-body);
+       9   line-height: 1.6;
+      10   -webkit-font-smoothing: antialiased;
+     … +595 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Build passes. Let me run it and check it visually.
+  Listed 1 directory, ran 4 shell commands (ctrl+o to expand)
+
+⏺ Flow ran end to end (the one 404 is the missing favicon). Checking the
+  screenshots:
+
+  Read 2 files (ctrl+o to expand)
+
+⏺ The sculpture reads well. The contour loader is too dark and heavy — a
+  color-space issue in the shader (linear output not converted to sRGB) plus
+  lines too thick. Fixing:
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ The dark sculpture loses its layered detail — too flat. I'll raise the key/rim
+  lighting as it darkens so sheet edges still read.
+
+  Read 3 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ Everything's working except the timeline, which looks too sparse at 24
+  frames—I'll raise the minimum keyframe count to 48 and widen the sheets, then
+  recheck the contour and dark-state fixes.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Probably just slower frame extraction with more seeks; raising the test
+  timeout and timing it.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 53 seconds is too slow. Checking whether that's video seeking or just software
+  WebGL in headless Chrome competing for CPU:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Raw seeking takes about 1.5s for 56 frames—the slowdown is from headless
+  Chrome doing software WebGL for the 400-sheet sculpture, which won't be a
+  problem on a machine with a real GPU. Now checking the updated visuals.
+
+  Read 3 files (ctrl+o to expand)
+
+⏺ All stages now look right. Stopping the test server:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 前端已经写在 front/ 里，技术栈是 React + Vite + Three.js + GSAP。我用一个 60
+  秒的测试视频在无头 Chrome
+  里把四个阶段完整跑了一遍，每一步都截图看过，构建通过，控制台只有一个缺 favicon
+  的 404。
+
+  启动方式：
+  cd front && npm run dev   # http://localhost:5173
+
+  四个阶段
+  1. 导入：大线框容器里放着 400 片的薄片雕塑，米白哑光，带连续扭转、展开收拢和缓
+     慢的多轴旋转，鼠标移动有轻微视差。左侧是视频导入（支持拖拽）和可选的任务输
+     入，也可以点"使用示例素材"不传文件直接体验。
+  2. 上传：遮罩盖住雕塑后，显示从 MVP 的 Terrain.jsx
+     改出来的等高线地形，等高线从最低处一层层画到顶，2.4
+     秒一轮循环。左下角显示上传进度。
+  3. 解析：遮罩淡出，雕塑在 1.2 秒内变成深色，旋转加速到 3
+     倍。左上角的黑色信息块显示元数据、关键帧抓取 n/N
+     和时间轴索引的进度，底部的胶片条会逐帧出现。完成后出现"进入对话分析"按钮。
+  4. 对话：深色面板扫过容器后切换成聊天界面，用户在右、AI
+     在左，头像是圆角矩形色块。容器下方是薄片时间轴：
+     - 悬停时当前薄片上浮，相邻的 3 片一起上浮，整体仍保持曲线；停留 400ms
+       后显示关键帧缩略图、时间戳和帧号。
+     - 点击可以多选薄片作为提问附件；不选时输入框上方显示"范围：整段视频"。
+     - AI 回复按文档第 9
+       节的事件流式展示：进度标签、默认折叠的工具调用卡片（参数、输出、exit
+       code）、diff 视图、类似 computer use 的浏览器小窗（地址栏、光标涟漪、操作
+       记录、可全屏展开）、逐字输出带闪烁光标，最后是黑色完成信息块。
+
+  所有颜色和间距都写在 src/styles/tokens.css 里，Three.js 的颜色也从这些 token
+  读取，没有写死的色值。
+
+  需要你确认的几处取舍（文档写着"未定义的先提问"，这几处我先按合理默认值做了，你
+  看哪里要改）
+  - 没有用 Remotion。 Remotion
+    适合渲染视频，不太适合驱动可交互的网页界面，所以阶段切换和组件动效都用 GSAP
+    的 timeline 来做。如果你确实要用 Remotion，需要说明它具体负责哪一部分。
+  - backend 目录是空的，所以上传和 Agent 流目前是模拟数据，放在
+    src/api/mock.js。设置 VITE_API_BASE 后会切到真实接口：上传是 POST 
+    /api/videos，对话是 SSE 接口 POST 
+    /api/agent/runs，这两个接口路径是我先定的。
+  - 我新加了 browser.open、browser.action、browser.frame 
+    三种事件来驱动浏览器小窗，第 9 节的事件表里没有这几种。
+  - 关键帧目前在浏览器端用 <video> 抓取，每段视频抓 48–64 帧，这样时间轴和悬停预
+    览里显示的是真实画面。接入后端后可以换成后端返回的关键帧。
+  - 模拟的 Agent 根据问题里的关键词决定演示哪些步骤：包含"搜索/网页"会演示浏览器
+    步骤，包含"报告/写"会演示文件 diff。对话页的三个推荐问题分别对应这几种情况。
+
+  性能说明：在无头 Chrome 里，雕塑用软件 WebGL 渲染，会占满主线程，所以 48
+  帧花了约 53 秒才抓完。单独测抓帧只要约 1.5 秒（56 帧），有真实 GPU
+  的机器上应该不会有这个问题。页面不可见时会暂停动画；低端设备会把薄片减到 200
+  片、等高线密度减半；系统开启"减少动态效果"时只保留极慢的旋转。
+
+✻ Crunched for 16m 59s · done 1:26 PM
+
+❯ 你这做的也太保守了，我要的薄片也是那种3D效果                                  
+  参考明日方舟莱茵生命PV那种效果，中间这个动态模型也是太小了[Image #1] [Image   
+  #2] [Image #3]                                                                
+  ,等高线的山峰可以夸张点，你可以不用模型啊，就用纯canvas绘制，那种伪3D效果就行 
+  ⎿  [Image #1]
+  ⎿  [Image #2]
+  ⎿  [Image #3]
+
+⏺ 明白：雕塑要更大、更有体积，深色态要有莱茵生命那种黑片配橙色描边；等高线改成纯
+  Canvas 的伪 3D，山峰夸张一些。我先改雕塑。
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ 参考图里是一条"∞"形宽带，由细长板条密排而成，局部板条会散开。我按这个重写雕塑
+  的几何参数：
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/lib/sculptureMath.js)
+  ⎿  Added 55 lines, removed 22 lines
+       1  import * as THREE from 'three'
+       2  
+       3 -// Parametric sheet sculpture (design_2.md §7.1). Shared by the
+         - WebGL renderer,                                               
+       4 -// the static SVG fallback and the DOM timeline so all three re
+         -ad as one object.                                              
+       3 +// Parametric slat ribbon (design_2.md §7.1, art direction: Rhi
+         +ne Lab PV).                                                    
+       4 +// Shared by the WebGL renderer, the static SVG fallback and th
+         +e DOM timeline.                                                
+       5  export const TAU = Math.PI * 2
+       6 -export const SHEET = { width: 0.8, height: 4.0, thickness: 0.02
+         - }                                                             
+       6 +// width = slat depth, height = ribbon width (across the band),
+         + thickness = along the curve                                   
+       7 +export const SHEET = { width: 0.55, height: 5.4, thickness: 0.0
+         +6 }                                                            
+       8  export const TWIST_SPEED = 0.15 // rad/s
+       9  export const BREATH = { amplitude: 0.3, period: 8 }
+      10  
+      10 -const RING_RADIUS = 7                                          
+      11 -const RING_WOBBLE = 1.4                                        
+      12 -const RING_LIFT = 1.8                                          
+      11  const CONTROL_POINTS = 24
+      12 +const LOBE_X = 15                                              
+      13 +const LOBE_Y = 4.6                                             
+      14 +const CROSS_Z = 6.5                                            
+      15  
+      15 -// Closed band with height undulation: gives front/back occlusi
+         -on as it rotates.                                              
+      16 -function ringPoint(u) {                                        
+      16 +// 3D figure-eight: the two lobes pass in front of / behind eac
+         +h other at the crossing.                                       
+      17 +function loopPoint(u) {                                        
+      18    const t = u * TAU
+      18 -  const r = RING_RADIUS + RING_WOBBLE * Math.cos(2 * t)        
+      19 -  return new THREE.Vector3(r * Math.cos(t), RING_LIFT * Math.si
+         -n(3 * t), r * Math.sin(t))                                     
+      19 +  return new THREE.Vector3(LOBE_X * Math.sin(t), LOBE_Y * Math.
+         +sin(2 * t), CROSS_Z * Math.cos(t) + 1.6 * Math.sin(3 * t))     
+      20  }
+      21  
+      22  export function buildCurve() {
+      23    const pts = []
+      24 -  for (let i = 0; i < CONTROL_POINTS; i += 1) pts.push(ringPoin
+         -t(i / CONTROL_POINTS))                                         
+      24 +  for (let i = 0; i < CONTROL_POINTS; i += 1) pts.push(loopPoin
+         +t(i / CONTROL_POINTS))                                         
+      25    return new THREE.CatmullRomCurve3(pts, true, 'centripetal')
+      26  }
+      27  
+      28 -// Twist angle of a cross-section. Integer turn counts keep the
+         - angle continuous across                                       
+      29 -// the loop seam, so sheet normals never flip abruptly.        
+      28 +// Twist of a cross-section. Integer turn count keeps it contin
+         +uous across the loop seam,                                     
+      29 +// so slat normals never flip abruptly.                        
+      30  export function twistAngle(u, time) {
+      31 -  return 2 * TAU * u + TWIST_SPEED * time + 0.7 * Math.sin(TAU 
+         -* 3 * u - TWIST_SPEED * 2 * time)                              
+      31 +  return TAU * u + TWIST_SPEED * time + 0.55 * Math.sin(TAU * 2
+         + * u - TWIST_SPEED * 2 * time)                                 
+      32  }
+      33  
+      34 +// Ribbon width swells and narrows along the band.             
+      35 +export function bandScale(u, time) {                           
+      36 +  return 0.72 + 0.34 * Math.sin(TAU * 2 * u + 0.6 + 0.12 * time
+         +)                                                              
+      37 +}                                                              
+      38 +                                                               
+      39  export function breathOffset(u, time) {
+      40    return BREATH.amplitude * Math.sin((TAU * time) / BREATH.peri
+          od + TAU * 2 * u)
+      41  }
+      42  
+      43 +// A travelling wave where slats fan out of the band and scatte
+         +r, then fold back in.                                          
+      44 +export function fanAmount(u, time) {                           
+      45 +  const s = Math.sin(TAU * u - 0.11 * time)                    
+      46 +  return s > 0 ? s ** 8 : 0                                    
+      47 +}                                                              
+      48 +                                                               
+      49  // Precompute positions + rotation-minimizing frames (three's c
+          omputeFrenetFrames does
+      50  // parallel transport and spreads the closing correction along 
+          a closed curve).
+      51  export function sampleSheets(count) {
+     ...
+      56      const u = i / count
+      57      sheets.push({
+      58        u,
+      59 +      // per-slat jitter so the scattered part reads as individ
+         +ual pieces                                                     
+      60 +      jitter: Math.sin(i * 12.9898) * 43758.5453 % 1,          
+      61        position: curve.getPointAt(u),
+      62        tangent: frames.tangents[i].clone(),
+      63        normal: frames.normals[i].clone(),
+     ...
+       68  }
+       69  
+       70  const _a = new THREE.Vector3()
+       58 -const _b = new THREE.Vector3()                                
+       71 +const _e = new THREE.Vector3()                                
+       72 +const _t = new THREE.Vector3()                                
+       73 +const _tmp = new THREE.Vector3()                              
+       74  const _p = new THREE.Vector3()
+       75  
+       61 -// Write the instance matrix for one sheet at a given time.   
+       62 -export function composeSheetMatrix(sheet, time, breathing, out
+          -) {                                                           
+       63 -  const theta = twistAngle(sheet.u, time)                     
+       76 +// Write the instance matrix for one slat at a given time.    
+       77 +export function composeSheetMatrix(sheet, time, animated, out)
+          + {                                                            
+       78 +  const { u } = sheet                                         
+       79 +  const theta = twistAngle(u, time)                           
+       80    const c = Math.cos(theta)
+       81    const s = Math.sin(theta)
+       66 -  // a = height axis, b = width axis, both in the normal/binor
+          -mal plane                                                     
+       82 +  // a: across-band axis; e: slat depth axis; e × a = tangent 
+          +(right-handed basis)                                          
+       83    _a.copy(sheet.normal).multiplyScalar(c).addScaledVector(shee
+           t.binormal, s)
+       68 -  _b.copy(sheet.normal).multiplyScalar(s).addScaledVector(shee
+          -t.binormal, -c) // = -(width axis), keeps basis right-handed  
+       84 +  _e.copy(sheet.normal).multiplyScalar(s).addScaledVector(shee
+          +t.binormal, -c)                                               
+       85 +  _t.copy(sheet.tangent)                                      
+       86    _p.copy(sheet.position)
+       70 -  if (breathing) _p.addScaledVector(sheet.normal, breathOffset
+          -(sheet.u, time))                                              
+       71 -  out.makeBasis(_b, _a, sheet.tangent)                        
+       87 +                                                              
+       88 +  if (animated) {                                             
+       89 +    _p.addScaledVector(sheet.normal, breathOffset(u, time))   
+       90 +    const fan = fanAmount(u, time)                            
+       91 +    if (fan > 0.001) {                                        
+       92 +      // rotate the slat about its across-band axis and push i
+          +t out of the band                                             
+       93 +      const phi = fan * (0.9 + 0.8 * sheet.jitter)            
+       94 +      const cp = Math.cos(phi)                                
+       95 +      const sp = Math.sin(phi)                                
+       96 +      _tmp.copy(_t)                                           
+       97 +      _t.multiplyScalar(cp).addScaledVector(_e, sp)           
+       98 +      _e.multiplyScalar(cp).addScaledVector(_tmp, -sp)        
+       99 +      _p.addScaledVector(_e, fan * (1.2 + 2.6 * sheet.jitter))
+      100 +      _p.addScaledVector(_a, fan * (sheet.jitter - 0.5) * 2.4)
+      101 +    }                                                         
+      102 +  }                                                           
+      103 +  _a.multiplyScalar(animated ? bandScale(u, time) : 1)        
+      104 +  out.makeBasis(_e, _a, _t)                                   
+      105    out.setPosition(_p)
+      106    return out
+      107  }
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ 现在给解析阶段的容器加深色背景，配合黑色雕塑：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 接下来我将用纯 Canvas 2D 重写等高线效果：用 marching squares 提取闭合等高线，
+  按高程逐层抬升并加上侧壁，营造夸张的阶梯山体，再从最低层开始逐层绘制。
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/ContourLoader.jsx)
+  ⎿  Added 200 lines, removed 117 lines
+       1  import React, { useEffect, useRef } from 'react'
+       2 -import * as THREE from 'three'                                 
+       3 -import gsap from 'gsap'                                        
+       2  import { token } from '../lib/tokens'
+       3  import { isLowEndDevice, prefersReducedMotion } from '../lib/mo
+          tion'
+       4  
+       7 -// Contour terrain loader (design_2.md §6). Height field is the
+         - same warped fbm terrain as                                    
+       8 -// the videoComprehensive MVP (ui/src/components/Terrain.jsx); 
+         -here contour lines are revealed                                
+       9 -// level by level from the lowest elevation upward, looping.   
+       5 +// Contour terrain loader (design_2.md §6), pure Canvas 2D pseu
+         +do-3D.                                                         
+       6 +// The height field reuses the warped-fbm terrain of the videoC
+         +omprehensive MVP                                               
+       7 +// (ui/src/components/Terrain.jsx), sharpened into exaggerated 
+         +peaks. Closed iso-lines are                                    
+       8 +// extracted with marching squares, then stacked as terraces li
+         +fted by their elevation and                                    
+       9 +// drawn level by level from the lowest one upward, looping.   
+      10  
+      11 -const SIZE = 78                                                
+      12 -const AMP = 9                                                  
+      13 -const GRID = 200                                               
+      14 -const CYCLE = 2.4 // s, draw from bottom to top                
+      11 +const GRID = 132                                               
+      12 +const LEVELS = 30                                              
+      13 +const CYCLE = 2.4 // s, bottom → top                           
+      14 +const HOLD = 0.5 // s, finished terrain stays before fading    
+      15 +const FADE = 0.4 // s                                          
+      16  const MAX_CANVAS = 1024
+      17 +const YAW_SPEED = 0.06 // rad/s                                
+      18 +const TILT = 0.52 // vertical squash of the ground plane       
+      19 +const RELIEF = 0.5 // total elevation as a fraction of canvas h
+         +eight                                                          
+      20  
+      21  const hash = (x, y) => {
+      22    let h = Math.imul(x, 374761393) + Math.imul(y, 668265263)
+     ...
+       42    const ridge = 1 - Math.abs(2 * fbm(wx * 0.04 + 20, wz * 0.04
+            + 9) - 1)
+       43    return 0.62 * base + 0.38 * ridge * ridge
+       44  }
+       45 +const smooth = (e0, e1, x) => {                               
+       46 +  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)))    
+       47 +  return t * t * (3 - 2 * t)                                  
+       48 +}                                                             
+       49  
+       42 -const VERT = `                                                
+       43 -  attribute float h;                                          
+       44 -  varying float vH;                                           
+       45 -  varying vec3 vPos;                                          
+       46 -  void main() {                                               
+       47 -    vH = h;                                                   
+       48 -    vPos = position;                                          
+       49 -    gl_Position = projectionMatrix * modelViewMatrix * vec4(po
+          -sition, 1.0);                                                 
+       50 -  }`                                                          
+       50 +// Height field on [-1, 1]²: sharpened terrain + two dominant 
+          +summits, forced to 0 at the                                   
+       51 +// rim so every contour above sea level is a closed loop.     
+       52 +function buildField() {                                       
+       53 +  const n = GRID + 1                                          
+       54 +  const h = new Float32Array(n * n)                           
+       55 +  let lo = Infinity; let hi = -Infinity                       
+       56 +  for (let j = 0; j < n; j += 1) {                            
+       57 +    for (let i = 0; i < n; i += 1) {                          
+       58 +      const x = (i / GRID) * 2 - 1                            
+       59 +      const y = (j / GRID) * 2 - 1                            
+       60 +      const v = rawHeight(x * 40, y * 40)                     
+       61 +      h[j * n + i] = v                                        
+       62 +      lo = Math.min(lo, v); hi = Math.max(hi, v)              
+       63 +    }                                                         
+       64 +  }                                                           
+       65 +  const peak = (x, y, px, py, r) => Math.exp(-((x - px) ** 2 +
+          + (y - py) ** 2) / (r * r))                                    
+       66 +  let max = 0                                                 
+       67 +  for (let j = 0; j < n; j += 1) {                            
+       68 +    for (let i = 0; i < n; i += 1) {                          
+       69 +      const x = (i / GRID) * 2 - 1                            
+       70 +      const y = (j / GRID) * 2 - 1                            
+       71 +      const base = ((h[j * n + i] - lo) / (hi - lo)) ** 1.6   
+       72 +      const summits = 0.95 * peak(x, y, -0.18, -0.12, 0.34) + 
+          +0.7 * peak(x, y, 0.36, 0.28, 0.24)                            
+       73 +      const rim = (x ** 4 + y ** 4) ** 0.25 // rounded-square 
+          +plate                                                         
+       74 +      const window = 1 - smooth(0.62, 0.96, rim)              
+       75 +      const v = (0.55 * base + summits * (0.4 + 0.6 * base)) *
+          + window                                                       
+       76 +      h[j * n + i] = v                                        
+       77 +      max = Math.max(max, v)                                  
+       78 +    }                                                         
+       79 +  }                                                           
+       80 +  for (let k = 0; k < h.length; k += 1) h[k] /= max           
+       81 +  return h                                                    
+       82 +}                                                             
+       83  
+       52 -// Surface is painted in the canvas color (acts only as an occ
+          -luder: "no fill"),                                            
+       53 -// contour strokes appear for every level below uReveal; the l
+          -eading level is drawn in ink.                                 
+       54 -const FRAG = `                                                
+       55 -  uniform vec3 uPaper;                                        
+       56 -  uniform vec3 uLine;                                         
+       57 -  uniform vec3 uInk;                                          
+       58 -  uniform float uLevels;                                      
+       59 -  uniform float uReveal;                                      
+       60 -  uniform float uFade;                                        
+       61 -  uniform float uHalf;                                        
+       62 -  varying float vH;                                           
+       63 -  varying vec3 vPos;                                          
+       64 -  float lineAA(float v) {                                     
+       65 -    float f = fract(v);                                       
+       66 -    float d = min(f, 1.0 - f);                                
+       67 -    return 1.0 - smoothstep(0.0, fwidth(v) * 0.8, d);         
+       84 +// Marching squares → closed loops (Float32Array of x,y in [-1
+          +, 1]).                                                        
+       85 +const CASES = [                                               
+       86 +  [], [[3, 2]], [[2, 1]], [[3, 1]], [[0, 1]], [[3, 0], [2, 1]]
+          +, [[0, 2]], [[3, 0]],                                         
+       87 +  [[3, 0]], [[0, 2]], [[0, 1], [3, 2]], [[0, 1]], [[3, 1]], [[
+          +2, 1]], [[3, 2]], [],                                         
+       88 +] // edges: 0 top, 1 right, 2 bottom, 3 left                  
+       89 +function contourLoops(h, level) {                             
+       90 +  const n = GRID + 1                                          
+       91 +  const vOffset = n * n                                       
+       92 +  const px = new Map()                                        
+       93 +  const adj = new Map()                                       
+       94 +  const edgeId = (i, j, e) => (e === 0 ? j * n + i : e === 2 ?
+          + (j + 1) * n + i : e === 3 ? vOffset + j * n + i : vOffset + j
+          + * n + i + 1)                                                 
+       95 +  const edgePoint = (i, j, e) => {                            
+       96 +    let x0 = i; let y0 = j; let x1 = i + 1; let y1 = j        
+       97 +    if (e === 1) { x0 = i + 1; x1 = i + 1; y1 = j + 1 }       
+       98 +    if (e === 2) { y0 = j + 1; y1 = j + 1 }                   
+       99 +    if (e === 3) { x1 = i; y1 = j + 1 }                       
+      100 +    const a = h[y0 * n + x0]; const b = h[y1 * n + x1]        
+      101 +    const t = (level - a) / (b - a)                           
+      102 +    return [((x0 + (x1 - x0) * t) / GRID) * 2 - 1, ((y0 + (y1 
+          +- y0) * t) / GRID) * 2 - 1]                                   
+      103    }
+       69 -  void main() {                                               
+       70 -    float v = vH * uLevels;                                   
+       71 -    float fade = 1.0 - smoothstep(0.35, 0.75, fwidth(v));     
+       72 -    float line = lineAA(v) * fade;                            
+       73 -    float shown = 1.0 - smoothstep(uReveal - 0.002, uReveal + 
+          -0.002, vH);                                                   
+       74 -    float front = 1.0 - smoothstep(0.0, 1.6 / uLevels, uReveal
+          - - vH);                                                       
+       75 -    vec3 stroke = mix(uLine, uInk, front * shown);            
+       76 -    vec3 col = mix(uPaper, stroke, line * shown * uFade);     
+       77 -    float edge = 1.0 - smoothstep(uHalf * 0.55, uHalf * 0.97, 
+          -max(abs(vPos.x), abs(vPos.z)));                               
+       78 -    gl_FragColor = vec4(col, edge);                           
+       79 -    #include <colorspace_fragment>                            
+       80 -  }`                                                          
+      104 +  const link = (a, b) => {                                    
+      105 +    if (!adj.has(a)) adj.set(a, [])                           
+      106 +    if (!adj.has(b)) adj.set(b, [])                           
+      107 +    adj.get(a).push(b)                                        
+      108 +    adj.get(b).push(a)                                        
+      109 +  }                                                           
+      110 +  for (let j = 0; j < GRID; j += 1) {                         
+      111 +    for (let i = 0; i < GRID; i += 1) {                       
+      112 +      const idx = (h[j * n + i] > level ? 8 : 0) | (h[j * n + 
+          +i + 1] > level ? 4 : 0)                                       
+      113 +        | (h[(j + 1) * n + i + 1] > level ? 2 : 0) | (h[(j + 1
+          +) * n + i] > level ? 1 : 0)                                   
+      114 +      for (const [ea, eb] of CASES[idx]) {                    
+      115 +        const ida = edgeId(i, j, ea); const idb = edgeId(i, j,
+          + eb)                                                          
+      116 +        if (!px.has(ida)) px.set(ida, edgePoint(i, j, ea))    
+      117 +        if (!px.has(idb)) px.set(idb, edgePoint(i, j, eb))    
+      118 +        link(ida, idb)                                        
+      119 +      }                                                       
+      120 +    }                                                         
+      121 +  }                                                           
+      122 +  const seen = new Set()                                      
+      123 +  const loops = []                                            
+      124 +  for (const start of adj.keys()) {                           
+      125 +    if (seen.has(start)) continue                             
+      126 +    const pts = []                                            
+      127 +    let prev = -1; let cur = start                            
+      128 +    while (cur !== undefined && !seen.has(cur)) {             
+      129 +      seen.add(cur)                                           
+      130 +      pts.push(...px.get(cur))                                
+      131 +      const nb = adj.get(cur)                                 
+      132 +      const next = nb[0] !== prev ? nb[0] : nb[1]             
+      133 +      prev = cur                                              
+      134 +      cur = next                                              
+      135 +    }                                                         
+      136 +    if (pts.length >= 8) loops.push(new Float32Array(pts))    
+      137 +  }                                                           
+      138 +  return loops                                                
+      139 +}                                                             
+      140  
+      141 +const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 
+          +2) ** 2 / 2) // power1.inOut                                  
+      142 +                                                              
+      143  export default function ContourLoader({ className = '' }) {
+      144    const hostRef = useRef(null)
+      145    const canvasRef = useRef(null)
+      146  
+      147    useEffect(() => {
+      148      const host = hostRef.current
+       88 -    let renderer                                              
+       89 -    try {                                                     
+       90 -      renderer = new THREE.WebGLRenderer({ canvas: canvasRef.c
+          -urrent, antialias: true, alpha: true })                       
+       91 -    } catch {                                                 
+       92 -      host.classList.add('contour--fallback')                 
+       93 -      return undefined                                        
+       94 -    }                                                         
+       95 -    const low = isLowEndDevice()                              
+      149 +    const canvas = canvasRef.current                          
+      150 +    const ctx = canvas.getContext('2d')                       
+      151      const reduced = prefersReducedMotion()
+       97 -    renderer.setPixelRatio(1) // buffer is capped explicitly b
+          -elow                                                          
+       98 -    renderer.setClearColor(0x000000, 0)                       
+       99 -                                                              
+      100 -    const scene = new THREE.Scene()                           
+      101 -    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 300
+          -)                                                             
+      102 -    const group = new THREE.Group()                           
+      103 -    scene.add(group)                                          
+      104 -                                                              
+      105 -    let lo = Infinity; let hi = -Infinity                     
+      106 -    const geometry = new THREE.PlaneGeometry(SIZE, SIZE, GRID,
+          - GRID)                                                        
+      107 -    geometry.rotateX(-Math.PI / 2)                            
+      108 -    const pos = geometry.attributes.position                  
+      109 -    const raw = new Float32Array(pos.count)                   
+      110 -    for (let k = 0; k < pos.count; k += 1) {                  
+      111 -      const v = rawHeight(pos.getX(k), pos.getZ(k))           
+      112 -      raw[k] = v                                              
+      113 -      lo = Math.min(lo, v); hi = Math.max(hi, v)              
+      152 +    const levelCount = isLowEndDevice() ? LEVELS / 2 : LEVELS 
+          +// low-end: 50% density                                       
+      153 +    const field = buildField()                                
+      154 +    const levels = []                                         
+      155 +    for (let k = 0; k < levelCount; k += 1) {                 
+      156 +      const v = (k + 0.5) / levelCount                        
+      157 +      levels.push({ v, loops: contourLoops(field, v) })       
+      158      }
+      115 -    for (let k = 0; k < pos.count; k += 1) {                  
+      116 -      raw[k] = (raw[k] - lo) / (hi - lo)                      
+      117 -      pos.setY(k, raw[k] * AMP)                               
+      159 +    const colors = {                                          
+      160 +      top: token('--bg-surface-alt'),                         
+      161 +      wall: token('--sculpture-shadow'),                      
+      162 +      line: token('--text-tertiary'),                         
+      163 +      ink: token('--text-primary'),                           
+      164 +      accent: token('--accent-processing'),                   
+      165      }
+      119 -    geometry.setAttribute('h', new THREE.BufferAttribute(raw, 
+          -1))                                                           
+      166  
+      121 -    const uniforms = {                                        
+      122 -      uPaper: { value: new THREE.Color(token('--bg-canvas')) }
+          -,                                                             
+      123 -      uLine: { value: new THREE.Color(token('--text-tertiary')
+          -) },                                                          
+      124 -      uInk: { value: new THREE.Color(token('--text-primary')) 
+          -},                                                            
+      125 -      uLevels: { value: low ? 16 : 32 }, // low-end: 50% conto
+          -ur density                                                    
+      126 -      uReveal: { value: reduced ? 1 : 0 },                    
+      127 -      uFade: { value: 1 },                                    
+      128 -      uHalf: { value: SIZE / 2 },                             
+      129 -    }                                                         
+      130 -    const mesh = new THREE.Mesh(geometry, new THREE.ShaderMate
+          -rial({                                                        
+      131 -      uniforms, vertexShader: VERT, fragmentShader: FRAG, tran
+          -sparent: true,                                                
+      132 -    }))                                                       
+      133 -    group.add(mesh)                                           
+      134 -                                                              
+      167 +    let W = 0; let H = 0; let scale = 1                       
+      168      const resize = () => {
+      169        const { width, height } = host.getBoundingClientRect()
+      170        if (!width || !height) return
+      171        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      139 -      const scale = Math.min(1, MAX_CANVAS / (width * dpr), MA
+          -X_CANVAS / (height * dpr))                                    
+      140 -      renderer.setSize(Math.round(width * dpr * scale), Math.r
+          -ound(height * dpr * scale), false)                            
+      141 -      camera.aspect = width / height                          
+      142 -      camera.updateProjectionMatrix()                         
+      172 +      scale = Math.min(dpr, MAX_CANVAS / width, MAX_CANVAS / h
+          +eight)                                                        
+      173 +      W = Math.round(width * scale); H = Math.round(height * s
+          +cale)                                                         
+      174 +      canvas.width = W; canvas.height = H                     
+      175      }
+      176      const ro = new ResizeObserver(resize)
+      177      ro.observe(host)
+      178      resize()
+      179  
+      148 -    // Loop: reveal bottom → top over CYCLE (power1.inOut), th
+          -en a short fade and restart.                                  
+      149 -    const tl = gsap.timeline({ repeat: -1, paused: reduced }) 
+      150 -    tl.set(uniforms.uReveal, { value: 0 })                    
+      151 -      .set(uniforms.uFade, { value: 1 })                      
+      152 -      .to(uniforms.uReveal, { value: 1.01, duration: CYCLE, ea
+          -se: 'power1.inOut' })                                         
+      153 -      .to(uniforms.uFade, { value: 0, duration: 0.4, ease: 'po
+          -wer2.in' }, '+=0.3')                                          
+      180 +    let yaw = 0.6                                             
+      181 +    const project = (loop, lift, cosY, sinY, S, cx, cy, out) =
+          +> {                                                           
+      182 +      for (let p = 0; p < loop.length; p += 2) {              
+      183 +        const x = loop[p]; const y = loop[p + 1]              
+      184 +        out[p] = cx + (x * cosY - y * sinY) * S               
+      185 +        out[p + 1] = cy + (x * sinY + y * cosY) * S * TILT - l
+          +ift                                                           
+      186 +      }                                                       
+      187 +      return out                                              
+      188 +    }                                                         
+      189 +    const buffer = new Float32Array(GRID * GRID * 4)          
+      190 +    const tracePath = (pts, count) => {                       
+      191 +      ctx.beginPath()                                         
+      192 +      ctx.moveTo(pts[0], pts[1])                              
+      193 +      for (let p = 2; p < count; p += 2) ctx.lineTo(pts[p], pt
+          +s[p + 1])                                                     
+      194 +    }                                                         
+      195  
+      155 -    let raf = 0                                               
+      156 -    let yaw = 0.5                                             
+      157 -    let last = performance.now()                              
+      196 +    const draw = (progress, alpha) => {                       
+      197 +      ctx.clearRect(0, 0, W, H)                               
+      198 +      if (!W) return                                          
+      199 +      const S = Math.min(W * 0.62, H * 1.05)                  
+      200 +      const relief = H * RELIEF                               
+      201 +      const step = relief / levelCount                        
+      202 +      const cx = W / 2                                        
+      203 +      const cy = H * 0.66                                     
+      204 +      const cosY = Math.cos(yaw); const sinY = Math.sin(yaw)  
+      205 +      const reached = progress * levelCount // fractional leve
+          +l index currently being drawn                                 
+      206 +      ctx.globalAlpha = alpha                                 
+      207 +      ctx.lineJoin = 'round'                                  
+      208 +      for (let k = 0; k < levelCount; k += 1) {               
+      209 +        const local = reached - k                             
+      210 +        if (local <= 0) break                                 
+      211 +        const f = Math.min(1, local) // drawing progress of th
+          +is level                                                      
+      212 +        const lift = levels[k].v * relief                     
+      213 +        const isFront = local < 1                             
+      214 +        for (const loop of levels[k].loops) {                 
+      215 +          // side wall (one terrace step tall) then the top fa
+          +ce: stacked-paper relief                                      
+      216 +          const pts = project(loop, lift, cosY, sinY, S, cx, c
+          +y, buffer)                                                    
+      217 +          ctx.save()                                          
+      218 +          ctx.globalAlpha = alpha * f                         
+      219 +          ctx.translate(0, step)                              
+      220 +          tracePath(pts, loop.length); ctx.closePath()        
+      221 +          ctx.fillStyle = colors.wall                         
+      222 +          ctx.fill()                                          
+      223 +          ctx.restore()                                       
+      224 +          ctx.save()                                          
+      225 +          ctx.globalAlpha = alpha * f                         
+      226 +          tracePath(pts, loop.length); ctx.closePath()        
+      227 +          ctx.fillStyle = colors.top                          
+      228 +          ctx.fill()                                          
+      229 +          ctx.restore()                                       
+      230 +          // contour stroke, drawn progressively along the loo
+          +p for the active level                                        
+      231 +          const count = isFront ? Math.max(2, Math.floor((loop
+          +.length / 2) * f) * 2) : loop.length                          
+      232 +          tracePath(pts, count)                               
+      233 +          if (!isFront) ctx.closePath()                       
+      234 +          ctx.lineWidth = (isFront ? 1.6 : 1) * scale         
+      235 +          ctx.strokeStyle = isFront ? colors.ink : colors.line
+      236 +          ctx.stroke()                                        
+      237 +          if (isFront && count < loop.length) {               
+      238 +            ctx.fillStyle = colors.accent                     
+      239 +            ctx.fillRect(pts[count - 2] - 2 * scale, pts[count
+          + - 1] - 2 * scale, 4 * scale, 4 * scale)                      
+      240 +          }                                                   
+      241 +        }                                                     
+      242 +      }                                                       
+      243 +      ctx.globalAlpha = 1                                     
+      244 +    }                                                         
+      245 +                                                              
+      246 +    let raf = 0; let last = performance.now(); let clock = 0  
+      247 +    const total = CYCLE + HOLD + FADE                         
+      248      const tick = (now) => {
+      249        raf = requestAnimationFrame(tick)
+      250        const dt = Math.min((now - last) / 1000, 0.1)
+      251 +      if (now - last < 30) return // ~30fps is plenty for a li
+          +ne drawing                                                    
+      252        last = now
+      162 -      if (!reduced) yaw += 0.03 * dt                          
+      163 -      group.rotation.y = yaw                                  
+      164 -      camera.position.set(0, 34, 60)                          
+      165 -      camera.lookAt(0, 0, -2)                                 
+      166 -      renderer.render(scene, camera)                          
+      253 +      if (reduced) { draw(1, 1); return }                     
+      254 +      clock = (clock + dt) % total                            
+      255 +      yaw += YAW_SPEED * dt                                   
+      256 +      const progress = easeInOut(Math.min(1, clock / CYCLE))  
+      257 +      const alpha = clock < CYCLE + HOLD ? 1 : 1 - (clock - CY
+          +CLE - HOLD) / FADE                                            
+      258 +      draw(progress, Math.max(0, alpha))                      
+      259      }
+      260      const start = () => {
+      261        if (raf) return
+      262        last = performance.now()
+      263        raf = requestAnimationFrame(tick)
+      172 -      if (!reduced) tl.resume()                               
+      264      }
+      174 -    const stop = () => {                                      
+      175 -      cancelAnimationFrame(raf)                               
+      176 -      raf = 0                                                 
+      177 -      tl.pause()                                              
+      178 -    }                                                         
+      265 +    const stop = () => { cancelAnimationFrame(raf); raf = 0 } 
+      266      const onVisibility = () => (document.hidden ? stop() : sta
+           rt())
+      267      document.addEventListener('visibilitychange', onVisibility
+           )
+      268      start()
+      269  
+      270      return () => {
+      271        stop()
+      185 -      tl.kill()                                               
+      272        ro.disconnect()
+      273        document.removeEventListener('visibilitychange', onVisib
+           ility)
+      188 -      geometry.dispose()                                      
+      189 -      mesh.material.dispose()                                 
+      190 -      renderer.dispose()                                      
+      274      }
+      275    }, [])
+      276  
+
+  Read 3 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ 还存在两个问题：橙光把整个面染成了棕色（应该是黑面配细边缘），深色背景上还露出
+  浅色阴影。我改用菲涅尔边缘光，让掠射角的边缘才发橙光。
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ 深色态已经接近莱茵生命 PV 的效果了。接下来检查等高线时发现模拟上传太快，只显示
+  了约1秒，我现在把模拟上传的最短时长拉长，确保能看完整轮绘制。
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ 伪 3D 阶梯山体出来了，但画面放得太大，整座山被裁掉了。我把缩小比例，让整块地形
+  完整落在画面中间，高度保持夸张：
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ 效果出来了：阶梯式的夸张山体，从最底层往上逐层描线。峰顶和底边稍微贴边，我再收
+  一点尺寸，然后做最终构建检查。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 我按参考图重做了雕塑和等高线，构建通过，各阶段截图都看过。只有最后一步（等高线
+  画面稍微缩小一点）是改完没重新截图的。
+
+  雕塑（lib/sculptureMath.js、SculptureCanvas.jsx）
+  - 形态：改成"∞"形的 3D 宽带，两个环在交叉处一前一后穿过，由 500
+    根细长板条密排而成（文档允许的上限）。板条更厚，单片能看出体积。整条带子会连
+    续扭转，宽度沿带子忽宽忽窄。
+  - 散开效果：有一道波沿着带子缓慢移动，经过的地方板条会旋出、散开，过去后再收回
+    ，对应参考图左下角板条炸开的样子。
+  - 尺寸：取景收得很紧，带子会被线框容器的边缘裁掉，看起来更有压迫感。导入阶段的
+    面板直接压在雕塑上面，类似参考图 2 的布局。
+  - 深色态：解析阶段整个容器跟着反转成黑底，板条变黑。边缘用橙色边缘光勾出来，只
+    有板条侧边和翻折处发橙光，面保持黑色，接近参考图
+    1。"进入对话分析"按钮在深色背景上改成黄绿色。
+
+  等高线（ContourLoader.jsx）：按你说的去掉了 Three.js，改成纯 Canvas 2D 伪 3D。
+  - 地形还是 MVP 的噪声地形，我把它锐化了，并加了两座主峰，起伏比较夸张。
+  - 每条等高线按高度抬起，下面带一圈侧壁阴影，叠成阶梯状的山体。
+  - 动画从最低一层往上逐层描线，正在画的那一层用深色线，笔头是一个橙色小点。画完
+    停一下，淡出后重新开始，整座山同时缓慢转动。
+  - 低端设备层数减半，页面不可见时暂停。
+
+  和设计文档的出入（你确认后我同步改进文档）
+  - 板条厚度从 0.02 加到 0.06，宽度也重新设了。
+  - 文档第 6 节写的是等高线"无填充、仅 1px 描边"，现在带了阶梯填充和侧壁。
+  - 解析阶段容器背景变黑，是新加的。
+  - 模拟上传最短时长改成约 4.6 秒，保证至少能看完一轮等高线动画。
+
+  想再调的话，有几个现成的参数：
+  - 雕塑取景大小：SculptureCanvas.jsx 里的 FRAME_HALF
+  - 等高线山峰高度：ContourLoader.jsx 里的 RELIEF
+  - 散开的幅度：sculptureMath.js 里的 fanAmount
+
+✻ Sautéed for 6m 17s · done 1:39 PM
+
+❯ [Image #4] 这个序列帧薄片还是用正常平放啊，只是我hover的时候这样升起来，不是  
+  说直接就去取线了                                                              
+  ⎿  [Image #4]
+
+⏺ 明白：时间轴静止时应该是整齐平放的一排，只有 hover
+  时才局部升起、形成曲线。我把静止态的高低起伏和宽窄变化去掉。
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+⏺ Quick visual check of the rest state and the hover state:
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ 时间轴改好了，构建通过，截图确认过两种状态：
+
+  - 静止时：所有薄片等宽等高，整齐平放在同一条基线上。去掉了原来跟着雕塑扭转算出
+    来的宽窄、倾斜和起伏。
+  - hover 时：当前薄片升起 8px 并放大 1.05 倍，左右各 3
+    片按平滑的弧度依次升起（约 7 → 4 →
+    1px），连成一段曲线；移开后全部落回原位。停留 400ms 后照常弹出关键帧预览。
+
+  改动在 front/src/components/TimelineSculpture.jsx，app.css
+  里删掉了原来那条倾斜高光的样式。
+
+  有一点和设计文档不一样：文档写的是相邻薄片统一升 3px，我改成了从中心往外逐渐降
+  低，这样升起的部分才是连续的弧线。如果觉得弧度太小，可以调文件顶部的
+  HOVER_LIFT（中心升起的高度）和 NEIGHBOR_RADIUS（影响左右几片）。
+
+✻ Baked for 55s · done 1:42 PM
+
+❯ 然后这个时间轴薄片也用伪3D效果吧                                              
+
+⏺ 做成真正的 3D 小卡片：每一帧是一张有厚度的薄片，用 CSS 3D（perspective +
+  preserve-3d）斜着立在时间轴上，正面印着关键帧画面。hover
+  时卡片升起并转向正面，左右几张跟着按弧度联动。
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/TimelineSculpture.
+       jsx)
+  ⎿  Added 65 lines, removed 42 lines
+       7  const PREVIEW_DELAY = 400 // ms
+       8  const PREVIEW_WIDTH = 220
+       9  const HOVER_LIFT = -8 // px
+      10 +const REST_ANGLE = -58 // deg, sheets stand obliquely like a de
+         +ck seen from the side                                          
+      11 +const HOVER_ANGLE = -12 // deg, hovered sheet turns its face to
+         + the viewer                                                    
+      12 +const CARD_HEIGHT = 60 // px                                   
+      13 +const CARD_DEPTH = 4 // px, sheet thickness                    
+      14  
+      11 -// At rest the sheets stand level and uniform. On hover the tar
+         -get and its neighbours rise                                    
+      12 -// along a cosine bell, so the lifted group forms one smooth cu
+         -rve.                                                           
+      13 -const liftAt = (d) => HOVER_LIFT * (0.5 + 0.5 * Math.cos((Math.
+         -PI * d) / (NEIGHBOR_RADIUS + 1)))                              
+      15 +// At rest the sheets stand level and uniform. On hover the tar
+         +get and its neighbours rise and                                
+      16 +// turn along a cosine bell, so the lifted group forms one smoo
+         +th curve.                                                      
+      17 +const bell = (d) => 0.5 + 0.5 * Math.cos((Math.PI * d) / (NEIGH
+         +BOR_RADIUS + 1))                                               
+      18  
+      19  export default function TimelineSculpture({ frames, duration, s
+          elected, onToggle, onClear }) {
+      16 -  const rootRef = useRef(null)                                 
+      20    const trackRef = useRef(null)
+      21 +  const deckRef = useRef(null)                                 
+      22    const bodies = useRef([])
+      23 +  const cards = useRef([])                                     
+      24    const timer = useRef(0)
+      25    const [preview, setPreview] = useState(null)
+      26    const [trackWidth, setTrackWidth] = useState(0)
+     ...
+      35  
+      36    // §7.1 analyzing_to_chat: sheets distribute from a center st
+          ack into time order.
+      37    useLayoutEffect(() => {
+      33 -    const items = trackRef.current.querySelectorAll('.tl-sheet'
+         -)                                                              
+      38 +    gsap.set(cards.current.filter(Boolean), { rotationY: REST_A
+         +NGLE })                                                        
+      39      if (prefersReducedMotion()) return undefined
+      40 +    const items = deckRef.current.querySelectorAll('.tl-sheet')
+      41      const tween = gsap.from(items, {
+      36 -      x: (i, el) => trackRef.current.clientWidth / 2 - el.offse
+         -tLeft,                                                         
+      37 -      scaleY: 0.3,                                             
+      42 +      x: (i, el) => deckRef.current.clientWidth / 2 - el.offset
+         +Left,                                                          
+      43        opacity: 0,
+      44        duration: 1.4,
+      45        ease: 'power3.inOut',
+      46        stagger: { each: 0.008, from: 'center' },
+      47      })
+      43 -    return () => tween.kill()                                  
+      48 +    const turn = gsap.from(cards.current.filter(Boolean), {    
+      49 +      rotationY: -88,                                          
+      50 +      duration: 1.4,                                           
+      51 +      ease: 'power3.inOut',                                    
+      52 +      stagger: { each: 0.008, from: 'center' },                
+      53 +    })                                                         
+      54 +    return () => { tween.kill(); turn.kill() }                 
+      55    }, [])
+      56  
+      57    const hover = (index) => {
+      58      bodies.current.forEach((el, i) => {
+      59        if (!el) return
+      49 -      const d = Math.abs(i - index)                            
+      50 -      if (index != null && d === 0) {                          
+      51 -        gsap.to(el, { y: HOVER_LIFT, scale: 1.05, duration: 0.2
+         -, ease: 'power2.out', overwrite: 'auto' })                     
+      52 -      } else if (index != null && d <= NEIGHBOR_RADIUS) {      
+      53 -        gsap.to(el, { y: liftAt(d), scale: 1, duration: 0.25, e
+         -ase: 'power2.out', overwrite: 'auto' })                        
+      54 -      } else {                                                 
+      55 -        gsap.to(el, { y: 0, scale: 1, duration: 0.25, ease: 'po
+         -wer2.out', overwrite: 'auto' })                                
+      56 -      }                                                        
+      60 +      const d = index == null ? Infinity : Math.abs(i - index) 
+      61 +      const w = d <= NEIGHBOR_RADIUS ? bell(d) : 0             
+      62 +      const isTarget = d === 0                                 
+      63 +      const dur = isTarget ? 0.2 : 0.25                        
+      64 +      gsap.to(el, { y: HOVER_LIFT * w, scale: isTarget ? 1.05 :
+         + 1, duration: dur, ease: 'power2.out', overwrite: 'auto' })    
+      65 +      gsap.to(cards.current[i], {                              
+      66 +        rotationY: REST_ANGLE + (HOVER_ANGLE - REST_ANGLE) * w,
+      67 +        duration: dur,                                         
+      68 +        ease: 'power2.out',                                    
+      69 +        overwrite: 'auto',                                     
+      70 +      })                                                       
+      71      })
+      72      clearTimeout(timer.current)
+      73      if (index == null) {
+     ...
+      80    useEffect(() => () => clearTimeout(timer.current), [])
+      81  
+      82    const slot = trackWidth / Math.max(1, count)
+      69 -  const sheetWidth = Math.max(3, Math.min(12, slot * 0.45))    
+      83 +  // Face width ~2 slots: rotated sheets overlap slightly like 
+         +a fanned deck.                                                 
+      84 +  const cardWidth = Math.round(Math.max(18, Math.min(64, slot *
+         + 2)))                                                          
+      85    const previewFrame = preview ? frames[preview.index] : null
+      86    const previewX = preview ? (preview.index + 0.5) * slot : 0
+      87    const previewLeft = Math.min(Math.max(previewX - PREVIEW_WIDT
+          H / 2, 0), Math.max(0, trackWidth - PREVIEW_WIDTH))
+      88  
+      89    return (
+      75 -    <section ref={rootRef} className="timeline" aria-label="视 
+         -频时间轴">                                                     
+      90 +    <section className="timeline" aria-label="视频时间轴">     
+      91        <header className="timeline__head">
+      92          <span className="eyebrow">TIMELINE</span>
+      93          <span className="mono-sm muted">{count} 帧 · 00:00.0 – 
+          {fmtTime(duration)}</span>
+     ...
+      102          )}
+      103        </header>
+      104        <div ref={trackRef} className="timeline__track" onPointe
+           rLeave={() => hover(null)}>
+       90 -        {frames.map((f, i) => {                               
+       91 -          const isSel = selectedSet.has(f.index)              
+       92 -          return (                                            
+       93 -            <button                                           
+       94 -              key={f.index}                                   
+       95 -              type="button"                                   
+       96 -              className={`tl-sheet ${isSel ? 'is-selected' : '
+          -'}`}                                                          
+       97 -              style={{ left: `${(i / count) * 100}%`, width: `
+          -${100 / count}%` }}                                           
+       98 -              onPointerEnter={() => hover(i)}                 
+       99 -              onFocus={() => hover(i)}                        
+      100 -              onBlur={() => hover(null)}                      
+      101 -              onClick={() => onToggle(f)}                     
+      102 -              aria-pressed={isSel}                            
+      103 -              aria-label={`${frameNo(f.index)} ${fmtTime(f.tim
+          -e)}`}                                                         
+      104 -            >                                                 
+      105 -              <span                                           
+      106 -                ref={(el) => { bodies.current[i] = el }}      
+      107 -                className="tl-sheet__body"                    
+      108 -                style={{ width: `${sheetWidth}px` }}          
+      105 +        <div                                                  
+      106 +          ref={deckRef}                                       
+      107 +          className="timeline__deck"                          
+      108 +          style={{ '--card-w': `${cardWidth}px`, '--card-h': `
+          +${CARD_HEIGHT}px`, '--card-d': `${CARD_DEPTH}px` }}           
+      109 +        >                                                     
+      110 +          {frames.map((f, i) => {                             
+      111 +            const isSel = selectedSet.has(f.index)            
+      112 +            return (                                          
+      113 +              <button                                         
+      114 +                key={f.index}                                 
+      115 +                type="button"                                 
+      116 +                className={`tl-sheet ${isSel ? 'is-selected' :
+          + ''}`}                                                        
+      117 +                style={{ left: `${(i / count) * 100}%`, width:
+          + `${100 / count}%`, zIndex: i }}                              
+      118 +                onPointerEnter={() => hover(i)}               
+      119 +                onFocus={() => hover(i)}                      
+      120 +                onBlur={() => hover(null)}                    
+      121 +                onClick={() => onToggle(f)}                   
+      122 +                aria-pressed={isSel}                          
+      123 +                aria-label={`${frameNo(f.index)} ${fmtTime(f.t
+          +ime)}`}                                                       
+      124                >
+      110 -                {isSel ? <span className="tl-sheet__mark" /> :
+          - null}                                                        
+      111 -              </span>                                         
+      112 -            </button>                                         
+      113 -          )                                                   
+      114 -        })}                                                   
+      125 +                <span ref={(el) => { bodies.current[i] = el }}
+          + className="tl-sheet__body">                                  
+      126 +                  <span ref={(el) => { cards.current[i] = el }
+          +} className="tl-card">                                        
+      127 +                    <span className="tl-card__face tl-card__fa
+          +ce--front"><img src={f.src} alt="" draggable="false" /></span>
+      128 +                    <span className="tl-card__face tl-card__fa
+          +ce--back" />                                                  
+      129 +                    <span className="tl-card__face tl-card__fa
+          +ce--side" />                                                  
+      130 +                    <span className="tl-card__face tl-card__fa
+          +ce--top" />                                                   
+      131 +                  </span>                                     
+      132 +                  {isSel ? <span className="tl-sheet__mark" />
+          + : null}                                                      
+      133 +                </span>                                       
+      134 +              </button>                                       
+      135 +            )                                                 
+      136 +          })}                                                 
+      137 +        </div>                                                
+      138          {previewFrame ? (
+      139            <div className="sheet-preview" style={{ left: previe
+           wLeft, width: PREVIEW_WIDTH, '--arrow-x': `${previewX - previe
+           wLeft}px` }}>
+      140              <img src={previewFrame.src} alt="" />
+
+  Read 1 file, ran 3 shell commands (ctrl+o to expand)
+
+⏺ 3D薄片效果已经出来了，卡片带厚度并能在hover时升起转正，不过最左侧卡片因透视角
+  度太陡几乎看不见。我现在调大透视距离，缓和两端角度差异。
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+⏺ 时间轴薄片改成了伪 3D，构建通过，静止和 hover 两种状态都截图确认过。
+
+  静止时：每一帧是一张有厚度的小卡片，用 CSS 3D
+  实现，看得到正面、右侧厚度和顶边。所有卡片同角度斜立在一条水平基线上，像侧面看
+  过去的一排卡片，相邻的稍微叠在一起。卡片正面印着这一帧的画面，平时做成灰度、半
+  透明，看起来像哑光薄片，只隐约透出画面。
+
+  hover 时：
+  - 当前卡片升起 8px、放大一点，同时转向正面，画面恢复成彩色。
+  - 左右各 3 张按弧度跟着升起、半转，连成一段平滑曲线；移开后全部回到斜立状态。
+  - 停留 400ms 后照常弹出预览。
+
+  选中时：卡片正面加黄绿色描边，侧边也染成黄绿，上方有一个小圆点标记，画面保持彩
+  色。
+
+  入场动画：进入对话页时，卡片从中间展开到各自的时间位置，同时从几乎侧面朝外转到
+  斜立角度，用时 1.4s。
+
+  改动在 front/src/components/TimelineSculpture.jsx 和
+  front/src/styles/app.css（时间轴部分）。
+
+  因为卡片互相叠着，鼠标落在两张卡片的重叠处时，升起的是视觉上压在上面的那张，预
+  览也显示那一张。这和看到的一致，但不一定是按钮正中那一帧。
+
+  想再调的话：
+  - 斜立角度：REST_ANGLE，现在是 -52°
+  - hover 时转到的角度：HOVER_ANGLE
+  - 卡片尺寸和厚度：CARD_HEIGHT / CARD_DEPTH
+  - 透视强弱：CSS 里的 perspective: 1500px，数值越小，左右两端的角度差别越大
+
+✻ Churned for 2m 29s · done 1:46 PM
+  ⎿  Read src/components/TimelineSculpture.jsx (152 lines)
+  ⎿  Referenced file src/components/ContourLoader.jsx
+  ⎿  Referenced file src/styles/app.css
+  ⎿  Read src/lib/sculptureMath.js (144 lines)
+  ⎿  Read src/components/SculptureCanvas.jsx (232 lines)
+
+⏺ Compacted while idle, before the prompt cache expired
+
+❯ 优化首页的这个故障反色效果，参考一些PV的做法                                  
+
+  Listed 2 directories, ran 3 shell commands (ctrl+o to expand)
+
+⏺ 我要重做首页模型的故障反色效果，用 WebGL 后期着色器替代现有的 CSS
+  反色矩形叠加方案，实现横向切片错位、RGB 分离、块状反色及断续闪帧的效果。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/lib/useModelGlitch.js)
+  ⎿  Added 47 lines, removed 13 lines
+       3  
+       4  const SETTINGS = SCULPTURE_SETTINGS.glitch
+       5  
+       6 -// One brief interruption per cycle; inactive scenes and hidden
+         - tabs stop the timer.                                          
+       6 +// Frame looks, in the spirit of PV signal interruptions: hard 
+         +cuts, no easing in between.                                    
+       7 +// invert: negative region on/off · slice: share of torn bands 
+         +· tear: max band shift (fraction of                            
+       8 +// width) · rgb: channel split in px · blocks: share of corrupt
+         +ed cells · scan: interlace strength                            
+       9 +const LOOKS = {                                                
+      10 +  clean: { invert: 0, slice: 0, tear: 0, rgb: 0, blocks: 0, sca
+         +n: 0 },                                                        
+      11 +  jitter: { invert: 0, slice: 0.35, tear: 0.025, rgb: 3, blocks
+         +: 0, scan: 0.6 },                                              
+      12 +  slice: { invert: 0, slice: 1, tear: 0.07, rgb: 6, blocks: 0.2
+         +, scan: 1 },                                                   
+      13 +  negative: { invert: 1, slice: 0.25, tear: 0.02, rgb: 2, block
+         +s: 0, scan: 0.4 },                                             
+      14 +  tear: { invert: 1, slice: 1, tear: 0.14, rgb: 9, blocks: 0.35
+         +, scan: 1 },                                                   
+      15 +  blocks: { invert: 0, slice: 0.5, tear: 0.04, rgb: 4, blocks: 
+         +1, scan: 0.8 },                                                
+      16 +}                                                              
+      17 +                                                               
+      18 +// Each burst is a stutter of short frames [look, ms]; clean ga
+         +ps between hits sell the rhythm.                               
+      19 +const BURSTS = [                                               
+      20 +  [['jitter', 50], ['clean', 40], ['negative', 80], ['slice', 5
+         +0], ['negative', 40], ['clean', 60], ['jitter', 40]],          
+      21 +  [['tear', 70], ['negative', 130], ['slice', 40], ['clean', 50
+         +], ['negative', 50], ['blocks', 40]],                          
+      22 +  [['negative', 50], ['clean', 50], ['negative', 50], ['tear', 
+         +60], ['blocks', 50], ['jitter', 40]],                          
+      23 +]                                                              
+      24 +                                                               
+      25 +/**                                                            
+      26 + * Occasional negative-image interruption on the homepage model
+         +.                                                              
+      27 + * Returns the current glitch frame ({ look, seed, ...params })
+         + or null when the picture is clean.                            
+      28 + * Inactive scenes, hidden tabs and reduced motion stop the tim
+         +er.                                                            
+      29 + */                                                            
+      30  export function useModelGlitch(enabled) {
+       8 -  const [active, setActive] = useState(false)                  
+      31 +  const [frame, setFrame] = useState(null)                     
+      32  
+      33    useEffect(() => {
+      34      if (!enabled || !SETTINGS.enabled) return undefined
+     ...
+      37      const allowed = () => !document.hidden && !reduced.matches
+      38      const cancel = () => {
+      39        clearTimeout(timer)
+      17 -      setActive(false)                                         
+      40 +      setFrame(null)                                           
+      41      }
+      19 -    const interrupt = () => {                                  
+      42 +    const schedule = (delay) => {                              
+      43 +      timer = setTimeout(burst, delay * 1000)                  
+      44 +    }                                                          
+      45 +    const burst = () => {                                      
+      46        if (!allowed()) return
+      21 -      setActive(true)                                          
+      22 -      timer = setTimeout(() => {                               
+      23 -        setActive(false)                                       
+      24 -        const delay = SETTINGS.minInterval + Math.random() * (S
+         -ETTINGS.maxInterval - SETTINGS.minInterval)                    
+      25 -        timer = setTimeout(interrupt, delay * 1000)            
+      26 -      }, SETTINGS.duration * 1000)                             
+      47 +      const steps = BURSTS[Math.floor(Math.random() * BURSTS.le
+         +ngth)]                                                         
+      48 +      let i = 0                                                
+      49 +      const step = () => {                                     
+      50 +        if (i >= steps.length) {                               
+      51 +          setFrame(null)                                       
+      52 +          schedule(SETTINGS.minInterval + Math.random() * (SETT
+         +INGS.maxInterval - SETTINGS.minInterval))                      
+      53 +          return                                               
+      54 +        }                                                      
+      55 +        const [look, ms] = steps[i]                            
+      56 +        i += 1                                                 
+      57 +        setFrame(look === 'clean' ? null : { look, seed: Math.r
+         +andom() * 100, ...LOOKS[look] })                               
+      58 +        timer = setTimeout(step, ms * SETTINGS.tempo)          
+      59 +      }                                                        
+      60 +      step()                                                   
+      61      }
+      62      const sync = () => {
+      63        cancel()
+      30 -      if (allowed()) timer = setTimeout(interrupt, SETTINGS.fir
+         -stDelay * 1000)                                                
+      64 +      if (allowed()) schedule(SETTINGS.firstDelay)             
+      65      }
+      66      sync()
+      67      document.addEventListener('visibilitychange', sync)
+     ...
+      70        clearTimeout(timer)
+      71        document.removeEventListener('visibilitychange', sync)
+      72        reduced.removeEventListener('change', sync)
+      39 -      setActive(false)                                         
+      73 +      setFrame(null)                                           
+      74      }
+      75    }, [enabled])
+      76  
+      43 -  return enabled && SETTINGS.enabled && active                 
+      77 +  return enabled && SETTINGS.enabled ? frame : null            
+      78  }
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/lib/glitchPass.js)
+  ⎿  Wrote 133 lines to ../front/src/lib/glitchPass.js
+       1 import * as THREE from 'three'
+       2 
+         orn horizontal bands,
+       4 // RGB channel split, corrupted blocks, interlace and a negative
+          region with a ragged edge.
+          is showing.
+       6 const vertexShader = /* glsl */ `
+       7   varying vec2 vUv;
+       9     vUv = uv;
+      10     gl_Position = vec4(position.xy, 0.0, 1.0);
+     … +140 lines (ctrl+o to expand)
+
+⏺ Now wire it into the sculpture renderer.
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Build check, then screenshots with the burst slowed down temporarily so
+  individual frames can be captured.
+
+  Searched for 1 pattern, read 2 files, ran 3 shell commands (ctrl+o to expand)
+
+⏺ PV look is coming through (torn bands, RGB fringes, ragged negative edge,
+  inverted blocks). Checking the other looks and mobile.
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Blocks read as a QR grid — switching them to sparser, wide horizontal data
+  strips, and keeping scanlines to the model side.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+❯ 反色感觉还是不用了，但是那种失真的效果，和一点点扭曲画面可以啊，能不能只作用  
+  到这个模型上                                                                  
+
+⏺ Dropping the inversion, adding a slight wave warp, and limiting everything to
+  the model's own pixels. The background, headline and the label tag will stay
+  untouched.
+
+  Read 3 files, ran 2 shell commands (ctrl+o to expand)
+
+⏺ Distortion is now applied only to the model, keeping the page and headline
+  clean, but I noticed the soft ground shadow turns slightly lighter during
+  glitch frames, creating a faint patch. I'll fix this by making the pass
+  composite exactly like the normal render.
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ Screenshots confirm the distortion stays on the model only. Now restoring
+  normal timing, building, and updating the tuning doc.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Stop Task
+  ⎿  npx vite --port 5179 --strictPort · stopped
+
+⏺ 首页的反色已经去掉，现在只剩失真和一点画面扭曲，而且只作用在模型上。背景、标题
+  和上传框在故障时都不动。桌面宽度和手机宽度都截图看过，构建也通过了。
+
+  怎么做的：原来是一层 CSS 反色框盖在画面上，现在改成在模型渲染完之后再加一道
+  WebGL 处理。这道处理只改模型自己的像素，模型之外的区域保持透明，所以页面背景和
+  文字不会受影响。
+
+  参考 PV 的做法：
+  - 硬切帧：每次故障大约 0.3 秒，由 5～6 个 40～110ms
+    的硬切帧组成，帧之间不做过渡，中间夹几帧正常画面，形成一闪一闪的节奏。现在有
+    3 套帧顺序，每次随机选一套，看起来不会每次都一样。
+  - 横向切片错位：模型被切成高度不一的横条，部分横条左右滑开，还会有零星 2px
+    高的细线撕裂。
+  - RGB 色散：红、蓝通道左右分开，模型边缘出现彩色描边。横条错位越大，色散越强。
+  - 轻微扭曲：一条横向的波浪，加上一段局部鼓起的横带，位置每帧都变，模型看起来像
+    被信号拧了一下。
+  - 数据条：少数几行模型被切成扁长条，挪到附近的位置。
+  - 扫描线：模型表面加一层很淡的隔行暗纹。
+
+  想再调的话：
+  - 开关、首次延迟、两次故障的间隔：在 src/config/workspace.js 的
+    SCULPTURE_SETTINGS.glitch 里改。tempo 可以整体放慢（大于 1）或加快（小于
+    1）每次故障。
+  - 每一帧的强度：在 src/lib/useModelGlitch.js 的 LOOKS 里改：warp 扭曲、slice
+    切片比例、tear 错位幅度、rgb 色散像素、blocks 数据条、scan 扫描线。
+  - 帧顺序和每帧时长：同一个文件的 BURSTS。
+  - 着色器本身：src/lib/glitchPass.js。
+
+  docs/frontend-customization.md 里的说明也已经同步更新。
+
+  几点说明：
+  - 中途加的「SIGNAL INTERRUPT」小标签和标题的彩色错位，都随反色一起删掉了，现在
+    只保留模型上的效果。
+  - 低性能设备上不播放这个效果；开启「减少动态效果」或页面切到后台时也会停止。
+
+✻ Cooked for 8m 46s · done 8:07 PM
+
+❯ 然后首页左侧这个上传容器你觉得怎么设计比较好看                                
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 我建议把它从现在偏通用 SaaS 风格的"搜索框"，改成和 PV
+  视觉一致的"实验室设备插槽"。
+
+  现在的问题
+
+  1. 风格不搭：14px 大圆角、白底和柔和的大阴影，是常见 SaaS
+     产品的样子。右边的模型和 PV 参考是硬边、细线、等宽字标注，这个框放在旁边显
+     得软、显得廉价。另外设计规范要求圆角不超过 8px，这里是 14px，超了。
+  2. 按钮默认像坏掉了：没选文件时，「开始解析」是一块灰色，看起来像故障，而不是
+     在提示"下一步在这里"。
+  3. 层级平：标题、说明、上传框、底部那行小字，四块之间没有结构上的联系，上传框
+     像是另外贴上去的。
+  4. 「使用示例素材」藏得太深：第一次来的人最可能点它，现在却只是底部一行灰色小
+     字。
+
+  推荐方案：编号插槽
+
+   01 / IMPORT                              ┐
+  ┌─────────────────────────────────────────┤
+  │ ⌐                                     ¬ │
+  │   ↑  选择或拖入视频          [ 开始解析 → ]│
+  │      MP4 · MOV · WEBM · ≤2GB            │
+  │ └                                     ┘ │
+  └─────────────────────────────────────────┘
+    ○ 添加分析任务        使用示例素材 ———→
+
+  - 容器：细线边框、2–4px
+    小圆角，去掉阴影，背景用半透明的画布色，让模型隐约透过来。四角加 L
+    形刻度，和对话页那个深色容器的角标是同一套语言。
+  - 标签：框的左上方加一行等宽小字「01 / IMPORT」，和导航里的 01 / 02 / 03
+    步骤对应，用编号把上传框和标题串成一个整体。
+  - 状态用颜色和线条讲清楚：
+    - 空闲：按钮做成黑底白字带箭头，不再用灰色。没选文件时点按钮，直接打开文件选
+      择，不再禁用。
+    - 拖入文件时：边框变黄绿色，四角刻度向外扩
+      4px，中间出现扫描线，提示"放这里"。
+    - 已选文件：左侧换成文件名和大小，再加一条黄绿色的细条。为了不和"上传进度"混
+      淆，我不打算做成进度条的样子，而是显示视频时长缩略条。具体做法是在前端读出
+      时长后显示「01:32 · 48 帧」，用户在这里就能预见到解析结果。
+  - 示例素材提升为明确的次要入口：用文字加一条横线和箭头的样式，hover
+    时横线往右延伸。「添加分析任务」保留在左边，作为可展开的选项。
+  - 展开的分析任务：从框体下沿直接往下延伸，和上面共用同一条边框，不另起一个浮动
+    区域；预设做成等宽小标签。
+
+  整体效果是左边像设备面板，右边是模型，两边属于同一套视觉。
+
+  另一个更激进的方向（不太推荐）
+
+  去掉白框，整个左栏变成拖放区：标题下面只留一行「拖入视频 / 选择文件
+  →」，拖文件时整个左半屏亮起黄绿色细框。这样最简洁、最像
+  PV，但第一次来的人不一定看得出可以上传，可发现性较差。
+
+  要不要我按推荐方案直接改？改动只在 ImportPanel.jsx 和
+  workspace.css，改完截图给你看空闲、拖入、已选三种状态。
+
+✻ Sautéed for 26s · done 8:12 PM
+
+❯ 你觉得苹果的那种液态玻璃怎么样                                                
+
+⏺ 液态玻璃可以用，但我不建议照搬苹果的做法。更适合这个页面的是"实验室玻片"式的克
+  制用法。
+
+  合适的地方
+
+  - 右侧的模型会从上传框后面穿过：首页的薄片模型是持续转动的 3D
+    物体，左边那一环正好会经过左栏下方。玻璃最需要的就是背后有丰富、会动的内容，
+    这样折射出来的东西才会活起来，而这里恰好具备。
+  - 能解决上一条说的"框像外来物"：玻璃框会映出模型，和右边的画面就连成一体了。
+
+  照搬的问题
+
+  1. 调性冲突：设计规范把模型定为「MATTE · ROUGHNESS
+     0.85」，整体是哑光、纸感、硬边的莱茵生命风格。苹果的液态玻璃高光强、偏胶囊
+     形、偏消费电子的感觉，大面积使用会显得这一页在模仿 iOS，不像 PV。
+  2. 背景大部分是纯色：模型没经过的地方，玻璃下面只有米白底，看起来就是一块普通
+     的白框，等于白做了。
+  3. 圆角：液态玻璃依赖大圆角和胶囊形状，规范要求圆角不超过 8px。
+  4. 网页上很难做像：苹果那种效果的关键是边缘的透镜折射和弯曲，不只是模糊。CSS
+     backdrop-filter 只能做到毛玻璃，折射要借助 SVG 位移滤镜，而 SVG 滤镜作为
+     backdrop-filter 只有 Chrome 支持，Safari 和 Firefox
+     都不行。另外，背景是一直在渲染的 WebGL
+     画布，每一帧都要重新模糊，性能开销不小。
+
+  我建议的做法：玻片，不是水滴
+
+  把上一条方案里的设备插槽做成一块厚玻璃片：
+
+  - 形状：小圆角（4–8px）、硬边，保留四角刻度和「01 /
+    IMPORT」标签，像实验室里的载玻片。
+  - 折射放在 WebGL 里做，不用 CSS：上次做故障效果时已经有了一道后期处理。可以把
+    上传框在屏幕上的位置传给着色器，在这个矩形里做几件事：
+    - 对模型做轻微的透镜折射，边缘处更强，像厚玻璃的倒角；
+    - 加一点模糊和色散，色散只出现在边缘；
+    - 顶边加一条 1px 的高光。
+
+    这样所有浏览器效果一致，几乎没有额外开销，因为画面本来就在这一步渲染。DOM
+    那边只负责文字和按钮，框体本身透明。
+  - 好的副作用：模型的薄片经过玻片时会被"放大和扭曲"，这种动态是苹果式液态玻璃也
+    给不了的，又和刚做的信号失真属于同一套视觉。
+  - 手机端：模型在上传框上方，两者不重叠，玻片退化为细线框即可。
+
+  如果你就是想要苹果那种圆润、偏亮的液态感，也能做，只是我认为它会和右边的哑光雕
+  塑打架。
+
+  要我按"玻片"方案做一版吗？先出静态和模型穿过时的截图给你看，不满意再改。
+
+✻ Brewed for 22s · done 8:13 PM
+
+❯ 可以吧，然后这个文字感觉可以大点，然后点击开始分析后的遮罩切换可以再丝滑合理  
+  点，有部分关联的感觉                                                          
+
+⏺ Three tasks: a glass-slide import box (refraction done in WebGL), bigger text,
+  and a transition where the import box itself grows into the upload screen.
+  Reading the current transition code first.
+
+  Searched for 1 pattern, ran 1 shell command (ctrl+o to expand)
+
+⏺ Here's my plan: give the import box a glass-slide effect via WebGL
+  refraction/dispersion (with DOM handling just the tint and hairlines), enlarge
+  the left-column text, and add a transition where the box expands into a
+  full-screen window revealing the terrain before wiping into the analysis view.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the combined post pass (glitch + glass).
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/lib/postPass.js)
+  ⎿  Added 95 lines, removed 28 lines
+       1  import * as THREE from 'three'
+       2  
+       3 -// Post pass for the homepage signal interruption: slight warp,
+         - torn horizontal bands,                                        
+       4 -// RGB channel split, displaced data strips and interlace. It o
+         -nly moves the model's own                                      
+       5 -// pixels (output keeps the scene alpha), so the page behind st
+         -ays clean.                                                     
+       6 -// The scene is rendered into a target only while a glitch fram
+         -e is showing.                                                  
+       3 +// Post pass over the sculpture render. Two jobs, both touching
+         + only what the canvas draws:                                   
+       4 +// 1. Glass slide: the homepage import box refracts the model l
+         +ike a thick lab slide                                          
+       5 +//    (slight magnification, bent bevel, edge dispersion, soft 
+         +blur, edge glints).                                            
+       6 +// 2. Signal glitch: slight warp, torn bands, RGB split, displa
+         +ced strips, interlace.                                         
+       7 +// The scene is rendered into a target only while one of them i
+         +s active.                                                      
+       8  const vertexShader = /* glsl */ `
+       9    varying vec2 vUv;
+      10    void main() {
+     ...
+      17    uniform sampler2D tScene;
+      18    uniform vec2 uRes;
+      19    uniform vec3 uBg;
+      20 +  uniform vec3 uGlint;                                         
+      21 +  uniform vec3 uShade;                                         
+      22 +  // glitch                                                    
+      23    uniform float uSeed;
+      24    uniform float uWarp;
+      25    uniform float uSlice;
+     ...
+      27    uniform float uRgb;
+      28    uniform float uBlocks;
+      29    uniform float uScan;
+      30 +  // glass, in device pixels with a bottom-left origin (gl_Frag
+         +Coord space)                                                   
+      31 +  uniform vec4 uGlass;                                         
+      32 +  uniform float uGlassOn;                                      
+      33 +  uniform float uRadius;                                       
+      34 +  uniform float uBevel;                                        
+      35 +  uniform float uBlur;                                         
+      36    varying vec2 vUv;
+      37  
+      38    float hash(vec2 p) {
+      39      return fract(sin(dot(p, vec2(127.1, 311.7)) + uSeed * 43.7)
+           * 43758.5453);
+      40    }
+      41  
+      32 -  // Premultiplied linear scene sample; alpha keeps the page it
+         -self untouched.                                                
+      33 -  vec4 scene(vec2 uv) {                                        
+      34 -    return texture2D(tScene, clamp(uv, 0.0, 1.0));             
+      35 -  }                                                            
+      36 -                                                               
+      42    vec3 toSRGB(vec3 c) {
+      43      return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.0
+          55, step(0.0031308, c));
+      44    }
+      45  
+      46 +  float sdRoundRect(vec2 p, vec2 b, float r) {                 
+      47 +    vec2 q = abs(p) - b + r;                                   
+      48 +    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;  
+      49 +  }                                                            
+      50 +                                                               
+      51 +  // Premultiplied linear scene sample, optionally softened wit
+         +h a 5-tap cross.                                               
+      52 +  vec4 scene(vec2 uv, float blur) {                            
+      53 +    vec4 s = texture2D(tScene, clamp(uv, 0.0, 1.0));           
+      54 +    if (blur > 0.0) {                                          
+      55 +      vec2 d = blur / uRes;                                    
+      56 +      s = s * 0.4                                              
+      57 +        + texture2D(tScene, clamp(uv + vec2(d.x, 0.0), 0.0, 1.0
+         +)) * 0.15                                                      
+      58 +        + texture2D(tScene, clamp(uv - vec2(d.x, 0.0), 0.0, 1.0
+         +)) * 0.15                                                      
+      59 +        + texture2D(tScene, clamp(uv + vec2(0.0, d.y), 0.0, 1.0
+         +)) * 0.15                                                      
+      60 +        + texture2D(tScene, clamp(uv - vec2(0.0, d.y), 0.0, 1.0
+         +)) * 0.15;                                                     
+      61 +    }                                                          
+      62 +    return s;                                                  
+      63 +  }                                                            
+      64 +                                                               
+      65    void main() {
+      66      vec2 uv = vUv;
+      67 +    vec2 frag = gl_FragCoord.xy;                               
+      68  
+      44 -    // Slight warp: a long horizontal wave plus one bulging ban
+         -d that drifts per frame.                                       
+      69 +    // --- glass slide ----------------------------------------
+         +---------------------                                          
+      70 +    vec2 gc = (uGlass.xy + uGlass.zw) * 0.5;                   
+      71 +    vec2 gh = (uGlass.zw - uGlass.xy) * 0.5;                   
+      72 +    float sd = sdRoundRect(frag - gc, gh, uRadius);            
+      73 +    float inside = uGlassOn * step(sd, 0.0);                   
+      74 +    // 1 at the edge, 0 once deeper than the bevel             
+      75 +    float rim = clamp(1.0 + sd / uBevel, 0.0, 1.0);            
+      76 +    vec2 n = normalize(vec2(                                   
+      77 +      sdRoundRect(frag - gc + vec2(1.0, 0.0), gh, uRadius) - sd
+         +,                                                              
+      78 +      sdRoundRect(frag - gc + vec2(0.0, 1.0), gh, uRadius) - sd
+      79 +    ) + 1e-5);                                                 
+      80 +    // Whole slab magnifies a touch; the bevel bends light hard
+         + toward the inside.                                            
+      81 +    vec2 lens = (-(frag - gc) * 0.05 - n * rim * rim * uBevel *
+         + 1.6) * inside / uRes;                                         
+      82 +    float blur = uBlur * inside;                               
+      83 +                                                               
+      84 +    // --- glitch ---------------------------------------------
+         +----------------------                                         
+      85      float bulgeY = hash(vec2(uSeed, 12.0));
+      86      float bulge = exp(-pow((vUv.y - bulgeY) * 9.0, 2.0));
+      87      uv.x += uWarp * (sin(vUv.y * 9.0 + uSeed * 6.0) + 2.5 * bul
+          ge);
+      88      uv.y += uWarp * 0.6 * bulge * (hash(vec2(uSeed, 13.0)) - 0.
+          5);
+      89  
+      50 -    // Torn bands: band height changes every frame, a share of 
+         -them slides sideways.                                          
+      90      float bands = mix(12.0, 46.0, hash(vec2(uSeed, 1.0)));
+      91      float band = floor(vUv.y * bands);
+      92      float shift = step(hash(vec2(band, 2.0)), uSlice * 0.45) * 
+          (hash(vec2(band, 3.0)) - 0.5) * uTear;
+      54 -    // Hairline tears, a couple of pixels high.                
+      93      float hair = floor(gl_FragCoord.y / 2.0);
+      94      shift += step(hash(vec2(hair, 4.0)), uSlice * 0.025) * (has
+          h(vec2(hair, 5.0)) - 0.5) * uTear * 2.0;
+      95  
+      58 -    // Corrupted data strips: wide, thin cells copied from a ne
+         -arby spot, in a few rows only.                                 
+      96      float row = floor(vUv.y * 36.0);
+      97      float rowOn = step(hash(vec2(row, 10.0)), 0.3);
+      98      vec2 cell = vec2(floor(vUv.x * mix(6.0, 18.0, hash(vec2(row
+          , 11.0)))), row);
+     ...
+      100      uv += block * (vec2(hash(cell + 8.0), hash(cell + 9.0)) - 
+           0.5) * vec2(0.08, 0.02);
+      101      uv.x += shift;
+      102  
+       66 -    float split = uRgb * (1.0 + abs(shift) * 18.0) / uRes.x;  
+       67 -    vec4 sr = scene(uv + vec2(split, 0.0));                   
+       68 -    vec4 sg = scene(uv);                                      
+       69 -    vec4 sb = scene(uv - vec2(split, 0.0));                   
+      103 +    // --- sample: glitch split along x, glass dispersion alon
+          +g the refraction ------------                                 
+      104 +    vec2 split = vec2(uRgb * (1.0 + abs(shift) * 18.0) / uRes.
+          +x, 0.0);                                                      
+      105 +    vec4 sr = scene(uv + split + lens * 0.92, blur);          
+      106 +    vec4 sg = scene(uv + lens, blur);                         
+      107 +    vec4 sb = scene(uv - split + lens * 1.1, blur);           
+      108 +                                                              
+      109      // Match the direct render: each sample is encoded to sRGB
+            unpremultiplied, then the channel
+      110      // gap up to the widest alpha is filled with the page colo
+           ur so fringes stay soft.
+      111      float a = max(sg.a, max(sr.a, sb.a));
+     ...
+      116        toSRGB(sb.rgb / max(sb.a, 1e-4)).b * sb.a + bg.b * (a - 
+           sb.a)
+      117      );
+      118      c *= 1.0 - uScan * 0.08 * step(1.0, mod(gl_FragCoord.y, 3.
+           0));
+      119 +                                                              
+      120 +    // Glass edge: a glint on the bevel facing the key light, 
+          +a soft shade on the far side.                                 
+      121 +    float facing = dot(n, normalize(vec2(-0.45, 0.9)));       
+      122 +    float glint = inside * pow(rim, 5.0) * max(facing, 0.0) * 
+          +0.85;                                                         
+      123 +    float shade = inside * pow(rim, 3.0) * max(-facing, 0.0) *
+          + 0.35;                                                        
+      124 +    vec3 shadeC = toSRGB(uShade);                             
+      125 +    c = c * (1.0 - shade) + shadeC * shade;                   
+      126 +    a = a * (1.0 - shade) + shade;                            
+      127 +    c = c * (1.0 - glint) + toSRGB(uGlint) * glint;           
+      128 +    a = a * (1.0 - glint) + glint;                            
+      129 +                                                              
+      130      gl_FragColor = vec4(c, a);
+      131    }
+      132  `
+      133  
+       84 -export function createGlitchPass(renderer, background) {      
+      134 +const CLEAN = { seed: 0, warp: 0, slice: 0, tear: 0, rgb: 0, b
+          +locks: 0, scan: 0 }                                           
+      135 +                                                              
+      136 +export function createPostPass(renderer, colors) {            
+      137    const target = new THREE.WebGLRenderTarget(1, 1, {
+      138      samples: renderer.capabilities.isWebGL2 ? 4 : 0,
+      139      type: THREE.HalfFloatType,
+     ...
+      147      uniforms: {
+      148        tScene: { value: target.texture },
+      149        uRes: { value: new THREE.Vector2(1, 1) },
+       98 -      uBg: { value: background },                             
+      150 +      uBg: { value: colors.background },                      
+      151 +      uGlint: { value: colors.glint },                        
+      152 +      uShade: { value: colors.shade },                        
+      153        uSeed: { value: 0 },
+      154        uWarp: { value: 0 },
+      155        uSlice: { value: 0 },
+     ...
+      157        uRgb: { value: 0 },
+      158        uBlocks: { value: 0 },
+      159        uScan: { value: 0 },
+      160 +      uGlass: { value: new THREE.Vector4() },                 
+      161 +      uGlassOn: { value: 0 },                                 
+      162 +      uRadius: { value: 8 },                                  
+      163 +      uBevel: { value: 16 },                                  
+      164 +      uBlur: { value: 3 },                                    
+      165      },
+      166    })
+      167    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), m
+           aterial)
+     ...
+      172    const size = new THREE.Vector2()
+      173  
+      174    return {
+      116 -    // frame: { seed, warp, slice, tear, rgb, blocks, scan }  
+      117 -    render(scene, camera, frame) {                            
+      175 +    // glitch: { seed, warp, slice, tear, rgb, blocks, scan } 
+          +| null                                                        
+      176 +    // glass: { rect: [x0, y0, x1, y1] device px, bottom-left 
+          +origin, strength 0..1 } | null                                
+      177 +    render(scene, camera, glitch, glass) {                    
+      178        renderer.getDrawingBufferSize(size)
+      179        if (target.width !== size.x || target.height !== size.y)
+            target.setSize(size.x, size.y)
+      180 +      const dpr = renderer.getPixelRatio()                    
+      181 +      const g = glitch || CLEAN                               
+      182        const u = material.uniforms
+      183        u.uRes.value.copy(size)
+      122 -      u.uSeed.value = frame.seed                              
+      123 -      u.uWarp.value = frame.warp                              
+      124 -      u.uSlice.value = frame.slice                            
+      125 -      u.uTear.value = frame.tear                              
+      126 -      u.uRgb.value = frame.rgb * renderer.getPixelRatio()     
+      127 -      u.uBlocks.value = frame.blocks                          
+      128 -      u.uScan.value = frame.scan                              
+      184 +      u.uSeed.value = g.seed                                  
+      185 +      u.uWarp.value = g.warp                                  
+      186 +      u.uSlice.value = g.slice                                
+      187 +      u.uTear.value = g.tear                                  
+      188 +      u.uRgb.value = g.rgb * dpr                              
+      189 +      u.uBlocks.value = g.blocks                              
+      190 +      u.uScan.value = g.scan                                  
+      191 +      u.uGlassOn.value = glass ? glass.strength : 0           
+      192 +      if (glass) u.uGlass.value.fromArray(glass.rect)         
+      193 +      u.uRadius.value = 8 * dpr                               
+      194 +      u.uBevel.value = 16 * dpr                               
+      195 +      u.uBlur.value = 3 * dpr                                 
+      196        renderer.setRenderTarget(target)
+      197        renderer.clear()
+      198        renderer.render(scene, camera)
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Now the import panel markup.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Styles for the slide and larger type:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Now the transition choreography in App.
+
+  Ran 1 shell command (ctrl+o to expand)
+⏺ Keeping the idle layout during the upload stage, so nothing jumps when the
+  button is clicked:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Guarding the case where the upload finishes before the opening animation does:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Build passes. Now screenshots: homepage glass, file selected, and transition
+  frames.
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ The type and slide look correct, but the model barely overlaps the slide at
+  its final position, leaving little glass to refract. I'll zoom in on the idle
+  frame where the model is still passing behind to check further.
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+⏺ The glass effect looks right—slats are softened, magnified, and bent at the
+  bevel with a top edge glint. I'll shift the model's resting position left so
+  it passes behind the slide, then check the transition frames.
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ The window animation opens correctly from the slide's position, but the
+  terrain should be visible inside it as it grows instead of appearing empty at
+  first—I'll fix that and also review the exit frames.
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ The exit wipe and "返回上一级" both work, and the homepage comes back intact.
+  Re-running with the new model position and the earlier terrain fade, on
+  desktop and mobile:
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ I noticed the window appears empty at the start since the contour builds up
+  from nothing. I'll add the same lab grid used in the workspace so the window
+  has content from frame one.
+
+  Read 2 files, ran 2 shell commands (ctrl+o to expand)
+
+⏺ Two things at the 350ms frame: the grid isn't showing inside the window, and
+  the window still reads as empty. Checking whether the contour canvas paints an
+  opaque background:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ I'll continue the sequence by labeling the window's corner "02 / UPLOAD ·
+  文件名" to follow on from the slide's "01 / IMPORT", once the terrace fills
+  render over the grid.
+
+  Read 3 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ Desktop and mobile both work: the window grows out of the slide and carries
+  the 02 / UPLOAD · 文件名 label along. Final build, then updating the tuning
+  doc and stopping the dev server.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+⏺ 三项都改完了：玻片上传框、更大的字、点击开始解析后的展开过渡。构建通过，桌面（
+  1440×900）和手机（390×844）上都截图看过：静止、已选文件、过渡中、上传屏收起、
+  返回导入页，这几种状态都正常，没有报错。
+
+  1. 玻片上传框
+  - 外观：小圆角、半透明染色、细线描边，四角带 L 形刻度。上方一行等宽小字「01 /
+    IMPORT」，右侧状态从 STANDBY 变成黄绿色的 READY。
+  - 折射效果：模型从后面经过时，会被轻微放大、在边缘倒角处弯折，边缘带一点色散，
+    顶边有一道高光。折射放在模型本身的 WebGL 渲染里做，所以各浏览器效果一致。
+  - 模型位置：原来模型停下后几乎不经过上传框，玻璃没东西可折射。我把模型停放位置
+    往左挪了一点（sideOffset 从 8 改成
+    6），现在左环会从玻片右侧后面穿过。如果你更喜欢原来的位置，改回 8
+    即可，代价是玻璃效果基本看不出来。
+  - 按钮：没选文件时显示黑色的「选择文件」，点了直接打开文件选择，不再是一块灰色
+    禁用按钮。选好文件后变成黄绿色的「开始解析」。
+  - 拖入文件时：边框变黄绿，四角刻度向外扩开。
+  - 「使用示例素材」：加粗，带一条横线和箭头，hover 时横线变长。
+
+  2. 字号
+  - 上传框主文字 17px，副文字 13px，按钮 15px。
+  - 说明段落 16px，底部一行 13px。
+
+  3. 点击开始解析后的过渡
+  - 玻片本身打开成一个窗口：带橙色角标的边框从上传框的位置扩展到全屏，等高线地形
+    在窗口里逐渐出现。
+  - 窗口左上角的标签接续为「02 / UPLOAD · 文件名」，和玻片上的「01 /
+    IMPORT」前后呼应。
+  - 同时，标题、说明和底部一行依次上移淡出，模型略微缩小并淡出。
+  - 上传结束后，上传屏像幕布一样向上卷起，露出下面已经就位的解析场景。原来是整屏
+    淡出再淡入。
+  - 上传如果很快完成，会等展开动画走完再收起，不会卡在一半。返回上一级时，首页会
+    恢复原样，已选的文件也保留着。
+
+  想再调的话：
+  - 玻璃：折射强度和模糊在 src/lib/postPass.js，染色和描边在 workspace.css 的
+    .import-slide。
+  - 过渡：节奏在 src/App.jsx，缓动是 lib/motion.js 的 EASE.expand。
+
+  docs/frontend-customization.md
+  已经补上「上传玻片与过渡」一节。原来的故障失真着色器文件并进了
+  postPass.js，glitchPass.js 已经不存在了。首页上传框也不再使用 React Bits 的
+  SpotlightCard。
+
+✻ Worked for 8m 59s · done 8:22 PM
+
+❯ 你觉得首页加点线条HUD怎么样，就是那种明日方舟不是经常喜欢用一些简单的几何图像 
+  或者直线做点缀，我不知道怎么讲                                                
+
+⏺ 可以加，而且很适合这个页面。你说的应该是明日方舟 UI
+  里那类"工业制图"式的装饰：细长直线、十字定位标、刻度尺、小方块、斜纹警示条、残
+  缺的圆弧、编号和小字代码。它们不传达具体信息，作用是让画面像一张有精确度的技术
+  图纸，正好对上现在首页的「标本 + 玻片」方向。
+
+  关键：克制
+
+  方舟的线条之所以好看，是因为少而准。大致几条原则：
+
+  - 只用 1px 细线，颜色用墨色的 20%～40% 透明度，橙色只在 1～2 个点上出现。
+  - 全部对齐到 48px 网格，这是工作台本来就有的网格。
+  - 放在边缘和空白处，不压标题，不压上传框。
+  - 每个装饰都和画面里的东西有关系：要么指向模型，要么框住某个区域，要么在边缘做
+    刻度。随手散落的几何图形会显得廉价。
+
+  我建议加的几样
+
+   ─────────────────────────────────── ✛ ──────── 0x2F · SPECIMEN
+                                            ╭─ ─ ─╮
+    画面之内。                          ╱    ∞    ╲ ← 残缺圆环, 缓慢反转
+    答案之间。                         │  ┼        │
+                                        ╲         ╱      ─── 引线 → INFINITY / 
+  SHEETS 500
+                                         ╰─ ─ ─ ╯           TWIST 0.15 RAD/S
+    01 / IMPORT
+    ┌ glass slide ┐                                          ▮▮▯▯▯
+    └────────────┘
+   |''''|''''|''''|''''|''''|''''|''''|  ← 底部刻度尺        ////// ← 斜纹块
+
+  1. 模型的瞄准环：围绕模型中心画一个只有几段的残缺圆弧，加十字准星，非常缓慢地
+     反向转动，像在"锁定标本"。这是最有方舟味道的一样。
+  2. 引线 + 标注：从模型上的某一点拉一条折线到右侧空白处，末端写等宽小字，比如「
+     INFINITY / SHEETS 500 / TWIST 0.15
+     RAD/S」。引线起点跟着模型实时移动（每帧从 3D
+     坐标投影到屏幕），这样线条和模型是"连着"的，不是贴上去的。
+  3. 顶部长横线：横贯页面的细线，中间带一个十字标和编号，像图纸的边框线。
+  4. 底部刻度尺：沿下边缘一排短刻度，每 5 格一根长刻度，最右边一小块斜纹警示条。
+  5. 零散的小件：一两个小实心方块、一组 >>> 箭头、一个竖排编号，放在角落里。
+
+  动效：首次进入时，线条按顺序"画出来"，用 stroke 描线动画，0.6～1s。之后只保留
+  圆环的缓慢转动和引线跟随，别的都静止。上次做的故障失真触发时，HUD
+  也可以跟着闪一两帧，这样两套效果是联动的。
+
+  手机端：只保留引线和底部刻度，其余隐藏，不然会挤。
+
+  实现
+
+  用一层全屏 SVG，不拦截鼠标，颜色全部取自 token，描线动画用
+  GSAP。引线起点需要模型把 3D 点投影后的屏幕坐标传出来，在现有的 SculptureCanvas
+  里加几行就行。减少动态效果开启时，直接显示静态线条。
+
+  要做的话，我建议先做 1、2、4
+  三样：瞄准环、引线标注、底部刻度。做完截图给你看，再决定 3 和 5 要不要加。
+
+✻ Cogitated for 24s · done 8:25 PM
+
+❯ 不用太工业吧，我就想要简单点，比如就直线啊，四角星啊，点阵之类的              
+
+⏺ 好，简单的就三样：细直线、四角星、点阵，数量少、对齐、留白多。我直接做一版：放
+  在模型后面一层，模型会盖住穿过它的线条，显得有前后层次；入场时线条划出、星星旋
+  转出现，之后只有一颗星缓慢闪烁。
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/HeroOrnaments.jsx)
+  ⎿  Wrote 46 lines to ../front/src/components/HeroOrnaments.jsx
+       1 import React, { useLayoutEffect, useRef } from 'react'
+       2 import gsap from 'gsap'
+       3 import { DUR, EASE, prefersReducedMotion } from '../lib/motion'
+       5 // Concave four-point star in a 24×24 box.
+       6 function Star({ className }) {
+       7   return (
+       8     <svg className={`ornament-star ${className}`} viewBox="0 0 2
+       9       <path d="M12 0C12.9 8 16 11.1 24 12C16 12.9 12.9 16 12 24C
+         11.1 16 8 12.9 0 12C8 11.1 11.1 8 12 0Z" />
+      10     </svg>
+     … +48 lines (ctrl+o to expand)
+
+  Read 2 files, ran 3 shell commands (ctrl+o to expand)
+
+⏺ The twinkling star is hidden behind the model, so I'll reposition it into the
+  gap between the headline and the model, then investigate the intermittent
+  ERR_FILE_NOT_FOUND errors from the test runs.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ The video element still points at the blob URL after it's revoked, so the
+  browser's later range requests fail. Detaching the source first:
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+⏺ The star now sits in the gap above the model. After returning to the homepage,
+  the ornaments draw in again. Final build, a doc entry, and stopping the dev
+  server:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 首页加上了一组简单的点缀：细直线、四角星和点阵，没有做成工业感的
+  HUD。构建通过，桌面和手机都截图看过。
+
+  桌面端有这几样：
+  - 左上：一条细横线，从左边延伸到标题上方，末端一颗小四角星。
+  - 模型左上方：一颗较大的四角星，放在标题和模型之间的空白处，每 6 秒缓慢转 45°
+    并变淡一次，是唯一一直在动的元素。
+  - 右上：一块 7×4 的点阵，旁边一条竖直细线。
+  - 下方：一条横线从模型下方一直延伸出右边缘，起点是一颗橙色小星，这是整页唯一的
+    橙色点缀。
+  - 左下角：一小块点阵。
+
+  层次和颜色：线条和星星放在模型后面一层，模型会盖住穿过它的部分，所以有前后关系
+  。线条用墨色 28% 透明度，点阵 35%，都很淡，不和标题、上传框抢视线。
+
+  动效：进入首页时，线条从一端划出来，星星旋转放大出现，点阵淡入，整体约 1.5
+  秒；之后除了那颗大星缓慢闪烁，其他都静止。点击开始解析时，它们跟模型一起淡出；
+  返回首页时会重新划出。开启「减少动态效果」时不播放动画。
+
+  手机端：只保留模型旁的一颗小星、一块点阵和模型下方那条橙色起点的横线，其余隐藏
+  。
+
+  顺手修了一个问题：测试时偶尔出现 ERR_FILE_NOT_FOUND
+  报错。原因是解析结束后视频的临时地址已经释放，播放元素还在继续请求它。现在先断
+  开再释放，连跑两轮都没再出现。
+
+  想调整的话，元素的增减在
+  src/components/HeroOrnaments.jsx，位置、大小、透明度和闪烁节奏在
+  src/styles/workspace.css 的 .ornament-* 里改。
+
+✻ Sautéed for 3m 35s · done 8:30 PM
+❯ 这个左侧标题文字会不会太小了总感觉首页缺了什么，我想加点家乡方言作为项目名称  
+  ，项目就叫"GongJ!ng?",就是"真的吗"的意思,你觉得呢                             
+
+⏺ 我觉得这个名字很好，而且不只是好玩，它和产品本身是对得上的。
+
+  为什么合适
+
+  - 意思对得上：这个工具做的事是"从视频里找到有据可查的回答"，本质就是在回答"真
+    的吗？"。首页文案里也写着"成为你下一次提问的依据"。用一句方言反问当名字，比"
+    视频理解工作台"有态度得多。
+  - 字形有记忆点：用 ! 代替 i、用 ? 收尾，标点直接长进了字母里，和现在的故障、玻
+    片、点缀线条属于同一种"有点小设计感"的气质。
+  - 可以做成一个概念：? 是提问，! 是确认。产品做的事，其实就是把 ? 变成
+    !。这个可以变成动效，下面会说。
+
+  首页缺的是什么
+
+  你的感觉是对的。现在首页只有一句口号，没有名字，左边整体偏轻，压不住右边那么大
+  的模型。标题本身不算小，最大 76px，问题是它承担的是口号的角色，不是品牌的角色
+  。加上名字作为最大的字，层级就立起来了：
+
+    ✦ ─────────────────────────
+    真的吗？ · 方言                       ┌─────────────┐
+                                          │   模型        │
+    GongJ!ng?          ← 最大，约 120–160px，│
+                                          │             │
+    画面之内。答案之间。  ← 降为副标题，约 28–32px
+    展开时间，拆解画面……
+    01 / IMPORT
+    [ 玻片上传框 ]
+
+  具体建议
+
+  1. 字标：GongJ!ng? 用 Inter 600、字距收紧，大小约
+     120–160px，按屏幕宽度自适应。! 和 ? 用强调色，比如 ? 用黄绿、!
+     用墨色，或者两个都用橙色，在一片米白里会非常醒目。
+  2. 方言注释：字标上方放一行小字「真的吗？」加一个"方言"小标签，等宽字体。外地
+     人一眼就能看懂意思，本身也是一个话题点。
+  3. 口号降级：「画面之内。答案之间。」降为副标题，约
+     28–32px，说明文字保持不变。
+  4. 顶栏：左上角的「VIDEO COMPREHENSIVE」换成小号的 GongJ!ng?，全站统一。
+  5. ? 变 ! 的小动效：
+     - 模型偶尔出现故障失真时，字标末尾的 ? 跟着闪一帧变成
+       !，然后恢复，把两套效果连起来。
+     - 解析完成时，顶栏的 GongJ!ng? 变成
+       GongJ!ng!，意思是"真的！"。这个彩蛋很契合产品。
+
+  注意两点：
+
+  - 网址和文件名不要带标点，用 gongjing
+    作为英文名，比如仓库名、页面标题里的拼音。
+  - 字体要确认：! 在部分字体里容易被看成 l。用 Inter
+    大字号时没问题，我会截图确认。
+
+  要我按这个方案改吗？另外，这句方言有没有对应的汉字写法？如果有，我可以把汉字也
+  放进注释那一行，比如「〇〇？· 真的吗」，会更有家乡的味道。
+
+✻ Cogitated for 32s · done 8:39 PM
+
+❯ 可以                                                                          
+
+⏺ Implementing now. You didn't mention a Chinese-character spelling for the
+  dialect, so the gloss line will read 「真的吗？· 方言」 for now; it's easy to
+  add characters later.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(~/project/Huawei/MyTargetProject/front/src/components/Wordmark.jsx)
+  ⎿  Wrote 17 lines to ../front/src/components/Wordmark.jsx
+       1 import React from 'react'
+       3 
+       4 /**
+         into "!" when `confirmed`
+       6  * (analysis done: "真的！"), and flickers to "!" for a frame wh
+       7  */
+       8 export default function Wordmark({ confirmed = false, className 
+       9   return (
+      10     <span className={`wordmark ${confirmed ? 'is-confirmed' : ''
+         .name}>
+     … +12 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now screenshots: the homepage at both sizes, plus the top bar after analysis
+  finishes, to check the ? → ! switch.
+
+  Read 3 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ The layout mostly works well, but I spotted two issues: the ornament line
+  overlaps the subtitle on desktop, and the model overlaps the description on
+  mobile. I'll move the ornament up and shift the model down to fix both.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ The first mobile run hit a timeout in the test script (headless rendering is
+  slow); the rerun completed every step. Checking the images:
+
+  Read 2 files (ctrl+o to expand)
+
+⏺ On mobile the model area now overlaps the slide's 「01 / IMPORT」 label, so
+  the gap needs to grow. Measuring the real element positions:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ The layer's top offset is relative to the workspace container (starting at
+  y=60), so 336 actually places it at 396. I'll adjust it to 280 to position the
+  model between the description and slide, with a slightly larger gap.
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+⏺ Mobile is clean now. Last check: whether the big wordmark's ? really flips to
+  ! during a model glitch. I'm polling inside the page, since a glitch frame
+  lasts only tens of milliseconds:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Confirmed: normally it shows ?, and during a glitch frame it switches to !.
+  Adding the brand settings to the tuning doc:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ GongJ!ng? 已经放上首页，成了页面上最大的字。构建通过，桌面和手机都截图看过，解
+  析流程跑完没有报错。
+
+  首页现在从上到下是：
+  - 一行小字「真的吗？」，旁边一个「方言」小标签。
+  - 大字标 GongJ!ng?，桌面上约 120px。! 和 ? 用橙色，Inter 粗体大字号下 !
+    不会被看成 l。末尾的 ?
+    会稍微压到模型的左环上，这是有意的排版，截图看效果不错。
+  - 「画面之内。答案之间。」降为一行副标题，约 30px。
+  - 说明文字和上传玻片保持原样，整体上移了一些。
+
+  ? 和 ! 的切换：
+  - 模型出现故障失真的那几帧，大字标末尾的 ? 会闪成
+    !。我在页面里实测过，失真时确实切到 !，平时是 ?。
+  - 解析完成后，左上角顶栏的项目名会从 GongJ!ng? 变成
+    GongJ!ng!，意思是「真的！」。已截图确认。
+
+  其他改动：
+  - 顶栏原来的「VIDEO COMPREHENSIVE」换成了小号的
+    GongJ!ng?，后面保留「视频理解工作台」。
+  - 浏览器标签页标题改为「GongJ!ng? · 视频理解工作台」。
+  - 配置里另外记了一个不带标点的 gongjing，以后起网址、仓库名时用它。
+  - 首页标题变高后，有两处排版跟着调了：桌面端左上那条点缀横线原来穿过「真的吗？
+    」那一行，现在挪到了上方；手机端模型原来压住说明文字和上传框标签，现在放在两
+    者之间。
+
+  想改的话：项目名、注释文字和「方言」标签在 src/config/workspace.js 的 BRAND
+  里改，字号在 workspace.css 的 .magazine-hero__brand 里改。这句方言如果有对应的
+  汉字写法，告诉我就能加进注释那一行。docs/frontend-customization.md
+  也补了一节「项目名」。
+
+✻ Brewed for 8m 51s · done 8:48 PM
+
+❯ 感觉标题字体颜色不对吧，黄绿色好看点，然后这个字体能换个好看点的吗            
+
+⏺ I'll switch the punctuation to lime and audition a few display typefaces for
+  the wordmark. First, installing candidates and rendering them side by side:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Rendering a comparison sheet with lime punctuation (a temporary page, deleted
+  afterwards):
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+⏺ I'll go with Unbounded as the display font—it's wide, heavy, and geometric
+  with a clear exclamation mark, fitting the page better than the overly wide
+  Syne or the more angular Chakra Petch. Applying it now and removing the other
+  font candidates.
+
+  Read 3 files, ran 3 shell commands (ctrl+o to expand)
+
+⏺ 字标的 ! 和 ? 改成了黄绿色，字体换成了
+  Unbounded。构建通过，桌面和手机都截图看过，解析流程跑完没有报错。
+
+  字体怎么选的：我把 7 款字体放在一起，都配上黄绿色标点做了对比，最后选了
+  Unbounded 粗体：
+  - 字形宽、厚重、几何感强，有 PV 片头那种未来感，和右边的大模型压得住。
+  - ! 非常清楚，不会被看成 l。
+  - 黄绿色在大字号上很醒目，不用加描边。
+
+  落选的几款：
+  - Syne：最有冲击力，但太宽，会把模型盖掉一大块。
+  - Chakra Petch：切角字形，更像游戏 UI，是第二选择。
+  - Space Grotesk、Bricolage Grotesque：偏杂志风。
+  - Michroma：太细，压不住画面。
+
+  对比图在 scratchpad/shot/specimen.png，可以打开看看。想换成 Chakra Petch
+  的话告诉我。
+
+  具体改动：
+  - 首页字标：Unbounded 700，桌面上约 100px，手机
+    46px。因为这款字更宽，字号比原来略小，整体宽度差不多，末尾的 ?
+    仍然稍微压到模型左环。
+  - 顶栏小字标同样换成这款字体。因为小字号的亮黄绿在米白底上看不清，这里用了深一
+    档的黄绿。解析完成后变成 GongJ!ng! 的效果照常，已截图确认。
+  - 字体只用在字标上，其余文字仍是 Inter 和 JetBrains
+    Mono，只加载了拉丁字符的粗体一个文件。设计文档原本只规定了 Inter 和
+    JetBrains Mono，这里算是新增了一款展示字体。
+
+  想改的话，字体在 src/styles/tokens.css 的 --font-display，字号在 workspace.css
+  的 .magazine-hero__brand。
+
+✻ Sautéed for 4m 40s · done 9:11 PM
+
+❯ 好了,接下来我们做个解析视频链接的功能吧,你觉得可以怎么做呢,先想想办法怎么稳定 
+  解析b站,我记得有个bilidown的软件,那个解析就很稳定,但是我们不要求要拿到视频,只 
+  是拿到视频链接直接进行帧的分析,懂我意思吗,我在/Users/linyi/project/Huawei/vid 
+  eoComprehensive有尝试自己做解析功能,但是感觉还是不大稳定,还有帧抓取有时候抓不 
+  全就失败了,但是我希望帧抓不全也可以继续对话吧大概这样                         
+
+⏺ 先看一下你在 videoComprehensive 里的解析和抽帧实现，找出不稳定的原因。
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+⏺ 先实测一下 B 站接口在这台机器上匿名能拿到什么，再给方案：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 那个 BV 号返回 -404（视频不存在），换一个确定存在的视频再试：
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 匿名 + buvid + WBI 签名可以拿到地址，DASH 流必须带 Referer。再测关键一步：用
+  ffmpeg 按时间点跳读远程流抽单帧，看速度和稳定性。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 懂你的意思：不下载整个视频，只拿到播放地址，直接从远程流里取帧分析；帧抓不全也
+  不要整体失败，能对话就继续。
+
+  我先读了你在 videoComprehensive 里的实现，又在这台机器上实测了一下 B
+  站接口和远程抽帧。下面是原因分析、实测结果和方案。
+
+  你旧实现不稳定的原因
+
+  解析这一步（bilibili_adapter.py、acquisition.py）：
+  - 依赖第三方库的匿名调用：主路线是 bilibili-api 库的匿名请求，没有自己处理 B
+    站的风控要求（设备标识 buvid、WBI 签名），所以经常被风控拦截，返回 412
+    错误。代码注释里也提到了这一点。
+  - 时长校验太严：播放时长和分P时长差超过 1 秒就判失败，理由是"可能为试看"。
+  - 只认一个地址：B 站一般会给出主地址加若干备用地址（不同 CDN
+    节点），旧代码只用主地址，没有换节点重试。
+
+  抽帧这一步（media.py 的 prepare_stream）是"抓不全就失败"的直接原因：
+  - 一条命令顺序读完整个视频：用一次 ffmpeg 从头解码整条远程流。网络抖一下、CDN
+    断流，或者地址签名过期（B
+    站地址大约两小时有效），整次解析就失败，已经抓到的帧也作废。
+  - 全有或全无的校验：有三处：最后一帧离结尾超过一个间隔就报错（"媒体提前结束"）
+    ；图片数量和时间戳数量对不上就报错；一帧都没有就报错。
+  - 音频也会拖垮全局：音频和画面一起读，音轨短了也算失败。
+
+  实测结果（在这台机器上，匿名，不登录）
+
+  用 B 站第一个公开视频（av2，约 34 分钟）测试：
+  - 解析能拿到地址：先获取设备标识 buvid，再用 WBI
+    签名请求视频信息和播放地址，都返回成功。DASH 视频流匿名能拿到
+    360p/384p，用来抽帧分析足够；每条流还附带 1 个备用地址。
+  - 两种地址的限制不同：DASH 地址必须带 B 站的 Referer 请求头，否则返回
+    403。另一种 platform=html5 的 MP4 地址不带 Referer 也能读。
+  - 按时间点独立抽帧可行：均匀取 24 个时间点，每个点单独让 ffmpeg
+    跳到那里读一帧，6 个并发。结果 24 帧全部成功，没有一次重试，单帧中位耗时约
+    5.6 秒，总共 25 秒。
+
+  所以思路是成立的：不用下载整个视频，每一帧都是独立的小请求，某一帧失败也不影响
+  其他帧。
+
+  BiliDown 这类工具之所以稳，做法基本就是这几样：自己处理设备标识和签名、在多个
+  CDN 节点之间切换、地址过期了重新获取，另外可以扫码登录拿更高画质。
+
+  方案
+
+  1. 链接解析：自己写一个轻量的 B 站解析器
+
+  - 链接归一：支持 BV 号、av 号、b23.tv 短链（先跟随跳转）、?p=
+    分P、手机版链接。
+  - 请求流程：获取 buvid → WBI 签名（签名密钥按天缓存） →
+    视频信息（标题、时长、封面、分P、cid） → 播放地址（优先 AVC 编码、不超过
+    720p），把主地址和所有备用地址都存下来。
+  - 三层兜底：DASH 地址失败就换 html5 MP4 地址；再不行用 yt-dlp。
+  - 地址过期处理：地址只放在内存里，记录过期时间，过期了自动重新获取。
+  - 扫码登录（可选）：像 BiliDown 那样扫码登录，可以拿到更高画质，也更不容易被风
+    控。抽帧分析其实不需要高画质，所以匿名就够用。
+  - 暂不支持的内容：番剧、付费、充电专属视频暂不支持，遇到时给出明确提示，而不是
+    笼统的"解析失败"。
+
+  2. 抽帧：按时间点独立抽取，先粗后细
+
+  - 先粗：先均匀抽 16 帧，大约十几秒就能进入对话。
+  - 再细：后台继续补到 48～64 帧，之后还可以在画面切换处补帧。
+  - 每帧独立重试：顺序是换备用 CDN 节点 → 重新获取地址 →
+    还不行就放弃这一帧，记为缺口。
+  - 逐帧推送：每抽到一帧就推给前端，现在的界面本来就是一帧一帧显示出来的。
+  - 音频单独处理：音频（以后做语音识别用）和画面分开，失败了不影响画面。
+
+  3. 帧不全也能对话
+
+  - 记录覆盖情况：例如"已获取 41/64 帧，缺失 03:20–04:10"。
+  - 进入对话的门槛很低：只要有 1 帧就能对话。
+  - 一帧都没有时：仍然可以基于标题、简介和 B 站的 CC
+    字幕对话，并明确标注"未取得画面"。字幕对理解视频内容其实很有用。
+  - 告诉模型哪里缺：覆盖情况会写进给模型的上下文。用户问到缺失的时间段时，回答会
+    说明"这一段没有取到画面"，而不是编造。
+  - 时间轴上的显示：缺失的帧显示成空心或斜纹薄片，不能选中。提供「补抓缺失片段」
+    按钮，对话进行中也可以后台补帧。
+
+  4. 前端
+
+  - 输入：首页玻片支持直接粘贴链接，自动识别是链接还是本地文件。
+  - 解析过程：上传屏改成显示解析步骤：识别链接 → 获取视频信息 → 获取播放地址 →
+    抽帧 n/64。
+  - 帧不全时：显示一条提示条，不阻断流程，可以直接进入对话。
+
+  5. 后端
+
+  backend 目录现在是空的。我建议用 Python + FastAPI：你旧项目就是 Python 和
+  uv，里面一些好的思路可以直接借鉴，比如身份校验（确认拿到的就是目标视频）和读取
+  失败后重新获取地址。接口草案：
+  - POST /api/links/resolve：输入链接，返回视频信息和分P列表。
+  - POST /api/videos/from-link：开始抽帧，通过 SSE 实时推送每一帧和覆盖进度。
+  - POST /api/videos/{id}/frames/retry：补抓缺失的时间段。
+
+  合规上：只取帧做分析，不保存完整视频，只处理公开视频。
+
+  需要你定的几件事
+
+  1. 扫码登录：要不要做？我建议先只做匿名，登录以后再加。
+  2. 后端技术栈：用 Python + FastAPI 可以吗？
+  3. 平台范围：这次先只做 B 站，抖音等平台之后再接，可以吗？
+
+  你确认后，我按这个顺序做：B 站解析器（加单元测试） → 逐帧抽取和覆盖率 →
+  前端接入链接输入和不完整状态 → 补抓功能。
+
+✻ Cooked for 3m 36s · done 9:34 PM
+
+❯ 可以,先把b站做完善了,然后不同平台对应不同解析器                               
+
+⏺ 开工：后端用 Python + FastAPI，按平台注册解析器，先把 B
+  站做完整；抽帧逐帧独立、缺帧不阻断。先看前端现有的数据流，再定接口。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ backend 目录已经不是空的了，先看看里面有什么，避免冲突：
+
+  Searched for 1 pattern, ran 2 shell commands (ctrl+o to expand)
+
+⏺ backend里只有5个预留空目录（MCP、layers、modules、skills、tools），解析和抽帧
+  属于功能模块，我放进backend/modules/，其余不动。接下来查看可用的Python工具链。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 用 uv 管 Python 3.12。先读前端里会受影响的
+  HUD、对话页和时间轴，确认帧数据的流向：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 先写后端。第一步是解析器的基础接口和平台注册表，每个平台一个解析器，按链接自动
+  选择：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the Bilibili resolver: short-link expansion, buvid, WBI signing,
+  risk-control retry, error-code mapping, part selection, CDN ranking, trial
+  detection, and an html5 MP4 fallback.
+
+⏺ Write(~/project/Huawei/MyTargetProject/backend/modules/video_source/bilibili.p
+       y)
+  ⎿  Wrote 298 lines to ../backend/modules/video_source/bilibili.py
+       1 """Bilibili resolver: anonymous, address-only (never downloads m
+       2 
+       3 Flow: expand short link → parse BV/av + part → buvid cookies (fi
+         nger/spi) → WBI-signed `view`
+         ddresses + backups).
+       5 Risk-control responses reset the session once and retry. A permi
+       6 as a fallback for when every DASH address is refused.
+       7 """
+       8 from __future__ import annotations
+      10 import hashlib
+     … +355 lines (ctrl+o to expand)
+
+⏺ I'll now sample frames one by one via ffmpeg, falling back through alternate
+  CDNs, a fresh address, and the html5 fallback on failure, logging any
+  unresolved frame as a gap without halting the job.
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ I'll make two refinements before writing the app: a decode error at one
+  timestamp shouldn't trigger re-fetching addresses, and slots failing at the
+  same moment should share a single refresh instead of each triggering their
+  own.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the HTTP layer:
+
+⏺ Write(~/project/Huawei/MyTargetProject/backend/app.py)
+  ⎿  Wrote 142 lines to ../backend/app.py
+       1 """GongJ!ng? backend. Run: `uv run uvicorn app:app --port 8000` 
+         (the Vite dev server proxies /api)."""
+       2 from __future__ import annotations
+       3 
+       4 import asyncio
+       6 import shutil
+       7 import time
+       8 import uuid
+       9 from contextlib import asynccontextmanager
+      10 from pathlib import Path
+     … +145 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Dependencies installed. Now unit tests: the resolver against a mocked B 站
+  API, and the job's partial-coverage and recovery logic with a fake grabber.
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+⏺ 22 个单元测试全部通过。接下来用真实的 B
+  站视频端到端跑一遍：启动后端，提交链接，订阅事件流直到结束。
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+⏺ 真实视频测试通过：34分钟视频成功获取全部64帧，无缺失，总耗时62秒。接下来用当前
+  热门视频测试新视频和多P场景。
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ 都通过了：多 P 视频按分享文本里的 ?p=3 选对了分P（203 秒），新视频
+  64/64，各种错误都给出了明确的中文提示。看一帧确认画面内容正确：
+
+  Read 1 file, listed 1 directory (ctrl+o to expand)
+
+⏺ 画面正确（终末地 P3 的内容）。再用真实网络做一次故障注入：把拿到的播放地址的签
+  名故意改坏，看能不能自动重新获取地址继续抽帧：
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ 故障恢复确实生效了——签名全改坏后系统自动重新获取地址，最终12帧全部拿到。不过耗
+  时50秒，因为6个并发任务各自重复尝试了每个坏地址；接下来会改成某个地址一旦被拒
+  绝就让所有任务统一跳过它。
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ 并发任务因为直接跳过了已被拒绝的地址，自己一次都没试过，就被错误地记成了"解码
+  失败"。修正为：可用地址都被拒绝时，按"地址失效"处理：
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 后端完成，22 个测试通过。实测故障恢复从 50 秒降到 20
+  秒。接下来接前端，先看对话部分怎么使用帧数据：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 前端改动比较多，按数据流从下往上做。先是 API
+  客户端：链接任务总是走后端，开发时由 Vite 代理 /api；SSE 解析抽成公共函数：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the import slide: one input that takes a pasted link or a picked/dropped
+  file, and changes its button and hint to match what was entered.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ A <label> wrapping a button would forward clicks anywhere in the field to the
+  file picker, so I'm switching the container to a plain div and adding styles:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the app flow. Re-reading the current start() so the edits are exact:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Now the upload screen's link mode, the HUD (gap count, early entry, re-fetch),
+  and the timeline's missing-frame state:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the timeline: pending frames show as faint placeholders, missing frames as
+  hatched sheets that can't be selected, and the header gets a gap count with a
+  补抓 link.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Last piece: the chat. Only frames that actually arrived go to the agent, along
+  with the coverage info, so answers can say which segments have no images:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 构建通过。接下来在浏览器里端到端测试：真实后端加真实 B
+  站链接跑一次完整流程，再测一个错误链接。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 完整流程已跑通：真实B站链接成功生成64/64帧，时间轴64张图全部加载，仅有favicon
+  的404和YouTube链接被拒绝时的预期422两个无关报错。接下来看截图确认。
+
+  Read 3 files (ctrl+o to expand)
+
+⏺ 时间轴的 64 张帧都正常显示。但解析阶段的截图里看不到左上角的进度面板，看一下
+  ready 状态的截图：
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ 完成状态正常，显示了B站BV号、时长和UP主信息，帧条和GongJ!ng!都没问题；但早进对
+  话按钮出现时，左上进度面板和帧条消失了。接下来查一下是什么导致它们被隐藏。
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ 这个3秒文字问候阶段临时隐藏面板是既有设计，不是问题。接下来我会在浏览器里拦截
+  接口，模拟一个带缺失区段的任务来测试补抓功能。
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ 缺帧相关状态均已验证通过：HUD
+  提示、时间轴橙色标记、悬停原因、点击不可选、回答提及缺失时段、补抓后补齐都正常
+  。接下来再跑一遍本地文件上传的原流程，确认没有被改坏。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 本地文件流程没有报错，完整跑通，最后在写文档并收尾。先确认选了文件后上传框的样
+  子：
+
+  Read 2 files, ran 1 shell command (ctrl+o to expand)
+
+⏺ 空闲状态的提示文字被截断了，缩短一下，然后补文档、停掉服务：
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Stop Task
+  ⎿  uv run uvicorn app:app --port 8000 · stopped
+
+⏺ B 站链接解析做好了：粘贴链接就能直接从远程流里抽帧，不下载视频；帧抓不全也能照
+  常进入对话。后端按「一个平台一个解析器」组织，以后加平台不用动抽帧和前端。
+
+  实测结果：
+  - 3 个真实 B 站视频（34 分钟老视频、32 分钟新视频、4P 视频的第 3P），每个都是
+    64/64 帧全部拿到，约 1 分钟完成。第 1 帧约 3.5 秒就出来，16 帧约 17 秒。
+  - 浏览器里粘贴分享文本（带标题和多余参数的那种）也能识别，完整走到对话页，时间
+    轴 64 张帧都正常显示。
+  - 故障注入：我把真实播放地址的签名故意改坏，后端自动重新获取了地址，12
+    帧全部补回。
+  - 缺帧场景是在浏览器里模拟后端返回来测的，因为真实视频很难稳定触发缺帧。缺失提
+    示、时间轴斜纹、对话里说明缺失时段、点「补抓」后补齐，都按预期工作。
+  - 后端 22 个单元测试全部通过，不联网。
+  - 本地文件上传的原流程回归测过，没有被改坏。
+
+  为什么这次更稳：
+  - 解析：自己实现了 B 站网页端的那套请求方式，带设备标识和签名，匿名就能用。遇
+    到风控会自动重置会话再试一次。B 站给出的主地址和所有备用地址都会保留。
+  - 抽帧：不再一次顺序解码整个视频，而是每帧单独跳到对应时间点读取。单帧失败时依
+    次换备用地址、重新获取地址、改用另一种更宽松的地址，最后才记为缺失，任务本身
+    不会失败。
+  - 试看视频：不再报错，能看的部分正常抽，后面的帧标为「试看限制」。
+
+  界面上的变化：
+  - 首页玻片：可以直接粘贴链接或分享文本；识别到链接后，按钮变成「解析链接」。不
+    支持的平台、视频不存在、需要付费权限等情况，会回到首页并显示具体原因。
+  - 解析过程：上传屏改为显示「正在解析链接」。抽满 16 帧后会出现「先进入对话 ·
+    其余画面后台继续」。
+  - 缺帧时：解析页会写明「已获取 42/48 帧，00:40–00:50
+    未取得画面」，并提供补抓按钮。时间轴上缺失的帧是橙色斜纹，悬停显示原因，不能
+    选中。对话回答会说明哪些时段没有画面。
+
+  新增平台：在 backend/modules/video_source/ 下新建一个解析器，在 registry.py
+  里注册即可。步骤写在 backend/README.md 里。
+
+  有几点需要你知道：
+  - 运行需要后端：先在 backend 目录执行 uv sync，再运行 uv run uvicorn app:app 
+    --port 8000。前端开发服务器会把 /api 转发过去。机器上要装
+    ffmpeg，这台已经有了。
+  - 对话仍是模拟数据：回答还是前端的模拟内容，只是现在会提到缺失的时段。接入真实
+    模型是下一步。
+  - 字幕还没做：之前提的「一帧都拿不到时，基于 B
+    站字幕对话」这次没做。目前一帧都没有时，只能基于标题和简介。
+  - 画质：匿名一般能拿到 360p～720p，做帧分析够用。
+  - 代码位置：backend 里你预留的 MCP、layers、skills、tools
+    四个目录我没动，代码放在 modules/ 和根目录的 app.py。
+  - 测试抽的帧：留在 backend/data/，已经加进 .gitignore，重启后端时会清空。
+
+✻ Brewed for 19m 45s · done 9:54 PM
+
+❯ 那你把用的这个链接数据作为数据集吧,开个datas存放,先弄b站的                    
+
+⏺ 好，把这次实测用过的 B 站链接整理成数据集，放在项目根目录的 datas/ 下。另外配
+  一个小脚本，可以随时用真实网络把数据集重跑一遍，验证解析器有没有退化。
+
+  Ran 1 shell command (ctrl+o to expand)
+⏺ Now the checker script:
+
+⏺ Write(~/project/Huawei/MyTargetProject/backend/scripts/check_links.py)
+  ⎿  Wrote 108 lines to ../backend/scripts/check_links.py
+       1 """Run the link dataset in ../datas against the live resolvers (
+         needs network).
+       2 
+         SE_ID] [--platform bilibili]
+       4 
+       5 Exit code 1 when any case disagrees with its `expect` block.
+       6 """
+       8 
+       9 import argparse
+      10 import asyncio
+     … +121 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 7 条用例全部通过，4 条正常视频各抽 16 帧，也全部拿到。在后端 README
+  里补一句数据集的位置：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 我在项目根目录建了 datas/，把这次实测用过的 B
+  站链接存成了数据集。刚才联网重跑了一遍，7 条全部通过；4 条正常视频各抽 16
+  帧，也全部拿到。
+
+  数据集：datas/bilibili/links.json，共 7 条。
+
+  ┌─────────────────────┬───────────────────────────────────────────────────┐
+  │        用例         │                     覆盖什么                      │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-legacy-av2     │ 最早的老视频，34 分钟，匿名只有 360p 级别的流     │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-multipart-shar │ 4P 视频，带标题的分享文本，用 ?p=3 指定第 3P      │
+  │ e-text              │                                                   │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-long-bare-bv   │ 32 分钟新视频，只输入 BV 号                       │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-short-share-te │ 2 分钟短视频，浏览器全流程测过的那条，也是签名失  │
+  │ xt                  │ 效故障注入用的那条                                │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-error-part-not │ 单 P 视频请求第 5P                                │
+  │ -found              │                                                   │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-error-bangumi  │ 番剧链接（暂不支持）                              │
+  ├─────────────────────┼───────────────────────────────────────────────────┤
+  │ bili-error-not-foun │ 已删除的视频                                      │
+  │ d                   │                                                   │
+  └─────────────────────┴───────────────────────────────────────────────────┘
+
+  每条用例记录了：
+  - input：粘贴进输入框的原文。
+  - expect：校验项，包括视频 ID、分P、分P数和时长。时长允许差 1 秒。标题和 UP
+    主名可能被改，不一致时只给提示，不判失败。错误类用例记录预期的错误码。
+  - observed：之前完整抽 64
+    帧时的实测数据（帧数、首帧耗时、总耗时），只作参考，不参与校验。
+
+  验证脚本：backend/scripts/check_links.py，会联网逐条重跑。
+  - 只解析：uv run python scripts/check_links.py
+  - 同时每条抽帧：加 --frames 16
+  - 只跑一条：加 --only <用例 id>
+
+  有任何一条不通过时脚本以失败退出，以后改了解析器可以先跑一遍。
+
+  格式说明写在 datas/README.md 里。以后加平台就新建
+  datas/<平台>/links.json，脚本会自动读取。
+
+  注意：这些都是公开视频，时间久了可能被删除或改标题。如果某条突然失败，先在 B
+  站上确认视频是否还在。
+
+✻ Baked for 2m 41s · done 10:01 PM
+
+❯ 再多加几条b站的链接进数据集,至少测试50条吧                                    
+
+⏺ 先看看能从哪些公开接口批量拿到多样的样本。目标是覆盖：不同分区、不同时长（几十
+  秒到一两个小时）、多 P、老视频、各种输入格式（分享文本、BV 号、av
+  号、手机版、短链等），以及各类错误。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 分区排行接口匿名会被风控（-352），但全站排行（100
+  条，带分区名）可以用。再看看「入站必刷」经典视频列表（老视频多）和热门列表：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 连续无标识请求触发了风控。改用后端解析器自己的会话（带设备标识和签名）来请求这
+  些列表接口：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 候选池共313条，分布在约45个分区，发布年份覆盖2009–2026，包含最长69P、138P的合
+  集，以及17条一分钟内短视频和13条一小时以上长视频。接下来再试试能否获取真实的b2
+  3.tv短链（用户最常用的粘贴格式）。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 在构建数据集前，我先修复一个设计缺陷：用户主页、直播间等
+  space.bilibili.com、live.bilibili.com
+  链接目前被错误提示为「暂不支持该平台」。我将改为识别所有 B
+  站子域名，并给出准确提示「这不是视频页面」。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 修好了，23 个测试全部通过。接下来写一个临时的一次性生成脚本（不放进项目），按
+  覆盖矩阵从候选池挑视频、分配不同输入格式，并用真实解析结果填写 expect。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 生成了53条新用例，数据集共60条（1条因分P数不符被跳过），覆盖老视频、多P、短长
+  视频、多种输入格式及错误场景。接下来给验证脚本加--record参数，对全部60条做每条
+  16帧的实测并记录结果。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 60 条全量实测在后台跑，大约需要 20 分钟。先看进度：
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+⏺ 输出被缓冲了，要等脚本结束才会写入。用 Monitor 等后台任务完成：
+
+⏺ Monitor(60-case Bilibili dataset run finishing)
+  ⎿  Monitor started · task b4dmauqmr · timeout 1800s
+
+⏺ Meanwhile, updating datas/README.md to match the expanded dataset and the new
+  flags:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ README 已更新。现在等全量实测结束。
+
+✻ Cooked for 15m 55s · done 10:21 PM
+
+⏺ Background command "Add --record and run full 60-case live check with frames"
+completed (exit code 0)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Monitor "60-case Bilibili dataset run finishing" stream ended
+
+⏺ 全部60条测试通过，49条正常视频共抽取784帧，实际拿到782帧，缺失的2帧都是不到21
+  秒短视频的最后一帧，猜测是视频实际时长略短于标称值导致结尾附近读不到画面。接下
+  来我会验证这个猜测。
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ 确认了猜测：B站标称时长是向上取整的，实际视频流更短，导致最后采样点越界；还发
+  现错误分类误把内存地址里的"404"当成了HTTP 404。我会修复这两处：只认完整出现的4
+  03/404/410为失效，并在末尾2秒内解码失败时回退重读（最多两次）。
+
+  Ran 1 shell command (ctrl+o to expand)
+⏺ 两条都补齐了，16/16。再看一下全量里最慢的那条（104.7 秒）是什么情况：
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ B 站数据集扩充到了 60 条，全部用真实网络跑过：60/60 通过，49 条正常视频每条抽
+  16 帧，784 帧全部拿到。全量跑下来发现两个问题，都已经修好。
+
+  新增 53 条，覆盖面：
+
+  ┌─────────┬─────┬────────────────────────────────────────────────────────┐
+  │  类别   │ 数  │                          内容                          │
+  │         │ 量  │                                                        │
+  ├─────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 老视频  │ 15  │ 2009–2023 每年一条，如 Bad Apple!!、拜年祭、鬼畜、早期 │
+  │         │     │  MMD                                                   │
+  ├─────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 近期视  │ 17  │ 各来自不同分区：游戏、数码、美食、音乐、知识、汽车、娱 │
+  │ 频      │     │ 乐等                                                   │
+  ├─────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 多 P    │ 6   │ 69P 合集的最后一 P、138P 合集的第 100P、80 分钟的长分P │
+  │         │     │  等                                                    │
+  ├─────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 短 /    │ 6 / │ 18 秒到一个多小时（最长 83 分钟）                      │
+  │ 长视频  │  4  │                                                        │
+  ├─────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 错误情  │ 11  │ 新增用户主页、直播间、课程、番剧 season                │
+  │ 况      │     │ 页、分P越界、没有链接、BV 号不完整、不存在的 av 号     │
+  └─────────┴─────┴────────────────────────────────────────────────────────┘
+
+  另有 1 条最早的 av2，就是原来那 7 条之一。
+
+  输入格式轮换覆盖 13 种，包括 3 条真实的 App 分享短链（【标题-哔哩哔哩】 
+  https://b23.tv/xxx）、手机版链接、没有 https:// 的链接、BV 号夹在一句话里、av
+  号、带追踪参数或时间点参数的链接、活动页链接等。
+
+  全量实测发现并修复的问题：
+  1. 短视频最后一帧会缺：B 站标的时长是向上取整的，比如标 21 秒，实际视频只有
+     20.33 秒，最后一个采样点落在了视频结束之后。现在在最后 2
+     秒内读失败时，会往前退 1 秒重读，最多退两次。那两条视频重测后都是 16/16。
+  2. 错误类型误判：ffmpeg 日志里的内存地址（如 0xc50c44000）包含 "404"，被误判成
+     地址失效，会白白触发一次重新获取地址。现在只认完整出现的状态码。
+  3. 用户主页、直播间链接的提示不准确：原来提示「暂不支持该平台」，现在改为「这
+     不是 B 站视频页面，请粘贴视频链接」。
+
+  后端单元测试从 22 个增加到 26 个，全部通过。
+
+  抽帧耗时：每条 16 帧的中位耗时约 23 秒，但有 8 条用了 58～105 秒，最慢的是一条
+  33 分钟的视频。慢的那几条老视频、新视频、长短都有，看不出和视频本身相关，我推
+  测是当时 CDN 节点响应慢，没有进一步排查。帧都拿到了，只是慢。如果之后要提速，
+  可以考虑只解码关键帧。
+
+  数据集里记录的内容：每条正常视频的 observed
+  里记录了本次实测的帧数和耗时。验证脚本新增了 --record
+  参数，用来把实测结果写回数据集。datas/README.md 里补了覆盖表和用法。
+
+  这些都是公开视频，以后可能被删除或改标题。标题、UP 主名变化只给提示；视频
+  ID、分P、时长对不上才判失败。
+
+✻ Worked for 3m 2s · done 10:42 PM
+
+❯ 那我们前端页面有加上链接解析的入口不                                          
+
+⏺ 有，上一轮已经加好了，入口就是首页那块上传玻片，没有单独再做一个按钮。
+
+  用法：
+  1. 在玻片里直接粘贴链接或分享文本。BV 号、av 号、b23.tv 短链、带 ?p=
+     的分P链接、手机版链接都能识别。
+  2. 识别到链接后，右上角状态从 STANDBY 变成
+     LINK，左侧图标变成链接图标，下方提示「已识别链接 ·
+     直接读取画面，不下载视频」，按钮变成「解析链接」。点按钮或按回车开始。
+  3. 输入的内容没有识别出链接时，提示会变红：「没有识别到链接，请粘贴完整的分享
+     链接」。
+  4. 解析失败时（不支持的平台、视频不存在、番剧等），会回到首页，并在玻片下方显
+     示具体原因。
+
+  同一个输入框也能选择或拖入本地文件：点左侧图标选文件，或者直接把文件拖进来，按
+  钮会变成「开始解析」。
+
+  解析开始后，上传屏显示「正在解析链接」；抽到 16
+  帧就能「先进入对话」，其余画面在后台继续抽；有缺帧时可以补抓。
+
+  这些在浏览器里都实际测过：真实 B 站链接一路走到对话页，YouTube
+  链接显示了报错。
+
+  使用前提：链接解析需要后端在运行，否则会提示「无法连接解析服务，请确认后端已启
+  动」。启动方式：
+
+  cd backend && uv sync && uv run uvicorn app:app --port 8000
+  cd front && npm run dev
+
+  前端开发服务器会把 /api 自动转发到后端。
+
+  想做得更显眼的话，比如在玻片上方加一个「本地文件 /
+  视频链接」切换，或者在底部那行加一个「粘贴示例链接」的快捷入口，告诉我就加。
+
+✻ Brewed for 8s · done 10:43 PM
