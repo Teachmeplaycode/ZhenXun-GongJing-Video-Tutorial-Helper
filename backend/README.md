@@ -98,6 +98,8 @@ tests/                       解析器与抽帧任务的单元测试
 - 配置：在 `backend/.env` 里写 `YUANBAO_COOKIE="hy_user=…; hy_token=…"`（浏览器登录 yuanbao.tencent.com 后，从开发者工具 → Application → Cookies 复制）。这是个人账号的登录凭证，建议用小号。每次解析都会重新读取，改完不用重启。
 - 返回的数据里没有时长时，用 ffprobe 读 MP4 头部取时长（只发几个 Range 请求，不下载）。一个 MP4 同时包含画面和声音，所以抽帧和转写读同一个地址。
 - 错误码：`login_required`（没配 Cookie）、`login_expired`（Cookie 失效）、`unsupported_content`（图文/图集）、`not_found`（已删除或仅作者可见）。
+- 实测（2026-10-15，`weixin.qq.com/sph/AaWZ4mB4x5`，7 分钟科普视频）：解析 5.5 秒，拿到标题、作者和时长；64 帧在 35 秒内全部抽到（MP4 未加密，ffmpeg 可直接定位读取）；转写 227 句；用 DeepSeek 提问时，模型主动调用了两次 `search_transcript`，9.7 秒答完。
+- Cookie 获取：元宝登录框有微信、手机、QQ 三种方式；Mac 上的 Edge 可能加载不出微信二维码（嵌入的二维码被跟踪防护拦截），可以改用手机号登录。`hy_token` 可能是 HttpOnly，要在开发者工具的 Application → Cookies 里复制，`document.cookie` 读不到。
 
 ## 抽帧与缺帧
 
