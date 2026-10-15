@@ -1,0 +1,202 @@
+import { test, expect } from '@playwright/test'
+import { fileURLToPath } from 'node:url'
+import { MockApi, researchAnswer } from './mock-api.js'
+
+const LINK = 'https://www.bilibili.com/video/BV1TEST00001'
+
+async function start(page, setup) {
+  const mock = new MockApi(page)
+  setup?.(mock)
+  await mock.install()
+  await page.goto('/')
+  return mock
+}
+
+// Paste a link, let the (mock) job finish, and enter the chat.
+async function enterChat(page) {
+  await page.locator('.import-control__link').fill(LINK)
+  await page.locator('.import-control__submit').click()
+  await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
+  await expect(page.locator('.composer__input')).toBeVisible()
+}
+
+async function ask(page, question) {
+  await page.locator('.composer__input').fill(question)
+  await page.locator('.composer__input').press('Enter')
+}
+
+const lastAnswer = (page) => page.locator('.msg--assistant').last()
+
+test('link → analysis → chat', async ({ page }) => {
+  await start(page)
+  await page.locator('.import-control__link').fill(LINK)
+  await expect(page.locator('.import-control__submit')).toHaveText(/解析链接/)
+  await page.locator('.import-control__submit').click()
+  const next = page.locator('.btn--next:not(.btn--early)')
+  await expect(next).toBeVisible({ timeout: 30_000 }) // after the 2.4 s minimum and the mask's exit
+  await expect(page.locator('.hud__step', { hasText: '语音转写' })).toContainText('12 句')
+  await expect(page.locator('.hud__step', { hasText: '抓取关键帧' })).toContainText('8 / 8')
+  await next.click()
+  await expect(page.locator('.chat__empty h1')).toHaveText('关于这段视频，你想知道什么？')
+  await expect(page.locator('.tl-sheet')).toHaveCount(8)
+})
+
+test('a failed link is explained on the import screen', async ({ page }) => {
+  await start(page, (m) => { m.linkError = { code: 'not_found', message: '视频不存在或已删除', retryable: false } })
+  await page.locator('.import-control__link').fill(LINK)
+  await page.locator('.import-control__submit').click()
+  await expect(page.locator('.field-error')).toHaveText('视频不存在或已删除')
+})
+
+test('uploading a local file runs the same flow', async ({ page }) => {
+  const mock = await start(page)
+  await page.locator('input[type=file]').setInputFiles(fileURLToPath(new URL('./fixtures/clip.mp4', import.meta.url)))
+  await page.locator('.import-control__submit').click()
+  await page.locator('.btn--next:not(.btn--early)').click()
+  await expect(page.locator('.composer__input')).toBeVisible()
+  expect(mock.requests.some((r) => r.method === 'POST' && r.path === '/api/videos')).toBe(true)
+})
+
+test('an answer shows its steps inline, then the text, sources and footer', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  const release = mock.holdNextRun()
+  await ask(page, '柚子会影响药物吗？帮我查一下')
+
+  // While the run is held, the answer is a working step group and the stop button replaces send.
+  await expect(lastAnswer(page).locator('.step-group[data-working]')).toBeVisible()
+  await expect(page.locator('button[aria-label="停止"]')).toBeVisible()
+  release()
+
+  const answer = lastAnswer(page)
+  await expect(answer.locator('.msg-footer__meta')).toContainText('4 步') // model rounds are not listed as steps
+  await expect(answer.locator('.step-group')).toContainText('执行了 4 步')
+  // Steps come before the text, as they happened.
+  const order = await answer.locator('.bubble--assistant > *').evaluateAll((els) => els.map((e) => e.className))
+  expect(order.findIndex((c) => c.includes('step-group'))).toBeLessThan(order.findIndex((c) => c.includes('streaming-text')))
+
+  await expect(answer.locator('.streaming-text strong')).toHaveText('CYP3A4')
+  await expect(answer.locator('.streaming-text .ts-chip')).toHaveText('00:30')
+  await expect(answer.locator('.md-link')).toHaveAttribute('href', 'https://www.fda.gov/grapefruit')
+  await expect(answer.locator('.source-card')).toHaveCount(1)
+  await expect(answer.locator('.source-card__title')).toHaveText("Grapefruit Juice and Some Drugs Don't Mix")
+
+  // Narration before the tool call ("我来查一下资料。") stayed out of the answer.
+  await expect(answer.locator('.streaming-text')).not.toContainText('我来查一下资料')
+})
+
+test('a search step opens to verdicts per result', async ({ page }) => {
+  await start(page)
+  await enterChat(page)
+  await ask(page, '查一下资料')
+  const answer = lastAnswer(page)
+  await expect(answer.locator('.msg-footer')).toBeVisible()
+  await answer.locator('.step-group .thought-line__head').click()
+  await answer.locator('.step__row', { hasText: '联网搜索' }).click()
+  await expect(answer.locator('.viz-result')).toHaveCount(3)
+  await expect(answer.locator('.viz-stamp')).toHaveText(['可靠', '存疑', '无关'])
+  await expect(answer.locator('.viz-result[data-drop]')).toHaveCount(1)
+  await answer.locator('.step__row', { hasText: '判断是否需要查资料' }).click()
+  await expect(answer.locator('.viz-meter__value')).toHaveText('需要查资料 0.82')
+})
+
+test('the 联网 switch travels with the question', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  await ask(page, '第一个问题')
+  await expect(lastAnswer(page).locator('.msg-footer')).toBeVisible()
+  await page.locator('.chip-btn', { hasText: '联网' }).click()
+  await expect(page.locator('.chip-btn', { hasText: '联网' })).toHaveAttribute('aria-pressed', 'false')
+  await ask(page, '第二个问题')
+  await expect(page.locator('.bubble__options').last()).toHaveText('不联网')
+  await expect.poll(() => mock.runsSent().length).toBe(2)
+  const [first, second] = mock.runsSent()
+  expect([first.web, first.papers]).toEqual([true, true])
+  expect([second.web, second.papers]).toEqual([false, true])
+})
+
+test('"/" opens the task menu and fills the chosen task', async ({ page }) => {
+  await start(page)
+  await enterChat(page)
+  const input = page.locator('.composer__input')
+  await input.fill('/')
+  await expect(page.locator('.slash-menu__item')).toHaveCount(5)
+  await input.press('ArrowDown')
+  await input.press('Enter')
+  await expect(input).toHaveValue('按时间顺序列出视频里的关键事件和画面变化，每条注明时间点。')
+  await expect(page.locator('.slash-menu')).toHaveCount(0)
+  await input.fill('/核')
+  await expect(page.locator('.slash-menu__item')).toHaveCount(1)
+})
+
+test('the timeline folds away, remembers it, and opens for 选帧 and for times', async ({ page }) => {
+  await start(page)
+  await enterChat(page)
+  const timeline = page.locator('.timeline')
+  await expect(timeline).toHaveAttribute('data-open')
+  await page.locator('.timeline__fold').click()
+  await expect(timeline).not.toHaveAttribute('data-open')
+  expect(await page.evaluate(() => localStorage.getItem('timeline.open'))).toBe('0')
+
+  await page.locator('.chip-btn', { hasText: '选帧' }).click()
+  await expect(timeline).toHaveAttribute('data-open')
+
+  await page.locator('.timeline__fold').click()
+  await ask(page, '讲了什么')
+  await lastAnswer(page).locator('.streaming-text .ts-chip').click()
+  await expect(timeline).toHaveAttribute('data-open')
+  await expect(page.locator('.tl-sheet.is-seeking')).toHaveCount(1)
+})
+
+test('stopping an answer marks it stopped', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  const release = mock.holdNextRun()
+  await ask(page, '讲了什么')
+  await page.locator('button[aria-label="停止"]').click()
+  await expect(lastAnswer(page).locator('.bubble__error')).toHaveText('已停止')
+  await expect(page.locator('button[aria-label="发送"]')).toBeVisible()
+  release()
+})
+
+test('regenerate asks the same question again', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  await ask(page, '同一个问题')
+  await expect(lastAnswer(page).locator('.msg-footer')).toBeVisible()
+  await lastAnswer(page).locator('button[aria-label="重新回答"]').click()
+  await expect.poll(() => mock.runsSent().map((b) => b.question)).toEqual(['同一个问题', '同一个问题'])
+  await expect(page.locator('.msg--assistant')).toHaveCount(2)
+})
+
+test('history reopens saved sessions, old and new answer formats', async ({ page }) => {
+  await start(page, (m) => {
+    const events = researchAnswer().filter((e) => e.type !== 'assistant.message.delta')
+    // New format: text deltas saved in order with the tool events.
+    m.addSession('new1', {
+      title: '新格式会话',
+      messages: [
+        { role: 'user', content: '新的问题', status: 'done', frames: [] },
+        { role: 'assistant', content: '新格式的回答', status: 'done', events: [...events.slice(0, -1), { type: 'assistant.message.delta', delta: '新格式的回答', t: 7 }, events.at(-1)] },
+      ],
+    })
+    // Old format (before 2026-10-15): no deltas in the events, just the content.
+    m.addSession('old1', {
+      title: '旧格式会话',
+      messages: [
+        { role: 'user', content: '旧的问题', status: 'done', frames: [] },
+        { role: 'assistant', content: '旧格式的回答', status: 'done', events },
+      ],
+    })
+  })
+  await expect(page.locator('.recent .session-item')).toHaveCount(2)
+
+  await page.locator('.recent .session-item', { hasText: '旧格式会话' }).locator('.session-item__open').click()
+  await expect(lastAnswer(page).locator('.streaming-text')).toHaveText('旧格式的回答')
+  await expect(lastAnswer(page).locator('.step-group')).toContainText('执行了 4 步')
+
+  await page.locator('.btn--history').click()
+  await page.locator('.history .session-item', { hasText: '新格式会话' }).locator('.session-item__open').click()
+  await expect(lastAnswer(page).locator('.streaming-text')).toHaveText('新格式的回答')
+  await expect(page.locator('.msg--user .bubble__text')).toHaveText('新的问题')
+})
