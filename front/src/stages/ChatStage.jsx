@@ -11,7 +11,7 @@ import { speechStep } from './AnalyzeHud'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 
-export default function ChatStage({ active, video, frames, coverage = null, transcript = null, initialMessages, selected, onClearSelection, onRemoveFrame }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, initialMessages, selected, onClearSelection, onRemoveFrame }) {
   const { messages, send, stop, running } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   const [draft, setDraft] = useState('')
   const scrollRef = useRef(null)
@@ -70,7 +70,7 @@ export default function ChatStage({ active, video, frames, coverage = null, tran
               <div className="chat-guide"><span className="chat-guide__number">01</span><span>在时间轴选帧</span><span className="chat-guide__line" /><span className="chat-guide__number">02</span><span>提问或选择任务</span><span className="chat-guide__line" /><span className="chat-guide__number">03</span><span>查看回答与执行记录</span></div>
             </AnimatedContent>
           ) : (
-            messages.map((m) => <MessageBubble key={m.id} message={m} onStop={stop} />)
+            messages.map((m) => <MessageBubble key={m.id} message={m} onStop={stop} onTime={onSeek} duration={duration} />)
           )}
           <div className="chat__anchor" />
         </div>

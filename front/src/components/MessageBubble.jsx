@@ -26,7 +26,8 @@ function Attachments({ frames }) {
   )
 }
 
-export default function MessageBubble({ message, onStop }) {
+// onTime(seconds): a time in the answer was clicked; duration bounds which times count.
+export default function MessageBubble({ message, onStop, onTime = null, duration = null }) {
   if (message.role === 'user') {
     return (
       <div className="msg msg--user">
@@ -46,7 +47,7 @@ export default function MessageBubble({ message, onStop }) {
         {message.progress ? <ProgressPill step={message.progress.step} percent={message.progress.percent} /> : null}
         <TraceGroup calls={message.calls} />
         {message.browser ? <BrowserViewport session={message.browser} onStop={onStop} /> : null}
-        {message.text || streaming ? <StreamingText text={message.text} streaming={streaming} /> : null}
+        {message.text || streaming ? <StreamingText text={message.text} streaming={streaming} onTime={onTime} duration={duration} /> : null}
         {message.error ? <div className="bubble__error">{message.error}</div> : null}
         {message.completed ? <CompletionBanner {...message.completed} /> : null}
       </div>
