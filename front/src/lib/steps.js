@@ -1,0 +1,61 @@
+// One-line descriptions of tool calls for the step list: what was done, to what, and the outcome.
+const clock = (s) => {
+  const t = Math.max(0, Math.round(Number(s) || 0))
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+}
+const firstLine = (s) => (s || '').split('\n')[0]
+const host = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url || ''
+  }
+}
+
+// Model rounds are the thinking between steps, not steps (as in Claude / Codex): kept out of the list.
+export const isVisibleStep = (call) => !call.tool?.startsWith('vision.')
+
+/** { verb, target, meta } for a call; `meta` is the outcome once known. */
+export function describeStep(call) {
+  const p = call.input?.params || {}
+  const d = call.data || {}
+  const n = call.resultCount
+  const done = call.status === 'done'
+  switch (call.tool) {
+    case 'frames.select':
+      return { verb: '选取画面', target: p.scope || '', meta: done ? `${n} 帧` : '' }
+    case 'transcript.read':
+      return { verb: '读取语音转写', target: p.scope || '', meta: done ? (n ? `${n} 行` : '没有转写') : '' }
+    case 'decision.research_intent': {
+      const needed = d.needed ?? /^需要/.test(call.stdout || '')
+      return {
+        verb: '判断是否需要查资料', target: '',
+        meta: done ? `${needed ? '需要' : '不需要'}${d.p != null ? ` · ${d.p.toFixed(2)}` : ''}` : '',
+      }
+    }
+    case 'transcript.search':
+      return { verb: '搜索转写', target: `「${p.query || ''}」`, meta: done ? `${n} 处` : '' }
+    case 'transcript.read_range':
+      return { verb: '读取转写', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 句` : '' }
+    case 'frames.view':
+      return { verb: '细看画面', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 张` : '' }
+    case 'web.search': {
+      const dropped = (d.results || []).filter((r) => r.verdict === 'irrelevant').length
+      return {
+        verb: '联网搜索', target: `「${p.query || ''}」`,
+        meta: done ? `${n} 条${dropped ? ` · 去掉 ${dropped} 条无关` : ''}` : call.status === 'error' ? firstLine(call.stdout) : '',
+      }
+    }
+    case 'web.fetch':
+      return {
+        verb: '阅读网页', target: d.host || host(p.url),
+        meta: d.blocked ? '疑似注入，已拦截' : done ? `${(d.to ?? 0) - (d.from ?? 0)} 字` : call.status === 'error' ? firstLine(call.stdout).replace(/^失败：/, '') : '',
+      }
+    case 'papers.search':
+      return { verb: '检索论文', target: `「${p.query || ''}」`, meta: done ? `${d.source || p.source || 'openalex'} · ${n} 篇` : '' }
+    default:
+      return { verb: call.tool, target: '', meta: done && n != null ? `${n} 项` : '' }
+  }
+}
+
+export { clock, host }

@@ -70,6 +70,23 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
+  // The chat's timeline can fold away for a taller chat; remembered across visits.
+  const [timelineOpen, setTimelineOpenState] = useState(() => {
+    try {
+      return localStorage.getItem('timeline.open') !== '0'
+    } catch {
+      return true
+    }
+  })
+  const [timelinePulse, setTimelinePulse] = useState(0)
+  const setTimelineOpen = (value) => {
+    setTimelineOpenState(value)
+    try {
+      localStorage.setItem('timeline.open', value ? '1' : '0')
+    } catch {
+      // private mode: still toggles for this visit
+    }
+  }
 
   const sculptureLayerRef = useRef(null)
   const uiLayerRef = useRef(null)
@@ -572,7 +589,8 @@ export default function App() {
               coverage={coverage}
               transcript={analysis.transcript}
               duration={meta?.duration}
-              onSeek={(time) => setSeek({ time, key: Date.now() })}
+              onSeek={(time) => { setTimelineOpen(true); setSeek({ time, key: Date.now() }) }}
+              onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
               selected={selected}
               onClearSelection={() => setSelected([])}
               onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
@@ -603,6 +621,9 @@ export default function App() {
           onRetry={canRetry ? retryMissing : null}
           retrying={retrying}
           seek={seek}
+          open={timelineOpen}
+          onOpenChange={setTimelineOpen}
+          pulse={timelinePulse}
         />
       ) : null}
     </div>
