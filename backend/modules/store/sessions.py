@@ -38,6 +38,18 @@ CREATE TABLE IF NOT EXISTS messages (
   data TEXT NOT NULL DEFAULT '{}' -- user: {frames: [index]}; assistant: {events: [non-delta §9.2 events]}
 );
 CREATE INDEX IF NOT EXISTS messages_session ON messages(session_id, id);
+-- Every typed decision (modules/decide), kept for calibration and possible fine-tuning later.
+CREATE TABLE IF NOT EXISTS decisions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created REAL NOT NULL,
+  task TEXT NOT NULL,             -- e.g. source_reliability, research_intent, injection
+  model TEXT NOT NULL,
+  state TEXT NOT NULL,
+  question TEXT NOT NULL,         -- {instructions, criteria}
+  probabilities TEXT NOT NULL,    -- {option: p}
+  latency_ms REAL,
+  label TEXT                      -- the correct option, when someone reviews it
+);
 """
 
 
@@ -123,6 +135,14 @@ class SessionStore:
         job.restored = True
         job.transcript = Transcript.from_dict(json.loads(row["transcript"]) if row["transcript"] else None)
         return job
+
+    # ---- decisions -----------------------------------------------------------------------
+    def log_decision(self, task: str, state: str, question: dict, decision) -> None:
+        with self.db:
+            self.db.execute(
+                "INSERT INTO decisions (created, task, model, state, question, probabilities, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (time.time(), task, decision.model, state, json.dumps(question, ensure_ascii=False),
+                 json.dumps({k: round(v, 4) for k, v in decision.probabilities.items()}), decision.latency_ms))
 
     # ---- messages ------------------------------------------------------------------------
     def add_message(self, session_id: str, role: str, content: str, *, status: str = "done", data: dict | None = None) -> None:

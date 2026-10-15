@@ -16,6 +16,8 @@ from pydantic import BaseModel
 
 from modules.agent import run_agent
 from modules.frames import FrameJob
+from modules.decide import Decider
+from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
 from modules.store import SessionStore
 from modules.transcript import Transcript, run_transcript
@@ -36,6 +38,7 @@ store = SessionStore(DB_PATH)
 jobs: dict[str, FrameJob] = {}  # active jobs; saved sessions are restored on demand
 tasks: set[asyncio.Task] = set()
 llm: ChatClient | OllamaClient | None = None
+decider: Decider | None = None
 
 
 @asynccontextmanager
@@ -47,6 +50,8 @@ async def lifespan(_: FastAPI):
     await registry.aclose()
     if llm is not None:
         await llm.aclose()
+    if decider is not None:
+        await decider.aclose()
     store.close()
 
 
@@ -143,6 +148,23 @@ def get_llm() -> ChatClient | OllamaClient:
     return llm
 
 
+def get_decider() -> Decider | None:
+    """The local decision model (DECISION=off disables it); every decision is logged for calibration."""
+    global decider
+    if not decision_enabled():
+        return None
+    if decider is None:
+        decider = Decider(log=store.log_decision)
+    return decider
+
+
+def warm_decider() -> None:
+    """A question usually follows a new job: have the decision model loaded by then."""
+    d = get_decider()
+    if d is not None:
+        spawn(d.warm())
+
+
 def sse(event: dict) -> str:
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
@@ -176,6 +198,7 @@ async def create_link_job(body: LinkRequest):
     store.create(job, body.url, body.task)
     spawn(sample(job))
     spawn(transcribe(job))
+    warm_decider()
     return snapshot(job)
 
 
@@ -213,6 +236,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
             path.unlink(missing_ok=True)
 
     spawn(process())
+    warm_decider()
     return snapshot(job)
 
 
@@ -304,7 +328,7 @@ async def agent_run(body: AgentRequest):
         # rebuild the trace. A disconnect (the user pressed stop) saves what arrived so far.
         text, events, status = [], [], "stopped"
         try:
-            async for event in run_agent(job, client, body.question, frames=frames, history=history):
+            async for event in run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider()):
                 if event["type"] == "assistant.message.delta":
                     text.append(event["delta"])
                 else:
