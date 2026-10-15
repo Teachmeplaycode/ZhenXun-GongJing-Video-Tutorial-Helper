@@ -62,6 +62,11 @@ datas/            测试数据（解析器用例）与开发过程中导出的�
 cd backend && uv run pytest               # 后端单元测试，不联网
 cd backend && uv run python scripts/check_links.py   # 用 datas/ 里的真实链接验证 B 站解析（联网）
 cd front && npm run build                 # 前端构建检查
+cd front && npm run test:e2e              # 前端端到端测试（Playwright，约 15 秒）
 ```
 
-前端目前没有自动化测试。
+前端端到端测试（`front/e2e/`）在真实的 Chromium 里操作页面，但所有 `/api` 请求都由 `e2e/mock-api.js` 在浏览器内直接应答，所以不需要启动后端、不联网、不花模型费用，结果每次都一样。覆盖：解析链接 / 本地上传 / 解析失败、回答里步骤与文字的顺序、时间点和链接、来源卡片、搜索步骤的可视化、联网开关随问题发送、`/` 命令菜单、时间轴收起与自动展开、停止、重新回答、历史会话（新旧两种保存格式）。
+
+- 测试时禁用了 WebGL：无头浏览器里雕塑用软件渲染、每帧回读像素，会把页面拖到按钮一直无法点击；页面因此显示设计规范要求的静态替代图，这条路径也一并测到。
+- 测试自己起一个 Vite（5199 端口），不影响 `./dev.sh`。第一次运行如果提示缺少浏览器：`npx playwright install chromium`。
+- 失败时 `front/test-results/` 里有截图、页面快照和可回放的 trace（`npx playwright show-trace …`）。
