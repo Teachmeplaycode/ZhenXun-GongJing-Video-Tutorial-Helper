@@ -1,5 +1,7 @@
-"""Scholarly search without keys: OpenAlex (published work, with abstracts and citation counts) and arXiv
+"""Scholarly search: OpenAlex (all fields, with abstracts and citation counts), PubMed (biomedicine) and arXiv
 (preprints). Semantic Scholar answers 429 to unauthenticated requests, and Crossref rarely has abstracts.
+
+  NCBI_API_KEY     optional; PubMed allows 3 requests/s without a key, 10 with one
 
   OPENALEX_API_KEY free key from openalex.org/settings/api. Since 2026-02-13 OpenAlex bills usage: a
                    search costs $0.001; without a key the daily budget is $0.10 (~100 searches), with a
@@ -15,11 +17,13 @@ import httpx
 
 from modules.settings import settings
 
-from .web import HEADERS, Pacer, WebError
+from .web import HEADERS, Pacer, WebError, rerank
 
 ATOM = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
 ABSTRACT_CHARS = 600
 ARXIV_PACE = Pacer(3.0)  # arXiv asks API users for at most one request every 3 seconds
+PUBMED_PACE = Pacer(0.4)  # 3 requests/s without an NCBI key
+EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
 
 @dataclass
@@ -98,16 +102,61 @@ async def arxiv(query: str, limit: int, client: httpx.AsyncClient) -> list[Paper
     return papers
 
 
+async def pubmed(query: str, limit: int, client: httpx.AsyncClient) -> list[Paper]:
+    """esearch for PMIDs by relevance, then efetch their records (title, abstract, journal, year, DOI)."""
+    key = settings().get("NCBI_API_KEY", "")
+    base = {"db": "pubmed", "tool": "gongjing"} | ({"api_key": key} if key else {})
+    pace = PUBMED_PACE if not key else Pacer(0.12)
+    async with pace:
+        found = await client.get(f"{EUTILS}/esearch.fcgi", params=base | {"term": query, "retmode": "json", "retmax": limit, "sort": "relevance"})
+    if found.status_code != 200:
+        raise WebError(f"PubMed 返回 HTTP {found.status_code}")
+    ids = (found.json().get("esearchresult") or {}).get("idlist") or []
+    if not ids:
+        return []
+    async with pace:
+        fetched = await client.get(f"{EUTILS}/efetch.fcgi", params=base | {"id": ",".join(ids), "retmode": "xml"})
+    if fetched.status_code != 200:
+        raise WebError(f"PubMed 返回 HTTP {fetched.status_code}")
+    papers = []
+    for art in ET.fromstring(fetched.content).findall(".//PubmedArticle"):
+        cite = art.find("MedlineCitation")
+        pmid = cite.findtext("PMID", "")
+        article = cite.find("Article")
+        year = article.findtext("Journal/JournalIssue/PubDate/Year") or (article.findtext("Journal/JournalIssue/PubDate/MedlineDate") or "")[:4]
+        parts = []
+        for node in article.findall("Abstract/AbstractText"):
+            text = "".join(node.itertext()).strip()
+            parts.append(f"{node.get('Label')}: {text}" if node.get("Label") else text)
+        doi = next((i.text for i in art.findall("PubmedData/ArticleIdList/ArticleId") if i.get("IdType") == "doi"), "")
+        authors = [f"{a.findtext('LastName', '')} {a.findtext('Initials', '')}".strip() or a.findtext("CollectiveName", "")
+                   for a in article.findall("AuthorList/Author")]
+        papers.append(Paper(
+            title="".join(article.find("ArticleTitle").itertext()).strip() if article.find("ArticleTitle") is not None else "",
+            year=int(year) if year.isdigit() else None, authors=[a for a in authors if a],
+            venue=article.findtext("Journal/Title", ""), citations=None,
+            url=f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/", pdf=f"https://doi.org/{doi}" if doi else "",
+            abstract=" ".join(parts),
+        ))
+    order = {pmid: i for i, pmid in enumerate(ids)}  # efetch doesn't keep the relevance order
+    return sorted(papers, key=lambda p: order.get(p.url.rstrip("/").rsplit("/", 1)[-1], len(order)))
+
+
+SOURCES = {"openalex": openalex, "pubmed": pubmed, "arxiv": arxiv}
+
+
 async def search_papers(query: str, limit: int = 6, source: str = "openalex", *,
                         client: httpx.AsyncClient | None = None) -> list[Paper]:
     own = client is None
     client = client or httpx.AsyncClient(timeout=20, headers=HEADERS, trust_env=False, follow_redirects=True)
     try:
-        return await (arxiv if source == "arxiv" else openalex)(query, limit, client)
+        found = await SOURCES.get(source, openalex)(query, limit, client)
+        ranked = await rerank(query, [f"{p.title}\n{p.abstract[:800]}" for p in found], client)
+        return [found[i] for i, _ in ranked] if ranked else found
     except httpx.HTTPError:
         raise WebError("无法连接论文检索服务，请检查网络") from None
     except ET.ParseError:
-        raise WebError("arXiv 返回了无法解析的内容") from None
+        raise WebError(f"{source} 返回了无法解析的内容") from None
     finally:
         if own:
             await client.aclose()

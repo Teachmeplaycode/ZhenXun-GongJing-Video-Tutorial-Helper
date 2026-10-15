@@ -1,5 +1,6 @@
 import asyncio
 import ipaddress
+import json
 
 import httpx
 import pytest
@@ -102,7 +103,7 @@ def test_search_tries_backends_in_order(monkeypatch):
         def __init__(self, timeout=None):
             pass
 
-        def text(self, query, region=None, max_results=None, backend=None):
+        def text(self, query, region=None, max_results=None, backend=None, **kwargs):
             tried.append(backend)
             if backend == "bing":
                 return [{"title": "PubMed", "href": "https://pubmed.ncbi.nlm.nih.gov/1/", "body": "grapefruit"}]
@@ -118,3 +119,26 @@ def test_search_tries_backends_in_order(monkeypatch):
     with pytest.raises(web.WebError):
         asyncio.run(web.search("q"))
 
+
+
+def test_rerank_reorders_and_drops_misses(monkeypatch):
+    monkeypatch.setattr(web, "settings", lambda: {"BOCHA_API": "sk-test", "SEARCH_RERANK": "on"})
+    results = [web.SearchResult("腹胀", "https://farm.com", "饭后腹胀"), web.SearchResult("Amlodipine", "https://a.com", "no effect"),
+               web.SearchResult("Nifedipine", "https://n.com", "raises levels"), web.SearchResult("维C", "https://c.com", "柚子维C"),
+               web.SearchResult("FDA", "https://fda.gov", "grapefruit")]
+    scores = {"index": 0}
+
+    def handler(request):
+        body = json.loads(request.content)
+        assert body["model"] == "gte-rerank" and len(body["documents"]) == 5
+        ranked = [(1, 0.96), (2, 0.8), (4, 0.3), (3, 0.05), (0, 0.02)]
+        return httpx.Response(200, json={"code": 200, "data": {"results": [{"index": i, "relevance_score": s} for i, s in ranked]}})
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    kept = asyncio.run(web.rerank_results("does grapefruit affect amlodipine", results, client))
+    assert [r.url for r in kept] == ["https://a.com", "https://n.com", "https://fda.gov"]  # the two misses are gone
+
+    # Off by default, and without a key: the original order stays.
+    monkeypatch.setattr(web, "settings", lambda: {"BOCHA_API": "sk-test"})
+    assert asyncio.run(web.rerank_results("q", results, client)) == results
+    monkeypatch.setattr(web, "settings", lambda: {"SEARCH_RERANK": "on"})
+    assert asyncio.run(web.rerank_results("q", results, client)) == results

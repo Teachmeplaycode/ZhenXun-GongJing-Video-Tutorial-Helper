@@ -72,10 +72,12 @@ DEFINITIONS = [
 WEB_DEFINITIONS = [
     {"type": "function", "function": {
         "name": "web_search",
-        "description": "联网搜索（Bing、Brave、Google 等海外搜索引擎），返回网页标题、链接和摘要。用来核实视频里的说法、补充背景知识或查最新信息。优先用英文关键词，结果更可靠；需要中文资料时再用中文。",
+        "description": "联网搜索，返回网页标题、链接和摘要。用来核实视频里的说法、补充背景知识或查最新信息。优先用英文关键词，结果更可靠；需要中文资料时再用中文。",
         "parameters": {"type": "object", "properties": {
             "query": {"type": "string", "description": "搜索词"},
-            "limit": {"type": "integer", "description": f"返回几条，1 到 {MAX_WEB_RESULTS}，默认 6"}}, "required": ["query"]}}},
+            "limit": {"type": "integer", "description": f"返回几条，1 到 {MAX_WEB_RESULTS}，默认 6"},
+            "freshness": {"type": "string", "enum": ["noLimit", "oneDay", "oneWeek", "oneMonth", "oneYear"],
+                          "description": "只要这段时间内的网页，查新闻、最新进展时用；默认不限"}}, "required": ["query"]}}},
     {"type": "function", "function": {
         "name": "fetch_page",
         "description": f"打开一个网页并读取正文（每次最多 {PAGE_CHUNK} 字，长网页用 offset 接着读）。只打开搜索结果里或用户给出的链接。",
@@ -84,16 +86,16 @@ WEB_DEFINITIONS = [
             "offset": {"type": "integer", "description": "从第几个字开始读，默认 0"}}, "required": ["url"]}}},
     {"type": "function", "function": {
         "name": "search_papers",
-        "description": "检索学术论文，返回标题、作者、年份、期刊、被引次数、链接和摘要。source=openalex（默认，已发表的期刊/会议论文，覆盖面广）或 arxiv（预印本，计算机/物理/数学较全）。用英文关键词效果更好。",
+        "description": "检索学术论文，返回标题、作者、年份、期刊、链接和摘要。source：openalex（默认，全学科已发表论文，带被引次数）、pubmed（医学/生物/药学，最权威）、arxiv（预印本，计算机/物理/数学）。用英文关键词效果更好。",
         "parameters": {"type": "object", "properties": {
             "query": {"type": "string", "description": "检索词，建议英文"},
-            "source": {"type": "string", "enum": ["openalex", "arxiv"]},
+            "source": {"type": "string", "enum": ["openalex", "pubmed", "arxiv"]},
             "limit": {"type": "integer", "description": f"返回几篇，1 到 {MAX_WEB_RESULTS}，默认 5"}}, "required": ["query"]}}},
 ]
 
 ARGS = {
     "search_transcript": ("query",), "read_transcript": ("start", "end"), "view_frames": ("start", "end", "count"),
-    "web_search": ("query", "limit"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
+    "web_search": ("query", "limit", "freshness"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
 }
 TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view",
                "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search"}
@@ -144,10 +146,10 @@ class AgentTools:
             return ToolResult(f"失败：{exc}", str(exc), error=True)
 
     # ---- web ------------------------------------------------------------------------------
-    async def web_search(self, query: str = "", limit=6) -> ToolResult:
+    async def web_search(self, query: str = "", limit=6, freshness="") -> ToolResult:
         if not query.strip():
             return ToolResult("请给出搜索词。", "没有搜索词", error=True)
-        results = await web.search(query.strip(), clamp(limit, 1, MAX_WEB_RESULTS, 6))
+        results = await web.search(query.strip(), clamp(limit, 1, MAX_WEB_RESULTS, 6), str(freshness or ""))
         if not results:
             return ToolResult(f"没有搜到「{query}」的结果。", "0 条")
         lines = [f"{i}. {r.title}\n   {r.url}\n   {r.snippet}" for i, r in enumerate(results, 1)]
@@ -168,7 +170,7 @@ class AgentTools:
     async def search_papers(self, query: str = "", source="openalex", limit=5) -> ToolResult:
         if not query.strip():
             return ToolResult("请给出检索词。", "没有检索词", error=True)
-        source = "arxiv" if str(source).lower() == "arxiv" else "openalex"
+        source = str(source).lower() if str(source).lower() in papers.SOURCES else "openalex"
         found = await papers.search_papers(query.strip(), clamp(limit, 1, MAX_WEB_RESULTS, 5), source)
         if not found:
             return ToolResult(f"{source} 没有检索到「{query}」相关的论文，可以换英文关键词再试。", "0 篇")
