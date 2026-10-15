@@ -4,6 +4,8 @@
 
 ## 运行
 
+日常开发直接在项目根目录运行 `./dev.sh`，它会检查环境并同时启动后端（带 `--reload`，改代码或 `.env` 自动重载）和前端，见根目录 [README](../README.md)。下面是单独运行后端的方式。
+
 ```bash
 cd backend
 uv sync
