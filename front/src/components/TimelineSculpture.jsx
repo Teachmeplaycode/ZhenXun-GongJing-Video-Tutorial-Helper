@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { fmtClock, fmtTime, frameNo } from '../lib/format'
+import { IconChevron } from './Icons'
 import { prefersReducedMotion } from '../lib/motion'
 
 const NEIGHBOR_RADIUS = 3
@@ -22,8 +23,11 @@ const bell = (d) => 0.5 + 0.5 * Math.cos((Math.PI * d) / (NEIGHBOR_RADIUS + 1))
 const isAvailable = (f) => Boolean(f.src) && (!f.status || f.status === 'ok')
 
 // seek: { time, key } from a time clicked in an answer — the nearest sheet rises and shows its preview.
-export default function TimelineSculpture({ frames, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null }) {
+// open / onOpenChange: the track can fold away to give the chat more height; `pulse` (a changing
+// number) flashes the head to show where frames are picked.
+export default function TimelineSculpture({ frames, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
   const trackRef = useRef(null)
+  const sectionRef = useRef(null)
   const deckRef = useRef(null)
   const bodies = useRef([])
   const cards = useRef([])
@@ -87,6 +91,13 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
   }
   useEffect(() => () => clearTimeout(timer.current), [])
 
+  useLayoutEffect(() => {
+    const head = sectionRef.current?.querySelector('.timeline__head')
+    if (!pulse || !head || prefersReducedMotion()) return undefined
+    const tween = gsap.fromTo(head, { backgroundColor: 'var(--accent-active)' }, { backgroundColor: 'rgba(0,0,0,0)', duration: 0.9, ease: 'power2.out', delay: 0.25 })
+    return () => tween.kill()
+  }, [pulse])
+
   const [seeking, setSeeking] = useState(null) // index raised by a seek, for its accent outline
   useEffect(() => {
     if (!seek || !frames.length) return undefined
@@ -109,7 +120,7 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
   const previewLeft = Math.min(Math.max(previewX - PREVIEW_WIDTH / 2, 0), Math.max(0, trackWidth - PREVIEW_WIDTH))
 
   return (
-    <section className="timeline" aria-label="视频时间轴">
+    <section ref={sectionRef} className="timeline" data-open={open || undefined} aria-label="视频时间轴">
       <header className="timeline__head">
         <span className="eyebrow">TIMELINE</span>
         <span className="mono-sm muted">{count} 帧 · 00:00.0 – {fmtTime(duration)}</span>
@@ -129,9 +140,16 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
             <button type="button" className="link-btn" onClick={onClear}>清除</button>
           </>
         ) : (
-          <span className="caption muted">点击薄片选择关键帧作为提问附件</span>
+          <span className="caption muted">{open ? '点击薄片选择关键帧作为提问附件' : '已收起'}</span>
         )}
+        {onOpenChange ? (
+          <button type="button" className="timeline__fold" onClick={() => onOpenChange(!open)} aria-expanded={open}
+            title={open ? '收起时间轴，让对话区更高' : '展开时间轴'}>
+            <IconChevron size={12} /> {open ? '收起' : '展开'}
+          </button>
+        ) : null}
       </header>
+      <div className="timeline__body"><div className="timeline__fold-inner">
       <div ref={trackRef} className="timeline__track" onPointerLeave={() => hover(null)}>
         <div
           ref={deckRef}
@@ -184,6 +202,7 @@ export default function TimelineSculpture({ frames, duration, selected, onToggle
           </div>
         ) : null}
       </div>
+      </div></div>
     </section>
   )
 }

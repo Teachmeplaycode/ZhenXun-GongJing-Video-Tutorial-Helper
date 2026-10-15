@@ -142,3 +142,14 @@ def test_rerank_reorders_and_drops_misses(monkeypatch):
     assert asyncio.run(web.rerank_results("q", results, client)) == results
     monkeypatch.setattr(web, "settings", lambda: {"SEARCH_RERANK": "on"})
     assert asyncio.run(web.rerank_results("q", results, client)) == results
+
+
+def test_definitions_follow_the_composer_switches(monkeypatch):
+    from modules.agent import tools
+    monkeypatch.setattr(tools, "settings", lambda: {})
+    names = lambda **kw: {d["function"]["name"] for d in tools.definitions(**kw)}  # noqa: E731
+    assert {"web_search", "fetch_page", "search_papers"} <= names()
+    assert "search_papers" in names(web=False) and "web_search" not in names(web=False)
+    assert "search_papers" not in names(papers=False) and "web_search" in names(papers=False)
+    monkeypatch.setattr(tools, "settings", lambda: {"LLM_WEB": "off"})
+    assert names() == {"search_transcript", "read_transcript", "view_frames"}

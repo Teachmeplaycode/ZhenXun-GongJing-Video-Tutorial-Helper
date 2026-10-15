@@ -17,7 +17,7 @@ from modules.llm import ChatClient, LLMError, OllamaClient, Usage, assistant_mes
 
 from modules.decide import questions as dq
 
-from .tools import TRACE_NAMES, AgentTools, definitions, parse_time, web_enabled
+from .tools import TRACE_NAMES, AgentTools, definitions, parse_time
 
 HISTORY_MESSAGES = 8      # earlier turns sent back as plain text (frames only go with the current turn)
 HISTORY_CHARS = 4000
@@ -212,7 +212,9 @@ async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
 
 
 async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: str, *,
-                    frames: list[int] | None = None, history: list[dict] | None = None, decider=None) -> AsyncIterator[dict]:
+                    frames: list[int] | None = None, history: list[dict] | None = None, decider=None,
+                    web: bool = True, papers: bool = True) -> AsyncIterator[dict]:
+    """`web` / `papers`: the composer's switches for this question (both still subject to LLM_WEB)."""
     """Yield §9.2 events. Errors end the stream with `run.error` instead of raising."""
     started = time.perf_counter()
     steps = 0
@@ -258,26 +260,29 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield tool(tid, "started", tool_name="frames.view")
         yield tool(tid, "input", input={"kind": "params", "params": {"start": a, "end": b, "count": 6, "reason": "问题指定了时间段"}})
         result = await tools.run("view_frames", {"start": a, "end": b, "count": 6})
-        yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0)
+        yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0, data=result.data)
         yield tool(tid, "completed", result_count=result.count)
         zoomed += result.images
     if zoomed:
         question_part = messages[-1]["content"].pop()  # keep the question last
         messages[-1]["content"] += [{"type": "text", "text": "问题所问时间段的加密画面："}] + image_message(zoomed)["content"] + [question_part]
     if rounds:
-        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=WEB_GUIDE if web_enabled() else "")}
+        allowed = definitions(web, papers)
+        lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
+        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=WEB_GUIDE if lookup else "")}
     prompt_tokens = completion_tokens = 0
     tool_calls = 0
     usage = Usage()
     answered = False  # any answer text streamed so far
     must_research, researched = False, False
-    if rounds and web_enabled():
+    if rounds and any(d["function"]["name"] in WEB_TOOLS for d in definitions(web, papers)):
         steps += 1
         yield tool("intent", "started", tool_name="decision.research_intent")
         yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})
         must_research, p = await research_wanted(question, decider)
         how = f"决策模型：要查资料的概率 {p:.2f}" if p is not None else "关键词匹配（决策模型不可用）"
-        yield tool("intent", "output", stdout=f"{'需要' if must_research else '不需要'}先查资料再回答\n{how}", exit_code=0)
+        yield tool("intent", "output", stdout=f"{'需要' if must_research else '不需要'}先查资料再回答\n{how}", exit_code=0,
+                   data={"p": p, "needed": must_research})
         yield tool("intent", "completed", result_count=1)
     for round_no in range(rounds + 1):
         last = round_no == rounds  # the final round gets no tools, so the model has to answer
@@ -295,7 +300,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         streaming = last  # in the final round everything is answer
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
-            async for delta in client.stream(messages, usage, tools=None if last else definitions()):
+            async for delta in client.stream(messages, usage, tools=None if last else definitions(web, papers)):
                 text.append(delta)
                 if not streaming:
                     held += delta
@@ -349,7 +354,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             yield tool(tid, "started", tool_name=TRACE_NAMES.get(call.name, call.name))
             yield tool(tid, "input", input={"kind": "params", "params": call.arguments})
             result = await tools.run(call.name, call.arguments)
-            yield tool(tid, "output", stdout=result.text,
+            yield tool(tid, "output", stdout=result.text, data=result.data,
                        exit_code=1 if result.error else 0)
             yield tool(tid, "completed", result_count=result.count)
             messages.append(tool_message(call, result.text))

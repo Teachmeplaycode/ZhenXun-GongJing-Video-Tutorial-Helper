@@ -11,10 +11,21 @@ const INLINE = new RegExp(
     '`([^`]+)`', // 1 code
     '\\*\\*([^*]+)\\*\\*', // 2 bold
     '(?<![*\\w])\\*([^*\\s][^*]*?)\\*(?![*\\w])', // 3 italic
-    `(?<![\\d:])${TIME.source}(?![\\d:])`, // 4 time
+    '(https?://[^\\s<>()（）\\[\\]，。；、"\'“”]+)', // 4 link — before times, which URLs can contain
+    `(?<![\\d:])${TIME.source}(?![\\d:])`, // 5 time
   ].join('|'),
   'g',
 )
+
+const shortUrl = (url) => {
+  try {
+    const u = new URL(url)
+    const path = u.pathname.length > 1 ? u.pathname.slice(0, 24) + (u.pathname.length > 24 ? '…' : '') : ''
+    return u.hostname.replace(/^www\./, '') + path
+  } catch {
+    return url
+  }
+}
 const LIST = /^(\s*)([-*+•]|\d+[.)])\s+(.*)$/
 const HEADING = /^(#{1,6})\s+(.*)$/
 
@@ -30,13 +41,17 @@ function inline(text, ctx, keyBase) {
     if (m[1] != null) out.push(<code key={key} className="md-code">{m[1]}</code>)
     else if (m[2] != null) out.push(<strong key={key}>{inline(m[2], ctx, key)}</strong>)
     else if (m[3] != null) out.push(<em key={key}>{inline(m[3], ctx, key)}</em>)
-    else {
-      const seconds = toSeconds(m[4])
+    else if (m[4] != null) {
+      const url = m[4].replace(/[.,;:]+$/, '')
+      out.push(<a key={key} className="md-link" href={url} target="_blank" rel="noreferrer" title={url}>{shortUrl(url)}</a>)
+      if (url.length < m[4].length) out.push(m[4].slice(url.length))
+    } else {
+      const seconds = toSeconds(m[5])
       // Only moments inside the video; other clock-like numbers stay plain text.
       if (ctx.onTime && seconds <= (ctx.duration ?? Infinity) + 1) {
         out.push(
           <button key={key} type="button" className="ts-chip" onClick={() => ctx.onTime(seconds)} title="在时间轴上定位">
-            {m[4]}
+            {m[5]}
           </button>,
         )
       } else out.push(m[0])

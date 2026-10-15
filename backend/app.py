@@ -68,6 +68,8 @@ class AgentRequest(BaseModel):
     video_id: str  # a link job id
     question: str
     scope: dict = {"type": "all"}  # {"type": "all"} or {"type": "frames", "frames": [index, ...]}
+    web: bool = True     # composer switch: may the model search the web for this question
+    papers: bool = True  # composer switch: may it search papers
 
 
 @app.exception_handler(ResolveError)
@@ -324,13 +326,21 @@ async def agent_run(body: AgentRequest):
         frames = body.scope.get("frames") if body.scope.get("type") == "frames" else None
         history = store.history(job.id)
         store.add_message(job.id, "user", body.question, data={"frames": frames or []})
-        # The answer is saved as its text plus the non-delta events, which the UI replays to
-        # rebuild the trace. A disconnect (the user pressed stop) saves what arrived so far.
+        # The answer is saved as its text plus its events in order, consecutive text deltas merged,
+        # so the UI can replay where text fell between tool calls. `t` is seconds since the question.
+        # A disconnect (the user pressed stop) saves what arrived so far.
         text, events, status = [], [], "stopped"
+        started = time.perf_counter()
         try:
-            async for event in run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider()):
+            async for event in run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
+                                         web=body.web, papers=body.papers):
+                event = {**event, "t": round(time.perf_counter() - started, 2)}
                 if event["type"] == "assistant.message.delta":
                     text.append(event["delta"])
+                    if events and events[-1]["type"] == "assistant.message.delta":
+                        events[-1] = {**events[-1], "delta": events[-1]["delta"] + event["delta"]}
+                    else:
+                        events.append(event)
                 else:
                     events.append(event)
                     if event["type"] in ("run.completed", "run.error"):

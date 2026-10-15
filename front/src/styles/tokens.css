@@ -79,6 +79,7 @@
   --page-max-width: 1440px;
   --page-padding: 24px;
   --content-max-width: 960px;
+  --chat-max-width: 1120px; /* the chat is wider than other content: answers carry steps, lists and sources */
 
   /* §12 motion */
   --dur-micro: 0.2s;
