@@ -15,6 +15,8 @@ from collections.abc import AsyncIterator
 from modules.frames import FrameJob
 from modules.llm import ChatClient, LLMError, OllamaClient, Usage, assistant_message, tool_message
 
+from modules.decide import questions as dq
+
 from .tools import TRACE_NAMES, AgentTools, definitions, parse_time, web_enabled
 
 HISTORY_MESSAGES = 8      # earlier turns sent back as plain text (frames only go with the current turn)
@@ -34,6 +36,7 @@ WEB_GUIDE = """
 用户要求查资料、核实或找论文时，必须在这一次回答里实际调用工具，不能直接凭记忆作答；之前对话里查到的内容不算这一次查的。
 只有这一次真的调用了 web_search、fetch_page 或 search_papers，才能说"查到""网上资料显示"；凭自己记忆提到的文献、数据必须注明"未经本次检索核实"，不要编造链接、DOI 或被引次数。"""
 # The user asks for a lookup: an answer must not come before a web or paper tool has actually run.
+# Decided by the decision model; this keyword match is the fallback when it is unavailable.
 RESEARCH_RE = re.compile(r"查一?下|查查|搜|上网|网上|联网|核实|核查|论文|文献|资料|出处|来源|最新")
 WEB_TOOLS = {"web_search", "fetch_page", "search_papers"}
 NUDGE = "你还没有调用 web_search、fetch_page 或 search_papers。用户要求查资料，请先调用工具检索，再根据检索结果回答。"
@@ -197,8 +200,19 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     return [{"role": "system", "content": SYSTEM_PROMPT}, *past, {"role": "user", "content": content}]
 
 
+async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
+    """(wanted, probability from the decision model, or None when the keyword fallback decided)."""
+    if decider is not None:
+        try:
+            p = await decider.noul(dq.question_state(question), dq.RESEARCH, task="research_intent")
+            return p >= 0.5, p
+        except Exception:
+            pass
+    return bool(RESEARCH_RE.search(question)), None
+
+
 async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: str, *,
-                    frames: list[int] | None = None, history: list[dict] | None = None) -> AsyncIterator[dict]:
+                    frames: list[int] | None = None, history: list[dict] | None = None, decider=None) -> AsyncIterator[dict]:
     """Yield §9.2 events. Errors end the stream with `run.error` instead of raising."""
     started = time.perf_counter()
     steps = 0
@@ -232,7 +246,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
 
     model = client.config.model
     rounds = tool_rounds()
-    tools = AgentTools(job)
+    tools = AgentTools(job, decider=decider)
     messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript)
 
     # A question naming a time range gets a closer look at it up front: a small local model
@@ -256,8 +270,15 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     tool_calls = 0
     usage = Usage()
     answered = False  # any answer text streamed so far
-    must_research = bool(rounds) and web_enabled() and bool(RESEARCH_RE.search(question))
-    researched = False
+    must_research, researched = False, False
+    if rounds and web_enabled():
+        steps += 1
+        yield tool("intent", "started", tool_name="decision.research_intent")
+        yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})
+        must_research, p = await research_wanted(question, decider)
+        how = f"决策模型：要查资料的概率 {p:.2f}" if p is not None else "关键词匹配（决策模型不可用）"
+        yield tool("intent", "output", stdout=f"{'需要' if must_research else '不需要'}先查资料再回答\n{how}", exit_code=0)
+        yield tool("intent", "completed", result_count=1)
     for round_no in range(rounds + 1):
         last = round_no == rounds  # the final round gets no tools, so the model has to answer
         call_id = f"model{round_no}"
