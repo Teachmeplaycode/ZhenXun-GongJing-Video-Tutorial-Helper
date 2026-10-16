@@ -27,6 +27,22 @@
     "water": {
       "url": "https://weixin.qq.com/sph/AXcL8AUo61",
       "note": "视频号，23 秒，多喝水"
+    },
+    "long-new": {
+      "url": "https://www.bilibili.com/video/BV14JpC6ZE3U",
+      "note": "32 分钟，新视频"
+    },
+    "long-food": {
+      "url": "https://www.bilibili.com/video/BV12LWw6VEkd",
+      "note": "33 分钟，田园美食"
+    },
+    "long-ev": {
+      "url": "https://www.bilibili.com/video/BV1J4pz6qE1o",
+      "note": "18 分钟，新能源车"
+    },
+    "long-fashion": {
+      "url": "https://www.bilibili.com/video/BV1z4pq6fENo",
+      "note": "61 分钟，时尚"
     }
   },
   "cases": [
@@ -223,7 +239,7 @@
           ]
         ]
       },
-      "rubric": "说明视频号的评论在这里读不到（只能在微信里看），可以提到有 1941 条评论；绝不编造评论内容。"
+      "rubric": "说明视频号的评论在这里读不到（只能在微信里看），可以提到评论数（数字会随时间变化，不要求精确）；绝不编造评论内容。"
     },
     {
       "id": "grapefruit-web-off",
@@ -447,6 +463,209 @@
       "video": "water",
       "question": "'喝水时细胞会欢呼雀跃'这个说法科学吗？",
       "rubric": "指出这是拟人化的比喻，不是科学事实；可以补充喝水的真实作用，区分视频和常识/查到的内容。"
+    },
+    {
+      "id": "hard-new-supplies",
+      "video": "long-new",
+      "question": "他这次一共带了多少食物？主食是什么，各带了多少？",
+      "checks": {
+        "contains_any": [
+          [
+            "100"
+          ],
+          [
+            "50"
+          ],
+          [
+            "25"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "约 100 斤食物；主食两种：糌粑 50 斤（转写里写成'沾霸'）、压缩饼干 25 斤；副食 13 种；约 10:06。"
+    },
+    {
+      "id": "hard-new-knocking",
+      "video": "long-new",
+      "question": "第 43 天夜里，帐篷外传来的咚咚声是怎么回事？",
+      "checks": {
+        "contains_any": [
+          [
+            "鼠兔"
+          ],
+          [
+            "油桶"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "他在河床扎营、把捡到的破油桶放在帐篷边挡风；夜里的咚咚声是一只鼠兔钻进油桶、想逃出来时发出的；第二天油桶被风吹走了；约 16:20–17:05。"
+    },
+    {
+      "id": "hard-new-bike",
+      "video": "long-new",
+      "question": "他是在第几天、为什么决定丢掉自行车的？丢掉后还背着多少东西？",
+      "checks": {
+        "contains_any": [
+          [
+            "73"
+          ],
+          [
+            "饭店"
+          ],
+          [
+            "50"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "第 73 天，在贝勒克库勒湖东北；出发前从游记得知阿奇克库勒湖附近有个小饭店，徒步两天能到，徒步比推车快；丢掉后总负重约 50 斤；约 22:46–23:07。"
+    },
+    {
+      "id": "hard-new-order",
+      "video": "long-new",
+      "question": "他是先遇到渡河困难，还是先开始拉肚子？分别发生在第几天、视频什么时候讲到？",
+      "checks": {
+        "timestamps": true
+      },
+      "rubric": "先渡河：第 6 天到邦达错西岸后要横渡一条约 700 米宽的河，花了两天（约 04:10–04:30）；之后才出现拉肚子等症状并伴随此后 50 天（约 09:40）。顺序和时间点都要对。"
+    },
+    {
+      "id": "hard-ev-county",
+      "video": "long-ev",
+      "question": "他们去的是哪个县城？是哪一年设立的？怎么去的？",
+      "checks": {
+        "contains_any": [
+          [
+            "2026"
+          ],
+          [
+            "喀什"
+          ]
+        ]
+      },
+      "rubric": "2026 年才设立的新县城；转写里地名前后不一致（'陈里县''层岭县'），应指出转写可能识别有误、不确定正确写法（能从画面或资料确认更好）；先从北京飞喀什再开车。不要把不确定的地名说成确定。"
+    },
+    {
+      "id": "hard-ev-shop",
+      "video": "long-ev",
+      "question": "他们在那边做了什么小生意？卖多少钱？收到的第一条差评说了什么？",
+      "checks": {
+        "contains_any": [
+          [
+            "美式",
+            "咖啡"
+          ],
+          [
+            "9块9",
+            "9.9",
+            "九块九"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "卖咖啡（冰美式），9 块 9；第一条差评：不是热的（想要热美式）等；约 13:00–13:20。"
+    },
+    {
+      "id": "hard-fashion-chanel",
+      "video": "long-fashion",
+      "question": "香奈儿那场秀为什么要从后门进大皇宫？",
+      "checks": {
+        "contains_any": [
+          [
+            "马蒂斯"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "因为大皇宫当时正在办马蒂斯的展览，所以换了入口、从后门进（'给艺术让道'）；约 07:33–07:45。"
+    },
+    {
+      "id": "hard-fashion-quote",
+      "video": "long-fashion",
+      "question": "主持人和巴黎世家新的 CMO 聊天时，对方哪句话让她觉得说得很好？",
+      "checks": {
+        "contains_any": [
+          [
+            "勇气"
+          ],
+          [
+            "固执"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "'在现在的时尚圈，需要勇气才能做到固执'；约 42:52–42:56。"
+    },
+    {
+      "id": "hard-fashion-injury",
+      "video": "long-fashion",
+      "question": "视频开头主持人说自己身上有什么伤？",
+      "checks": {
+        "contains_any": [
+          [
+            "脚"
+          ],
+          [
+            "护具"
+          ]
+        ]
+      },
+      "rubric": "脚受了伤、戴着护具继续工作，手上还有些淤青；约 00:13–00:29。"
+    },
+    {
+      "id": "hard-food-dog",
+      "video": "long-food",
+      "question": "视频里那只大狗是什么品种？",
+      "checks": {
+        "contains_any": [
+          [
+            "阿拉斯加"
+          ]
+        ]
+      },
+      "rubric": "阿拉斯加雪橇犬（画面里的大型灰白长毛犬）；若不确定要说明依据。"
+    },
+    {
+      "id": "hard-food-roof",
+      "video": "long-food",
+      "question": "视频结尾在楼顶摘火龙果那一段，他用什么工具摘的？顺利吗？",
+      "checks": {
+        "contains_any": [
+          [
+            "竹竿",
+            "杆",
+            "竿"
+          ]
+        ],
+        "timestamps": true
+      },
+      "rubric": "火龙果长在墙边垂下来，他坐在屋顶边用一根长竹竿/长杆（前端带镰刀或钩子）去够，旁边挂着篮子；过程很不顺利，画面字幕显示'失败 X1'到'失败 X5'、镰刀卡住；最后是否够到可以按字幕判断（如'可以可以'），但要说明依据；结尾镜头转到小番茄。"
+    },
+    {
+      "id": "hard-food-subtitle",
+      "video": "long-food",
+      "question": "老人尝仙人掌果的时候说了什么？",
+      "checks": {
+        "contains_any": [
+          [
+            "邻居"
+          ]
+        ]
+      },
+      "rubric": "依据画面里的字幕回答：'红的也好吃的'、'这个是邻居家给的'等；说明来自画面字幕而不是语音转写。"
+    },
+    {
+      "id": "hard-food-speech",
+      "video": "long-food",
+      "question": "视频里的人都说了些什么？",
+      "checks": {
+        "contains_none": [
+          "лох",
+          "çalış"
+        ]
+      },
+      "rubric": "说明语音转写只覆盖很少的内容（或大多是误识别、不可信），不能把它当作完整台词；指出画面里有烧录的字幕，并据此举出几句对话。"
     }
   ]
 }
