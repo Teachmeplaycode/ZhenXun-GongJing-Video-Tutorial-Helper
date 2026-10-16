@@ -55,15 +55,15 @@ export const SCULPTURE_SETTINGS = {
   // Maximum dispersal in each cycle; full dispersal joins the shapes smoothly.
   scatter: { amount: 1, width: 23, height: 11, depth: 8, scale: 0.2 },
   scatterText: {
-    words: ['你好', '率厚哇', '歪哈', '平潭', '诶嗨咩'],
-    height: 13,
+    words: ['Loading...', 'Hello!', 'Waiting...', '率厚', '定xiu哇', '加载中...'],
+    height: 10,
     padding: 48,
     mobilePadding: 24,
     footerSpace: 128,
     depth: 0.08,
     plateSize: 0.9,
     drift: 0.025,
-    inkMix: 0.82,
+    inkMix: 0.48,
   },
   morph: {
     shapes: ['infinity', 'mobius', 'trefoil', 'waveRing'],

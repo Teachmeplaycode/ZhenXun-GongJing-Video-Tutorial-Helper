@@ -20,13 +20,22 @@ const CAMERA_FOV = 22 // long-lens look
 // Keep both loops inside the frame, including the placement beside the import panel.
 const FRAME_HALF = SCULPTURE_SETTINGS.frame
 
+const ANALYSIS_WORD_TIPS = {
+  'Loading...': { kicker: 'LOADING / 加载中', title: '正在加载', detail: '系统正在逐帧提取画面。' },
+  'Hello!': { kicker: 'HELLO / 你好', title: 'Hello! · 你好', detail: '系统正在逐帧提取画面。' },
+  'Waiting...': { kicker: 'WAITING / 请稍候', title: 'Waiting... · 请稍候', detail: '系统正在逐帧提取画面。' },
+  率厚: { kicker: 'PINGTAN DIALECT / 平潭话', title: '率厚 · 你好', detail: '「率厚」在平潭话中是「你好」的意思。' },
+  '定xiu哇': { kicker: 'PINGTAN DIALECT / 平潭话', title: '定xiu哇 · 等一下', detail: '「定xiu哇」在平潭话中是「等一下」的意思。' },
+  '加载中...': { kicker: 'LOADING / 加载中', title: '加载中…', detail: '系统正在逐帧提取画面。' },
+}
+
 /**
  * Parametric thin-sheet sculpture (design_2.md §7).
  * mode: 'idle' (infinity loop) | 'analyzing' (light, looping scatter/reassembly)
  * align: 'side' shifts the sculpture right to leave room for the import panel.
  * glassRef: optional element the model refracts through like a glass slide (homepage import box).
  */
-export default function SculptureCanvas({ mode = 'idle', align = 'center', glassRef = null, className = '' }) {
+export default function SculptureCanvas({ mode = 'idle', align = 'center', glassRef = null, complete = false, className = '' }) {
   const hostRef = useRef(null)
   const canvasRef = useRef(null)
   const stateRef = useRef(null)
@@ -279,6 +288,7 @@ export default function SculptureCanvas({ mode = 'idle', align = 'center', glass
   }, [align])
 
   if (failed) return <SculptureFallback className={className} align={align} />
+  const wordTip = ANALYSIS_WORD_TIPS[morph.word] || ANALYSIS_WORD_TIPS['加载中...']
   return (
     <div
       ref={hostRef}
@@ -291,11 +301,14 @@ export default function SculptureCanvas({ mode = 'idle', align = 'center', glass
       aria-label={morph.phase === 'word' ? `薄片排列的文字：${morph.word}` : `动态薄片模型：${SHAPE_LABELS[morph.shape].name}`}
     >
       <canvas ref={canvasRef} aria-hidden="true" />
-      {mode === 'analyzing' && morph.phase !== 'word' ? (
+      {mode === 'analyzing' ? (
         <div className="sculpture__caption" aria-hidden="true">
-          <span className="mono-sm">{morph.phase === 'word' ? 'HELLO / PINGTAN' : SHAPE_LABELS[morph.shape].code}</span>
-          <span>{morph.phase === 'word' ? morph.word : morph.phase === 'scatter' ? '薄片散开' : morph.phase === 'assemble' ? '正在重新组构' : SHAPE_LABELS[morph.shape].name}</span>
-          <span className="sculpture__caption-track">{SCULPTURE_SETTINGS.morph.shapes.map((shape) => SHAPE_LABELS[shape].name).join(' / ')}</span>
+          <span className="mono-sm">{wordTip.kicker}</span>
+          <strong>{wordTip.title}</strong>
+          <span>{wordTip.detail}</span>
+          <span className="sculpture__caption-status">
+            <i />{complete ? '切分已完成，可以进入对话分析。' : '当前正在切分视频帧，请耐心等待。'}
+          </span>
         </div>
       ) : null}
     </div>

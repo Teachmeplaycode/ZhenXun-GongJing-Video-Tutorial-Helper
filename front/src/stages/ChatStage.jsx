@@ -9,6 +9,7 @@ import AnimatedContent from '../components/react-bits/AnimatedContent'
 import { WORKSPACE_CONTENT } from '../config/workspace'
 import { prefersReducedMotion } from '../lib/motion'
 import { speechStep } from './AnalyzeHud'
+import Avatar from '../components/Avatar'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 
@@ -71,6 +72,13 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         <div className="chat__thread">
           {!messages.length ? (
             <AnimatedContent className="chat__empty" distance={12} duration={0.5}>
+              <div className="chat__agent">
+                <Avatar role="assistant" animated />
+                <span className="chat__agent-copy">
+                  <strong>GongJ!ng Agent</strong>
+                  <span>视频理解与事实核验</span>
+                </span>
+              </div>
               <div className="eyebrow">03 · 对话分析</div>
               <h1 className="h1">关于这段视频，你想知道什么？</h1>
               <p className="body-sm muted">
