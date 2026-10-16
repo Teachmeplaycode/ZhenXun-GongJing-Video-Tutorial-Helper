@@ -360,6 +360,20 @@ async def retry_missing(job_id: str):
     return {"retrying": len(indexes), "transcript": redo_transcript, "screentext": redo_screen, "since": since}
 
 
+REPLAY_KEY = re.compile(r"^\d{7}-\d{7}-\d{3}$")
+
+
+@app.get("/api/link-jobs/{job_id}/replay/{key}/{name}")
+async def replay_frame(job_id: str, key: str, name: str):
+    """A frame of a slow-motion replay (modules/frames/replay.py), for the chat's frame strip."""
+    if not REPLAY_KEY.match(key) or not re.fullmatch(r"\d{2}\.jpg", name):
+        raise HTTPException(404, "没有这张画面")
+    path = DATA_DIR / job_id / "replay" / key / name
+    if not path.is_file() or DATA_DIR.resolve() not in path.resolve().parents:
+        raise HTTPException(404, "没有这张画面")
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
+
+
 @app.get("/api/link-jobs/{job_id}/screentext")
 async def job_screentext(job_id: str):
     """On-screen text status and timed captions."""

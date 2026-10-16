@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from modules.frames import FrameJob
+from modules.frames import replay as slowmo
 from modules.frames.grabber import grab_frame
 from modules.settings import settings
 from modules.video_source import ResolveError
@@ -40,6 +41,12 @@ VIEWERS = "以下是观众留下的内容，代表观众的看法，不一定正
 def clock(seconds: float) -> str:
     t = max(0, int(seconds))
     return f"{t // 60:02d}:{t % 60:02d}"
+
+
+def fine_clock(seconds: float) -> str:
+    """mm:ss.ss, for frames a fraction of a second apart."""
+    t = max(0.0, seconds)
+    return f"{int(t // 60):02d}:{t % 60:05.2f}"
 
 
 def parse_time(value) -> float | None:
@@ -78,6 +85,15 @@ DEFINITIONS = [
             "start": {"type": "string", "description": "开始时间，秒数或 mm:ss"},
             "end": {"type": "string", "description": "结束时间，秒数或 mm:ss"},
             "count": {"type": "integer", "description": f"截取几张，1 到 {MAX_VIEW}"}}, "required": ["start", "end"]}}},
+    {"type": "function", "function": {
+        "name": "replay",
+        "description": f"慢放复看一小段（最长 {int(slowmo.MAX_SPAN)} 秒）：在这段里每秒取多帧（最多 {slowmo.MAX_FRAMES} 帧，"
+                       "例如 1 秒取 15 帧），按时间顺序拼成一张网格图，用来看清动作的先后、怎么发生的、细微的变化。"
+                       "要先根据转写、字幕或已有画面确定大概在哪几秒，再复看那几秒；用户说慢放、逐帧、复看时用。",
+        "parameters": {"type": "object", "properties": {
+            "start": {"type": "string", "description": "开始时间，秒数（可带小数，如 12.5）或 mm:ss"},
+            "end": {"type": "string", "description": "结束时间；和开始相同时复看前后各半秒"},
+            "fps": {"type": "number", "description": f"每秒取几帧，默认按时长自动取满 {slowmo.MAX_FRAMES} 帧"}}, "required": ["start", "end"]}}},
 ]
 
 WEB_DEFINITIONS = [
@@ -132,11 +148,12 @@ BROWSE_DEFINITION = {"type": "function", "function": {
 
 ARGS = {
     "search_transcript": ("query",), "read_transcript": ("start", "end"), "view_frames": ("start", "end", "count"),
+    "replay": ("start", "end", "fps"),
     "web_search": ("query", "limit", "freshness"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
     "browse": ("task", "url"),
     "read_comments": ("sort", "page"), "read_danmaku": ("start", "end", "query"),
 }
-TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view",
+TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view", "replay": "frames.replay",
                "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search",
                "browse": "browser.use", "read_comments": "audience.comments", "read_danmaku": "audience.danmaku"}
 
@@ -208,7 +225,7 @@ class AgentTools:
 
     async def run(self, name: str, args: dict) -> ToolResult:
         handler = {"search_transcript": self.search_transcript, "read_transcript": self.read_transcript,
-                   "view_frames": self.view_frames, "web_search": self.web_search, "fetch_page": self.fetch_page,
+                   "view_frames": self.view_frames, "replay": self.replay, "web_search": self.web_search, "fetch_page": self.fetch_page,
                    "search_papers": self.search_papers, "read_comments": self.read_comments,
                    "read_danmaku": self.read_danmaku}.get(name)
         if handler is None or (name in ARGS and name in {d["function"]["name"] for d in WEB_DEFINITIONS} and not web_enabled()):
@@ -505,6 +522,43 @@ class AgentTools:
             return True
         except ResolveError:
             return False
+
+    async def replay(self, start=0, end=None, fps=None) -> ToolResult:
+        a = parse_time(start) or 0.0
+        b = parse_time(end) if end is not None else a
+        try:
+            rate = float(fps) if fps not in (None, "") else None
+        except (TypeError, ValueError):
+            rate = None
+        p = slowmo.plan(a, a if b is None else b, self.job.video.duration, rate)
+        folder = self.job.root / "replay" / p.key
+        span = f"{fine_clock(p.start)}–{fine_clock(p.end)}"
+        if not any(folder.glob("[0-9][0-9].jpg")):
+            got = await self._clip(p, folder)
+            if not got and await self._refresh():
+                got = await self._clip(p, folder)
+            if not got:
+                why = "原视频已删除（本地上传的视频处理完就删了）" if self.job.video.platform == "local" else "这一段读取失败"
+                return ToolResult(f"无法复看 {span}：{why}。可以改用已有的关键帧。", "读取失败", error=True)
+        frames = sorted(folder.glob("[0-9][0-9].jpg"))
+        times = p.times[:len(frames)]
+        note = f"（只复看了开头 {slowmo.MAX_SPAN:.0f} 秒；需要后面的再复看下一段）" if p.clipped else ""
+        text = (f"复看 {span}，每秒 {p.fps:g} 帧，共 {len(frames)} 帧，按时间顺序见下一条消息，每张前标了精确时间。"
+                f"注意前后帧之间的变化：动作的先后、镜头有没有切换。{note}")
+        base = f"/api/link-jobs/{self.job.id}/replay/{p.key}"
+        return ToolResult(text, f"{span} · {len(frames)} 帧", len(frames),
+                          [(f"复看 · {fine_clock(t)}", f) for t, f in zip(times, frames)],
+                          data={"start": p.start, "end": p.end, "fps": p.fps, "times": times, "clipped": p.clipped,
+                                "frames": [f"{base}/{f.name}" for f in frames]})
+
+    async def _clip(self, p, folder) -> bool:
+        for stream in [s for s in self.job.video.streams if not s.expired()]:
+            result = await slowmo.grab_clip(stream, p, folder)
+            if result.ok:
+                return True
+            if result.kind != "forbidden":
+                return False
+        return False
 
     async def view_frames(self, start=0, end=None, count=4) -> ToolResult:
         a, b = self._range(start, end)

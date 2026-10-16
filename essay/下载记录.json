@@ -1,0 +1,136 @@
+{
+  "downloaded_at": "2026-10-16T20:58:13.503427+08:00",
+  "papers": [
+    {
+      "name": "SlowFocus",
+      "year": 2024,
+      "venue": "NeurIPS 2024",
+      "title": "SlowFocus: Enhancing Fine-grained Temporal Understanding in Video LLM",
+      "authors": [
+        "Nie, Ming",
+        "Ding, Dan",
+        "Wang, Chunwei",
+        "Guo, Yuanfan",
+        "Han, Jianhua",
+        "Xu, Hang",
+        "Zhang, Li"
+      ],
+      "page": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/94ef721705ea95d6981632be62bb66e2-Abstract-Conference.html",
+      "urls": [
+        "https://proceedings.neurips.cc/paper_files/paper/2024/file/94ef721705ea95d6981632be62bb66e2-Paper-Conference.pdf",
+        "https://openreview.net/pdf?id=FOkKndty5B"
+      ],
+      "file": "01_Nie_2024_SlowFocus.pdf",
+      "bytes": 1193175,
+      "pages": 28,
+      "sha256": "58c38597273744d8fc6db89d17db39c9f1f88069a62bdf76baec92778ed0bc5a",
+      "status": "downloaded",
+      "source_url": "https://proceedings.neurips.cc/paper_files/paper/2024/file/94ef721705ea95d6981632be62bb66e2-Paper-Conference.pdf"
+    },
+    {
+      "name": "MotionSight",
+      "year": 2026,
+      "venue": "ICLR 2026",
+      "title": "MotionSight: Boosting Fine-Grained Motion Understanding in Multimodal LLMs",
+      "authors": [
+        "Du, Yipeng",
+        "Fan, Tiehan",
+        "Nan, Kepan",
+        "Xie, Rui",
+        "Zhou, Penghao",
+        "Li, Xiang",
+        "Yang, Jian",
+        "Yang, Zhenheng",
+        "Tai, Ying"
+      ],
+      "page": "https://proceedings.iclr.cc/paper_files/paper/2026/hash/034d7bfeace2a9a258648b16fc626298-Abstract-Conference.html",
+      "urls": [
+        "https://proceedings.iclr.cc/paper_files/paper/2026/file/034d7bfeace2a9a258648b16fc626298-Paper-Conference.pdf",
+        "https://openreview.net/pdf?id=ISZPRsh5YV",
+        "https://arxiv.org/pdf/2506.01674"
+      ],
+      "file": "02_Du_2026_MotionSight.pdf",
+      "bytes": 9985678,
+      "pages": 25,
+      "sha256": "e917160dc18b5dacde64b1416be3084e6b024303591f9713b2955f5d37d93de4",
+      "status": "downloaded",
+      "source_url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/034d7bfeace2a9a258648b16fc626298-Paper-Conference.pdf"
+    },
+    {
+      "name": "MotionBench",
+      "year": 2025,
+      "venue": "CVPR 2025; downloaded arXiv version",
+      "title": "MotionBench: Benchmarking and Improving Fine-grained Video Motion Understanding for Vision Language Models",
+      "authors": [
+        "Hong, Wenyi",
+        "Cheng, Yean",
+        "Yang, Zhuoyi",
+        "Wang, Weihan",
+        "Wang, Lefan",
+        "Gu, Xiaotao",
+        "Huang, Shiyu",
+        "Dong, Yuxiao",
+        "Tang, Jie"
+      ],
+      "page": "https://arxiv.org/abs/2501.02955",
+      "urls": [
+        "https://arxiv.org/pdf/2501.02955"
+      ],
+      "file": "03_Hong_2025_MotionBench.pdf",
+      "bytes": 9288935,
+      "pages": 20,
+      "sha256": "32b28ba042eda251b2f5c97f24a7d0c4d39fb08ddd7c48abb9792b89a01c5112",
+      "status": "downloaded",
+      "source_url": "https://arxiv.org/pdf/2501.02955"
+    },
+    {
+      "name": "FAVOR-Bench",
+      "year": 2025,
+      "venue": "arXiv",
+      "title": "FAVOR-Bench: A Comprehensive Benchmark for Fine-Grained Video Motion Understanding",
+      "authors": [
+        "Tu, Chongjun",
+        "Zhang, Lin",
+        "Chen, Pengtao",
+        "Ye, Peng",
+        "Zeng, Xianfang",
+        "Cheng, Wei",
+        "Yu, Gang",
+        "Chen, Tao"
+      ],
+      "page": "https://arxiv.org/abs/2503.14935",
+      "urls": [
+        "https://arxiv.org/pdf/2503.14935"
+      ],
+      "file": "04_Tu_2025_FAVOR-Bench.pdf",
+      "bytes": 16183003,
+      "pages": 28,
+      "sha256": "9bfd5a3e3ea3c2a04d178e1d0e1ccfc4baae85c0c6a253b9b0baa55c51a76f51",
+      "status": "downloaded",
+      "source_url": "https://arxiv.org/pdf/2503.14935"
+    },
+    {
+      "name": "FrameMind",
+      "year": 2025,
+      "venue": "arXiv",
+      "title": "FrameMind: Frame-Interleaved Video Reasoning via Reinforcement Learning",
+      "authors": [
+        "Ge, Haonan",
+        "Wang, Yiwei",
+        "Chang, Kai-Wei",
+        "Wu, Hang",
+        "Cai, Yujun"
+      ],
+      "page": "https://arxiv.org/abs/2509.24008",
+      "urls": [
+        "https://arxiv.org/pdf/2509.24008"
+      ],
+      "file": "05_Ge_2025_FrameMind.pdf",
+      "bytes": 3324596,
+      "pages": 24,
+      "sha256": "38b2c8d19d120719e70f430c2eaf6da07ff2ebb97f0ca70f4fef28d156412361",
+      "status": "downloaded",
+      "source_url": "https://arxiv.org/pdf/2509.24008"
+    }
+  ]
+}

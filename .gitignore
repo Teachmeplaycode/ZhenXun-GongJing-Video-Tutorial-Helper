@@ -18,3 +18,6 @@ front/node_modules/
 front/dist/
 front/test-results/
 front/playwright-report/
+
+# Downloaded papers: large, and not all licenses allow redistribution; essay/README_先看我.md links each one
+essay/*.pdf

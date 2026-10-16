@@ -26,7 +26,8 @@ TOOL_GUIDE = """
 你可以调用工具获取更多信息：
 - search_transcript：在语音转写里搜关键词，找某个话题或某句话在什么时候说的；
 - read_transcript：读某个时间段的完整转写；
-- view_frames：在某个时间段内截取更多画面看细节（已有关键帧间隔太大、看不清时用）。
+- view_frames：在某个时间段内截取更多画面看细节（已有关键帧间隔太大、看不清时用）；
+- replay：慢放复看几秒钟（每秒取多帧拼成网格），看清动作怎么发生、先后顺序和细微变化。问到动作、过程、"怎么做到的""先做了什么"时，先定位到大概哪几秒，再用 replay 复看。
 用户问到某个时间段的画面细节（动作、部位、颜色、文字等），而这一段只有一两张关键帧时，先用 view_frames 看清楚再回答，不要凭稀疏的画面推测。
 其他情况下，已有的画面和转写足够回答就直接回答，不要为了调用而调用。最多调用 {rounds} 轮。{web}"""
 WEB_GUIDE = """
@@ -116,6 +117,29 @@ def asked_ranges(question: str) -> list[tuple[str, str]]:
         t = parse_time(point) or 0
         ranges.append((str(max(0, t - POINT_WINDOW)), str(t + POINT_WINDOW)))
     return ranges[:2]
+
+
+# "慢放 12 秒到 13 秒" / "逐帧看 01:05" → a replay of that stretch up front, not a sparse look.
+SLOWMO_RE = re.compile(r"慢放|复看|逐帧|一帧一帧|慢动作|放慢")
+SECONDS = r"(\d+(?:\.\d+)?)\s*秒"
+SECONDS_RANGE_RE = re.compile(SECONDS + r"\s*(?:到|至|~|～|-|–|—)\s*" + SECONDS)
+SECONDS_POINT_RE = re.compile(r"第?\s*" + SECONDS)
+SLOWMO_WINDOW = 1.0  # seconds either side of a single moment
+
+
+def slowmo_ranges(question: str) -> list[tuple[str, str]]:
+    """Stretches a slow-motion question names, as (start, end) seconds; empty without a slow-motion word."""
+    if not SLOWMO_RE.search(question):
+        return []
+    found = [(str(parse_time(a)), str(parse_time(b))) for a, b in RANGE_RE.findall(question)]
+    rest = RANGE_RE.sub(" ", question)
+    found += [(a, b) for a, b in SECONDS_RANGE_RE.findall(rest)]
+    rest = SECONDS_RANGE_RE.sub(" ", rest)
+    points = [parse_time(p) for p in POINT_RE.findall(rest)]
+    rest = POINT_RE.sub(" ", rest)
+    points += [float(p) for p in SECONDS_POINT_RE.findall(rest)]
+    found += [(str(max(0.0, t - SLOWMO_WINDOW)), str(t + SLOWMO_WINDOW)) for t in points if t is not None]
+    return found[:2]
 
 
 def tool_rounds() -> int:
@@ -352,18 +376,22 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.
     zoomed = []
-    for i, (a, b) in enumerate(asked_ranges(question)):
+    slow = slowmo_ranges(question)
+    for i, (a, b) in enumerate(slow or asked_ranges(question)):
         steps += 1
         tid = f"zoom{i}"
-        yield tool(tid, "started", tool_name="frames.view")
-        yield tool(tid, "input", input={"kind": "params", "params": {"start": a, "end": b, "count": 6, "reason": "问题指定了时间段"}})
-        result = await tools.run("view_frames", {"start": a, "end": b, "count": 6})
+        name, args = ("replay", {"start": a, "end": b}) if slow else ("view_frames", {"start": a, "end": b, "count": 6})
+        yield tool(tid, "started", tool_name=TRACE_NAMES[name])
+        yield tool(tid, "input", input={"kind": "params", "params": {**args, "reason": "问题要求慢放这一段" if slow else "问题指定了时间段"}})
+        result = await tools.run(name, args)
         yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0, data=result.data)
         yield tool(tid, "completed", result_count=result.count)
         zoomed += result.images
     if zoomed:
         question_part = messages[-1]["content"].pop()  # keep the question last
-        messages[-1]["content"] += [{"type": "text", "text": "问题所问时间段的加密画面："}] + image_message(zoomed)["content"] + [question_part]
+        lead = ("问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用再调用 replay 看同一段：" if slow
+                else "问题所问时间段的加密画面：")
+        messages[-1]["content"] += [{"type": "text", "text": lead}] + image_message(zoomed)["content"] + [question_part]
     if rounds:
         allowed = definitions(web, papers, audience)
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)

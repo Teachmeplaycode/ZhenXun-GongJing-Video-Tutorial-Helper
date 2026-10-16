@@ -1,0 +1,78 @@
+TY  - CONF
+TI  - SlowFocus: Enhancing Fine-grained Temporal Understanding in Video LLM
+AU  - Nie, Ming
+AU  - Ding, Dan
+AU  - Wang, Chunwei
+AU  - Guo, Yuanfan
+AU  - Han, Jianhua
+AU  - Xu, Hang
+AU  - Zhang, Li
+PY  - 2024
+T2  - NeurIPS 2024
+UR  - https://proceedings.neurips.cc/paper_files/paper/2024/hash/94ef721705ea95d6981632be62bb66e2-Abstract-Conference.html
+L1  - file:///Users/linyi/project/Huawei/MyTargetProject/essay/01_Nie_2024_SlowFocus.pdf
+ER  - 
+
+TY  - CONF
+TI  - MotionSight: Boosting Fine-Grained Motion Understanding in Multimodal LLMs
+AU  - Du, Yipeng
+AU  - Fan, Tiehan
+AU  - Nan, Kepan
+AU  - Xie, Rui
+AU  - Zhou, Penghao
+AU  - Li, Xiang
+AU  - Yang, Jian
+AU  - Yang, Zhenheng
+AU  - Tai, Ying
+PY  - 2026
+T2  - ICLR 2026
+UR  - https://proceedings.iclr.cc/paper_files/paper/2026/hash/034d7bfeace2a9a258648b16fc626298-Abstract-Conference.html
+L1  - file:///Users/linyi/project/Huawei/MyTargetProject/essay/02_Du_2026_MotionSight.pdf
+ER  - 
+
+TY  - RPRT
+TI  - MotionBench: Benchmarking and Improving Fine-grained Video Motion Understanding for Vision Language Models
+AU  - Hong, Wenyi
+AU  - Cheng, Yean
+AU  - Yang, Zhuoyi
+AU  - Wang, Weihan
+AU  - Wang, Lefan
+AU  - Gu, Xiaotao
+AU  - Huang, Shiyu
+AU  - Dong, Yuxiao
+AU  - Tang, Jie
+PY  - 2025
+T2  - CVPR 2025; downloaded arXiv version
+UR  - https://arxiv.org/abs/2501.02955
+L1  - file:///Users/linyi/project/Huawei/MyTargetProject/essay/03_Hong_2025_MotionBench.pdf
+ER  - 
+
+TY  - RPRT
+TI  - FAVOR-Bench: A Comprehensive Benchmark for Fine-Grained Video Motion Understanding
+AU  - Tu, Chongjun
+AU  - Zhang, Lin
+AU  - Chen, Pengtao
+AU  - Ye, Peng
+AU  - Zeng, Xianfang
+AU  - Cheng, Wei
+AU  - Yu, Gang
+AU  - Chen, Tao
+PY  - 2025
+T2  - arXiv
+UR  - https://arxiv.org/abs/2503.14935
+L1  - file:///Users/linyi/project/Huawei/MyTargetProject/essay/04_Tu_2025_FAVOR-Bench.pdf
+ER  - 
+
+TY  - RPRT
+TI  - FrameMind: Frame-Interleaved Video Reasoning via Reinforcement Learning
+AU  - Ge, Haonan
+AU  - Wang, Yiwei
+AU  - Chang, Kai-Wei
+AU  - Wu, Hang
+AU  - Cai, Yujun
+PY  - 2025
+T2  - arXiv
+UR  - https://arxiv.org/abs/2509.24008
+L1  - file:///Users/linyi/project/Huawei/MyTargetProject/essay/05_Ge_2025_FrameMind.pdf
+ER  - 
+

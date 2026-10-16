@@ -39,6 +39,10 @@ export function describeStep(call) {
       return { verb: '搜索转写', target: `「${p.query || ''}」`, meta: done ? `${n} 处` : '' }
     case 'transcript.read_range':
       return { verb: '读取转写', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 句` : '' }
+    case 'frames.replay': {
+      const fps = d.fps ?? p.fps
+      return { verb: '慢放复看', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 帧${fps ? ` · 每秒 ${fps} 帧` : ''}` : '' }
+    }
     case 'frames.view':
       return { verb: '细看画面', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 张` : '' }
     case 'web.search': {
