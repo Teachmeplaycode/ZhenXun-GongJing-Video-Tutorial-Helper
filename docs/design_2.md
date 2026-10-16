@@ -59,6 +59,23 @@ colors:
     shadow: "#D8D4CE"          # 柔和阴影
 ```
 
+### 1.3 深色主题（2026-10-16 新增）
+
+同一套暖灰色调的夜间版本：表面和文字互换，强调色不变。默认跟随系统，右上角按钮在"跟随系统 / 浅色 / 深色"之间切换（存在本机浏览器里）。实现见 `front/src/styles/tokens.css` 的 `:root[data-theme='dark']`，主题在首帧之前由 `index.html` 设置，不会闪。
+
+```yaml
+dark:
+  background: { canvas: "#141413", surface: "#1C1C1A", surface_alt: "#232321", inverse: "#EDEAE4", grid: "#252523" }
+  text: { primary: "#EDEAE4", secondary: "#A8A49D", tertiary: "#7A766F", inverse: "#141413" }
+  border: { default: "#34332F", strong: "#4C4A45", focus: "#EDEAE4" }
+  accent: { active: "#C8F04A", processing: "#F5A623", error: "#F2555A", success: "#7CC35A" }
+  sculpture: { light: "#8F8A82", shadow: "#050505" }   # 雕塑：黑底上的暗灰薄片，不抢文字
+  rules:
+    - "荧光黄绿上的文字永远用 --text-on-accent（#1A1A1A），两种主题都一样"
+    - "深色按钮（--bg-inverse）在深色主题里变成浅色按钮，悬停色用 --bg-inverse-hover"
+    - "二维码保持白底，深浅主题都一样（扫码需要）"
+```
+
 ---
 
 ## 2. Typography（字体尺度）

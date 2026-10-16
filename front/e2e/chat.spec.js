@@ -227,3 +227,21 @@ test('a 视频号 link without a 元宝 login offers to scan', async ({ page }) 
   await page.locator('.field-error__action').click()
   await expect(page.locator('.account-card').first()).toContainText('腾讯元宝')
 })
+
+test('theme: follows the system, then light, then dark, and is remembered', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await start(page)
+  const html = page.locator('html')
+  const button = page.locator('.btn--theme')
+  await expect(html).toHaveAttribute('data-theme', 'dark') // system
+  await button.click()
+  await expect(html).toHaveAttribute('data-theme', 'light')
+  await expect(button).toHaveAttribute('aria-label', '主题：浅色')
+  await button.click()
+  await expect(html).toHaveAttribute('data-theme', 'dark')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.reload()
+  await expect(html).toHaveAttribute('data-theme', 'dark') // the stored choice wins over the system
+  const ink = await page.evaluate(() => getComputedStyle(document.body).color)
+  expect(ink).toBe('rgb(237, 234, 228)')
+})

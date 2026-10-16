@@ -5,7 +5,8 @@ import TimelineSculpture from './components/TimelineSculpture'
 import BackButton from './components/BackButton'
 import { HistoryDrawer } from './components/SessionList'
 import AccountsDrawer from './components/AccountsDrawer'
-import { IconHistory, IconUser } from './components/Icons'
+import { IconHistory, IconTheme, IconUser } from './components/Icons'
+import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
 import ImportPanel from './stages/ImportPanel'
@@ -70,6 +71,7 @@ export default function App() {
   const [sessionsError, setSessionsError] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
   const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
+  const [theme, themeChoice, cycleTheme] = useTheme()
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
   // The chat's timeline can fold away for a taller chat; remembered across visits.
@@ -530,6 +532,10 @@ export default function App() {
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
           </button>
+          <button type="button" className="btn btn--ghost btn--accounts btn--theme" onClick={cycleTheme}
+            title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
+            <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
+          </button>
           <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
             <IconUser size={14} /> 账号
           </button>
@@ -546,7 +552,7 @@ export default function App() {
         {showSculpture ? (
           <div ref={sculptureLayerRef} className="layer layer--sculpture">
             {stage === 'idle' || stage === 'uploading' ? <HeroOrnaments /> : null}
-            <SculptureCanvas mode={sculptureMode} align={stage === 'idle' || stage === 'uploading' ? 'side' : 'center'} glassRef={stage === 'idle' || stage === 'uploading' ? slideRef : null} />
+            <SculptureCanvas key={theme} mode={sculptureMode} align={stage === 'idle' || stage === 'uploading' ? 'side' : 'center'} glassRef={stage === 'idle' || stage === 'uploading' ? slideRef : null} />
           </div>
         ) : null}
 
