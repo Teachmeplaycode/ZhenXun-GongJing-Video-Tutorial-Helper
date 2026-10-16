@@ -4,7 +4,8 @@ import SculptureCanvas from './components/SculptureCanvas'
 import TimelineSculpture from './components/TimelineSculpture'
 import BackButton from './components/BackButton'
 import { HistoryDrawer } from './components/SessionList'
-import { IconHistory } from './components/Icons'
+import AccountsDrawer from './components/AccountsDrawer'
+import { IconHistory, IconUser } from './components/Icons'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
 import ImportPanel from './stages/ImportPanel'
@@ -68,6 +69,7 @@ export default function App() {
   const [sessions, setSessions] = useState([])
   const [sessionsError, setSessionsError] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
   // The chat's timeline can fold away for a taller chat; remembered across visits.
@@ -528,6 +530,9 @@ export default function App() {
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
           </button>
+          <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
+            <IconUser size={14} /> 账号
+          </button>
           {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入视频'} /> : null}
         </div>
       </header>
@@ -555,6 +560,7 @@ export default function App() {
             sessions={sessions}
             onOpenSession={openSession}
             onShowHistory={() => setHistoryOpen(true)}
+            onShowAccounts={(platform) => setAccountsOpen(platform || '')}
           />
         </div>
 
@@ -600,6 +606,8 @@ export default function App() {
 
         <div ref={wipeRef} className="wipe" aria-hidden="true" />
       </main>
+
+      <AccountsDrawer open={accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
 
       <HistoryDrawer
         open={historyOpen}

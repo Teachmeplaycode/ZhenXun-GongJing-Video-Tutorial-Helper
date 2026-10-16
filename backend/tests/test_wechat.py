@@ -60,7 +60,7 @@ def test_resolves_through_yuanbao_token(monkeypatch):
 def test_missing_cookie_and_expired_login(monkeypatch):
     with pytest.raises(ResolveError) as e:
         run(resolver(lambda r: httpx.Response(500), monkeypatch, cookie=""))
-    assert e.value.code == "login_required" and "YUANBAO_COOKIE" in e.value.message
+    assert e.value.code == "login_required" and "扫码登录" in e.value.message
 
     with pytest.raises(ResolveError) as e:
         run(resolver(lambda r: httpx.Response(200, json={"code": 401, "msg": "未登录"}), monkeypatch))

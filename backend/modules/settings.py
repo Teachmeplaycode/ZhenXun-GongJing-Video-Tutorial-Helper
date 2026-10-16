@@ -5,6 +5,9 @@ import os
 from pathlib import Path
 
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+# Logins saved from the UI (modules/accounts). A separate file, because dev.sh restarts the backend
+# whenever .env changes, which would cut off answers in progress.
+ACCOUNTS_FILE = ENV_FILE.with_name(".env.accounts")
 
 
 def parse_assignment(line: str) -> tuple[str, str]:
@@ -26,5 +29,8 @@ def read_env_file(path: Path) -> dict[str, str]:
 
 
 def settings() -> dict[str, str]:
-    """Read on every call so an edited .env applies to the next request."""
-    return {**read_env_file(ENV_FILE), **os.environ}
+    """Read on every call so an edited .env applies to the next request.
+
+    Precedence: .env < .env.accounts (logins from the UI) < real environment variables.
+    """
+    return {**read_env_file(ENV_FILE), **read_env_file(ACCOUNTS_FILE), **os.environ}

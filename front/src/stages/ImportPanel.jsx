@@ -11,7 +11,7 @@ const RECENT_COUNT = 3
 // slideRef: the glass slide; the sculpture refracts through it and the upload screen grows out of it.
 // externalError: a failure reported by App after the import screen was left (e.g. link resolution).
 // sessions: saved sessions, newest first; the last few are listed under the slide.
-export default function ImportPanel({ onStart, slideRef, externalError = '', onClearError, sessions = [], onOpenSession, onShowHistory }) {
+export default function ImportPanel({ onStart, slideRef, externalError = '', onClearError, sessions = [], onOpenSession, onShowHistory, onShowAccounts }) {
   const [file, setFile] = useState(null)
   const [link, setLink] = useState('')
   const [task, setTask] = useState('')
@@ -101,7 +101,14 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
             </button>
           </div>
         </div>
-        {shownError ? <p className="field-error" role="alert">{shownError}</p> : null}
+        {shownError ? (
+          <p className="field-error" role="alert">
+            {shownError}
+            {/「账号」/.test(shownError) && onShowAccounts ? (
+              <button type="button" className="field-error__action" onClick={() => onShowAccounts(/元宝|视频号/.test(shownError) ? 'yuanbao' : 'bilibili')}>去扫码登录</button>
+            ) : null}
+          </p>
+        ) : null}
         <div className="import-entry__footer" data-exit>
           <span>B 站 · 视频号 · MP4 · MOV · WEBM</span>
           <button type="button" onClick={() => setShowTask((value) => !value)} aria-expanded={showTask} aria-controls="import-task">{task ? '编辑分析任务' : '添加分析任务'}</button>

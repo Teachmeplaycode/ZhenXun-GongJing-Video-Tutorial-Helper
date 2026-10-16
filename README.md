@@ -29,6 +29,8 @@ brew install uv node ffmpeg
 
 `.env` 已被 git 忽略。环境变量与 `.env` 同名时，环境变量优先。
 
+平台登录（B 站、腾讯元宝）不用手动复制 Cookie：点页面右上角「账号」→「扫码登录」，用对应的 App 扫码确认即可。登录结果保存在 `backend/.env.accounts`（同样被 git 忽略、只有本机用户可读），优先于 `.env` 里的同名项；页面上只显示是否登录、账号名和到期日，不显示 Cookie 本身。单独存一个文件是因为 `dev.sh` 会在 `.env` 变化时重启后端，正在进行的回答会被打断。
+
 | 配置 | 必需 | 作用 |
 | --- | --- | --- |
 | `DEEPSEEK_API_KEY` | 二选一 | 问答模型（默认 `deepseek-flash`，可用 `LLM_BASE_URL` / `LLM_MODEL` 换成其他 OpenAI 兼容服务） |
@@ -36,8 +38,8 @@ brew install uv node ffmpeg
 | `TAVILY_API_KEY` | 建议 | 联网搜索首选，每月 1000 次免费；没有时退到博查或免费的 ddgs |
 | `BOCHA_API_KEY` | 可选 | 博查搜索，作为联网搜索的备用 |
 | `OPENALEX_API_KEY` | 建议 | 论文检索；不带 key 每天约 100 次，带免费 key 约 1000 次 |
-| `YUANBAO_COOKIE` | 视频号需要 | 腾讯元宝登录态 `hy_user=…; hy_token=…`，用来解析视频号链接；会过期 |
-| `BILIBILI_COOKIE` | 可选 | B 站登录态（浏览器里的 `SESSDATA=…`），用来读更多评论；不配置时 B 站只给前 3 条热门评论，弹幕不需要登录 |
+| `YUANBAO_COOKIE` | 视频号需要 | 腾讯元宝登录态 `hy_user=…; hy_token=…`，用来解析视频号链接；会过期。**可以直接在页面右上角「账号」里用微信扫码登录** |
+| `BILIBILI_COOKIE` | 可选 | B 站登录态（`SESSDATA=…`），用来读更多评论；不配置时 B 站只给前 3 条热门评论，弹幕不需要登录。**可以在「账号」里用 B 站 App 扫码登录** |
 | `BROWSER` | 可选 | 浏览器操作（Playwright 无头 Chromium，默认开启，跟"联网"开关走）；第一次要下载浏览器：`cd backend && uv run playwright install --only-shell chromium`；`BROWSER=off` 关闭 |
 | `DECISION` / `DECISION_MODEL` | 可选 | 决策模块（本机 Ollama，默认开启、`qwen3.5:9b`）：过滤搜索结果、拦截网页注入、判断是否需要查资料；Ollama 没开时自动退回简单规则 |
 

@@ -13,6 +13,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONT="$ROOT/front"
 ENV_FILE="$BACKEND/.env"
+ACCOUNTS_FILE="$BACKEND/.env.accounts"
 API_PORT="${API_PORT:-8000}"
 WEB_PORT="${WEB_PORT:-5173}"
 export API_PORT WEB_PORT
@@ -33,9 +34,13 @@ WARNINGS=0
 setting() {
   local name="$1" value=""
   eval "value=\${$name:-}"
-  if [ -z "$value" ] && [ -f "$ENV_FILE" ]; then
-    value="$(grep -E "^[[:space:]]*(export[[:space:]]+)?$name=" "$ENV_FILE" | tail -1 | sed -E 's/^[^=]*=//; s/^["'\'']//; s/["'\'']$//')"
-  fi
+  # Logins saved from the page (.env.accounts) win over .env, as in the backend.
+  local file
+  for file in "$ACCOUNTS_FILE" "$ENV_FILE"; do
+    if [ -z "$value" ] && [ -f "$file" ]; then
+      value="$(grep -E "^[[:space:]]*(export[[:space:]]+)?$name=" "$file" | tail -1 | sed -E 's/^[^=]*=//; s/^["'\'']//; s/["'\'']$//')"
+    fi
+  done
   printf '%s' "$value"
 }
 has_setting() { [ -n "$(setting "$1")" ]; }
@@ -64,8 +69,8 @@ check_env() {
   if has_setting TAVILY_API_KEY || has_setting Tavily_API_KEY; then ok "联网搜索：Tavily"; else warn "没有 Tavily key：联网搜索会退到博查或 ddgs，结果质量差一些"; fi
   if has_setting BOCHA_API_KEY || has_setting BOCHA_API; then ok "联网搜索备用：博查"; fi
   if has_setting OPENALEX_API_KEY; then ok "论文检索：OpenAlex（带 key，约 1000 次/天）"; else warn "没有 OPENALEX_API_KEY：论文检索每天约 100 次（openalex.org 免费注册）"; fi
-  if has_setting BILIBILI_COOKIE; then ok "B 站评论：已配置登录 Cookie"; else warn "没有 BILIBILI_COOKIE：B 站评论只能读前 3 条热门（弹幕不受影响）"; fi
-  if has_setting YUANBAO_COOKIE; then ok "视频号：已配置元宝 Cookie（过期后需要重新复制）"; else warn "没有 YUANBAO_COOKIE：视频号链接解析不了"; fi
+  if has_setting BILIBILI_COOKIE; then ok "B 站评论：已配置登录 Cookie"; else warn "没有登录 B 站：评论只能读前 3 条热门（弹幕不受影响）；启动后在页面右上角「账号」扫码登录"; fi
+  if has_setting YUANBAO_COOKIE; then ok "视频号：已登录腾讯元宝（过期后在页面「账号」里重新扫码）"; else warn "没有登录腾讯元宝：视频号链接解析不了；启动后在页面右上角「账号」用微信扫码登录"; fi
 }
 
 check_ollama() {

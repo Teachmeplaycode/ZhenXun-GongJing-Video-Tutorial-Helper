@@ -65,6 +65,11 @@ export class MockApi {
     this.gate = null // when set, the next agent run waits for gate.release()
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
     this.frames = 8
+    this.accounts = [
+      { id: 'bilibili', label: 'B 站', purpose: '读更多评论', app: 'B 站 App', configured: false, source: null, user: '', expires: null, valid: null },
+      { id: 'yuanbao', label: '腾讯元宝', purpose: '解析视频号链接', app: '微信', configured: true, source: 'env', user: '', expires: null, valid: null },
+    ]
+    this.loginPolls = ['waiting', 'scanned', 'done'] // states the QR login goes through, one per poll
   }
 
   /** The next agent run waits until the returned function is called. */
@@ -131,6 +136,23 @@ export class MockApi {
     if (m) return stream(this.jobEvents().filter((e) => e.seq >= Number(url.searchParams.get('since') || 0)))
     m = path.match(/^\/api\/link-jobs\/(\w+)\/frames\/\d+\.jpg$/)
     if (m) return route.fulfill({ status: 200, contentType: 'image/jpeg', body: FRAME })
+    if (path === '/api/accounts') return json({ accounts: this.accounts })
+    m = path.match(/^\/api\/accounts\/(\w+)\/login$/)
+    if (m && req.method() === 'POST') {
+      return json({ id: `login-${m[1]}`, platform: m[1], state: 'waiting', message: '', user: '', expires_in: 180, qr: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><rect width="2" height="2"/></svg>' })
+    }
+    m = path.match(/^\/api\/accounts\/login\/login-(\w+)$/)
+    if (m && req.method() === 'GET') {
+      const state = this.loginPolls.length > 1 ? this.loginPolls.shift() : this.loginPolls[0]
+      const out = { id: `login-${m[1]}`, platform: m[1], state, message: state === 'scanned' ? '已扫码，请在手机上确认登录' : '', user: '', expires_in: 170 }
+      if (state === 'done') {
+        const account = { ...this.accounts.find((a) => a.id === m[1]), configured: true, source: 'ui', user: '测试用户', valid: true, expires: 1800000000 }
+        this.accounts = this.accounts.map((a) => (a.id === m[1] ? account : a))
+        return json({ ...out, user: '测试用户', message: '登录成功', account })
+      }
+      return json(out)
+    }
+    if (m && req.method() === 'DELETE') return json({ ok: true })
     if (path === '/api/agent/runs') {
       const gate = this.gate
       this.gate = null
