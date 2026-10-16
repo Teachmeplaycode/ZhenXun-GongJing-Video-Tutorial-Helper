@@ -15,7 +15,13 @@ DEFAULT_MODEL = "mlx-community/whisper-large-v3-turbo"
 # Steers Chinese output to simplified characters with punctuation.
 ZH_PROMPT = "以下是普通话的句子，使用简体中文。"
 # Phrases Whisper is known to invent over music or silence (from subtitle-laden training data).
-HALLUCINATIONS = re.compile(r"请不吝点赞|订阅.{0,4}转发|打赏支持|明镜与点点|字幕由.{0,20}提供|字幕\s*by|Amara\.org|优优独播剧场|以下是普通话的句子")
+# "字幕志愿者 李宗盛" / "作词 李宗盛" came up on every silent or music-only video in the eval set (2026-10-16).
+HALLUCINATIONS = re.compile(r"请不吝点赞|订阅.{0,4}转发|打赏支持|明镜与点点|字幕由.{0,20}提供|字幕\s*by|Amara\.org|优优独播剧场|以下是普通话的句子"
+                            r"|字幕志愿者|^(作词|作曲|词曲|编曲)\s*[:：]?\s*李宗盛$")
+
+
+def hallucinated(text: str) -> bool:
+    return bool(HALLUCINATIONS.search(text.strip()))
 
 _lock = asyncio.Lock()  # one model run at a time: it holds several GB of unified memory
 
@@ -47,7 +53,7 @@ def clean(raw: list[dict]) -> list[Segment]:
     out: list[Segment] = []
     for s in raw:
         text = (s.get("text") or "").strip()
-        if not text or HALLUCINATIONS.search(text):
+        if not text or hallucinated(text):
             continue
         if s.get("no_speech_prob", 0) > 0.6 and s.get("avg_logprob", 0) < -1.0:
             continue

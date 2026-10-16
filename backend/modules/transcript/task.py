@@ -8,7 +8,7 @@ from pathlib import Path
 from ..frames import FrameJob
 from ..video_source import ResolveError, Stream
 from . import asr
-from .asr import Segment
+from .asr import Segment, hallucinated
 from .audio import read_audio
 
 # pending · running · done · empty (no speech found) · none (no audio track) · unavailable (no ASR here) · failed
@@ -35,7 +35,8 @@ class Transcript:
     def from_dict(cls, data: dict | None) -> Transcript:
         if not data:  # saved before transcription existed; a retry fills it in
             return cls("failed", "这个会话创建时还没有语音转写，点补抓可以生成")
-        segments = [Segment(s["start"], s["end"], s["text"]) for s in data.get("segments") or []]
+        # Saved before a phrase joined the hallucination list: drop it on the way in.
+        segments = [Segment(s["start"], s["end"], s["text"]) for s in data.get("segments") or [] if not hallucinated(s["text"])]
         status = data.get("status", "pending")
         if status in ("pending", "running"):
             return cls("failed", "转写被中断（后端重启），可以重试", segments)
