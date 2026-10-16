@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from 'react'
+import React, { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { prefersReducedMotion } from '../lib/motion'
 import { clock, host } from '../lib/steps'
@@ -127,6 +127,93 @@ function Hits({ hits, onSeek }) {
   )
 }
 
+function Comments({ d }) {
+  return (
+    <div className="viz-comments">
+      {d.note ? <p className="mono-sm muted" data-row>{d.note}</p> : null}
+      <ol className="viz-comments__list">
+        {d.comments.map((c, i) => (
+          <li key={i} data-row>
+            <div className="viz-comment">
+              <span className="viz-comment__author">{c.pinned ? <span className="viz-stamp viz-stamp--off">置顶</span> : null}{c.author}</span>
+              <span className="viz-comment__meta mono-sm">赞 {c.likes}{c.replies ? ` · 回复 ${c.replies}` : ''}</span>
+            </div>
+            <p className="viz-comment__text">{c.text}</p>
+            {c.sub?.length ? (
+              <ul className="viz-comment__sub">
+                {c.sub.map((r, j) => <li key={j}><span className="viz-comment__author">{r.author}</span> {r.text}</li>)}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+// Danmaku density over the whole video: one ink, peaks in the active accent; hover names the bin, click seeks.
+function Density({ d, onSeek }) {
+  const [hover, setHover] = useState(null)
+  const max = Math.max(1, ...d.bins)
+  const peakBins = new Set((d.peaks || []).map((p) => Math.min(d.bins.length - 1, Math.floor((p.t + 0.001) / d.bin))))
+  return (
+    <div className="viz-density" data-row>
+      <div className="viz-density__plot" onMouseLeave={() => setHover(null)}>
+        {d.bins.map((n, i) => (
+          <button
+            key={i} type="button" className="viz-density__hit"
+            aria-label={`${clock(i * d.bin)}–${clock((i + 1) * d.bin)}，${n} 条弹幕`}
+            onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} onClick={() => onSeek?.(i * d.bin)}
+          >
+            <span className={`viz-density__bar ${peakBins.has(i) ? 'is-peak' : ''}`} style={{ height: `${n ? Math.max(4, (n / max) * 100) : 0}%` }} />
+          </button>
+        ))}
+      </div>
+      <div className="viz-density__axis mono-sm">
+        <span>00:00</span>
+        <span className={hover != null ? 'is-hover' : undefined}>
+          {hover != null ? `${clock(hover * d.bin)}–${clock((hover + 1) * d.bin)} · ${d.bins[hover]} 条 · 点击跳转` : `弹幕密度 · 共 ${d.total} 条`}
+        </span>
+        <span>{clock(d.bins.length * d.bin)}</span>
+      </div>
+    </div>
+  )
+}
+
+const DANMAKU_ROWS = 12
+
+function Danmaku({ d, onSeek }) {
+  const [all, setAll] = useState(false)
+  const rows = all ? d.hits : d.hits.slice(0, DANMAKU_ROWS)
+  return (
+    <div className="viz-danmaku">
+      {d.bins?.length ? <Density d={d} onSeek={onSeek} /> : null}
+      {d.pool ? <p className="mono-sm muted" data-row>{d.pool}</p> : null}
+      {d.peaks?.length ? (
+        <div className="viz-times" data-row>
+          <span className="mono-sm muted">最密集：</span>
+          {d.peaks.map((p) => (
+            <button key={p.t} type="button" className="ts-chip" onClick={() => onSeek?.(p.t)}>{clock(p.t)} · {p.count}</button>
+          ))}
+        </div>
+      ) : null}
+      <ol className="viz-hits">
+        {rows.map((h, i) => (
+          <li key={i} data-row>
+            <button type="button" className="ts-chip" onClick={() => onSeek?.(h.t)}>{clock(h.t)}</button>
+            <span>{h.text}{h.n > 1 ? <span className="mono-sm muted"> ×{h.n}</span> : null}</span>
+          </li>
+        ))}
+      </ol>
+      {d.hits.length > DANMAKU_ROWS ? (
+        <button type="button" className="viz-more mono-sm" onClick={() => setAll((v) => !v)}>
+          {all ? '收起' : `显示全部 ${d.hits.length} 条`}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 function Browse({ d }) {
   return (
     <div className="viz-browse">
@@ -172,6 +259,10 @@ export default function StepDetail({ call, onSeek }) {
     body = <Results results={d.results} />
   } else if (call.tool === 'web.fetch' && d.url) {
     body = <PageScan d={d} />
+  } else if (call.tool === 'audience.comments' && d.comments) {
+    body = <Comments d={d} />
+  } else if (call.tool === 'audience.danmaku' && d.hits) {
+    body = <Danmaku d={d} onSeek={onSeek} />
   } else if (call.tool === 'browser.use' && d.task) {
     body = <Browse d={d} />
   } else if (call.tool === 'papers.search' && d.papers) {

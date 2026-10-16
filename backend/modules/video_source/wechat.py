@@ -148,5 +148,8 @@ class WeChatChannelsResolver(Resolver):
             description=description,
             # A single MP4 carries the sound too; ffmpeg reads just its audio track.
             audio_streams=[stream],
-            extra={"export_id": export_id},
+            # Counts only: the web preview has no comment list ("扫码前往微信"), so comments stay unreadable.
+            extra={"export_id": export_id, "stats": {
+                k: feed.get(src) for k, src in (("likes", "likeCountFmt"), ("comments", "commentCountFmt"),
+                                                ("favorites", "favCountFmt"), ("shares", "forwardCountFmt")) if feed.get(src)}},
         )

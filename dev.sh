@@ -64,6 +64,7 @@ check_env() {
   if has_setting TAVILY_API_KEY || has_setting Tavily_API_KEY; then ok "联网搜索：Tavily"; else warn "没有 Tavily key：联网搜索会退到博查或 ddgs，结果质量差一些"; fi
   if has_setting BOCHA_API_KEY || has_setting BOCHA_API; then ok "联网搜索备用：博查"; fi
   if has_setting OPENALEX_API_KEY; then ok "论文检索：OpenAlex（带 key，约 1000 次/天）"; else warn "没有 OPENALEX_API_KEY：论文检索每天约 100 次（openalex.org 免费注册）"; fi
+  if has_setting BILIBILI_COOKIE; then ok "B 站评论：已配置登录 Cookie"; else warn "没有 BILIBILI_COOKIE：B 站评论只能读前 3 条热门（弹幕不受影响）"; fi
   if has_setting YUANBAO_COOKIE; then ok "视频号：已配置元宝 Cookie（过期后需要重新复制）"; else warn "没有 YUANBAO_COOKIE：视频号链接解析不了"; fi
 }
 

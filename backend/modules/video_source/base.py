@@ -82,13 +82,41 @@ class ResolvedVideo:
             "notes": self.notes,
             "stream_count": len(self.streams),
             "has_audio": bool(self.audio_streams),
+            "stats": self.extra.get("stats") or {},
         }
+
+
+@dataclass
+class Comment:
+    author: str
+    text: str
+    likes: int = 0
+    reply_count: int = 0
+    time: float = 0  # unix seconds
+    pinned: bool = False
+    replies: list[Comment] = field(default_factory=list)  # the few sub-replies the platform sends along
+
+
+@dataclass
+class CommentPage:
+    comments: list[Comment]
+    total: int | None = None
+    cursor: str | None = None  # pass back for the next page; None: no more
+    note: str = ""             # e.g. why only a few were returned
+
+
+@dataclass
+class Danmaku:
+    """A bullet comment: viewers' remarks pinned to a moment of the video."""
+    time: float
+    text: str
 
 
 class Resolver:
     """Base class for platform resolvers. Subclasses set `platform` and implement the hooks."""
 
     platform = ""
+    audience: tuple[str, ...] = ()  # what viewers left that this platform can read: "comments", "danmaku"
 
     def matches(self, url: str) -> bool:
         raise NotImplementedError
@@ -106,6 +134,14 @@ class Resolver:
     async def fallback_streams(self, video: ResolvedVideo) -> list[Stream]:
         """Lower-quality but more permissive addresses, tried after the primary ones fail."""
         return []
+
+    async def comments(self, video: ResolvedVideo, sort: str = "hot", cursor: str | None = None) -> CommentPage:
+        """One page of the video's comments; sort is "hot" or "time"."""
+        raise ResolveError("unsupported", "这个平台读不到评论")
+
+    async def danmaku(self, video: ResolvedVideo) -> list[Danmaku]:
+        """Bullet comments, in time order."""
+        raise ResolveError("unsupported", "这个平台没有弹幕")
 
     async def aclose(self) -> None:
         return None
