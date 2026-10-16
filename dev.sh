@@ -121,6 +121,12 @@ check_ports() {
 install_deps() {
   printf '%s依赖%s\n' "$BOLD" "$RESET"
   if (cd "$BACKEND" && uv sync --quiet); then ok "后端依赖（uv sync）"; else fail "uv sync 失败"; return 1; fi
+  if [ "$(setting BROWSER)" != "off" ]; then
+    local shell_dir
+    shell_dir=$(cd "$BACKEND" && uv run --quiet playwright install --dry-run --only-shell chromium 2>/dev/null | awk '/Install location/ {print $3; exit}')
+    if [ -n "$shell_dir" ] && [ -d "$shell_dir" ]; then ok "浏览器操作：无头 Chromium 已下载"
+    else warn "浏览器操作要用的 Chromium 还没下载（约 100 MB）：cd backend && uv run playwright install --only-shell chromium"; fi
+  fi
   if [ ! -d "$FRONT/node_modules" ] || [ "$FRONT/package-lock.json" -nt "$FRONT/node_modules/.package-lock.json" ]; then
     if (cd "$FRONT" && npm install --silent); then ok "前端依赖（npm install）"; else fail "npm install 失败"; return 1; fi
   else

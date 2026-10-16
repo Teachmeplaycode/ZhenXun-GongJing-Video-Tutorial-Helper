@@ -1,5 +1,5 @@
 """Tools the model can call while answering: search or read the transcript, look closer at a time range,
-and (unless LLM_WEB=off) search the web, read a page, or search papers.
+and (unless LLM_WEB=off) search the web, read a page, operate a real browser, or search papers.
 
 Each tool returns text for the model, optional images (sent in a following user message, since tool
 results are text-only), and a short summary for the trace card.
@@ -19,7 +19,7 @@ from modules.video_source import ResolveError
 
 from modules.decide import questions as dq
 
-from . import papers, web
+from . import browser, papers, web
 
 MAX_VIEW = 6          # frames per view_frames call
 MAX_READ_CHARS = 4000
@@ -98,12 +98,23 @@ WEB_DEFINITIONS = [
             "limit": {"type": "integer", "description": f"返回几篇，1 到 {MAX_WEB_RESULTS}，默认 5"}}, "required": ["query"]}}},
 ]
 
+BROWSE_DEFINITION = {"type": "function", "function": {
+    "name": "browse",
+    "description": "用真实浏览器完成一个网页任务：打开网址，点击、输入、滚动，读出需要的信息。用于 fetch_page 读不到正文的网页"
+                   "（需要脚本渲染的知乎、小红书、微博、B 站评论区、电商页面等）、需要在网站里搜索或点开内容才能看到的信息，"
+                   "以及要看网页上的图片、表格、价格的情况。比 fetch_page 慢很多，能用 fetch_page 时优先用 fetch_page。",
+    "parameters": {"type": "object", "properties": {
+        "task": {"type": "string", "description": "要在网页上完成的事，写清楚要找什么信息"},
+        "url": {"type": "string", "description": "起始网址；不填从必应搜索开始"}}, "required": ["task"]}}}
+
 ARGS = {
     "search_transcript": ("query",), "read_transcript": ("start", "end"), "view_frames": ("start", "end", "count"),
     "web_search": ("query", "limit", "freshness"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
+    "browse": ("task", "url"),
 }
 TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view",
-               "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search"}
+               "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search",
+               "browse": "browser.use"}
 
 
 def web_enabled() -> bool:
@@ -119,6 +130,8 @@ def definitions(web: bool = True, papers: bool = True) -> list[dict]:
         web = papers = False
     extra = [d for d in WEB_DEFINITIONS
              if (papers if d["function"]["name"] in PAPER_TOOLS else web)]
+    if web and browser.available():
+        extra.append(BROWSE_DEFINITION)
     return DEFINITIONS + extra
 
 
@@ -140,12 +153,30 @@ class ToolResult:
 
 
 class AgentTools:
-    def __init__(self, job: FrameJob, grab=None, decider=None):
+    def __init__(self, job: FrameJob, grab=None, decider=None, llm=None):
         self.job = job
+        self.llm = llm  # drives browse; None: browse is unavailable
         self.grab = grab or grab_frame
         self.decider = decider  # modules.decide.Decider, or None: results go to the model unscreened
         self.refreshed = False
         self.pages: dict[str, web.Page] = {}  # fetched this answer, so offset reads don't refetch
+
+    async def stream(self, name: str, args: dict):
+        """Like run, but yields the tool's live events (browser.*) before its ToolResult."""
+        if name != "browse":
+            yield await self.run(name, args)
+            return
+        if self.llm is None or not web_enabled() or not browser.available():
+            yield ToolResult("浏览器不可用。", "浏览器不可用", error=True)
+            return
+        params = {k: v for k, v in args.items() if k in ARGS[name]}
+        screen = self._injection_risk if self.decider is not None else None
+        async for item in browser.browse(self.llm, str(params.get("task", "")), str(params.get("url") or ""),
+                                         screen=screen, block=INJECTION_BLOCK):
+            if isinstance(item, browser.BrowseResult):
+                yield ToolResult(item.text, item.summary, item.count, error=item.error, data=item.data)
+            else:
+                yield item
 
     async def run(self, name: str, args: dict) -> ToolResult:
         handler = {"search_transcript": self.search_transcript, "read_transcript": self.read_transcript,

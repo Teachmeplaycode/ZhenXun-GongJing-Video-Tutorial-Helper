@@ -669,9 +669,9 @@ browser_viewport:
       - "停止"
 
   viewport:
-    sync_mode: "WebSocket"
-    resize: "ResizeObserver 监听本地容器，同步到远程 Playwright viewport"
-    stream: "画面流式传输"
+    sync_mode: "随回答的 SSE 流：每个动作之后一张截图（browser.frame，JPEG data URL），不是连续视频流"
+    resize: "远程视口固定 1280×800；本地显示区按 16:10 居中（container query），光标坐标是相对截图的比例，所以不会偏"
+    stream: "browser.open → browser.action（action / detail / x / y / url，失败的动作带 error）→ browser.frame，按发生顺序"
     cursor_indicator:
       enabled: true
       style: "小圆点 + 涟漪，#C8F04A"

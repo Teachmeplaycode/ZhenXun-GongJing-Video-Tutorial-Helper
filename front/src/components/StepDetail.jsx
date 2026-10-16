@@ -127,6 +127,24 @@ function Hits({ hits, onSeek }) {
   )
 }
 
+function Browse({ d }) {
+  return (
+    <div className="viz-browse">
+      <p className="mono-sm muted" data-row>任务：{d.task}</p>
+      <ol className="viz-browse__actions">
+        {(d.actions || []).map((a, i) => <li key={i} data-row><span>{a.action}</span> {a.detail}</li>)}
+      </ol>
+      {d.pages?.length ? (
+        <ul className="viz-browse__pages">
+          {d.pages.map((p, i) => (
+            <li key={i} data-row><a href={p.url} target="_blank" rel="noreferrer">{p.title || p.url}</a> <span className="mono-sm muted">{host(p.url)}</span></li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
 function Raw({ call }) {
   const params = call.input?.params
   return (
@@ -154,6 +172,8 @@ export default function StepDetail({ call, onSeek }) {
     body = <Results results={d.results} />
   } else if (call.tool === 'web.fetch' && d.url) {
     body = <PageScan d={d} />
+  } else if (call.tool === 'browser.use' && d.task) {
+    body = <Browse d={d} />
   } else if (call.tool === 'papers.search' && d.papers) {
     body = <Papers papers={d.papers} />
   } else if (call.tool === 'transcript.search' && d.hits) {

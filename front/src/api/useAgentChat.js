@@ -49,8 +49,10 @@ export function applyEvent(msg, ev) {
     case 'browser.open':
       return { ...msg, browser: { callId: ev.call_id, url: ev.url, status: 'running', actions: [], frame: null } }
     case 'browser.action':
+      if (!msg.browser) return msg
       return { ...msg, browser: { ...msg.browser, url: ev.url || msg.browser.url, actions: [...msg.browser.actions, ev] } }
     case 'browser.frame':
+      if (!msg.browser) return msg
       return { ...msg, browser: { ...msg.browser, frame: ev.src } }
     case 'assistant.message.delta': {
       const last = lastPart(parts)
