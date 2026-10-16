@@ -33,6 +33,9 @@ modules/frames/              远程抽帧
 modules/llm/client.py        OpenAI 兼容的流式对话客户端（默认 DeepSeek）
 modules/agent/run.py         问答：选帧 → 图文请求模型 → 按前端 §9.2 事件流式输出
 modules/agent/browser.py     浏览器操作：无头 Chromium（Playwright）+ 一个小的模型循环，按编号点击、输入、滚动
+modules/accounts/            扫码登录 B 站和腾讯元宝，凭证存 .env.accounts
+modules/log.py               结构化日志：data/logs/日期.jsonl
+evals/cases.json             回答质量评测集（scripts/eval.py 运行，scripts/log_stats.py 看日志统计）
 modules/store/sessions.py    会话存储（SQLite）：每个链接任务一个会话，含帧状态、语音转写与对话记录
 modules/transcript/          语音转写：audio.py 读音轨 → asr.py 本地 mlx-whisper → task.py 任务与事件
 tests/                       解析器与抽帧任务的单元测试

@@ -15,7 +15,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts
+from modules import accounts, log
 from modules.agent import browser, run_agent
 from modules.frames import FrameJob
 from modules.decide import Decider
@@ -45,6 +45,7 @@ decider: Decider | None = None
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    log.setup(DATA_ROOT / "logs")
     prune(force=True)
     yield
     for task in tasks:
@@ -74,11 +75,19 @@ class AgentRequest(BaseModel):
     scope: dict = {"type": "all"}  # {"type": "all"} or {"type": "frames", "frames": [index, ...]}
     web: bool = True     # composer switch: may the model search the web for this question
     papers: bool = True  # composer switch: may it search papers
+    history: bool = True  # send earlier turns along; the eval runner turns it off so questions don't influence each other
 
 
 @app.exception_handler(ResolveError)
-async def on_resolve_error(_, exc: ResolveError):
+async def on_resolve_error(request: Request, exc: ResolveError):
+    log.event("request.failed", path=request.url.path, code=exc.code, message=exc.message)
     return JSONResponse(status_code=422, content=exc.as_dict())
+
+
+@app.exception_handler(Exception)
+async def on_unexpected(request: Request, exc: Exception):
+    log.error(request.url.path, exc)
+    return JSONResponse(status_code=500, content={"code": "internal", "message": "后端出错了，详情见日志"})
 
 
 def prune(force: bool = False) -> None:
@@ -104,17 +113,31 @@ def spawn(coro) -> None:
 
 async def sample(job: FrameJob, indexes: list[int] | None = None) -> None:
     """Run sampling and save the frame states to the session, also when cut off."""
+    timer = log.Timer()
     try:
         await job.run(indexes)
+    except Exception as exc:
+        log.error("link.frames", exc, job_id=job.id)
+        raise
     finally:
         store.save_slots(job)
+        c = job.coverage()
+        log.event("link.frames", job_id=job.id, ok=c["ok"], missing=c["missing"], total=c["total"], ms=timer.ms,
+                  retry=indexes is not None)
 
 
 async def transcribe(job: FrameJob) -> None:
+    timer = log.Timer()
     try:
         await run_transcript(job)
+    except Exception as exc:
+        log.error("transcript", exc, job_id=job.id)
+        raise
     finally:
         store.save_transcript(job)
+        t = job.transcript
+        log.event("transcript", job_id=job.id, status=t.status if t else None, segments=len(t.segments) if t else 0,
+                  message=(t.message if t and t.status != "done" else ""), ms=timer.ms)
 
 
 def busy(job: FrameJob) -> bool:
@@ -196,8 +219,15 @@ async def resolve_link(body: LinkRequest):
 async def create_link_job(body: LinkRequest):
     """Resolve the link and start sampling frames in the background."""
     prune()
-    resolver, video = await registry.resolve(body.url, body.part)
+    timer = log.Timer()
+    try:
+        resolver, video = await registry.resolve(body.url, body.part)
+    except ResolveError as exc:
+        log.event("link.resolve", ok=False, url=body.url[:200], code=exc.code, message=exc.message, ms=timer.ms)
+        raise
     job_id = uuid.uuid4().hex[:12]
+    log.event("link.resolve", ok=True, job_id=job_id, platform=video.platform, video_id=video.video_id,
+              duration=video.duration, ms=timer.ms)
     job = FrameJob(job_id, video, resolver, DATA_DIR / job_id)
     job.transcript = Transcript()
     jobs[job_id] = job
@@ -226,6 +256,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
                     raise HTTPException(413, f"文件超过 {MAX_UPLOAD >> 30} GB 上限")
                 out.write(chunk)
         video = await resolve_file(path, name)
+        log.event("upload", job_id=job_id, size=size, duration=video.duration)
     except BaseException:
         shutil.rmtree(root, ignore_errors=True)
         raise
@@ -328,13 +359,15 @@ async def agent_run(body: AgentRequest):
             yield sse({"type": "run.error", "run_id": run_id, **err.as_dict()})
             return
         frames = body.scope.get("frames") if body.scope.get("type") == "frames" else None
-        history = store.history(job.id)
+        history = store.history(job.id) if body.history else []
         store.add_message(job.id, "user", body.question, data={"frames": frames or []})
         # The answer is saved as its text plus its events in order, consecutive text deltas merged,
         # so the UI can replay where text fell between tool calls. `t` is seconds since the question.
         # A disconnect (the user pressed stop) saves what arrived so far.
         text, events, status = [], [], "stopped"
         started = time.perf_counter()
+        calls: dict[str, dict] = {}  # call_id → {name, start, ok, count, ms}
+        final: dict = {}
         try:
             async for event in run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
                                          web=body.web, papers=body.papers):
@@ -353,13 +386,41 @@ async def agent_run(body: AgentRequest):
                     events.append(event)
                     if event["type"] in ("run.completed", "run.error"):
                         status = "done" if event["type"] == "run.completed" else "error"
+                        final = event
+                    track(calls, event)
                 yield sse({"run_id": run_id, **event})
+        except Exception as exc:
+            log.error("answer", exc, run_id=run_id, job_id=job.id)
+            status, final = "error", {"code": "internal", "message": str(exc)[:200]}
+            events.append({"type": "run.error", "code": "internal", "message": "后端出错了，详情见日志"})
+            yield sse({"run_id": run_id, **events[-1]})
         finally:
             if status == "stopped":
                 events.append({"type": "run.error", "code": "stopped", "message": "已停止"})
             store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
+            usage = final.get("usage") or {}
+            log.event("answer", run_id=run_id, job_id=job.id, platform=job.video.platform, question=body.question[:200],
+                      status=status, code=final.get("code"), message=final.get("message") if status == "error" else None,
+                      elapsed_ms=round((time.perf_counter() - started) * 1000), model=final.get("model"),
+                      prompt_tokens=usage.get("prompt"), completion_tokens=usage.get("completion"),
+                      rounds=sum(1 for c in calls.values() if c["name"].startswith("vision.")),
+                      web=body.web, papers=body.papers, scope="frames" if frames else "all",
+                      tools=[{k: c[k] for k in ("name", "ms", "ok", "count")} for c in calls.values()
+                             if not c["name"].startswith("vision.") and "ms" in c])
 
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+
+
+def track(calls: dict[str, dict], event: dict) -> None:
+    """Fold tool_call.* events into per-call timings for the answer's log line."""
+    kind, cid = event["type"], event.get("call_id")
+    if kind == "tool_call.started":
+        calls[cid] = {"name": event.get("tool_name", ""), "start": event["t"]}
+    elif kind == "tool_call.output" and cid in calls:
+        calls[cid]["ok"] = not event.get("exit_code")
+    elif kind == "tool_call.completed" and cid in calls:
+        calls[cid].update(ms=round((event["t"] - calls[cid]["start"]) * 1000), count=event.get("result_count"))
+        calls[cid].setdefault("ok", True)
 
 
 # ---- platform logins ------------------------------------------------------------------------------
@@ -407,6 +468,9 @@ async def poll_login(login_id: str, request: Request):
     except accounts.AccountError as exc:
         return JSONResponse({"code": "login_gone", "message": str(exc)}, status_code=404)
     out = login.public(qr=False)  # the image was sent when the login started
+    if login.state in ("done", "expired", "error") and not getattr(login, "logged", False):
+        login.logged = True
+        log.event("account.login", platform=login.platform, state=login.state, message=login.message)
     if login.state == "done":
         out["account"] = await accounts.status(login.platform)
     return out
