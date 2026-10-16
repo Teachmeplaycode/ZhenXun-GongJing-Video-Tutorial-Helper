@@ -84,6 +84,7 @@ class FrameJob:
         self.restored = False  # rebuilt from a saved session: no stream addresses yet
         self.audience: dict = {}  # comments and danmaku read for this video, kept while the job is in memory
         self.transcript = None  # modules.transcript.Transcript, attached by the app
+        self.screentext = None  # modules.screentext.ScreenText, attached by the app
         self.created = time.time()
 
     # ---- events -------------------------------------------------------------------------

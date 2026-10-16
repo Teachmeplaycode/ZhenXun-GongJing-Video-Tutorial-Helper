@@ -62,12 +62,12 @@ def parse_time(value) -> float | None:
 DEFINITIONS = [
     {"type": "function", "function": {
         "name": "search_transcript",
-        "description": "在视频的语音转写里搜索关键词，返回包含这些词的句子和时间点。用来找某个话题、某句话在什么时候说的。",
+        "description": "在视频的语音转写和画面文字（每秒识别的字幕、花字、画面上的字）里搜索关键词，返回包含这些词的句子、来源和时间点。用来找某个话题、某句话或某段字幕出现在什么时候。",
         "parameters": {"type": "object", "properties": {
             "query": {"type": "string", "description": "关键词，多个词用空格分开"}}, "required": ["query"]}}},
     {"type": "function", "function": {
         "name": "read_transcript",
-        "description": "读取某个时间段内完整的语音转写。",
+        "description": "读取某个时间段内完整的语音转写和画面文字（按时间排列，标明来源）。",
         "parameters": {"type": "object", "properties": {
             "start": {"type": "string", "description": "开始时间，秒数或 mm:ss"},
             "end": {"type": "string", "description": "结束时间，秒数或 mm:ss"}}, "required": ["start", "end"]}}},
@@ -425,42 +425,56 @@ class AgentTools:
              "authors": p.authors[:3]} for p in found]}
         return ToolResult(f"{UNTRUSTED}来源：{source}\n{text}", f"{source} · {len(found)} 篇", len(found), data=data)
 
-    # ---- transcript -----------------------------------------------------------------------
+    # ---- transcript and on-screen text -----------------------------------------------------
     def _segments(self):
         t = self.job.transcript
         return t.segments if t is not None else []
 
+    def _texts(self) -> list[tuple[float, float, str, str]]:
+        """(start, end, text, source) for speech and on-screen text, in time order."""
+        speech = [(s.start, s.end, s.text, "speech") for s in self._segments()]
+        screen = self.job.screentext
+        captions = [(c.start, c.end, c.text, "screen") for c in (screen.segments if screen is not None else [])]
+        return sorted(speech + captions, key=lambda x: (x[0], x[3]))
+
+    @staticmethod
+    def _label(source: str) -> str:
+        return "〔字幕〕" if source == "screen" else ""
+
     async def search_transcript(self, query: str = "") -> ToolResult:
-        segments = self._segments()
-        if not segments:
-            return ToolResult("这个视频没有语音转写。", "没有转写")
+        texts = self._texts()
+        if not texts:
+            return ToolResult("这个视频没有语音转写，也没有识别到画面文字。", "没有转写")
         terms = [t for t in re.split(r"[\s,，、。;；]+", query.strip()) if t]
         if not terms:
             return ToolResult("请给出要搜索的关键词。", "没有关键词", error=True)
-        scored = [(sum(t.lower() in s.text.lower() for t in terms), s) for s in segments]
-        hits = sorted((s for score, s in scored if score), key=lambda s: -sum(t.lower() in s.text.lower() for t in terms))[:MAX_HITS]
+        score = lambda x: sum(t.lower() in x[2].lower() for t in terms)  # noqa: E731
+        hits = sorted((x for x in texts if score(x)), key=lambda x: -score(x))[:MAX_HITS]
         if not hits:
-            return ToolResult(f"转写里没有找到「{' '.join(terms)}」。注意转写可能有同音错字，可以换个说法再搜。", "0 处")
-        hits.sort(key=lambda s: s.start)
-        lines = [f"[{clock(s.start)}] {s.text}" for s in hits]
-        return ToolResult("\n".join(lines), f"{len(hits)} 处", len(hits),
-                          data={"query": query, "hits": [{"t": s.start, "text": s.text} for s in hits]})
+            return ToolResult(f"语音转写和画面文字里都没有找到「{' '.join(terms)}」。注意识别可能有错字，可以换个说法再搜。", "0 处")
+        hits.sort(key=lambda x: x[0])
+        lines = [f"[{clock(x[0])}] {self._label(x[3])}{x[2]}" for x in hits]
+        return ToolResult("\n".join(lines) + ("\n（〔字幕〕表示画面上的字，其余是语音转写）" if any(x[3] == "screen" for x in hits) else ""),
+                          f"{len(hits)} 处", len(hits),
+                          data={"query": query, "hits": [{"t": x[0], "text": x[2], "source": x[3]} for x in hits]})
 
     async def read_transcript(self, start=0, end=None) -> ToolResult:
-        segments = self._segments()
-        if not segments:
-            return ToolResult("这个视频没有语音转写。", "没有转写")
+        texts = self._texts()
+        if not texts:
+            return ToolResult("这个视频没有语音转写，也没有识别到画面文字。", "没有转写")
         a, b = self._range(start, end)
-        picked = [s for s in segments if s.end >= a and s.start <= b]
+        picked = [x for x in texts if x[1] >= a and x[0] <= b]
         text, used = [], 0
-        for s in picked:
-            line = f"[{clock(s.start)}] {s.text}"
+        for x in picked:
+            line = f"[{clock(x[0])}] {self._label(x[3])}{x[2]}"
             if used + len(line) > MAX_READ_CHARS:
-                text.append(f"（过长，只读到 {clock(s.start)} 之前）")
+                text.append(f"（过长，只读到 {clock(x[0])} 之前）")
                 break
             text.append(line)
             used += len(line)
-        return ToolResult("\n".join(text) or f"{clock(a)}–{clock(b)} 之间没有语音。", f"{clock(a)}–{clock(b)} · {len(picked)} 句", len(picked))
+        legend = "\n（〔字幕〕表示画面上的字，其余是语音转写）" if any(x[3] == "screen" for x in picked) else ""
+        return ToolResult(("\n".join(text) + legend) or f"{clock(a)}–{clock(b)} 之间没有语音，也没有画面文字。",
+                          f"{clock(a)}–{clock(b)} · {len(picked)} 句", len(picked))
 
     # ---- frames ---------------------------------------------------------------------------
     def _range(self, start, end) -> tuple[float, float]:

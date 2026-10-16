@@ -12,6 +12,7 @@ from pathlib import Path
 
 from modules.frames import FrameJob
 from modules.frames.job import Slot
+from modules.screentext import ScreenText
 from modules.transcript import Transcript
 from modules.video_source import Part, ResolvedVideo, Resolver
 
@@ -26,7 +27,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   task TEXT NOT NULL DEFAULT '',  -- the question typed on the import screen
   video TEXT NOT NULL,            -- ResolvedVideo.public() + resolver-private `extra`
   slots TEXT NOT NULL,            -- [{index, time, status, reason}]
-  transcript TEXT                 -- Transcript.as_dict(): {status, message, segments: [{start, end, text}]}
+  transcript TEXT,                -- Transcript.as_dict(): {status, message, segments: [{start, end, text}]}
+  screentext TEXT                 -- ScreenText.as_dict(): {status, message, segments: [{start, end, text, pos}]}
 );
 CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,6 +65,8 @@ class SessionStore:
         columns = {row["name"] for row in self.db.execute("PRAGMA table_info(sessions)")}
         if "transcript" not in columns:  # databases created before transcription existed
             self.db.execute("ALTER TABLE sessions ADD COLUMN transcript TEXT")
+        if "screentext" not in columns:  # ... and before on-screen text
+            self.db.execute("ALTER TABLE sessions ADD COLUMN screentext TEXT")
 
     def close(self) -> None:
         self.db.close()
@@ -83,6 +87,11 @@ class SessionStore:
         with self.db:
             self.db.execute("UPDATE sessions SET transcript = ? WHERE id = ?",
                             (json.dumps(job.transcript.as_dict(), ensure_ascii=False), job.id))
+
+    def save_screentext(self, job: FrameJob) -> None:
+        with self.db:
+            self.db.execute("UPDATE sessions SET screentext = ? WHERE id = ?",
+                            (json.dumps(job.screentext.as_dict(), ensure_ascii=False), job.id))
 
     def exists(self, session_id: str) -> bool:
         return self.db.execute("SELECT 1 FROM sessions WHERE id = ?", (session_id,)).fetchone() is not None
@@ -134,6 +143,7 @@ class SessionStore:
         job.created = row["created"]
         job.restored = True
         job.transcript = Transcript.from_dict(json.loads(row["transcript"]) if row["transcript"] else None)
+        job.screentext = ScreenText.from_dict(json.loads(row["screentext"]) if row["screentext"] else None)
         return job
 
     # ---- decisions -----------------------------------------------------------------------

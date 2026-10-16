@@ -22,6 +22,7 @@ from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
 from modules.store import SessionStore
+from modules.screentext import ScreenText, run_screentext
 from modules.transcript import Transcript, run_transcript
 from modules.video_source import ResolveError, default_registry
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
@@ -140,13 +141,27 @@ async def transcribe(job: FrameJob) -> None:
                   message=(t.message if t and t.status != "done" else ""), ms=timer.ms)
 
 
+async def read_screen(job: FrameJob) -> None:
+    timer = log.Timer()
+    try:
+        await run_screentext(job)
+    except Exception as exc:
+        log.error("screentext", exc, job_id=job.id)
+        raise
+    finally:
+        store.save_screentext(job)
+        t = job.screentext
+        log.event("screentext", job_id=job.id, status=t.status, segments=len(t.segments),
+                  message=(t.message if t.status != "done" else ""), ms=timer.ms)
+
+
 def busy(job: FrameJob) -> bool:
-    """Frames or transcript still in progress."""
-    return job.running or job.transcript.running
+    """Frames, transcript or on-screen text still in progress."""
+    return job.running or job.transcript.running or job.screentext.running
 
 
 def snapshot(job: FrameJob) -> dict:
-    return {**job.snapshot(), "transcript": job.transcript.summary()}
+    return {**job.snapshot(), "transcript": job.transcript.summary(), "screentext": job.screentext.summary()}
 
 
 def find_job(job_id: str) -> FrameJob | None:
@@ -230,10 +245,12 @@ async def create_link_job(body: LinkRequest):
               duration=video.duration, ms=timer.ms)
     job = FrameJob(job_id, video, resolver, DATA_DIR / job_id)
     job.transcript = Transcript()
+    job.screentext = ScreenText()
     jobs[job_id] = job
     store.create(job, body.url, body.task)
     spawn(sample(job))
     spawn(transcribe(job))
+    spawn(read_screen(job))
     warm_decider()
     return snapshot(job)
 
@@ -263,12 +280,13 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
     resolver = next(r for r in registry.resolvers if r.platform == LOCAL)
     job = FrameJob(job_id, video, resolver, root)
     job.transcript = Transcript()
+    job.screentext = ScreenText()
     jobs[job_id] = job
     store.create(job, f"上传：{name}", task)
 
     async def process() -> None:
         try:
-            await asyncio.gather(sample(job), transcribe(job))
+            await asyncio.gather(sample(job), transcribe(job), read_screen(job))
         finally:
             path.unlink(missing_ok=True)
 
@@ -313,14 +331,15 @@ async def job_frame(job_id: str, index: int):
 
 @app.post("/api/link-jobs/{job_id}/retry")
 async def retry_missing(job_id: str):
-    """Sample the missing frames again (trial-limited ones excluded); a failed transcript is redone too."""
+    """Sample the missing frames again (trial-limited ones excluded); a failed transcript or on-screen text pass is redone too."""
     job = get_job(job_id)
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再试")
     if job.video.platform == LOCAL:
         raise HTTPException(409, "本地上传的视频处理完已删除，不能补抓，请重新上传")
     redo_transcript = job.transcript.status == "failed"
-    if job.restored and (redo_transcript or any(s.status == "missing" and s.reason != "trial" for s in job.slots)):
+    redo_screen = job.screentext.status == "failed"
+    if job.restored and (redo_transcript or redo_screen or any(s.status == "missing" and s.reason != "trial" for s in job.slots)):
         # Rebuilt after a restart without stream addresses: resolve the link again first.
         _, job.video = await registry.resolve(job.video.canonical_url, job.video.part)
         job.restored = False
@@ -329,12 +348,22 @@ async def retry_missing(job_id: str):
     # Claimed before the tasks start, so an event stream opened right away stays open for them.
     if redo_transcript:
         job.transcript.status = "running"
+    if redo_screen:
+        job.screentext.status = "running"
     if indexes:
         job.running = True
         spawn(sample(job, indexes))
     if redo_transcript:
         spawn(transcribe(job))
-    return {"retrying": len(indexes), "transcript": redo_transcript, "since": since}
+    if redo_screen:
+        spawn(read_screen(job))
+    return {"retrying": len(indexes), "transcript": redo_transcript, "screentext": redo_screen, "since": since}
+
+
+@app.get("/api/link-jobs/{job_id}/screentext")
+async def job_screentext(job_id: str):
+    """On-screen text status and timed captions."""
+    return get_job(job_id).screentext.as_dict()
 
 
 @app.get("/api/link-jobs/{job_id}/transcript")
