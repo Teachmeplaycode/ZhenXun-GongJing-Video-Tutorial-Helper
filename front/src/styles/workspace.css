@@ -348,3 +348,8 @@
   .timeline__head > .mono-sm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .qr-login { flex-direction: column; }
 }
+
+/* Theme switch: the new page is revealed through a growing circle (src/lib/theme.js); no crossfade. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { z-index: 2; }
+.theme-swapping, .theme-swapping *, .theme-swapping *::before, .theme-swapping *::after { transition: none !important; }

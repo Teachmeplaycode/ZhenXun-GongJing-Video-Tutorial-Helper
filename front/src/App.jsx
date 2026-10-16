@@ -532,7 +532,7 @@ export default function App() {
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
           </button>
-          <button type="button" className="btn btn--ghost btn--accounts btn--theme" onClick={cycleTheme}
+          <button type="button" className="btn btn--ghost btn--accounts btn--theme" onClick={(e) => cycleTheme(e.currentTarget)}
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
           </button>
