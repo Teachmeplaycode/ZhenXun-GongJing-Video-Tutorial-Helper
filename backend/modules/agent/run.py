@@ -337,7 +337,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         except LLMError as err:
             yield tool(call_id, "output", stderr=err.message, exit_code=1)
             yield tool(call_id, "completed", result_count=0)
-            yield {"type": "run.error", "code": err.code, "message": err.message, "retryable": err.retryable}
+            yield {"type": "run.error", "code": err.code, "message": err.message, "retryable": err.retryable,
+                   "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens}}
             return
         prompt_tokens += usage.prompt_tokens or 0
         completion_tokens += usage.completion_tokens or 0
@@ -385,4 +386,5 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield {"type": "assistant.message.delta", "delta": "\n\n（回答达到长度上限，已截断）"}
     extra = f" · 调用工具 {tool_calls} 次" if tool_calls else ""
     yield {"type": "run.completed", "steps": steps, "elapsed_ms": round((time.perf_counter() - started) * 1000),
+           "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens}, "tool_calls": tool_calls,
            "summary": f"分析 {len(chosen)} 帧 · {len(lines)} 行语音{extra} · {model} · {tokens}"}

@@ -67,7 +67,13 @@ cd backend && uv run pytest               # 后端单元测试，不联网
 cd backend && uv run python scripts/check_links.py   # 用 datas/ 里的真实链接验证 B 站解析（联网）
 cd front && npm run build                 # 前端构建检查
 cd front && npm run test:e2e              # 前端端到端测试（Playwright，约 15 秒）
+cd backend && uv run python scripts/eval.py --judge   # 回答质量评测：29 道固定题，真实模型，约 5 分钟
+cd backend && uv run python scripts/log_stats.py      # 最近 7 天的使用统计：耗时、token、工具、失败原因
 ```
+
+**回答质量评测**（`backend/evals/cases.json`）：7 个真实视频（B 站 5 个、视频号 2 个）上的 29 道题，覆盖转写里的事实和时间点、细看某段画面、视频里没说的事（要说没提到而不是编造）、查资料和核实说法、关掉联网、只问选中的帧、评论区和弹幕、视频号评论读不到、浏览器、没有口播的视频。每题有自动检查（必须/不能调用哪些工具、回答里必须/不能出现什么、有没有引用时间点），加 `--judge` 时再由模型按评分标准打分。脚本自己起一个后端（数据在 `backend/data/evals`，不影响正在用的），视频只解析一次，每题不带对话历史；结果存在 `backend/data/evals/results/`，并和上一次对比通过率、耗时和 token。改提示词、换模型、调工具之后跑一遍，看有没有退步。模型评分有一定随机性，单题从 2 分掉到 1 分先看回答本身再下结论。
+
+**日志**：后端把每次回答（耗时、token、调用了哪些工具及各自耗时、失败原因）、链接解析、抽帧、转写、扫码登录和未处理的异常写成 JSON 行，存在 `backend/data/logs/日期.jsonl`（保留 30 天），终端里同时打一行摘要。`log_stats.py` 汇总这些日志，加 `--errors` 列出最近的失败和堆栈。
 
 前端端到端测试（`front/e2e/`）在真实的 Chromium 里操作页面，但所有 `/api` 请求都由 `e2e/mock-api.js` 在浏览器内直接应答，所以不需要启动后端、不联网、不花模型费用，结果每次都一样。覆盖：解析链接 / 本地上传 / 解析失败、回答里步骤与文字的顺序、时间点和链接、来源卡片、搜索步骤的可视化、联网开关随问题发送、`/` 命令菜单、时间轴收起与自动展开、停止、重新回答、历史会话（新旧两种保存格式）。
 
