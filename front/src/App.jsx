@@ -9,6 +9,9 @@ import { IconHistory, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
+import SnakeMark from './components/SnakeMark'
+import ClickSpark from './components/ClickSpark'
+import DockNav from './components/DockNav'
 import ImportPanel from './stages/ImportPanel'
 import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
@@ -32,6 +35,16 @@ const SAMPLE_META = { name: '示例素材.mp4', size: 0, type: 'video/mp4', dura
 const EMPTY_ANALYSIS = { meta: false, frames: 0, total: 0, missing: 0, index: false, transcript: null }
 // Frames sampled before chat may start while the rest keep arriving in the background.
 const EARLY_CHAT_FRAMES = 16
+const WIPE_PIXEL_COUNT = 160
+const WIPE_PIXELS = Array.from({ length: WIPE_PIXEL_COUNT }, (_, index) => index)
+
+function pixelDelay(index, reverse = false) {
+  const columns = window.innerWidth <= 860 ? 10 : 16
+  const rows = Math.ceil(WIPE_PIXEL_COUNT / columns)
+  const x = index % columns
+  const y = Math.floor(index / columns)
+  return (reverse ? (columns - 1 - x) + (rows - 1 - y) : x + y) * 0.009
+}
 
 // Missing-frame reasons as sent in a job snapshot (live events carry the message themselves).
 const MISSING_REASONS = {
@@ -352,7 +365,9 @@ export default function App() {
         ink: token('--text-secondary'),
       })
       for (let i = 0; i < list.length; i += 1) {
-        await new Promise((r) => setTimeout(r, 45))
+        // Keep the demo slow enough for the frame queue to read as real work,
+        // rather than flashing past as a decorative transition.
+        await new Promise((r) => setTimeout(r, 80))
         if (signal.aborted) throw new DOMException('aborted', 'AbortError')
         setFrames(list.slice(0, i + 1))
         setAnalysis((a) => ({ ...a, frames: i + 1 }))
@@ -367,20 +382,40 @@ export default function App() {
     }
   }, [])
 
-  // Container refresh: an inverse panel wipes up, content swaps, then wipes away.
+  // Container refresh: pixel cells cover the workspace, content swaps behind them,
+  // then the cells release diagonally like extracted video frames.
   const enterChat = () => {
     navigationRef.current?.kill()
     const wipe = wipeRef.current
+    if (prefersReducedMotion()) {
+      setAnalysis((a) => ({ ...a, index: true }))
+      setStage('chat')
+      return
+    }
+    const wipeSnake = wipe.querySelector('.wipe__snake')
+    const pixels = [...wipe.querySelectorAll('.wipe__pixel')]
+    const brandBox = document.querySelector('.brand__mark')?.getBoundingClientRect()
+    const target = brandBox
+      ? {
+          x: brandBox.left + brandBox.width / 2 - window.innerWidth / 2,
+          y: brandBox.top + brandBox.height / 2 - window.innerHeight / 2,
+        }
+      : { x: -window.innerWidth * 0.44, y: -window.innerHeight * 0.46 }
     navigationRef.current = gsap.timeline()
-      .set(wipe, { display: 'block', scaleY: 0, transformOrigin: '50% 100%' })
-      .to(wipe, { scaleY: 1, duration: 0.6, ease: EASE.move })
+      .set(wipe, { display: 'block' })
+      .set(pixels, { scale: 0, transformOrigin: '50% 50%' })
+      .set(wipeSnake, { opacity: 0, scale: 0.72, x: 0, y: 10, rotation: -8 })
+      .to(pixels, { scale: 1.035, duration: 0.2, ease: EASE.enter, stagger: (index) => pixelDelay(index) }, 0)
+      .to(wipeSnake, { opacity: 1, scale: 1, y: 0, rotation: 0, duration: 0.3, ease: EASE.bounce }, 0.24)
       .add(() => {
         setAnalysis((a) => ({ ...a, index: true }))
         setStage('chat')
-      })
-      .set(wipe, { transformOrigin: '50% 0%' }, '+=0.1')
-      .to(wipe, { scaleY: 0, duration: 0.6, ease: EASE.move })
+      }, 0.44)
+      .to(wipeSnake, { ...target, scale: 0.32, opacity: 0, duration: 0.42, ease: EASE.enter }, 0.56)
+      .to(pixels, { scale: 0, duration: 0.2, ease: EASE.exit, stagger: (index) => pixelDelay(index, true) }, 0.58)
       .set(wipe, { display: 'none' })
+      .set(pixels, { clearProps: 'transform' })
+      .set(wipeSnake, { clearProps: 'all' })
   }
 
   // Reopen a saved session straight into the conversation, behind the same container wipe.
@@ -431,13 +466,20 @@ export default function App() {
     const wipe = wipeRef.current
     if (prefersReducedMotion()) apply()
     else {
+      const pixels = [...wipe.querySelectorAll('.wipe__pixel')]
+      const wipeSnake = wipe.querySelector('.wipe__snake')
       navigationRef.current = gsap.timeline()
-        .set(wipe, { display: 'block', scaleY: 0, transformOrigin: '50% 100%' })
-        .to(wipe, { scaleY: 1, duration: 0.6, ease: EASE.move })
-        .add(apply)
-        .set(wipe, { transformOrigin: '50% 0%' }, '+=0.1')
-        .to(wipe, { scaleY: 0, duration: 0.6, ease: EASE.move })
+        .set(wipe, { display: 'block' })
+        .set(pixels, { scale: 0, transformOrigin: '50% 50%' })
+        .set(wipeSnake, { opacity: 0, scale: 0.72, x: 0, y: 8, rotation: -6 })
+        .to(pixels, { scale: 1.035, duration: 0.2, ease: EASE.enter, stagger: (index) => pixelDelay(index) }, 0)
+        .to(wipeSnake, { opacity: 1, scale: 1, y: 0, rotation: 0, duration: 0.28, ease: EASE.bounce }, 0.24)
+        .add(apply, 0.44)
+        .to(wipeSnake, { opacity: 0, scale: 0.7, duration: 0.24, ease: EASE.exit }, 0.56)
+        .to(pixels, { scale: 0, duration: 0.2, ease: EASE.exit, stagger: (index) => pixelDelay(index, true) }, 0.58)
         .set(wipe, { display: 'none' })
+        .set(pixels, { clearProps: 'transform' })
+        .set(wipeSnake, { clearProps: 'all' })
     }
     // Sampling still running (e.g. reopened right after parsing): keep the timeline filling in.
     if (saved.running || saved.transcript?.status === 'running') {
@@ -466,7 +508,8 @@ export default function App() {
   const reset = () => {
     abortRef.current?.abort()
     navigationRef.current?.kill()
-    gsap.set(wipeRef.current, { display: 'none', scaleY: 0 })
+    gsap.set(wipeRef.current, { display: 'none', clearProps: 'transform' })
+    gsap.set(wipeRef.current?.querySelectorAll('.wipe__pixel'), { clearProps: 'transform' })
     if (sculptureLayerRef.current) gsap.set(sculptureLayerRef.current, { opacity: 1, scale: 1 })
     restoreImport()
     setStage('idle')
@@ -488,7 +531,8 @@ export default function App() {
       return
     }
     navigationRef.current?.kill()
-    gsap.set(wipeRef.current, { display: 'none', scaleY: 0 })
+    gsap.set(wipeRef.current, { display: 'none', clearProps: 'transform' })
+    gsap.set(wipeRef.current?.querySelectorAll('.wipe__pixel'), { clearProps: 'transform' })
     setStage('ready')
   }
 
@@ -503,13 +547,26 @@ export default function App() {
   const canRetry = Boolean(video?.jobId) && meta?.platform !== 'local'
   const showSculpture = stage !== 'chat'
   const sculptureMode = stage === 'analyzing' || stage === 'ready' ? 'analyzing' : 'idle'
+  const settledFrames = analysis.frames + (analysis.missing || 0)
+  const isVerifying = stage === 'analyzing' && Boolean(analysis.total) && settledFrames >= analysis.total && !analysis.index
+  const brandMarkState = importError
+    ? 'error'
+    : stage === 'uploading'
+      ? 'uploading'
+      : stage === 'analyzing'
+        ? (isVerifying ? 'verifying' : 'analyzing')
+        : stage === 'ready'
+          ? 'confirmed'
+          : stage === 'chat'
+            ? 'chat'
+            : 'idle'
 
   return (
     // Uploading keeps the homepage layout underneath, so the slide opens from where it sits.
     <div className={`app app--${stage === 'uploading' ? 'idle app--uploading' : stage}`}>
       <header className="topbar">
         <div className="brand">
-          <span className="brand__mark" aria-hidden="true" />
+          <SnakeMark className="brand__mark" state={brandMarkState} />
           {/* Once the timeline is built the question is answered: "?" becomes "!". */}
           <Wordmark className="brand__name" confirmed={stage === 'ready' || stage === 'chat'} />
           <span className="brand__sub">{BRAND.product}</span>
@@ -527,7 +584,7 @@ export default function App() {
             )
           })}
         </ol>
-        <div className="topbar__right">
+        <DockNav className="topbar__right">
           <span className="mono-sm muted">{runId}</span>
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
@@ -540,7 +597,7 @@ export default function App() {
             <IconUser size={14} /> 账号
           </button>
           {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入视频'} /> : null}
-        </div>
+        </DockNav>
       </header>
 
       <main className="wireframe">
@@ -552,7 +609,7 @@ export default function App() {
         {showSculpture ? (
           <div ref={sculptureLayerRef} className="layer layer--sculpture">
             {stage === 'idle' || stage === 'uploading' ? <HeroOrnaments /> : null}
-            <SculptureCanvas key={theme} mode={sculptureMode} align={stage === 'idle' || stage === 'uploading' ? 'side' : 'center'} glassRef={stage === 'idle' || stage === 'uploading' ? slideRef : null} />
+            <SculptureCanvas key={theme} mode={sculptureMode} complete={stage === 'ready'} align={stage === 'idle' || stage === 'uploading' ? 'side' : 'center'} glassRef={stage === 'idle' || stage === 'uploading' ? slideRef : null} />
           </div>
         ) : null}
 
@@ -610,7 +667,12 @@ export default function App() {
           </div>
         ) : null}
 
-        <div ref={wipeRef} className="wipe" aria-hidden="true" />
+        <div ref={wipeRef} className="wipe" aria-hidden="true">
+          <div className="wipe__pixels">
+            {WIPE_PIXELS.map((index) => <i key={index} className="wipe__pixel" data-accent={index % 47 === 18 || undefined} />)}
+          </div>
+          <SnakeMark className="wipe__snake" state="confirmed" framed />
+        </div>
       </main>
 
       <AccountsDrawer open={accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
@@ -640,6 +702,7 @@ export default function App() {
           pulse={timelinePulse}
         />
       ) : null}
+      <ClickSpark />
     </div>
   )
 }

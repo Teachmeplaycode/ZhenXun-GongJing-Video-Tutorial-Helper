@@ -2,10 +2,9 @@
 .topbar { flex-shrink: 0; }
 .btn--back { min-height: 36px; white-space: nowrap; }
 .layer[hidden] { display: none; }
-/* Let the greeting use the full visual field for its three-second hold. */
-.app:is(.app--analyzing, .app--ready):has(.sculpture[data-phase='word']) :is(.hud, .filmstrip) {
-  visibility: hidden; pointer-events: none;
-}
+/* Word poses are ambient; progress stays visible and remains the primary layer. */
+.app:is(.app--analyzing, .app--ready) .sculpture canvas { transition: opacity var(--dur-short) var(--ease-move); }
+.app:is(.app--analyzing, .app--ready) .sculpture[data-phase='word'] canvas { opacity: 0.5; }
 .app--idle .stepper, .app--idle .topbar__right, .app--idle .wireframe__tick { display: none; }
 .app--idle .wireframe { border: 0; background-image: none; }
 .app--idle .layer--ui { padding: 0; }
@@ -85,9 +84,11 @@
 .chat-guide__line { flex: 1; height: 1px; margin: 0 var(--sp-12); background: var(--border-default); }
 
 .sculpture { position: relative; }
-.sculpture__caption { position: absolute; left: var(--sp-24); bottom: 88px; display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-12); background: color-mix(in srgb, var(--bg-canvas) 90%, transparent); border-left: 2px solid var(--text-primary); font-size: var(--fs-caption); color: var(--text-secondary); }
+.sculpture__caption { position: absolute; left: var(--sp-24); bottom: 132px; width: min(310px, calc(100% - var(--sp-48))); display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-12) var(--sp-14); background: color-mix(in srgb, var(--bg-canvas) 92%, transparent); border-left: 3px solid var(--accent-active); font-size: var(--fs-caption); color: var(--text-secondary); backdrop-filter: blur(6px); }
 .sculpture__caption > .mono-sm { color: var(--text-primary); }
-.sculpture__caption-track { margin-top: var(--sp-4); color: var(--text-tertiary); font-size: 10px; }
+.sculpture__caption > strong { margin-top: var(--sp-2); font-size: var(--fs-body-sm); color: var(--text-primary); font-weight: 600; }
+.sculpture__caption-status { display: flex; align-items: center; gap: var(--sp-6); margin-top: var(--sp-6); padding-top: var(--sp-8); border-top: var(--border-hairline); font-size: 11px; color: var(--text-secondary); }
+.sculpture__caption-status i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--accent-active); }
 .upload-mask__header { position: absolute; left: var(--sp-32); top: var(--sp-32); display: flex; flex-direction: column; gap: var(--sp-8); }
 .upload-mask__header .btn--back { align-self: flex-start; margin-bottom: var(--sp-12); }
 .upload-mask__header strong { font-size: var(--fs-h2); font-weight: 500; }
@@ -96,14 +97,13 @@
 .upload-mask__status-head > strong { flex: none; }
 .upload-mask__status .bar { height: 4px; border-radius: var(--radius-pill); }
 .upload-mask__row { font-family: var(--font-sans); font-size: var(--fs-caption); }
-.hud { width: min(340px, calc(100% - var(--sp-48))); padding: var(--sp-20); border: 0; border-radius: 12px; background: color-mix(in srgb, var(--bg-surface) 94%, transparent); gap: var(--sp-16); }
+.hud { width: min(390px, calc(100% - var(--sp-48))); padding: var(--sp-20); border: 1px solid color-mix(in srgb, var(--border-strong) 78%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--bg-surface) 96%, transparent); box-shadow: inset 4px 0 0 var(--accent-active), 0 18px 44px -34px color-mix(in srgb, var(--text-primary) 42%, transparent); gap: var(--sp-16); }
 .hud__head { padding-bottom: var(--sp-12); border-bottom: var(--border-hairline); }
-.hud__head > .eyebrow { font-family: var(--font-sans); font-size: var(--fs-body-sm); color: var(--text-primary); }
 .hud__file { font-family: var(--font-sans); font-size: var(--fs-caption); }
 .hud__steps { gap: var(--sp-12); }
 .hud__step { font-size: var(--fs-caption); }
 .hud__value { font-size: 11px; }
-.btn--next { background: var(--accent-active); color: var(--text-on-accent); border-radius: 9px; }
+.btn--next { background: var(--accent-active); color: var(--text-on-accent); border-radius: 10px; box-shadow: 0 14px 32px -22px color-mix(in srgb, var(--text-primary) 65%, transparent); }
 .btn--next:hover:not(:disabled) { background: var(--accent-active-dim); }
 
 @media (min-width: 861px) and (max-height: 780px) {
@@ -128,10 +128,13 @@
   .import-control__submit { padding: 0 var(--sp-12); }
   .app--idle .layer--sculpture { top: 280px; height: 230px; bottom: auto; }
   .sculpture--fallback svg g { transform: translate(0, 0); }
-  .sculpture__caption { left: var(--sp-16); bottom: 88px; }
+  .sculpture__caption { left: var(--sp-16); bottom: 132px; width: min(290px, calc(100% - var(--sp-32))); }
   .app--analyzing .wireframe, .app--ready .wireframe { min-height: 720px; }
   .app--analyzing .layer--sculpture, .app--ready .layer--sculpture { top: 230px; bottom: 72px; }
   .hud { left: var(--sp-16); top: var(--sp-16); width: calc(100% - var(--sp-32)); }
+  .filmstrip-shell { left: var(--sp-16); right: var(--sp-16); bottom: var(--sp-16); }
+  .filmstrip__title small { display: none; }
+  .btn--next { right: var(--sp-16); bottom: 124px; min-width: 178px; }
   .chat__empty { padding-top: var(--sp-16); }
   .chat__suggest { grid-template-columns: 1fr; gap: var(--sp-8); }
   .chat-task button { min-height: 108px; }
