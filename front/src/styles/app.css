@@ -803,3 +803,11 @@ img { display: block; }
 .viz-replay__strip button { display: block; padding: 0; border: 2px solid transparent; border-radius: var(--radius-xs); background: none; cursor: pointer; }
 .viz-replay__strip button[data-on] { border-color: var(--accent-active-dim); }
 .viz-replay__strip img { display: block; width: 72px; height: 40px; object-fit: cover; border-radius: 2px; }
+
+/* measure_motion readings (StepDetail) */
+.viz-motion { display: flex; flex-direction: column; gap: var(--sp-6); }
+.viz-motion p { margin: 0; }
+.viz-motion__bars { letter-spacing: 1px; color: var(--text-primary); }
+.viz-motion__images { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
+.viz-motion__images figure { margin: 0; width: min(300px, 100%); }
+.viz-motion__images img { display: block; width: 100%; border-radius: var(--radius-sm); }

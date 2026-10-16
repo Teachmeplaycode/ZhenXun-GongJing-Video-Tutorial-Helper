@@ -24,7 +24,7 @@ from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_cl
 from modules.store import SessionStore
 from modules.screentext import ScreenText, run_screentext
 from modules.transcript import Transcript, run_transcript
-from modules.video_source import ResolveError, default_registry
+from modules.video_source import ResolveError, Stream, default_registry
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
 # GONGJING_DATA_DIR lets a second server (e.g. for testing) keep its own frames and sessions:
@@ -35,6 +35,9 @@ DB_PATH = DATA_ROOT / "sessions.sqlite3"
 JOB_TTL = 6 * 3600  # seconds an idle job stays in memory; its session and frames stay on disk
 MAX_UPLOAD = 4 << 30  # bytes
 SOURCE = "source"  # an uploaded file is kept as <job dir>/source.<ext> only while it is being processed
+# Keep uploaded files after processing, so replay and close looks can read them again later
+# (the benchmark runner sets it; the app itself deletes uploads, which may be private).
+KEEP_UPLOADS = os.environ.get("KEEP_UPLOADS", "").lower() in ("1", "on", "true")
 
 registry = default_registry()
 store = SessionStore(DB_PATH)
@@ -103,7 +106,8 @@ def prune(force: bool = False) -> None:
                 shutil.rmtree(path, ignore_errors=True)
             else:
                 for source in path.glob(f"{SOURCE}.*"):  # an upload whose processing a restart cut off
-                    source.unlink(missing_ok=True)
+                    if not KEEP_UPLOADS:
+                        source.unlink(missing_ok=True)
 
 
 def spawn(coro) -> None:
@@ -173,6 +177,9 @@ def find_job(job_id: str) -> FrameJob | None:
         platform = json.loads(record["video"])["platform"]
         resolver = next((r for r in registry.resolvers if r.platform == platform), None)
         job = store.restore(job_id, resolver, DATA_DIR / job_id)
+        kept = next((DATA_DIR / job_id).glob(f"{SOURCE}.*"), None) if KEEP_UPLOADS else None
+        if job.video.platform == LOCAL and kept is not None:  # a kept upload can be read again
+            job.video.streams = [Stream(str(kept), {}, "local-file")]
         jobs[job_id] = job
     return job
 
@@ -288,7 +295,8 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
         try:
             await asyncio.gather(sample(job), transcribe(job), read_screen(job))
         finally:
-            path.unlink(missing_ok=True)
+            if not KEEP_UPLOADS:
+                path.unlink(missing_ok=True)
 
     spawn(process())
     warm_decider()
@@ -371,6 +379,20 @@ async def replay_frame(job_id: str, key: str, name: str):
     path = DATA_DIR / job_id / "replay" / key / name
     if not path.is_file() or DATA_DIR.resolve() not in path.resolve().parents:
         raise HTTPException(404, "没有这张画面")
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
+
+
+MOTION_KEY = re.compile(r"^\d{7}-\d{7}$")
+
+
+@app.get("/api/link-jobs/{job_id}/motion/{key}/{name}")
+async def motion_image(job_id: str, key: str, name: str):
+    """A picture from measure_motion (heat map or trail), for the chat's step detail."""
+    if not MOTION_KEY.match(key) or name not in ("heat.jpg", "trail.jpg"):
+        raise HTTPException(404, "没有这张图")
+    path = DATA_DIR / job_id / "motion" / key / "out" / name
+    if not path.is_file() or DATA_DIR.resolve() not in path.resolve().parents:
+        raise HTTPException(404, "没有这张图")
     return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
 
 

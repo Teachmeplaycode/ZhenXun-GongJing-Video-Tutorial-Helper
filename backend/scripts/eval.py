@@ -57,15 +57,19 @@ def free_port() -> int:
 
 
 class Backend:
-    def __init__(self):
+    """A backend of its own on a free port; `env` overrides settings (GONGJING_DATA_DIR defaults to data/evals)."""
+
+    def __init__(self, env: dict | None = None):
+        self.extra = env or {}
         self.port = free_port()
         self.base = f"http://127.0.0.1:{self.port}"
         self.proc = None
 
     def __enter__(self):
-        DATA.mkdir(parents=True, exist_ok=True)
-        env = {**os.environ, "GONGJING_DATA_DIR": str(DATA)}
-        self.log = (DATA / "server.log").open("w")
+        env = {**os.environ, "GONGJING_DATA_DIR": str(DATA), **self.extra}
+        data = Path(env["GONGJING_DATA_DIR"])
+        data.mkdir(parents=True, exist_ok=True)
+        self.log = (data / "server.log").open("w")
         self.proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app:app", "--port", str(self.port)],
                                      cwd=ROOT, env=env, stdout=self.log, stderr=subprocess.STDOUT, start_new_session=True)
         for _ in range(60):
@@ -78,7 +82,7 @@ class Backend:
                 break
             time.sleep(0.5)
         self.__exit__()
-        raise SystemExit(f"后端没有启动，见 {DATA / 'server.log'}")
+        raise SystemExit(f"后端没有启动，见 {data / 'server.log'}")
 
     def __exit__(self, *exc):
         if self.proc and self.proc.poll() is None:
