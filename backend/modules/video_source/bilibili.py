@@ -4,18 +4,27 @@ Flow: expand short link → parse BV/av + part → buvid cookies (finger/spi) �
 (identity, parts, duration) → WBI-signed `playurl` (DASH video addresses + backups).
 Risk-control responses reset the session once and retry. A permissive html5 MP4 address is kept
 as a fallback for when every DASH address is refused.
+
+Viewers' side: danmaku come from comment.bilibili.com/{cid}.xml (anonymous, the most recent ones up
+to the video's pool size, each with its moment in the video). Comments come from /x/v2/reply/main;
+logged out, Bilibili sends only the top 3 (tested 2026-10-16, and the WBI `reply/wbi/main` answers
+-403). With BILIBILI_COOKIE (the browser's `SESSDATA=…`) the signed endpoint pages through all of them.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import time
 import urllib.parse
+import xml.etree.ElementTree as ET
 from datetime import date
 
 import httpx
 
-from .base import Part, ResolveError, ResolvedVideo, Resolver, Stream, expiry_from_url
+from modules.settings import settings
+
+from .base import Comment, CommentPage, Danmaku, Part, ResolveError, ResolvedVideo, Resolver, Stream, expiry_from_url
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -97,8 +106,37 @@ def rank_urls(urls: list[str]) -> list[str]:
     return sorted(ordered, key=lambda u: any(m in u for m in PCDN_MARKERS))
 
 
+COMMENT_SORT = {"hot": 3, "time": 2}  # reply `mode`
+ANONYMOUS_NOTE = "B 站未登录只返回前 3 条热门评论；在 backend/.env 设置 BILIBILI_COOKIE（浏览器里的 SESSDATA=…）后可以读更多"
+
+
+def parse_comment(r: dict, pinned: bool = False) -> Comment:
+    return Comment(
+        author=(r.get("member") or {}).get("uname", ""),
+        text=((r.get("content") or {}).get("message") or "").strip(),
+        likes=int(r.get("like") or 0), reply_count=int(r.get("rcount") or 0), time=float(r.get("ctime") or 0),
+        pinned=pinned, replies=[parse_comment(x) for x in (r.get("replies") or [])[:3]])
+
+
+def parse_danmaku(xml: str) -> list[Danmaku]:
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        raise ResolveError("upstream", "B 站返回的弹幕无法解析", retryable=True) from None
+    items = []
+    for d in root.iter("d"):
+        try:
+            t = float((d.get("p") or "").split(",")[0])
+        except ValueError:
+            continue
+        if (d.text or "").strip():
+            items.append(Danmaku(t, d.text.strip()))
+    return sorted(items, key=lambda x: x.time)
+
+
 class BilibiliResolver(Resolver):
     platform = "bilibili"
+    audience = ("comments", "danmaku")
 
     def __init__(self, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 12) -> None:
         self._transport = transport
@@ -178,12 +216,19 @@ class BilibiliResolver(Resolver):
         self._wbi = (today, key)
         return key
 
-    async def _api(self, path: str, params: dict) -> dict:
-        """WBI-signed GET; a risk-control answer resets cookies and keys once."""
+    async def _api(self, path: str, params: dict, *, signed: bool = True, login: str = "") -> dict:
+        """GET, WBI-signed unless `signed=False`; a risk-control answer resets cookies and keys once.
+
+        `login`: the user's cookie string, sent along with the session's buvid cookies.
+        """
         for attempt in range(2):
             await self._ensure_buvid()
-            signed = sign_wbi(params, await self._mixin_key())
-            response = await self._get(f"{API}{path}", params=signed)
+            query = sign_wbi(params, await self._mixin_key()) if signed else params
+            headers = {}
+            if login:
+                jar = "; ".join(f"{k}={v}" for k, v in self._http().cookies.items())
+                headers["Cookie"] = f"{jar}; {login}" if jar else login
+            response = await self._get(f"{API}{path}", params=query, headers=headers)
             if response.status_code == 412:
                 code = -412
                 payload = {}
@@ -297,8 +342,55 @@ class BilibiliResolver(Resolver):
             playable_duration=playable,
             notes=notes,
             audio_streams=self._dash_audio(play),
-            extra={"bvid": bvid, "cid": page["cid"]},
+            extra={"bvid": bvid, "cid": page["cid"], "aid": view.get("aid"), "stats": {
+                k: (view.get("stat") or {}).get(src) for k, src in
+                (("views", "view"), ("likes", "like"), ("comments", "reply"), ("danmaku", "danmaku"), ("favorites", "favorite"))}},
         )
+
+    async def _ids(self, video: ResolvedVideo) -> tuple[int, int]:
+        """(aid, cid); sessions saved before aid was kept look it up again."""
+        if not video.extra.get("aid"):
+            video.extra["aid"] = (await self._view("bvid", video.extra.get("bvid") or video.video_id)).get("aid")
+        return int(video.extra["aid"]), int(video.extra["cid"])
+
+    async def comments(self, video: ResolvedVideo, sort: str = "hot", cursor: str | None = None) -> CommentPage:
+        aid, _ = await self._ids(video)
+        mode = COMMENT_SORT.get(sort, 3)
+        login = settings().get("BILIBILI_COOKIE", "").strip()
+        if login:
+            payload = await self._api("/x/v2/reply/wbi/main", {
+                "oid": aid, "type": 1, "mode": mode, "plat": 1, "web_location": 1315875,
+                "pagination_str": json.dumps({"offset": cursor or ""}, separators=(",", ":"))}, login=login)
+        else:
+            payload = await self._api("/x/v2/reply/main", {"oid": aid, "type": 1, "mode": mode, "next": cursor or 0}, signed=False)
+        code = payload.get("code", -1)
+        if code == 12002:
+            raise ResolveError("comments_closed", "这个视频的评论区已关闭")
+        if code == -403 and login:
+            raise ResolveError("login_expired", "B 站登录已失效，请重新获取 BILIBILI_COOKIE")
+        if code != 0:
+            raise ResolveError("upstream", f"B 站评论接口返回错误（{code}）：{payload.get('message', '')}", retryable=True)
+        data = payload.get("data") or {}
+        top = [r for r in ((data.get("top_replies") or []) + [(data.get("upper") or {}).get("top")]) if r] if not cursor else []
+        pinned_ids = {r.get("rpid") for r in top}
+        items = [parse_comment(r, pinned=True) for r in top]
+        items += [parse_comment(r) for r in (data.get("replies") or []) if r.get("rpid") not in pinned_ids]
+        page_info = data.get("cursor") or {}
+        if login:
+            nxt = ((page_info.get("pagination_reply") or {}).get("next_offset")) or None
+        else:
+            nxt = None  # logged out there is nothing past the first page
+        if page_info.get("is_end"):
+            nxt = None
+        total = page_info.get("all_count") or (video.extra.get("stats") or {}).get("comments")
+        return CommentPage(items, total, nxt, "" if login else ANONYMOUS_NOTE)
+
+    async def danmaku(self, video: ResolvedVideo) -> list[Danmaku]:
+        _, cid = await self._ids(video)
+        response = await self._get(f"https://comment.bilibili.com/{cid}.xml")
+        if response.status_code != 200:
+            raise ResolveError("upstream", f"读取弹幕失败（HTTP {response.status_code}）", retryable=True)
+        return parse_danmaku(response.content.decode("utf-8", errors="replace"))
 
     async def fallback_streams(self, video: ResolvedVideo) -> list[Stream]:
         """The html5 player's single MP4: low resolution, but its CDN doesn't require a Referer."""

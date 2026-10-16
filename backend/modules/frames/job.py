@@ -82,6 +82,7 @@ class FrameJob:
         self._refused: set[str] = set()  # addresses the CDN refused; skipped by every slot
         self.running = False
         self.restored = False  # rebuilt from a saved session: no stream addresses yet
+        self.audience: dict = {}  # comments and danmaku read for this video, kept while the job is in memory
         self.transcript = None  # modules.transcript.Transcript, attached by the app
         self.created = time.time()
 

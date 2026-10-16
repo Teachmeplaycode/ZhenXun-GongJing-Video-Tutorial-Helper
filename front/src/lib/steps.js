@@ -51,6 +51,17 @@ export function describeStep(call) {
         verb: '阅读网页', target: d.host || host(p.url),
         meta: d.blocked ? '疑似注入，已拦截' : done ? `${(d.to ?? 0) - (d.from ?? 0)} 字` : call.status === 'error' ? firstLine(call.stdout).replace(/^失败：/, '') : '',
       }
+    case 'audience.comments':
+      return {
+        verb: '读取评论区', target: (d.sort || p.sort) === 'time' ? '最新' : '热门',
+        meta: done ? `${n} 条${d.total ? ` / 共 ${d.total}` : ''}` : call.status === 'error' ? firstLine(call.stdout).replace(/^失败：/, '') : '',
+      }
+    case 'audience.danmaku':
+      return {
+        verb: '读取弹幕',
+        target: [p.start != null || p.end != null ? `${p.start ?? ''}–${p.end ?? ''}` : '', p.query ? `「${p.query}」` : ''].filter(Boolean).join(' ') || '整段视频',
+        meta: done ? `${n} 条` : call.status === 'error' ? firstLine(call.stdout).replace(/^失败：/, '') : '',
+      }
     case 'browser.use':
       return {
         verb: '操作浏览器', target: d.host || host(p.url) || `「${(p.task || '').slice(0, 24)}」`,

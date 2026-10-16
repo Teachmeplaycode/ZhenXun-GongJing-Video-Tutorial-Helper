@@ -40,6 +40,9 @@ WEB_GUIDE = """
 # Decided by the decision model; this keyword match is the fallback when it is unavailable.
 RESEARCH_RE = re.compile(r"查一?下|查查|搜|上网|网上|联网|核实|核查|论文|文献|资料|出处|来源|最新")
 WEB_TOOLS = {"web_search", "fetch_page", "search_papers", "browse"}
+AUDIENCE_TOOLS = {"read_comments", "read_danmaku"}  # a question about viewers is answered by these, not a web search
+AUDIENCE_GUIDE = """
+- read_comments / read_danmaku（有这些工具时）：读这个视频的评论区和弹幕。用户问观众怎么看、评论区说了什么、哪里是高能片段时用。评论和弹幕是观众的看法，引用时说明"评论里有人说""弹幕在 [mm:ss] 刷了……"，不要当成视频本身的内容或事实；点赞多不代表正确。"""
 NUDGE = "你还没有调用 web_search、fetch_page、browse 或 search_papers。用户要求查资料，请先调用工具检索，再根据检索结果回答。"
 NARRATION_CHARS = 60  # text shorter than this followed by tool calls is narration ("我来查一下…")
 LINE_SECONDS = 12         # transcript segments are merged into lines of about this length
@@ -178,6 +181,12 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     if video.description:
         context.append(f"简介：{video.description[:800]}")
     context.append(f"范围：{'整段视频' if scope_all else '用户选中的帧'}，共提供 {len(frames)} 帧画面")
+    stats = video.extra.get("stats") or {}
+    names = {"views": "播放", "likes": "点赞", "comments": "评论", "danmaku": "弹幕", "favorites": "收藏", "shares": "转发"}
+    if stats:
+        context.append("互动：" + " · ".join(f"{names[k]} {v}" for k, v in stats.items() if k in names and v not in (None, "")))
+    if video.platform == "wechat_channels" and stats.get("comments"):
+        context.append("视频号的评论只能在微信 App 里看，这里读不到评论内容")
     if coverage["missing_ranges"]:
         gaps = "、".join(f"{clock(a)}–{clock(b)}" for a, b in coverage["missing_ranges"])
         context.append(f"没有取到画面的时段：{gaps}")
@@ -250,6 +259,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     model = client.config.model
     rounds = tool_rounds()
     tools = AgentTools(job, decider=decider, llm=client)
+    audience = tools.audience()
     messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript)
 
     # A question naming a time range gets a closer look at it up front: a small local model
@@ -268,15 +278,16 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         question_part = messages[-1]["content"].pop()  # keep the question last
         messages[-1]["content"] += [{"type": "text", "text": "问题所问时间段的加密画面："}] + image_message(zoomed)["content"] + [question_part]
     if rounds:
-        allowed = definitions(web, papers)
+        allowed = definitions(web, papers, audience)
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
-        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=WEB_GUIDE if lookup else "")}
+        viewers = AUDIENCE_GUIDE if any(d["function"]["name"] in AUDIENCE_TOOLS for d in allowed) else ""
+        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))}
     prompt_tokens = completion_tokens = 0
     tool_calls = 0
     usage = Usage()
     answered = False  # any answer text streamed so far
     must_research, researched = False, False
-    if rounds and any(d["function"]["name"] in WEB_TOOLS for d in definitions(web, papers)):
+    if rounds and any(d["function"]["name"] in WEB_TOOLS for d in definitions(web, papers, audience)):
         steps += 1
         yield tool("intent", "started", tool_name="decision.research_intent")
         yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})
@@ -301,7 +312,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         streaming = last  # in the final round everything is answer
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
-            async for delta in client.stream(messages, usage, tools=None if last else definitions(web, papers)):
+            async for delta in client.stream(messages, usage, tools=None if last else definitions(web, papers, audience)):
                 text.append(delta)
                 if not streaming:
                     held += delta
@@ -343,7 +354,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             continue
         if not asked:
             break
-        researched = researched or any(c.name in WEB_TOOLS for c in asked)
+        researched = researched or any(c.name in WEB_TOOLS | AUDIENCE_TOOLS for c in asked)
 
         # Run the requested tools, hand the results back, and let the model continue.
         messages.append(assistant_message("".join(text), asked))
