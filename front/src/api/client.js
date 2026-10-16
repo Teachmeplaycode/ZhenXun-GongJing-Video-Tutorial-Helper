@@ -81,6 +81,8 @@ async function readEventStream(response, onEvent) {
 // Links always need the backend (it resolves the platform and samples frames remotely).
 // In development Vite proxies /api to it, so an empty base works.
 const LINK_BASE = API_BASE || ''
+/** A backend path (e.g. a replay frame) as a URL the page can load. */
+export const apiUrl = (path) => `${LINK_BASE}${path}`
 const LINK_RE = /https?:\/\/\S+|\bBV[0-9A-Za-z]{10}\b|(?<![0-9A-Za-z])av\d+\b/i
 
 /** True when the pasted text contains something the backend can resolve. */

@@ -1,8 +1,10 @@
-import React, { useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { prefersReducedMotion } from '../lib/motion'
 import { clock, host } from '../lib/steps'
 import DiffViewer from './DiffViewer'
+import { apiUrl } from '../api/client'
+import { IconChevron } from './Icons'
 
 // Visual detail of one step, animated on first open: probability meters fill, result rows arrive in
 // order and get their verdict, a page scan sweeps window by window. Falls back to args + raw output.
@@ -124,6 +126,55 @@ function Hits({ hits, onSeek }) {
         </li>
       ))}
     </ol>
+  )
+}
+
+const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(2).padStart(5, '0')}`
+const SPEEDS = [0.25, 0.5, 1]
+
+// Slow-motion replay: the frames of a few seconds played back slower than real time, or stepped
+// through one by one; the strip below jumps to any frame, and the time button seeks the video there.
+function Replay({ d, onSeek }) {
+  const frames = d.frames || []
+  const times = d.times || []
+  const [at, setAt] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(0.25)
+  useEffect(() => {
+    if (!playing || frames.length < 2) return undefined
+    const t = setInterval(() => setAt((i) => (i + 1) % frames.length), 1000 / (d.fps * speed))
+    return () => clearInterval(t)
+  }, [playing, speed, d.fps, frames.length])
+  const step = (k) => { setPlaying(false); setAt((i) => (i + k + frames.length) % frames.length) }
+  if (!frames.length) return null
+  return (
+    <div className="viz-replay" data-row>
+      <div className="viz-replay__stage">
+        <img src={apiUrl(frames[at])} alt={`复看画面 ${fine(times[at] ?? 0)}`} />
+        <span className="viz-replay__stamp mono-sm">{fine(times[at] ?? 0)} · {at + 1}/{frames.length}</span>
+      </div>
+      <div className="viz-replay__controls">
+        <button type="button" className="icon-btn viz-replay__prev" aria-label="上一帧" onClick={() => step(-1)}><IconChevron size={12} /></button>
+        <button type="button" className="btn btn--ghost" onClick={() => setPlaying((v) => !v)}>{playing ? '暂停' : '慢放'}</button>
+        <button type="button" className="icon-btn" aria-label="下一帧" onClick={() => step(1)}><IconChevron size={12} /></button>
+        <span className="viz-replay__speeds">
+          {SPEEDS.map((s) => (
+            <button key={s} type="button" className="chip-btn" data-on={speed === s || undefined} onClick={() => setSpeed(s)}>{s === 1 ? '原速' : `${s}×`}</button>
+          ))}
+        </span>
+        <button type="button" className="ts-chip" onClick={() => onSeek?.(times[at] ?? 0)} title="在原视频里跳到这一帧">{fine(times[at] ?? 0)}</button>
+      </div>
+      <ol className="viz-replay__strip">
+        {frames.map((src, i) => (
+          <li key={src}>
+            <button type="button" data-on={i === at || undefined} onClick={() => { setPlaying(false); setAt(i) }} aria-label={`第 ${i + 1} 帧 ${fine(times[i] ?? 0)}`}>
+              <img src={apiUrl(src)} alt="" loading="lazy" />
+            </button>
+          </li>
+        ))}
+      </ol>
+      <p className="mono-sm muted">每秒 {d.fps} 帧 · 共 {frames.length} 帧{d.clipped ? ' · 只复看了前 10 秒' : ''}</p>
+    </div>
   )
 }
 
@@ -259,6 +310,8 @@ export default function StepDetail({ call, onSeek }) {
     body = <Results results={d.results} />
   } else if (call.tool === 'web.fetch' && d.url) {
     body = <PageScan d={d} />
+  } else if (call.tool === 'frames.replay' && d.frames) {
+    body = <Replay d={d} onSeek={onSeek} />
   } else if (call.tool === 'audience.comments' && d.comments) {
     body = <Comments d={d} />
   } else if (call.tool === 'audience.danmaku' && d.hits) {
