@@ -24,6 +24,8 @@
   --border-strong: #C8C4BD;
   --border-focus: #1A1A1A;
   --border-inverse: color-mix(in srgb, var(--text-inverse) 16%, transparent);
+  --text-on-accent: #1A1A1A;     /* ink on the lime accent: stays dark in both themes */
+  --bg-inverse-hover: #2A2A2A;   /* hover on dark (inverse) buttons */
 
   --sculpture-light: #F0EDE8;
   --sculpture-dark: #2A2A2A;
@@ -89,3 +91,35 @@
   --ease-exit: cubic-bezier(0.55, 0.055, 0.675, 0.19);  /* power2.in */
   --ease-move: cubic-bezier(0.645, 0.045, 0.355, 1);    /* power2.inOut */
 }
+
+/* Dark theme: the same warm palette at night. main.jsx sets data-theme before first paint
+   (the stored choice, else the system setting). The accent hues stay; ink and surfaces swap. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-canvas: #141413;
+  --bg-surface: #1C1C1A;
+  --bg-surface-alt: #232321;
+  --bg-inverse: #EDEAE4;
+  --grid-line: #252523;
+
+  --text-primary: #EDEAE4;
+  --text-secondary: #A8A49D;
+  --text-tertiary: #7A766F;
+  --text-inverse: #141413;
+
+  --accent-error: #F2555A;
+  --accent-success: #7CC35A;
+
+  --border-default: #34332F;
+  --border-strong: #4C4A45;
+  --border-focus: #EDEAE4;
+  --bg-inverse-hover: #D6D2CA;
+
+  --sculpture-light: #8F8A82;
+  --sculpture-dark: #3A3936;
+  --sculpture-shadow: #050505;
+
+  --diff-added: #24331A;
+  --diff-removed: #3A1F1F;
+}
+:root[data-theme='light'] { color-scheme: light; }
