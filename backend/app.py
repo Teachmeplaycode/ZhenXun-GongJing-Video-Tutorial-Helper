@@ -4,16 +4,18 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import shutil
 import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
+from modules import accounts
 from modules.agent import browser, run_agent
 from modules.frames import FrameJob
 from modules.decide import Decider
@@ -52,6 +54,7 @@ async def lifespan(_: FastAPI):
         await llm.aclose()
     if decider is not None:
         await decider.aclose()
+    await accounts.shutdown()
     await browser.shutdown()
     store.close()
 
@@ -357,6 +360,79 @@ async def agent_run(body: AgentRequest):
             store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
 
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+
+
+# ---- platform logins ------------------------------------------------------------------------------
+LOCAL_ORIGIN = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
+
+
+def local_only(request: Request) -> None:
+    """Login endpoints write credentials: refuse calls made by pages from other sites."""
+    origin = request.headers.get("origin")
+    if (origin and not LOCAL_ORIGIN.match(origin)) or request.headers.get("sec-fetch-site") == "cross-site":
+        raise HTTPException(403, "只能从本机的页面调用")
+
+
+def platform_or_404(platform: str) -> str:
+    if platform not in accounts.PLATFORMS:
+        raise HTTPException(404, "没有这个平台")
+    return platform
+
+
+class CookieBody(BaseModel):
+    cookie: str
+
+
+@app.get("/api/accounts")
+async def list_accounts(request: Request):
+    local_only(request)
+    return {"accounts": await accounts.all_status()}
+
+
+@app.post("/api/accounts/{platform}/login")
+async def start_login(platform: str, request: Request):
+    local_only(request)
+    try:
+        login = await accounts.start(platform_or_404(platform))
+    except accounts.AccountError as exc:
+        return JSONResponse({"code": "login_unavailable", "message": str(exc)}, status_code=502)
+    return login.public()
+
+
+@app.get("/api/accounts/login/{login_id}")
+async def poll_login(login_id: str, request: Request):
+    local_only(request)
+    try:
+        login = await accounts.poll(login_id)
+    except accounts.AccountError as exc:
+        return JSONResponse({"code": "login_gone", "message": str(exc)}, status_code=404)
+    out = login.public(qr=False)  # the image was sent when the login started
+    if login.state == "done":
+        out["account"] = await accounts.status(login.platform)
+    return out
+
+
+@app.delete("/api/accounts/login/{login_id}")
+async def cancel_login(login_id: str, request: Request):
+    local_only(request)
+    await accounts.cancel(login_id)
+    return {"ok": True}
+
+
+@app.put("/api/accounts/{platform}")
+async def paste_cookie(platform: str, body: CookieBody, request: Request):
+    local_only(request)
+    try:
+        return await accounts.set_cookie(platform_or_404(platform), body.cookie)
+    except accounts.AccountError as exc:
+        return JSONResponse({"code": "bad_cookie", "message": str(exc)}, status_code=400)
+
+
+@app.delete("/api/accounts/{platform}")
+async def logout(platform: str, request: Request):
+    local_only(request)
+    accounts.logout(platform_or_404(platform))
+    return await accounts.status(platform)
 
 
 @app.get("/api/sessions")

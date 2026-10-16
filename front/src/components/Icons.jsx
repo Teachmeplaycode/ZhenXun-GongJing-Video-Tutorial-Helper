@@ -29,3 +29,4 @@ export const IconGlobe = (p) => <Icon {...p}><circle cx="8" cy="8" r="5.5" /><pa
 export const IconBook = (p) => <Icon {...p}><path d="M3 3.5h4a1.5 1.5 0 011.5 1.5v8A1.5 1.5 0 007 11.5H3zM13 3.5H9.5A1.5 1.5 0 008 5v8a1.5 1.5 0 011.5-1.5H13z" /></Icon>
 export const IconArrowDown = (p) => <Icon {...p}><path d="M8 3v10M4 9l4 4 4-4" /></Icon>
 export const IconSlash = (p) => <Icon {...p}><path d="M10.5 2.5l-5 11" /></Icon>
+export const IconUser = (p) => <Icon {...p}><circle cx="8" cy="5.5" r="2.5" /><path d="M3 13.5a5 5 0 0110 0" /></Icon>

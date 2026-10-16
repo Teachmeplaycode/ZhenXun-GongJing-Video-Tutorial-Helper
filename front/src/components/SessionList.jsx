@@ -47,14 +47,14 @@ export function SessionItem({ session, current = false, compact = false, onOpen,
 
 // Staggered entrance (after the ClubProject menu): two colour layers sweep in from the right,
 // the panel follows, then its rows. Closing reverses it, the layers trailing behind the panel.
-function useStaggeredDrawer(rootRef, open) {
+export function useStaggeredDrawer(rootRef, open) {
   const timeline = useRef(null)
   const first = useRef(true)
   useLayoutEffect(() => {
     const root = rootRef.current
     const panel = root.querySelector('.history__panel')
     const layers = root.querySelectorAll('.history__layer')
-    const rows = root.querySelectorAll('.history__head, .history__empty, .session-item')
+    const rows = root.querySelectorAll('.history__head, .history__empty, .session-item, .account-card')
     timeline.current?.kill()
     if (first.current || prefersReducedMotion()) {
       first.current = false

@@ -147,3 +147,24 @@ export const listSessions = ({ signal } = {}) => linkRequest('/api/sessions', { 
 export const getSession = (id, { signal } = {}) => linkRequest(`/api/sessions/${id}`, { signal })
 
 export const deleteSession = (id) => linkRequest(`/api/sessions/${id}`, { method: 'DELETE' })
+
+// ---- Platform logins (cookies stay in the backend; only status comes back) -------------
+
+/** [{ id, label, purpose, app, configured, source, user, expires, valid }] */
+export const listAccounts = () => linkRequest('/api/accounts').then((body) => body.accounts)
+
+/** Start a QR login: { id, qr (data URL), state, message, expires_in }. */
+export const startLogin = (platform) => linkRequest(`/api/accounts/${platform}/login`, { method: 'POST' })
+
+/** { state: waiting | scanned | done | expired | error, message, user, account? } */
+export const pollLogin = (id) => linkRequest(`/api/accounts/login/${id}`)
+
+export const cancelLogin = (id) => linkRequest(`/api/accounts/login/${id}`, { method: 'DELETE' }).catch(() => null)
+
+export const pasteCookie = (platform, cookie) => linkRequest(`/api/accounts/${platform}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ cookie }),
+})
+
+export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform}`, { method: 'DELETE' })

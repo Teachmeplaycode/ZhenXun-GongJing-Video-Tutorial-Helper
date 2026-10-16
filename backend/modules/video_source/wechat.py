@@ -75,8 +75,8 @@ class WeChatChannelsResolver(Resolver):
     async def _token(self, share_url: str) -> tuple[str, str]:
         cookie = settings().get("YUANBAO_COOKIE", "").strip()
         if not cookie:
-            raise ResolveError("login_required", "解析视频号需要腾讯元宝的登录凭证：在 backend/.env 中设置 "
-                                                 "YUANBAO_COOKIE=\"hy_user=…; hy_token=…\" 后重试")
+            raise ResolveError("login_required", "解析视频号需要登录腾讯元宝：点右上角「账号」用微信扫码登录"
+                                                 "（或在 backend/.env 设置 YUANBAO_COOKIE）")
         try:
             response = await self._client.post(YUANBAO_API, json={"type": "video_channel_url", "url": share_url, "scene": 1},
                                                headers={"Cookie": cookie, "Origin": "https://yuanbao.tencent.com",
@@ -84,7 +84,7 @@ class WeChatChannelsResolver(Resolver):
         except httpx.HTTPError:
             raise ResolveError("upstream", "无法连接腾讯元宝，请稍后重试", retryable=True) from None
         if response.status_code in (401, 403):
-            raise ResolveError("login_expired", "腾讯元宝登录已失效，请重新获取 YUANBAO_COOKIE")
+            raise ResolveError("login_expired", "腾讯元宝登录已失效：点右上角「账号」重新扫码登录")
         try:
             payload = response.json()
         except ValueError:
@@ -93,7 +93,7 @@ class WeChatChannelsResolver(Resolver):
         if not playable:
             message = str(payload.get("msg") or payload.get("message") or "")
             if re.search(r"登录|login|auth|token", message, re.I) or response.status_code == 401:
-                raise ResolveError("login_expired", "腾讯元宝登录已失效，请重新获取 YUANBAO_COOKIE")
+                raise ResolveError("login_expired", "腾讯元宝登录已失效：点右上角「账号」重新扫码登录")
             raise ResolveError("upstream", f"腾讯元宝没有返回视频号地址{f'：{message}' if message else ''}", retryable=True)
         query = urllib.parse.parse_qs(urllib.parse.urlsplit(playable).query)
         token, export_id = query.get("token", [""])[0], query.get("eid", [""])[0]

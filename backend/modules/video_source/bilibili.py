@@ -107,7 +107,7 @@ def rank_urls(urls: list[str]) -> list[str]:
 
 
 COMMENT_SORT = {"hot": 3, "time": 2}  # reply `mode`
-ANONYMOUS_NOTE = "B 站未登录只返回前 3 条热门评论；在 backend/.env 设置 BILIBILI_COOKIE（浏览器里的 SESSDATA=…）后可以读更多"
+ANONYMOUS_NOTE = "B 站未登录只返回前 3 条热门评论；点右上角「账号」扫码登录 B 站后可以读更多"
 
 
 def parse_comment(r: dict, pinned: bool = False) -> Comment:
@@ -367,7 +367,7 @@ class BilibiliResolver(Resolver):
         if code == 12002:
             raise ResolveError("comments_closed", "这个视频的评论区已关闭")
         if code == -403 and login:
-            raise ResolveError("login_expired", "B 站登录已失效，请重新获取 BILIBILI_COOKIE")
+            raise ResolveError("login_expired", "B 站登录已失效：点右上角「账号」重新扫码登录")
         if code != 0:
             raise ResolveError("upstream", f"B 站评论接口返回错误（{code}）：{payload.get('message', '')}", retryable=True)
         data = payload.get("data") or {}

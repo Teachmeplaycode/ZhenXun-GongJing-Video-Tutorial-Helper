@@ -200,3 +200,30 @@ test('history reopens saved sessions, old and new answer formats', async ({ page
   await expect(lastAnswer(page).locator('.streaming-text')).toHaveText('新格式的回答')
   await expect(page.locator('.msg--user .bubble__text')).toHaveText('新的问题')
 })
+
+test('accounts: scan a QR code to log in, the status updates', async ({ page }) => {
+  const mock = await start(page)
+  await page.getByRole('button', { name: '账号' }).click()
+  const bili = page.locator('.account-card', { hasText: 'B 站' })
+  await expect(bili.locator('.viz-stamp')).toHaveText('未登录')
+  await expect(page.locator('.account-card', { hasText: '腾讯元宝' })).toContainText('来自 backend/.env')
+  await bili.getByRole('button', { name: '扫码登录' }).click()
+  await expect(bili.locator('.qr-login__code img')).toBeVisible()
+  await expect(bili.locator('.qr-login__hint')).toHaveText('用 B 站 App 扫码登录')
+  await expect(bili.locator('.qr-login__veil')).toHaveText('已扫码', { timeout: 5000 })
+  await expect(bili.locator('.viz-stamp')).toHaveText('已登录 · 测试用户', { timeout: 5000 })
+  await expect(bili.locator('.qr-login')).toHaveCount(0)
+  await expect(bili).toContainText('来自 扫码登录')
+  // Cookie values are never sent to the page, only status.
+  expect(mock.requests.filter((r) => r.path.startsWith('/api/accounts')).every((r) => !JSON.stringify(r.body || '').includes('SESSDATA'))).toBe(true)
+})
+
+test('a 视频号 link without a 元宝 login offers to scan', async ({ page }) => {
+  await start(page, (mock) => {
+    mock.linkError = { code: 'login_required', message: '解析视频号需要登录腾讯元宝：点右上角「账号」用微信扫码登录' }
+  })
+  await page.locator('.import-control__link').fill('https://weixin.qq.com/sph/AbCdEf')
+  await page.locator('.import-control__submit').click()
+  await page.locator('.field-error__action').click()
+  await expect(page.locator('.account-card').first()).toContainText('腾讯元宝')
+})
