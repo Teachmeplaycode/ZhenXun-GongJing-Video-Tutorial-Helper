@@ -17,6 +17,8 @@ from modules.llm import ChatClient, LLMError, OllamaClient, Usage, assistant_mes
 
 from modules.decide import questions as dq
 
+from . import experience
+
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, parse_time
 
 HISTORY_MESSAGES = 8      # earlier turns sent back as plain text (frames only go with the current turn)
@@ -27,7 +29,8 @@ TOOL_GUIDE = """
 - search_transcript：在语音转写里搜关键词，找某个话题或某句话在什么时候说的；
 - read_transcript：读某个时间段的完整转写；
 - view_frames：在某个时间段内截取更多画面看细节（已有关键帧间隔太大、看不清时用）；
-- replay：慢放复看几秒钟（每秒取多帧拼成网格），看清动作怎么发生、先后顺序和细微变化。问到动作、过程、"怎么做到的""先做了什么"时，先定位到大概哪几秒，再用 replay 复看。
+- replay：慢放复看几秒钟（每秒取多帧拼成网格），看清动作怎么发生、先后顺序和细微变化。问到动作、过程、"怎么做到的""先做了什么"时，先定位到大概哪几秒，再用 replay 复看；
+- measure_motion（有这个工具时）：用仪器测量一段的运动：镜头怎么动、哪里在动、运动强度曲线、重复的周期，附热力图和轨迹叠影。镜头运动、重复次数、移动方向这类问题，画面帧容易看错，先测量再结合画面判断。
 用户问到某个时间段的画面细节（动作、部位、颜色、文字等），而这一段只有一两张关键帧时，先用 view_frames 看清楚再回答，不要凭稀疏的画面推测。
 其他情况下，已有的画面和转写足够回答就直接回答，不要为了调用而调用。最多调用 {rounds} 轮。{web}"""
 WEB_GUIDE = """
@@ -396,7 +399,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         allowed = definitions(web, papers, audience)
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
         viewers = AUDIENCE_GUIDE if any(d["function"]["name"] in AUDIENCE_TOOLS for d in allowed) else ""
-        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))}
+        messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))
+                       + experience.guide()}
     prompt_tokens = completion_tokens = 0
     tool_calls = 0
     usage = Usage()

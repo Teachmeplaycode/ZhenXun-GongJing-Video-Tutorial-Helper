@@ -178,6 +178,38 @@ function Replay({ d, onSeek }) {
   )
 }
 
+const BARS = '▁▂▃▄▅▆▇█'
+
+// measure_motion: what the instruments read off a dense decode, and the two pictures they drew.
+function Motion({ d, onSeek }) {
+  return (
+    <div className="viz-motion">
+      <p data-row><span className="mono-sm muted">镜头</span> {d.camera}</p>
+      {(d.camera_detail || []).map((line) => <p key={line} className="mono-sm muted" data-row>{line}</p>)}
+      <p data-row>
+        <span className="mono-sm muted">运动强度</span>{' '}
+        <span className="viz-motion__bars mono-sm" aria-label="运动强度随时间变化">{(d.energy || []).map((v) => BARS[Math.min(7, Math.floor(v * 7.999))]).join('')}</span>
+        {d.period ? <span className="mono-sm muted"> · 周期约 {d.period} 秒</span> : null}
+      </p>
+      {d.peaks?.length ? (
+        <div className="viz-times" data-row>
+          <span className="mono-sm muted">峰值：</span>
+          {d.peaks.slice(0, 12).map((t) => <button key={t} type="button" className="ts-chip" onClick={() => onSeek?.(t)}>{fine(t)}</button>)}
+        </div>
+      ) : null}
+      <p className="mono-sm muted" data-row>{d.region}</p>
+      <div className="viz-motion__images" data-row>
+        {(d.images || []).map((src, i) => (
+          <figure key={src}>
+            <img src={apiUrl(src)} alt={i === 0 ? '运动热力图' : '运动轨迹叠影'} loading="lazy" />
+            <figcaption className="mono-sm muted">{i === 0 ? '热力图：红黄 = 动得多' : '轨迹叠影：拖影 = 移动路径'}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Comments({ d }) {
   return (
     <div className="viz-comments">
@@ -310,6 +342,8 @@ export default function StepDetail({ call, onSeek }) {
     body = <Results results={d.results} />
   } else if (call.tool === 'web.fetch' && d.url) {
     body = <PageScan d={d} />
+  } else if (call.tool === 'frames.motion' && d.camera) {
+    body = <Motion d={d} onSeek={onSeek} />
   } else if (call.tool === 'frames.replay' && d.frames) {
     body = <Replay d={d} onSeek={onSeek} />
   } else if (call.tool === 'audience.comments' && d.comments) {

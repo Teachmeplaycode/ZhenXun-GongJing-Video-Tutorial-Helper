@@ -93,7 +93,10 @@ def watermarks(frames: list[tuple[float, list[Line]]]) -> list[tuple[float, floa
         if len(lines) / len(frames) < WATERMARK_SHARE or (when[s][-1] - when[s][0]) / span < WATERMARK_SPAN:
             continue
         texts = [line.text for line in lines]
-        typical = max(set(texts), key=texts.count)
+        # The reading most like the others (not the most frequent one: ties made that depend on set order,
+        # so the same video could get its watermark removed in one run and kept in the next).
+        sample_texts = texts[:: max(1, len(texts) // 40)]
+        typical = max(sample_texts, key=lambda t: sum(similar(t, o) for o in sample_texts))
         alike = [line for line in lines if similar(line.text, typical)]
         if len(alike) / len(lines) >= 0.6:
             areas.append((min(l.x for l in alike) - 0.01, min(l.y for l in alike) - 0.01,

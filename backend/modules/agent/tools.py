@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from modules.frames import FrameJob
+from modules.frames import instruments
 from modules.frames import replay as slowmo
 from modules.frames.grabber import grab_frame
 from modules.settings import settings
@@ -120,6 +121,21 @@ WEB_DEFINITIONS = [
             "limit": {"type": "integer", "description": f"返回几篇，1 到 {MAX_WEB_RESULTS}，默认 5"}}, "required": ["query"]}}},
 ]
 
+MOTION_DEFINITION = {"type": "function", "function": {
+    "name": "measure_motion",
+    "description": f"用仪器测量一段视频（最长 {int(instruments.MAX_SPAN)} 秒）的运动：以每秒最多 {int(instruments.MAX_FPS)} 帧密集解码后计算，"
+                   "给出：镜头怎么动（平移方向、推近拉远、旋转，及前后半段）；运动强度随时间的曲线和峰值时刻；运动主要发生在画面哪里；"
+                   "运动是否周期性重复、周期多长；另附运动热力图和运动轨迹叠影两张图。"
+                   "问到镜头运动、动作发生在哪、重复了几次、物体往哪移动时，先测量再结合画面判断。只看画面帧容易漏掉的细微变化，这里能量出来。",
+    "parameters": {"type": "object", "properties": {
+        "start": {"type": "string", "description": "开始时间，秒数（可带小数）或 mm:ss"},
+        "end": {"type": "string", "description": "结束时间"}}, "required": ["start", "end"]}}}
+
+
+def instruments_enabled() -> bool:
+    return settings().get("INSTRUMENTS", "on").lower() not in ("off", "0", "false")
+
+
 AUDIENCE_DEFINITIONS = {
     "comments": {"type": "function", "function": {
         "name": "read_comments",
@@ -148,12 +164,12 @@ BROWSE_DEFINITION = {"type": "function", "function": {
 
 ARGS = {
     "search_transcript": ("query",), "read_transcript": ("start", "end"), "view_frames": ("start", "end", "count"),
-    "replay": ("start", "end", "fps"),
+    "replay": ("start", "end", "fps"), "measure_motion": ("start", "end"),
     "web_search": ("query", "limit", "freshness"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
     "browse": ("task", "url"),
     "read_comments": ("sort", "page"), "read_danmaku": ("start", "end", "query"),
 }
-TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view", "replay": "frames.replay",
+TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view", "replay": "frames.replay", "measure_motion": "frames.motion",
                "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search",
                "browse": "browser.use", "read_comments": "audience.comments", "read_danmaku": "audience.danmaku"}
 
@@ -171,6 +187,8 @@ def definitions(web: bool = True, papers: bool = True, audience: tuple[str, ...]
     `audience`: what the video's platform lets us read (Resolver.audience).
     """
     viewers = [AUDIENCE_DEFINITIONS[a] for a in audience if a in AUDIENCE_DEFINITIONS]
+    if instruments_enabled():
+        viewers = [MOTION_DEFINITION] + viewers
     if not web_enabled():
         web = papers = False
     extra = viewers + [d for d in WEB_DEFINITIONS
@@ -225,7 +243,7 @@ class AgentTools:
 
     async def run(self, name: str, args: dict) -> ToolResult:
         handler = {"search_transcript": self.search_transcript, "read_transcript": self.read_transcript,
-                   "view_frames": self.view_frames, "replay": self.replay, "web_search": self.web_search, "fetch_page": self.fetch_page,
+                   "view_frames": self.view_frames, "replay": self.replay, "measure_motion": self.measure_motion, "web_search": self.web_search, "fetch_page": self.fetch_page,
                    "search_papers": self.search_papers, "read_comments": self.read_comments,
                    "read_danmaku": self.read_danmaku}.get(name)
         if handler is None or (name in ARGS and name in {d["function"]["name"] for d in WEB_DEFINITIONS} and not web_enabled()):
@@ -550,6 +568,51 @@ class AgentTools:
                           [(f"复看 · {fine_clock(t)}", f) for t, f in zip(times, frames)],
                           data={"start": p.start, "end": p.end, "fps": p.fps, "times": times, "clipped": p.clipped,
                                 "frames": [f"{base}/{f.name}" for f in frames]})
+
+    async def measure_motion(self, start=0, end=None) -> ToolResult:
+        if not instruments_enabled():
+            return ToolResult("运动测量没有开启。", "未开启", error=True)
+        a = parse_time(start) or 0.0
+        b = parse_time(end) if end is not None else None
+        a, b = self._range(a, a + instruments.MAX_SPAN if b is None else b)
+        clipped = b - a > instruments.MAX_SPAN
+        b = min(b, a + instruments.MAX_SPAN)
+        if b - a < 0.3:
+            a, b = max(0.0, a - 0.5), min(self.job.video.duration, b + 0.5)
+        fps = min(instruments.MAX_FPS, instruments.MAX_FRAMES / max(0.5, b - a))
+        key = f"{round(a * 100):07d}-{round(b * 100):07d}"
+        folder = self.job.root / "motion" / key
+        files = sorted(folder.glob("[0-9][0-9][0-9][0-9].jpg"))
+        if len(files) < 3:
+            for attempt in range(2):
+                for stream in [s for s in self.job.video.streams if not s.expired()]:
+                    files = await instruments.decode(stream, a, b, fps, folder)
+                    if len(files) >= 3:
+                        break
+                if len(files) >= 3 or attempt or not await self._refresh():
+                    break
+        if len(files) < 3:
+            why = "原视频已删除（本地上传的视频处理完就删了）" if self.job.video.platform == "local" else "这一段读取失败"
+            return ToolResult(f"无法测量 {fine_clock(a)}–{fine_clock(b)} 的运动：{why}。", "读取失败", error=True)
+        r = await asyncio.to_thread(instruments.analyze, files, a, fps, folder / "out")
+        lines = [f"测量 {fine_clock(r.start)}–{fine_clock(r.end)}：每秒 {r.fps:.1f} 帧、共 {r.frames} 帧的低分辨率解码（这些帧不发给你，只给测量结果）。",
+                 f"镜头：{r.camera}（{instruments.CALIBRATION['camera']}）"] + [f"  {d}" for d in r.camera_detail] + [
+                 f"运动强度（每格约 {r.bucket:.2f} 秒，从 {fine_clock(r.start)} 起）：{instruments.bar(r.energy)}",
+                 f"运动峰值时刻：{'、'.join(fine_clock(t) for t in r.peaks[:20]) or '没有明显峰值'}（共 {len(r.peaks)} 个）",
+                 f"周期：{f'约 {r.period:.2f} 秒一次' if r.period else '没有明显的周期'}"
+                 + (f"；按周期，这段约有 {(r.end - r.start) / r.period:.1f} 个周期" if r.period else ""),
+                 *( [f"重复次数估计：约 {round(len(r.peaks) / 2)} 次——一个来回的动作通常产生两个运动峰，所以按峰值数的一半估计"
+                     f"（{instruments.CALIBRATION['count']}）"] if len(r.peaks) >= 2 else []),
+                 f"运动区域：{r.region}",
+                 "说明：一个来回的动作可能产生两个峰；镜头在动时，运动强度主要反映镜头运动。数次数、判断方向时结合画面核对。"]
+        if clipped:
+            lines.append(f"（只测了开头 {instruments.MAX_SPAN:.0f} 秒）")
+        if r.images:
+            lines.append("两张示意图见下一条消息。")
+        return ToolResult("\n".join(lines), f"{fine_clock(r.start)}–{fine_clock(r.end)} · {len(r.peaks)} 个峰", r.frames, r.images,
+                          data={"start": r.start, "end": r.end, "fps": r.fps, "camera": r.camera, "camera_detail": r.camera_detail,
+                                "energy": r.energy, "peaks": r.peaks, "period": r.period, "region": r.region,
+                                "images": [f"/api/link-jobs/{self.job.id}/motion/{key}/{p.name}" for _, p in r.images]})
 
     async def _clip(self, p, folder) -> bool:
         for stream in [s for s in self.job.video.streams if not s.expired()]:
