@@ -32,6 +32,7 @@ modules/frames/              远程抽帧
   job.py                     抽帧任务：并发、逐帧重试、缺帧记录、覆盖率
 modules/llm/client.py        OpenAI 兼容的流式对话客户端（默认 DeepSeek）
 modules/agent/run.py         问答：选帧 → 图文请求模型 → 按前端 §9.2 事件流式输出
+modules/agent/browser.py     浏览器操作：无头 Chromium（Playwright）+ 一个小的模型循环，按编号点击、输入、滚动
 modules/store/sessions.py    会话存储（SQLite）：每个链接任务一个会话，含帧状态、语音转写与对话记录
 modules/transcript/          语音转写：audio.py 读音轨 → asr.py 本地 mlx-whisper → task.py 任务与事件
 tests/                       解析器与抽帧任务的单元测试
@@ -101,6 +102,19 @@ tests/                       解析器与抽帧任务的单元测试
 - 调用工具前那句过渡话（"我来查一下……"）只显示在进度提示里，不计入回答。
 - `LLM_WEB=off` 关闭联网和论文工具；`LLM_MAX_TOOL_ROUNDS` 默认 4 轮。
 - 实测（DeepSeek，视频号科普视频，问"吃硝苯地平或氨氯地平还能吃柚子吗，查资料和论文"）：调用 4 次工具（网页搜索、读网页、两次论文检索），24 秒完成；引用的 DOI 都来自本次检索结果。
+
+### 浏览器操作
+
+| 工具 | 执行记录里的名字 | 作用 |
+| --- | --- | --- |
+| `browse` | `browser.use` | 用真实浏览器完成一个网页任务（`task`，可选起始网址 `url`，不填从必应开始），返回找到的信息和浏览过的页面 |
+
+- 用途：`fetch_page` 读不到的网页（要脚本渲染的、要先在站内搜索或点"展开"才看得到的），以及要看网页上图片、表格、价格的情况。它比 `fetch_page` 慢得多，提示词要求能用 `fetch_page` 就不用它；用户明确说"用浏览器"时直接用。跟"联网"开关一起开关。
+- 做法：每次 `browse` 新开一个干净的浏览器上下文（没有 cookie、不登录），1280×800。`browse` 内部是一个小循环，用的是同一个问答模型：每一步给它当前页面的截图、可见的可操作元素列表（`[编号] 类型 文字`）和可见文字，它调用 `open / click / type / scroll / back / read / done` 之一，一次一个动作。旧的截图和快照会从上下文里删掉，只保留最新的。默认最多 12 步、180 秒（`BROWSER_MAX_STEPS`、`BROWSER_TIMEOUT`），到了上限让它直接写出已找到的内容。返回给主模型的只有结论和浏览过的页面，网页全文不进主对话。
+- 前端：边做边发 `browser.open`、`browser.action`（带目标元素在视口里的位置，供光标动画）、`browser.frame`（JPEG 截图，data URL），对话里的浏览器视口实时显示。保存会话时每次 `browse` 只保留最后一张截图。
+- 安全：页面发出的**每一个**请求（包括图片、脚本、iframe，不只是地址栏）都要过和 `fetch_page` 一样的地址检查，本机和内网一律拦截；不能在密码框里输入；不下载文件；提示词禁止登录、购买、发帖、填写个人信息；页面文字交给模型前用决策模块检查是否在指挥 AI，判定概率 ≥ 0.5 的那一屏文字会被拦截。
+- 安装：`uv sync` 会装 Playwright，浏览器要单独下载一次：`uv run playwright install --only-shell chromium`。没装 Playwright 时这个工具不会出现；`BROWSER=off` 关掉它。
+- 实测（2026-10-16，DeepSeek）：问"用浏览器打开 threejs.org 的示例页面，用搜索框搜 instancing"，模型调用 `browse`，打开页面、在过滤框里输入、滚动、读取，4 步，整个回答 25 秒，列出了 17 个示例。B 站网页会对无头浏览器返回 412 风控页，B 站的内容仍然走解析器的接口。
 
 ## 决策模块（Jev 风格）
 

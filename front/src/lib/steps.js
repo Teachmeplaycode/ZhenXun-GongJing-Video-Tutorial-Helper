@@ -51,6 +51,11 @@ export function describeStep(call) {
         verb: '阅读网页', target: d.host || host(p.url),
         meta: d.blocked ? '疑似注入，已拦截' : done ? `${(d.to ?? 0) - (d.from ?? 0)} 字` : call.status === 'error' ? firstLine(call.stdout).replace(/^失败：/, '') : '',
       }
+    case 'browser.use':
+      return {
+        verb: '操作浏览器', target: d.host || host(p.url) || `「${(p.task || '').slice(0, 24)}」`,
+        meta: done ? `${n} 步` : call.status === 'error' ? firstLine(d.answer || call.stdout).slice(0, 40) : '',
+      }
     case 'papers.search':
       return { verb: '检索论文', target: `「${p.query || ''}」`, meta: done ? `${d.source || p.source || 'openalex'} · ${n} 篇` : '' }
     default:

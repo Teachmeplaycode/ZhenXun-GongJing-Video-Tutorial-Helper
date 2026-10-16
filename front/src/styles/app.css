@@ -340,7 +340,11 @@ img { display: block; }
 .browser__url { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: var(--fs-mono-sm); color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .browser__size { font-family: var(--font-mono); font-size: var(--fs-mono-sm); color: var(--text-tertiary); }
 .browser__screen { position: relative; height: 320px; min-height: 240px; max-height: 480px; resize: vertical; overflow: hidden; background: var(--bg-surface); }
-.browser__frame { width: 100%; height: 100%; object-fit: contain; }
+.browser__screen { container-type: size; }
+.browser__stage { position: absolute; inset: 0; margin: auto; width: min(100cqw, 160cqh); height: min(100cqh, 62.5cqw); }
+.browser__stage--fill { width: 100%; height: 100%; }
+.browser__frame { display: block; width: 100%; height: 100%; }
+.browser__entries li.is-error, .browser__entries li.is-error span { color: var(--accent-error); }
 .browser__skeleton { position: absolute; inset: 0; padding: var(--sp-24) var(--sp-32); display: flex; flex-direction: column; align-items: center; gap: var(--sp-16); }
 .sk { background: var(--grid-line); border-radius: var(--radius-xs); }
 .sk--logo { width: 96px; height: 20px; margin-top: var(--sp-16); }
@@ -518,6 +522,14 @@ img { display: block; }
 .viz-stamp--ok { color: var(--accent-success); }
 .viz-stamp--warn { color: var(--accent-processing); }
 .viz-stamp--off { color: var(--text-tertiary); }
+
+.viz-browse { display: flex; flex-direction: column; gap: var(--sp-6); }
+.viz-browse p { margin: 0; }
+.viz-browse__actions { margin: 0; padding-left: var(--sp-24); font-family: var(--font-mono); font-size: var(--fs-mono-sm); color: var(--text-secondary); }
+.viz-browse__actions span { color: var(--text-primary); }
+.viz-browse__pages { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.viz-browse__pages a { color: var(--text-primary); text-decoration: none; }
+.viz-browse__pages a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .viz-page { display: flex; flex-direction: column; gap: var(--sp-4); }
 .viz-page__title { color: var(--text-primary); text-decoration: none; }

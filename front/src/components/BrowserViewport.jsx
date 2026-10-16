@@ -49,6 +49,8 @@ export default function BrowserViewport({ session, onStop }) {
         <button type="button" className="icon-btn" title="停止" aria-label="停止" onClick={onStop} disabled={session.status !== 'running'}><IconStop size={14} /></button>
       </div>
       <div ref={screenRef} className="browser__screen">
+        {/* Screenshots are 16:10; the stage matches them so cursor fractions land on the right spot. */}
+        <div className={session.frame ? 'browser__stage' : 'browser__stage browser__stage--fill'}>
         {session.frame ? (
           <img className="browser__frame" src={session.frame} alt="远程浏览器画面" />
         ) : (
@@ -62,6 +64,7 @@ export default function BrowserViewport({ session, onStop }) {
         <div ref={cursorRef} className="browser__cursor">
           <span ref={rippleRef} className="browser__ripple" />
         </div>
+        </div>
       </div>
       <div className="browser__log">
         <button type="button" className="browser__log-toggle" onClick={() => setLogOpen((v) => !v)} aria-expanded={logOpen}>
@@ -71,7 +74,7 @@ export default function BrowserViewport({ session, onStop }) {
         </button>
         {logOpen ? (
           <ol className="browser__entries">
-            {session.actions.map((a, i) => <li key={i}><span>{a.action}</span> {a.detail}</li>)}
+            {session.actions.map((a, i) => <li key={i} className={a.error ? 'is-error' : undefined}><span>{a.action}</span> {a.detail}</li>)}
           </ol>
         ) : null}
       </div>

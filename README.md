@@ -1,6 +1,6 @@
 # GongJ!ng? 视频理解工作台
 
-贴一个视频链接（B 站、视频号）或上传本地视频，系统读取画面和语音，然后可以就视频内容提问。回答时模型会按需搜索语音转写、细看某一段画面、联网查资料或检索论文，每一步都在对话里按顺序展示，可以展开查看细节。
+贴一个视频链接（B 站、视频号）或上传本地视频，系统读取画面和语音，然后可以就视频内容提问。回答时模型会按需搜索语音转写、细看某一段画面、联网查资料、操作浏览器或检索论文，每一步都在对话里按顺序展示，可以展开查看细节。
 
 ## 跑起来
 
@@ -37,6 +37,7 @@ brew install uv node ffmpeg
 | `BOCHA_API_KEY` | 可选 | 博查搜索，作为联网搜索的备用 |
 | `OPENALEX_API_KEY` | 建议 | 论文检索；不带 key 每天约 100 次，带免费 key 约 1000 次 |
 | `YUANBAO_COOKIE` | 视频号需要 | 腾讯元宝登录态 `hy_user=…; hy_token=…`，用来解析视频号链接；会过期 |
+| `BROWSER` | 可选 | 浏览器操作（Playwright 无头 Chromium，默认开启，跟"联网"开关走）；第一次要下载浏览器：`cd backend && uv run playwright install --only-shell chromium`；`BROWSER=off` 关闭 |
 | `DECISION` / `DECISION_MODEL` | 可选 | 决策模块（本机 Ollama，默认开启、`qwen3.5:9b`）：过滤搜索结果、拦截网页注入、判断是否需要查资料；Ollama 没开时自动退回简单规则 |
 
 其余配置项（转写模型、搜索引擎顺序、工具轮数等）见 [backend/README.md](backend/README.md)。

@@ -14,7 +14,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules.agent import run_agent
+from modules.agent import browser, run_agent
 from modules.frames import FrameJob
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
@@ -52,6 +52,7 @@ async def lifespan(_: FastAPI):
         await llm.aclose()
     if decider is not None:
         await decider.aclose()
+    await browser.shutdown()
     store.close()
 
 
@@ -341,6 +342,10 @@ async def agent_run(body: AgentRequest):
                         events[-1] = {**events[-1], "delta": events[-1]["delta"] + event["delta"]}
                     else:
                         events.append(event)
+                elif event["type"] == "browser.frame":
+                    # Screenshots are large: a saved answer keeps only each browse's latest one.
+                    events = [e for e in events if not (e["type"] == "browser.frame" and e.get("call_id") == event.get("call_id"))]
+                    events.append(event)
                 else:
                     events.append(event)
                     if event["type"] in ("run.completed", "run.error"):
