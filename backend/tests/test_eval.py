@@ -20,3 +20,7 @@ def test_errors_and_no_timestamps():
     assert check({}, run(status="error")) == ["出错：繁忙"]
     assert check({"checks": {"timestamps": False}}, run("共 12:30 分钟")) == ["不该引用时间点"]
     assert check({"checks": {"timestamps": False}}, run("版本 1.12.300")) == []
+
+
+def test_text_checks_ignore_spaces():
+    assert check({"checks": {"contains_any": [["9块9"]]}}, run("咖啡 9 块 9 一杯")) == []

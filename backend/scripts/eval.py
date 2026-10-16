@@ -117,7 +117,7 @@ async def prepare(client: httpx.AsyncClient, videos: dict[str, dict]) -> dict[st
         cov = snap["coverage"]
         print(f"  ✓ {key}: {cov['ok']}/{cov['total']} 帧 · 转写 {(snap.get('transcript') or {}).get('status')}")
         ids[key] = job_id
-        cache[key] = {"url": spec["url"], "job_id": job_id, "title": snap["video"]["title"]}
+        cache[key] = {"url": videos[key]["url"], "job_id": job_id, "title": snap["video"]["title"]}
         VIDEOS.write_text(json.dumps(cache, ensure_ascii=False, indent=2))
     return ids
 
@@ -156,6 +156,8 @@ def check(case: dict, run: dict) -> list[str]:
     if run["status"] != "done":
         return [f"出错：{run['error']}"]
     c, answer = case.get("checks", {}), run["answer"]
+    flat = re.sub(r"\s+", "", answer).lower()  # "9 块 9" matches "9块9"
+    has = lambda s: re.sub(r"\s+", "", s).lower() in flat  # noqa: E731
     called = {t["name"] for t in run["tools"]}
     fails = []
     if c.get("tools_any") and not called & set(c["tools_any"]):
@@ -167,10 +169,10 @@ def check(case: dict, run: dict) -> list[str]:
         if name in called:
             fails.append(f"不该调用 {name}")
     for group in c.get("contains_any", []):
-        if not any(s.lower() in answer.lower() for s in group):
+        if not any(has(s) for s in group):
             fails.append(f"回答里没有「{' / '.join(group)}」")
     for s in c.get("contains_none", []):
-        if s.lower() in answer.lower():
+        if has(s):
             fails.append(f"回答里不该出现「{s}」")
     if c.get("timestamps") is True and not TIME_RE.search(answer):
         fails.append("没有引用时间点")
