@@ -4,6 +4,7 @@ import json
 from fastapi.testclient import TestClient
 
 from modules.frames import FrameJob
+from modules.screentext import ScreenText
 from modules.transcript import Transcript
 from modules.video_source import ResolvedVideo, Stream
 
@@ -19,6 +20,7 @@ def test_late_subscriber_gets_every_event_of_a_finished_job(tmp_path, monkeypatc
     v = ResolvedVideo("local", "v", "local://v", "t", 10.0, [Stream("/x.mp4", {}, "s")])
     job = FrameJob("j1", v, None, tmp_path / "jobs" / "j1", count=2)
     job.transcript = Transcript("done", "已转写 1 句")
+    job.screentext = ScreenText("done", "识别到 0 段画面文字")
     # The order a fast job produces: transcript starts first, frames, then both finish.
     for event in ({"type": "transcript", "status": "running"}, {"type": "frame", "index": 0, "time": 2.5},
                   {"type": "frame", "index": 1, "time": 7.5}, {"type": "done", "coverage": {}},

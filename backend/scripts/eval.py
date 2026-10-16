@@ -107,15 +107,22 @@ async def prepare(client: httpx.AsyncClient, videos: dict[str, dict]) -> dict[st
             job_id = r.json()["job_id"]
             print(f"  · {key}: 解析中（{r.json()['video']['title'][:30]}）")
         started[key] = job_id
+    for key, job_id in started.items():  # parsed before a step existed (on-screen text): fill it in
+        snap = (await client.get(f"/api/link-jobs/{job_id}")).json()
+        if (snap.get("screentext") or {}).get("status") == "failed" or (snap.get("transcript") or {}).get("status") == "failed":
+            r = await client.post(f"/api/link-jobs/{job_id}/retry", timeout=120)
+            if r.status_code == 200:
+                print(f"  · {key}: 补上缺的步骤（画面文字 {r.json().get('screentext')} · 语音 {r.json().get('transcript')}）")
     ids = {}
     for key, job_id in started.items():
         for _ in range(240):
             snap = (await client.get(f"/api/link-jobs/{job_id}")).json()
-            if not snap["running"] and (snap.get("transcript") or {}).get("status") not in ("running", "pending"):
+            if not snap["running"] and all((snap.get(k) or {}).get("status") not in ("running", "pending") for k in ("transcript", "screentext")):
                 break
             await asyncio.sleep(5)
         cov = snap["coverage"]
-        print(f"  ✓ {key}: {cov['ok']}/{cov['total']} 帧 · 转写 {(snap.get('transcript') or {}).get('status')}")
+        print(f"  ✓ {key}: {cov['ok']}/{cov['total']} 帧 · 转写 {(snap.get('transcript') or {}).get('status')}"
+              f" · 画面文字 {(snap.get('screentext') or {}).get('status')} {(snap.get('screentext') or {}).get('count', '')}")
         ids[key] = job_id
         cache[key] = {"url": videos[key]["url"], "job_id": job_id, "title": snap["video"]["title"]}
         VIDEOS.write_text(json.dumps(cache, ensure_ascii=False, indent=2))
@@ -197,7 +204,10 @@ async def judge(llm, case: dict, run: dict) -> dict | None:
     if not case.get("rubric") or run["status"] != "done":
         return None
     prompt = JUDGE.replace("{question}", case["question"]).replace("{rubric}", case["rubric"]).replace("{answer}", run["answer"][:6000])
-    text = "".join([d async for d in llm.stream([{"role": "user", "content": prompt}], Usage(), max_tokens=200)])
+    try:
+        text = "".join([d async for d in llm.stream([{"role": "user", "content": prompt}], Usage(), max_tokens=200)])
+    except Exception as exc:  # the grader being unreachable must not lose the whole run
+        return {"score": None, "reason": f"未评分：{exc}"}
     match = re.search(r"\{.*\}", text, re.S)
     try:
         return json.loads(match.group(0)) if match else {"score": 0, "reason": f"无法解析：{text[:80]}"}
@@ -209,7 +219,7 @@ async def judge(llm, case: dict, run: dict) -> dict | None:
 def summary(results: list[dict]) -> dict:
     n = len(results) or 1
     tokens = [r["prompt_tokens"] or 0 for r in results]
-    graded = [r["judge"]["score"] for r in results if r.get("judge")]
+    graded = [r["judge"]["score"] for r in results if r.get("judge") and r["judge"].get("score") is not None]
     return {"cases": len(results), "passed": sum(r["passed"] for r in results),
             "avg_seconds": round(sum(r["seconds"] for r in results) / n, 1),
             "avg_prompt_k": round(sum(tokens) / n / 1000, 1),
@@ -283,7 +293,7 @@ async def main() -> None:
                         run["retried"] = first
                 fails = check(case, run)
                 verdict = await judge(llm, case, run) if llm else None
-                if verdict and verdict.get("score", 0) < 2:
+                if verdict and verdict.get("score") is not None and verdict["score"] < 2:
                     fails.append(f"评分 {verdict.get('score')}：{verdict.get('reason', '')}")
                 print(f"  {'✓' if not fails else '✗'} {case['id']}")
                 return {"id": case["id"], "question": case["question"], **run, "fails": fails, "passed": not fails, "judge": verdict}

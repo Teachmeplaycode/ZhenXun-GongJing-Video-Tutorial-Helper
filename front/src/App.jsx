@@ -32,7 +32,7 @@ const STEPS = [
   { n: '03', label: '对话分析', stages: ['chat'] },
 ]
 const SAMPLE_META = { name: '示例素材.mp4', size: 0, type: 'video/mp4', duration: 192, width: 1920, height: 1080, sample: true }
-const EMPTY_ANALYSIS = { meta: false, frames: 0, total: 0, missing: 0, index: false, transcript: null }
+const EMPTY_ANALYSIS = { meta: false, frames: 0, total: 0, missing: 0, index: false, transcript: null, screentext: null }
 // Frames sampled before chat may start while the rest keep arriving in the background.
 const EARLY_CHAT_FRAMES = 16
 const WIPE_PIXEL_COUNT = 160
@@ -225,6 +225,8 @@ export default function App() {
         setAnalysis((a) => ({ ...a, status: ev.message }))
       } else if (ev.type === 'transcript') {
         setAnalysis((a) => ({ ...a, transcript: { status: ev.status, message: ev.message, count: ev.count } }))
+      } else if (ev.type === 'screentext') {
+        setAnalysis((a) => ({ ...a, screentext: { status: ev.status, message: ev.message, count: ev.count } }))
       } else if (ev.type === 'done') {
         // Frames are finished: chat can start; the stream stays open while speech is still transcribing.
         setCoverage(ev.coverage)
@@ -263,7 +265,7 @@ export default function App() {
       setMeta({ ...baseMeta, name: link ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length })
       setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description })
       setFrames(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' })))
-      setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript })
+      setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
       if (v.notes?.length) setNotice(v.notes.join('；'))
       await waitMaskEnter()
       signal.throwIfAborted()
@@ -297,14 +299,16 @@ export default function App() {
     if (!signal || signal.aborted) return
     setRetrying(true)
     try {
-      const { retrying: count, transcript, since } = await retryLinkJob(video.jobId, { signal })
+      const { retrying: count, transcript, screentext, since } = await retryLinkJob(video.jobId, { signal })
       if (count) {
         setFrames((list) => list.map((f) => (f.status === 'missing' && f.reasonCode !== 'trial' ? { ...f, status: 'pending', reason: '' } : f)))
         setAnalysis((a) => ({ ...a, missing: a.missing - count }))
       }
       if (transcript) setAnalysis((a) => ({ ...a, transcript: { status: 'running', message: '正在重新转写', count: 0 } }))
-      if (count || transcript) {
-        setNotice([count ? `正在补抓 ${count} 帧` : '', transcript ? '正在重新转写语音' : ''].filter(Boolean).join('，') + '…')
+      if (screentext) setAnalysis((a) => ({ ...a, screentext: { status: 'running', message: '正在重新识别', count: 0 } }))
+      if (count || transcript || screentext) {
+        setNotice([count ? `正在补抓 ${count} 帧` : '', transcript ? '正在重新转写语音' : '', screentext ? '正在识别画面文字' : '']
+          .filter(Boolean).join('，') + '…')
         await followLinkJob(video.jobId, since, signal)
       }
     } catch (err) {
@@ -454,7 +458,7 @@ export default function App() {
       setVideo({ videoId: id, jobId: id, task: saved.task, title: v.title, description: v.description })
       setFrames(nextFrames)
       setCoverage(saved.coverage)
-      setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript })
+      setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript, screentext: saved.screentext || null })
       setNotice(saved.running ? '' : [...(v.notes || []), coverageNotice(saved.coverage)].filter(Boolean).join('；'))
       setInitialMessages(restoreMessages(saved.messages, nextFrames))
       setSelected([])
@@ -482,7 +486,7 @@ export default function App() {
         .set(wipeSnake, { clearProps: 'all' })
     }
     // Sampling still running (e.g. reopened right after parsing): keep the timeline filling in.
-    if (saved.running || saved.transcript?.status === 'running') {
+    if (saved.running || saved.transcript?.status === 'running' || saved.screentext?.status === 'running') {
       followLinkJob(id, saved.seq, signal).catch((err) => {
         if (err.name !== 'AbortError') setNotice(err.message)
       })
@@ -657,6 +661,7 @@ export default function App() {
               frames={frames}
               coverage={coverage}
               transcript={analysis.transcript}
+              screentext={analysis.screentext}
               duration={meta?.duration}
               onSeek={(time) => { setTimelineOpen(true); setSeek({ time, key: Date.now() }) }}
               onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}

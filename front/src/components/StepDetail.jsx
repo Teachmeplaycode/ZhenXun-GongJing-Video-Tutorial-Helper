@@ -120,7 +120,7 @@ function Hits({ hits, onSeek }) {
       {hits.map((h, i) => (
         <li key={i} data-row>
           <button type="button" className="ts-chip" onClick={() => onSeek?.(h.t)}>{clock(h.t)}</button>
-          <span>{h.text}</span>
+          <span>{h.source === 'screen' ? <span className="viz-stamp viz-stamp--off viz-hits__source">字幕</span> : null}{h.text}</span>
         </li>
       ))}
     </ol>

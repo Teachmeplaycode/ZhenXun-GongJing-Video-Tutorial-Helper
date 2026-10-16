@@ -13,6 +13,8 @@ dependencies = [
   "ddgs>=9.14",
   "playwright>=1.64.0",
   "segno>=1.6.6",
+  "pyobjc-framework-vision>=10 ; sys_platform == 'darwin'",
+  "pyobjc-framework-quartz>=10 ; sys_platform == 'darwin'",
 ]
 
 [dependency-groups]

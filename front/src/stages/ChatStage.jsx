@@ -8,13 +8,13 @@ import SpotlightCard from '../components/react-bits/SpotlightCard'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
 import { WORKSPACE_CONTENT } from '../config/workspace'
 import { prefersReducedMotion } from '../lib/motion'
-import { speechStep } from './AnalyzeHud'
+import { screenStep, speechStep } from './AnalyzeHud'
 import Avatar from '../components/Avatar'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 
 // onPickFrames: open the timeline so frames can be picked as attachments.
-export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames }) {
   const { messages, send, regenerate, stop, running } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   const [draft, setDraft] = useState('')
   const [following, setFollowing] = useState(true)
@@ -64,7 +64,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     onClearSelection()
   }
 
-  const scopeNote = `范围：${selected.length ? `已选 ${selected.length} 帧` : '整段视频'}${transcript ? ` · 语音 ${speechStep(transcript).value || '等待'}` : ''}`
+  const scopeNote = `范围：${selected.length ? `已选 ${selected.length} 帧` : '整段视频'}${transcript ? ` · 语音 ${speechStep(transcript).value || '等待'}` : ''}${screentext ? ` · 字幕 ${screenStep(screentext).value || '等待'}` : ''}`
 
   return (
     <div className="chat">

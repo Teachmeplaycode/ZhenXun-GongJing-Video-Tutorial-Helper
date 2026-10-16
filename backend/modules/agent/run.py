@@ -48,12 +48,13 @@ NARRATION_CHARS = 60  # text shorter than this followed by tool calls is narrati
 LINE_SECONDS = 12         # transcript segments are merged into lines of about this length
 FRAME_WINDOW = 10         # with selected frames, speech within this many seconds of each is sent
 
-SYSTEM_PROMPT = """你是视频理解助手。用户给你的是从一段视频中按时间抽取的若干关键帧（静态画面），每张图前标注了帧号和时间点；有语音时还会附上带时间点的语音转写。
+SYSTEM_PROMPT = """你是视频理解助手。用户给你的是从一段视频中按时间抽取的若干关键帧（静态画面），每张图前标注了帧号和时间点；有语音时还会附上带时间点的语音转写；画面上有字时还会附上「画面文字」：对整段视频每秒识别一次得到的字幕、花字和画面上的文字。
 
 规则：
 - 只依据这些画面、语音转写、视频标题和简介回答。你看不到连续画面，不要编造画面之间发生的事。
 - 语音转写是自动识别的，可能有同音错字、漏字或把背景音乐误识别成文字；引用时保留原话，明显不通的地方说明可能识别有误。转写只记录说话内容，不包含语气、音乐和音效。
 - 没有提供语音转写时，你不知道视频里说了什么，不要编造台词或口播。
+- 画面文字是自动识别的，可能有个别错字；它覆盖整段视频，比抽样关键帧完整得多。很多视频的对话就在烧录的字幕里：语音转写缺失、只覆盖一小部分或标明不可靠时，以画面字幕为准，并说明内容来自画面字幕。
 - 引用画面或台词时写出时间点，例如 [01:23]，方便用户回到原视频核对。
 - 画面里能看到的文字可以引用；看不清就说看不清。
 - 画面之间的间隔是正常的抽样间隔，不要把它们当作缺失逐一列出。只有上下文里明确列出的「没有取到画面的时段」才是缺失，结论不要覆盖这些时段，并在回答中说明。
@@ -173,8 +174,73 @@ def pick_transcript(job: FrameJob, frames: list | None) -> tuple[list[str], str]
     return kept, note
 
 
+def max_screen_chars() -> int:
+    return max(1000, int(os.environ.get("LLM_MAX_SCREEN_CHARS", "20000")))
+
+
+def pick_screentext(job: FrameJob, frames: list | None) -> tuple[list[str], str]:
+    """Timed on-screen text lines for the request (`frames`: the selected slots, or None), and a note."""
+    screen = job.screentext
+    if screen is None or not screen.segments:
+        status = screen.status if screen else "none"
+        reasons = {"running": "画面文字仍在识别中", "pending": "画面文字尚未开始识别"}
+        return [], reasons.get(status) or (screen.message if screen and screen.message else "")
+    captions = screen.segments
+    if frames is not None:
+        captions = [c for c in captions if any(c.end >= f.time - FRAME_WINDOW and c.start <= f.time + FRAME_WINDOW for f in frames)]
+    total = len(captions)
+    repeats = 0
+    if not speech_warning(job):
+        # Subtitles that say what the speech transcript already says only cost tokens: send the rest.
+        # (search_transcript / read_transcript still find all of them.)
+        captions = [c for c in captions if not (c.pos == "bottom" and spoken(job, c))]
+        repeats = total - len(captions)
+    note = f"{len(captions)} 段" + ("（所选帧前后各 %d 秒）" % FRAME_WINDOW if frames is not None else "")
+    if repeats:
+        note += f"；另有 {repeats} 段字幕和语音转写重复，已省略（用 search_transcript 能搜到）"
+    lines, budget = [], max_screen_chars()
+    for c in captions:
+        line = f"[{clock(c.start)}] {'' if c.pos == 'bottom' else '（画面中的字）'}{c.text}"
+        budget -= len(line) + 1
+        if budget < 0:
+            note += f"，过长只保留到 {clock(c.start)} 之前"
+            break
+        lines.append(line)
+    return lines, note
+
+
+REPEAT_WINDOW = 4  # seconds around a subtitle in which the same words spoken count as a repeat
+
+
+def spoken(job: FrameJob, caption) -> bool:
+    """The speech transcript says (nearly) the same words around this caption's time."""
+    from modules.screentext.merge import similar
+
+    near = "".join(s.text for s in (job.transcript.segments if job.transcript else [])
+                   if s.end >= caption.start - REPEAT_WINDOW and s.start <= caption.end + REPEAT_WINDOW)
+    return bool(near) and similar(caption.text, near)
+
+
+# Scripts a Chinese / English video's speech should never produce: Whisper writes them over music or dialect.
+GARBLED = re.compile(r"[\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0e00-\u0e7f\uac00-\ud7af]|[çşğıâêîôûãõ]")
+
+
+def speech_warning(job: FrameJob) -> str:
+    """Why the speech transcript shouldn't be trusted as dialogue, or "" when it looks fine."""
+    speech = job.transcript.segments if job.transcript else []
+    subtitles = [c for c in (job.screentext.segments if job.screentext else []) if c.pos == "bottom"]
+    reasons = []
+    if speech and sum(bool(GARBLED.search(s.text)) for s in speech) / len(speech) >= 0.08:
+        reasons.append("夹杂大量其他语言的乱码，很可能是音乐或方言被误识别")
+    if len(subtitles) >= 20 and len(speech) < len(subtitles) / 4:
+        reasons.append(f"只识别出 {len(speech)} 句，而画面上有 {len(subtitles)} 段字幕")
+    if not reasons:
+        return ""
+    return "语音转写不可靠（" + "；".join(reasons) + "）：不要把它当作台词，说了什么以画面字幕为准"
+
+
 def build_messages(job: FrameJob, frames: list, question: str, history: list[dict], scope_all: bool,
-                   transcript: tuple[list[str], str] = ([], "")) -> list[dict]:
+                   transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], "")) -> list[dict]:
     video = job.video
     coverage = job.coverage()
     context = [f"视频标题：{video.title}", f"时长：{clock(video.duration)}"]
@@ -196,9 +262,18 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     lines, note = transcript
     if not lines and note:
         context.append(f"语音：{note}")
+    warning = speech_warning(job)
+    if warning:
+        context.append(warning)
+    screen_lines, screen_note = screen
+    if not screen_lines and screen_note:
+        context.append(f"画面文字：{screen_note}")
     content: list[dict] = [{"type": "text", "text": "\n".join(context)}]
     if lines:
         content.append({"type": "text", "text": f"语音转写（{note}）：\n" + "\n".join(lines)})
+    if screen_lines:
+        content.append({"type": "text", "text": f"画面文字（每秒识别一次的字幕、花字和画面上的字，可能有个别错字；{screen_note}）：\n"
+                                                + "\n".join(screen_lines)})
     for slot in frames:
         data = base64.b64encode(job.frame_path(slot.index).read_bytes()).decode()
         content.append({"type": "text", "text": f"帧 {frame_no(slot.index)} · {clock(slot.time)}"})
@@ -256,11 +331,23 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield tool("speech", "output", stdout="\n".join([note, *preview]), exit_code=0)
     yield tool("speech", "completed", result_count=len(lines))
 
+    screen = pick_screentext(job, selected)
+    if job.screentext is not None and (screen[0] or job.screentext.status not in ("unavailable", "empty")):
+        steps += 1
+        yield tool("screen", "started", tool_name="screentext.read")
+        yield tool("screen", "input", input={"kind": "params", "params": {
+            "scope": f"所选帧前后 {FRAME_WINDOW}s" if frames else "整段视频", "status": job.screentext.status}})
+        warning = speech_warning(job)
+        shown = screen[0][:6] + ([f"… 共 {len(screen[0])} 行"] if len(screen[0]) > 6 else [])
+        yield tool("screen", "output", stdout="\n".join([screen[1], *([warning] if warning else []), *shown]), exit_code=0,
+                   data={"warning": warning})
+        yield tool("screen", "completed", result_count=len(screen[0]))
+
     model = client.config.model
     rounds = tool_rounds()
     tools = AgentTools(job, decider=decider, llm=client)
     audience = tools.audience()
-    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript)
+    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen)
 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.

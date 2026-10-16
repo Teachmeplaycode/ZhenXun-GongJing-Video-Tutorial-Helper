@@ -33,6 +33,8 @@ export function describeStep(call) {
         meta: done ? `${needed ? '需要' : '不需要'}${d.p != null ? ` · ${d.p.toFixed(2)}` : ''}` : '',
       }
     }
+    case 'screentext.read':
+      return { verb: '读取画面文字', target: p.scope || '', meta: done ? (n ? `${n} 段` : '没有文字') : '' }
     case 'transcript.search':
       return { verb: '搜索转写', target: `「${p.query || ''}」`, meta: done ? `${n} 处` : '' }
     case 'transcript.read_range':
