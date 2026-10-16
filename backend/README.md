@@ -211,7 +211,7 @@ tests/                       解析器与抽帧任务的单元测试
 解析链接后，转写和抽帧同时开始：
 
 1. 解析器同时取得 DASH 音频轨（`ResolvedVideo.audio_streams`，最低码率在前）；ffmpeg 只读音轨，转成 16 kHz 单声道 WAV 放在任务目录，转写完立即删除。地址全部被拒时重新获取一次。
-2. 本机用 mlx-whisper 识别（Apple Silicon；同一时间只跑一个识别任务）。过滤疑似非语音段、Whisper 在静音和音乐上常见的幻觉句和自我重复。
+2. 本机用 mlx-whisper 识别（Apple Silicon；同一时间只跑一个识别任务）。过滤疑似非语音段、Whisper 在静音和音乐上常见的幻觉句和自我重复。评测集发现每个没有口播的视频都会被识别出"字幕志愿者 李宗盛"（或"作词 李宗盛"），已加入过滤；旧会话加载时也会去掉。
 3. 结果存入会话（`sessions.transcript`），重启后恢复；重启时没转完的标为失败，补抓时会重做。
 4. 进度通过任务事件流 `transcript` 推送：`running`（读取音轨 / 识别语音）→ `done` / `empty`（没有语音）/ `none`（没有音轨）/ `unavailable`（没装 mlx-whisper）/ `failed`。
 

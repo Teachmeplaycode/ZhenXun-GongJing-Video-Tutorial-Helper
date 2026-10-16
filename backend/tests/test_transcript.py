@@ -56,8 +56,16 @@ def test_clean_drops_hallucinations_and_repeats():
         {"start": 9, "end": 10, "text": "嗯", "no_speech_prob": 0.9, "avg_logprob": -1.5},
         {"start": 11, "end": 12, "text": "啊啊啊啊啊啊", "compression_ratio": 3.1},
         {"start": 12, "end": 14, "text": "结束"},
+        {"start": 20, "end": 22, "text": "字幕志愿者 李宗盛"},
+        {"start": 23, "end": 24, "text": "作词 李宗盛"},
     ]
     assert [(s.start, s.end, s.text) for s in clean(raw)] == [(0.0, 3, "大家好"), (12.0, 14.0, "结束")]
+
+
+def test_saved_transcripts_lose_hallucinations_on_load():
+    t = Transcript.from_dict({"status": "done", "segments": [{"start": 0, "end": 1, "text": "字幕志愿者 李宗盛"},
+                                                              {"start": 2, "end": 3, "text": "李宗盛的歌很好听"}]})
+    assert [s.text for s in t.segments] == ["李宗盛的歌很好听"]
 
 
 def test_transcript_success_removes_audio(tmp_path):
