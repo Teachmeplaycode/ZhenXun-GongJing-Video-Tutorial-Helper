@@ -40,12 +40,15 @@ UPLOADS = SERVER / "uploads.json"
 RESULTS = BENCH / "results"
 HF = "https://huggingface.co/datasets/zai-org/MotionBench"
 
-CONFIGS = {  # D adds the experience file (scripts/experience.py) on top of C
+CONFIGS = {  # D adds round-1 lessons (all of them), D2 only the two relevant kinds, D3 round-2 lessons that way
     "A": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "off"},
     "A48": {"LLM_MAX_IMAGES": "48", "LLM_TOOLS": "off"},
     "B": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "off"},
     "C": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on"},
-    "D": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience.json")},
+    "D": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience-r1.json"),
+          "EXPERIENCE_SELECT": "all"},
+    "D2": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience-r1.json")},
+    "D3": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience-r2.json")},
 }
 COMMON = {"LLM_WEB": "off", "BROWSER": "off", "KEEP_UPLOADS": "on", "GONGJING_DATA_DIR": str(SERVER)}
 # Benchmarks score an abstention as wrong; the app's prompt says "say you're unsure", so ask for a pick here
