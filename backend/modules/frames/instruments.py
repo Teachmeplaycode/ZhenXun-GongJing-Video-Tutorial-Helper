@@ -43,13 +43,20 @@ def reading_labels(camera: str) -> set[str]:
     return out
 
 
+def uncalibrated() -> bool:
+    """CALIBRATION_FILE=none: readings without any note on how far to trust them (the zero-practice baseline)."""
+    from modules.settings import settings
+
+    return settings().get("CALIBRATION_FILE", "").strip().lower() == "none"
+
+
 def learned() -> dict | None:
     """The calibration table learned from practice questions (CALIBRATION_FILE), or None."""
     import json
     from modules.settings import settings
 
     path = settings().get("CALIBRATION_FILE", "").strip()
-    if not path:
+    if not path or path.lower() == "none":
         return None
     try:
         return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -59,6 +66,8 @@ def learned() -> dict | None:
 
 def camera_note(camera: str) -> str:
     """What the right answer turned out to be when this reading came up in practice; the fixed note otherwise."""
+    if uncalibrated():
+        return ""
     table = (learned() or {}).get("camera") or {}
     key = "+".join(sorted(reading_labels(camera))) or "unknown"
     row = (table.get("readings") or {}).get(key)
@@ -71,6 +80,8 @@ def camera_note(camera: str) -> str:
 
 def count_note(peaks: int) -> tuple[str, int | None]:
     """A count estimate from the peaks, with the learned spread; (sentence, estimate)."""
+    if uncalibrated():
+        return "", None
     table = (learned() or {}).get("count") or {}
     if not table:
         return f"约 {round(peaks / 2)} 次——一个来回的动作通常产生两个运动峰，所以按峰值数的一半估计（{CALIBRATION['count']}）", round(peaks / 2)
