@@ -137,6 +137,14 @@ def training(n: int, seed: int) -> list[dict]:
     return sample(n, seed, exclude={i["uid"] for i in sample(TEST_N, TEST_SEED)})
 
 
+def validation(n: int, seed: int) -> list[dict]:
+    """Questions for checking lessons: neither test questions nor the training questions lessons came from."""
+    used = {i["uid"] for i in sample(TEST_N, TEST_SEED)}
+    for path in (RESULTS / "train").glob("*.json"):
+        used |= {r["uid"] for r in json.loads(path.read_text())["results"]}
+    return sample(n, seed, exclude=used)
+
+
 async def ask(api: httpx.AsyncClient, job_id: str, question: str) -> dict:
     body = {"video_id": job_id, "question": question + SUFFIX, "history": False, "web": False, "papers": False, "scope": {"type": "all"}}
     text, tools, final, started = [], [], {}, time.perf_counter()
@@ -207,7 +215,7 @@ def report(folder: Path = RESULTS) -> None:
     runs = defaultdict(list)
     for path in sorted(folder.glob("*.json")):
         run = json.loads(path.read_text())
-        if run.get("split", "test") == "test":
+        if run.get("split", "test") in ("test", "val"):  # a folder holds one kind of split
             runs[run["config"]].append(run)
     if not runs:
         print(f"{folder} 里还没有测试结果。")
@@ -252,13 +260,21 @@ async def main() -> None:
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--report", nargs="?", const=str(RESULTS), help="compare the runs in a results folder")
     parser.add_argument("--train", action="store_true", help="gather experience: questions outside the held-out test set")
+    parser.add_argument("--val", action="store_true", help="check lessons: questions outside the test set and every training run")
+    parser.add_argument("--types", default="", help="only these question types (comma-separated)")
+    parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="override a backend setting for this run")
     parser.add_argument("--tag", default="", help="suffix for the result file and the backend folder (parallel runs)")
     args = parser.parse_args()
     if args.report or not args.config:
         return report(Path(args.report) if args.report else RESULTS)
 
-    items = training(args.n, args.seed) if args.train else sample(args.n, args.seed)
-    split = "训练（不含测试题）" if args.train else "测试"
+    items = training(args.n, args.seed) if args.train else validation(args.n, args.seed) if args.val else sample(args.n, args.seed)
+    if args.types:
+        wanted = {t.strip() for t in args.types.split(",")}
+        items = [i for i in items if i["type"] in wanted]
+    split = "训练（不含测试题）" if args.train else "验证（不含测试题和训练题）" if args.val else "测试"
+    overrides = dict(kv.split("=", 1) for kv in args.set)
+    env = {**CONFIGS[args.config], **overrides}
     print(f"MotionBench 开发集 · {split}：{len(items)} 题（每类 {args.n}，seed {args.seed}），配置 {args.config} {CONFIGS[args.config]}")
     failed = await download_all(items)
     print(f"视频下载：{len({i['video'] for i in items}) - len(failed)} 个可用，{len(failed)} 个失败")
@@ -266,7 +282,7 @@ async def main() -> None:
     uploads = server / "uploads.json"
     jobs = json.loads(uploads.read_text()) if uploads.exists() else {}
     server.mkdir(parents=True, exist_ok=True)
-    with Backend(env={**COMMON, **CONFIGS[args.config], "GONGJING_DATA_DIR": str(server)}) as backend:
+    with Backend(env={**COMMON, **env, "GONGJING_DATA_DIR": str(server)}) as backend:
         async with httpx.AsyncClient(base_url=backend.base, timeout=60) as api, httpx.AsyncClient() as hub:
             gate = asyncio.Semaphore(args.concurrency)
 
@@ -301,16 +317,16 @@ async def main() -> None:
             results = await asyncio.gather(*(one(i, j) for i, j in zip(items, ids)))
     RESULTS.mkdir(parents=True, exist_ok=True)
     started = time.strftime("%Y-%m-%d %H:%M")
-    run = {"config": args.config, "env": CONFIGS[args.config], "n": args.n, "seed": args.seed, "started": started,
-           "split": "train" if args.train else "test", "tag": args.tag,
+    run = {"config": args.config, "env": env, "n": args.n, "seed": args.seed, "started": started,
+           "split": "train" if args.train else "val" if args.val else "test", "tag": args.tag, "types": args.types,
            "table": table(results), "results": results}
-    folder = RESULTS / "train" if args.train else RESULTS
+    folder = RESULTS / "train" if args.train else RESULTS / "val" if args.val else RESULTS
     folder.mkdir(parents=True, exist_ok=True)
     name = f"{time.strftime('%Y%m%d-%H%M%S')}-{args.config}{'-' + args.tag if args.tag else ''}.json"
     (folder / name).write_text(json.dumps(run, ensure_ascii=False, indent=1))
-    if args.train:
+    if args.train or args.val:
         t = run["table"]["全部"]
-        print(f"训练集 {args.config}：{t['acc'] * 100:.1f}%（{t['correct']}/{t['n']}），结果 {folder / name}")
+        print(f"{'训练' if args.train else '验证'}集 {args.config}{(' ' + args.tag) if args.tag else ''}：{t['acc'] * 100:.1f}%（{t['correct']}/{t['n']}），结果 {folder / name}")
     else:
         report()
 
