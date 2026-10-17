@@ -40,7 +40,8 @@ UPLOADS = SERVER / "uploads.json"
 RESULTS = BENCH / "results"
 HF = "https://huggingface.co/datasets/zai-org/MotionBench"
 
-CONFIGS = {  # D adds round-1 lessons (all of them), D2 only the two relevant kinds, D3 round-2 lessons that way
+CONFIGS = {  # D adds round-1 lessons (all of them), D2 only the two relevant kinds, D3 round-2 lessons that way;
+             # E replaces C's hand-written instrument notes with the table learned by scripts/calibrate.py
     "A": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "off"},
     "A48": {"LLM_MAX_IMAGES": "48", "LLM_TOOLS": "off"},
     "B": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "off"},
@@ -48,6 +49,7 @@ CONFIGS = {  # D adds round-1 lessons (all of them), D2 only the two relevant ki
     "D": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience-r1.json"),
           "EXPERIENCE_SELECT": "all"},
     "D2": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience-r1.json")},
+    "E": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "CALIBRATION_FILE": str(BENCH / "calibration.json")},
     "D3": {"LLM_MAX_IMAGES": "16", "LLM_TOOLS": "on", "INSTRUMENTS": "on", "EXPERIENCE_FILE": str(BENCH / "experience-r2.json")},
 }
 COMMON = {"LLM_WEB": "off", "BROWSER": "off", "KEEP_UPLOADS": "on", "GONGJING_DATA_DIR": str(SERVER)}

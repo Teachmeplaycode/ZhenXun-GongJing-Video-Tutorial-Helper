@@ -26,6 +26,61 @@ CALIBRATION = {
     "count": "在 57 道训练题上，用峰值数的一半去选最接近的选项能选对 53%（直接用峰值数 18%，随机猜约 25%）",
 }
 
+LABEL_NAMES = {"static": "静止", "shake": "晃动", "left": "向左", "right": "向右", "up": "向上", "down": "向下",
+               "in": "推近", "out": "拉远", "unknown": "无法估计"}
+
+
+def reading_labels(camera: str) -> set[str]:
+    """A camera reading as labels, the key of the learned calibration table (scripts/calibrate.py)."""
+    out = set()
+    if camera.startswith("基本静止"):
+        out.add("static")
+    if camera.startswith("轻微晃动"):
+        out.add("shake")
+    for word, label in (("镜头向左", "left"), ("镜头向右", "right"), ("镜头向上", "up"), ("镜头向下", "down"), ("推近", "in"), ("拉远", "out")):
+        if word in camera:
+            out.add(label)
+    return out
+
+
+def learned() -> dict | None:
+    """The calibration table learned from practice questions (CALIBRATION_FILE), or None."""
+    import json
+    from modules.settings import settings
+
+    path = settings().get("CALIBRATION_FILE", "").strip()
+    if not path:
+        return None
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def camera_note(camera: str) -> str:
+    """What the right answer turned out to be when this reading came up in practice; the fixed note otherwise."""
+    table = (learned() or {}).get("camera") or {}
+    key = "+".join(sorted(reading_labels(camera))) or "unknown"
+    row = (table.get("readings") or {}).get(key)
+    if not row:
+        return CALIBRATION["camera"] if not table else (
+            f"这种读数在练习题里出现得太少，没有统计；总体上读数和标准答案一致约 {table.get('agreement', 0):.0%}，只作参考")
+    dist = "、".join(f"{LABEL_NAMES.get(k, k)} {v:.0%}" for k, v in row["truth"].items())
+    return f"在 {row['n']} 道出现过这种读数的练习题里，正确答案是：{dist}（一题可能同时属于几类）"
+
+
+def count_note(peaks: int) -> tuple[str, int | None]:
+    """A count estimate from the peaks, with the learned spread; (sentence, estimate)."""
+    table = (learned() or {}).get("count") or {}
+    if not table:
+        return f"约 {round(peaks / 2)} 次——一个来回的动作通常产生两个运动峰，所以按峰值数的一半估计（{CALIBRATION['count']}）", round(peaks / 2)
+    est = max(1, round(peaks * table["ratio_median"]))
+    lo, hi = max(1, round(peaks * table["ratio_q1"])), max(1, round(peaks * table["ratio_q3"]))
+    return (f"约 {est} 次（多半在 {lo}–{hi} 次之间）——在 {table['n']} 道练习题里，真实次数约为峰值数的 {table['ratio_median']} 倍"
+            f"（一半的题落在 {table['ratio_q1']}–{table['ratio_q3']} 倍）；用这个估计选最接近的选项选对 {table['pick_with_median']:.0%}，"
+            f"随机猜约 {table['chance']:.0%}"), est
+
+
 MAX_SPAN = 30.0
 MAX_FPS = 15.0
 MAX_FRAMES = 300
