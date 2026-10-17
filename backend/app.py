@@ -504,6 +504,7 @@ async def agent_run(body: AgentRequest):
             return
         frames = body.scope.get("frames") if body.scope.get("type") == "frames" else None
         history = store.history(job.id) if body.history else []
+        framed = store.framed(job.id)  # read before the question is saved: it ends the run of hand replays
         store.add_message(job.id, "user", body.question, data={"frames": frames or []})
         # The answer is saved as its text plus its events in order, consecutive text deltas merged,
         # so the UI can replay where text fell between tool calls. `t` is seconds since the question.
@@ -514,7 +515,7 @@ async def agent_run(body: AgentRequest):
         final: dict = {}
         try:
             async for event in run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
-                                         web=body.web, papers=body.papers):
+                                         web=body.web, papers=body.papers, framed=framed):
                 event = {**event, "t": round(time.perf_counter() - started, 2)}
                 if event["type"] == "assistant.message.delta":
                     text.append(event["delta"])

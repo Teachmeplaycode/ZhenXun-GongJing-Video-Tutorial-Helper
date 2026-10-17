@@ -169,6 +169,17 @@ class SessionStore:
         return [{"id": r["id"], "created": r["created"], "role": r["role"], "content": r["content"],
                  "status": r["status"], **json.loads(r["data"])} for r in rows]
 
+    def framed(self, session_id: str) -> list[tuple[float, float]]:
+        """Stretches replayed by hand on the timeline since the last question, oldest first."""
+        out = []
+        for row in reversed(self.messages(session_id)):
+            if row.get("manual") != "replay":
+                break
+            data = next((e.get("data") for e in row.get("events", []) if e.get("type") == "tool_call.output"), None) or {}
+            if isinstance(data.get("start"), (int, float)) and isinstance(data.get("end"), (int, float)):
+                out.append((float(data["start"]), float(data["end"])))
+        return out[::-1]
+
     def history(self, session_id: str, turns: int = HISTORY_TURNS) -> list[dict]:
         """Completed question/answer pairs, oldest first, as chat messages."""
         pairs = []
