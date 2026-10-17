@@ -3,6 +3,10 @@ const clock = (s) => {
   const t = Math.max(0, Math.round(Number(s) || 0))
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
+// "114" / 114.5 → "01:54"; "01:54" stays. Prefers the range the tool actually used (data) over what was asked.
+const at = (v) => (v == null || v === '' ? '' : /^\d+(\.\d+)?$/.test(String(v).trim()) ? clock(v) : String(v))
+const span = (p, d) => (typeof d.start === 'number' && typeof d.end === 'number'
+  ? `${clock(d.start)}–${clock(d.end)}` : `${at(p.start)}–${at(p.end)}`)
 const firstLine = (s) => (s || '').split('\n')[0]
 const host = (url) => {
   try {
@@ -38,17 +42,17 @@ export function describeStep(call) {
     case 'transcript.search':
       return { verb: '搜索转写', target: `「${p.query || ''}」`, meta: done ? `${n} 处` : '' }
     case 'transcript.read_range':
-      return { verb: '读取转写', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 句` : '' }
+      return { verb: '读取转写', target: span(p, d), meta: done ? `${n} 句` : '' }
     case 'experience.recall':
       return { verb: '调取经验', target: (d.kinds || []).join('、'), meta: done ? `${n} 条` : '' }
     case 'frames.motion':
-      return { verb: '测量运动', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? (d.camera ? d.camera.split(/[；（]/)[0] : '') : '' }
+      return { verb: '测量运动', target: span(p, d), meta: done ? (d.camera ? d.camera.split(/[；（]/)[0] : '') : '' }
     case 'frames.replay': {
       const fps = d.fps ?? p.fps
-      return { verb: '慢放复看', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 帧${fps ? ` · 每秒 ${fps} 帧` : ''}` : '' }
+      return { verb: '慢放复看', target: span(p, d), meta: done ? `${n} 帧${fps ? ` · 每秒 ${fps} 帧` : ''}` : '' }
     }
     case 'frames.view':
-      return { verb: '细看画面', target: `${p.start ?? ''}–${p.end ?? ''}`, meta: done ? `${n} 张` : '' }
+      return { verb: '细看画面', target: span(p, d), meta: done ? `${n} 张` : '' }
     case 'web.search': {
       const dropped = (d.results || []).filter((r) => r.verdict === 'irrelevant').length
       return {

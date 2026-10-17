@@ -3,6 +3,7 @@ import Avatar from './Avatar'
 import BrowserViewport from './BrowserViewport'
 import StreamingText from './StreamingText'
 import StepGroup from './StepGroup'
+import { Replay } from './StepDetail'
 import { IconCheck, IconCopy, IconRefresh } from './Icons'
 import { fmtElapsed, fmtTime, frameNo } from '../lib/format'
 import { host, isVisibleStep } from '../lib/steps'
@@ -106,6 +107,30 @@ function Footer({ message, onRegenerate }) {
   )
 }
 
+const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`
+
+// A replay framed by hand on the timeline: the player straight away, no model and no steps list.
+function ManualReplay({ message, onTime }) {
+  const call = message.parts.find((p) => p.kind === 'steps')?.calls[0]
+  const d = call?.data || {}
+  const [start, end] = message.range || [d.start, d.end]
+  return (
+    <div className="msg msg--assistant msg--manual">
+      <Avatar role="assistant" />
+      <div className="bubble bubble--assistant manual-replay">
+        <div className="manual-replay__head">
+          <span className="manual-replay__tag">手动慢放</span>
+          {start != null ? <span className="mono-sm">{fine(start)} – {fine(end)}</span> : null}
+          {d.frames ? <span className="mono-sm muted">{d.frames.length} 帧 · 每秒 {d.fps} 帧 · 未经模型</span> : null}
+        </div>
+        {message.status === 'running' ? <div className="manual-replay__wait mono-sm muted">正在读取这一段…</div> : null}
+        {message.error ? <div className="bubble__error">{message.error}</div> : null}
+        {d.frames ? <Replay d={d} onSeek={onTime} /> : null}
+      </div>
+    </div>
+  )
+}
+
 // onTime(seconds): a time in the answer was clicked; duration bounds which times count.
 // onRegenerate: ask the same question again (null while another answer is running).
 export default function MessageBubble({ message, onStop, onTime = null, duration = null, onRegenerate = null }) {
@@ -125,6 +150,7 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
       </div>
     )
   }
+  if (message.manual === 'replay') return <ManualReplay message={message} onTime={onTime} />
   const streaming = message.status === 'running'
   const parts = message.parts
   const lastText = parts.map((p) => p.kind).lastIndexOf('text')

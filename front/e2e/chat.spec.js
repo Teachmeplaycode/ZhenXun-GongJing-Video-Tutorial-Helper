@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { fileURLToPath } from 'node:url'
-import { MockApi, researchAnswer } from './mock-api.js'
+import { MockApi, replayAnswer, researchAnswer } from './mock-api.js'
 
 const LINK = 'https://www.bilibili.com/video/BV1TEST00001'
 
@@ -247,4 +247,113 @@ test('theme: follows the system, then light, then dark, and is remembered', asyn
   await expect(html).toHaveAttribute('data-theme', 'dark') // the stored choice wins over the system
   const ink = await page.evaluate(() => getComputedStyle(document.body).color)
   expect(ink).toBe('rgb(237, 234, 228)')
+})
+
+test('replayed and closer-look frames: on the timeline in their colours, enlargeable', async ({ page }) => {
+  await start(page, (m) => m.runs.push(replayAnswer()))
+  await enterChat(page)
+  await ask(page, '慢放 01:00 到 01:01')
+  const answer = lastAnswer(page)
+  await expect(answer.locator('.msg-footer')).toBeVisible()
+
+  // the timeline gains the 4 + 2 frames, each kind with its legend and band
+  await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(4)
+  await expect(page.locator('.tl-sheet.is-extra[data-kind="view"]')).toHaveCount(2)
+  await expect(page.locator('.timeline__legend[data-kind="replay"], .timeline__legend[data-kind="view"]')).toHaveText(['慢放 4 帧', '补看 2 帧'])
+  await expect(page.locator('.tl-band')).toHaveCount(2)
+  await expect(page.locator('.timeline__head')).toContainText('8 帧') // the keyframe count is unchanged
+
+  // a timeline frame opens enlarged; arrows step through its group, Esc closes
+  await page.locator('.tl-sheet.is-extra[data-kind="replay"]').nth(1).dispatchEvent('click')
+  const box = page.locator('.lightbox')
+  await expect(box).toContainText('01:00.33')
+  await expect(box).toContainText('2 / 4')
+  await page.keyboard.press('ArrowRight')
+  await expect(box).toContainText('3 / 4')
+  await page.keyboard.press('Escape')
+  await expect(box).toHaveCount(0)
+
+  // the step shows its range as mm:ss, and the player's thumbnails enlarge too
+  await answer.locator('.step-group .thought-line__head').click()
+  const row = answer.locator('.step__row', { hasText: '慢放复看' })
+  await expect(row).toContainText('01:00–01:01')
+  await row.click()
+  await answer.locator('.viz-replay__strip button').nth(2).click()
+  await expect(box).toContainText('3 / 4')
+  await expect(box).toContainText('慢放')
+  await box.locator('button[aria-label="关闭"]').click()
+  await expect(box).toHaveCount(0)
+})
+
+test('timeline marks shot changes and the times answers cite', async ({ page }) => {
+  await start(page)
+  await enterChat(page)
+  await expect(page.locator('.tl-cut')).toHaveCount(2)
+  await expect(page.locator('.timeline__legend[data-kind="cut"]')).toHaveText('镜头切换 2')
+  await ask(page, '柚子能和药一起吃吗')
+  await expect(lastAnswer(page).locator('.msg-footer')).toBeVisible()
+  await expect(page.locator('.tl-cite')).toHaveCount(1) // the answer points at [00:30]
+  await expect(page.locator('.tl-cite')).toHaveAttribute('title', '回答提到 00:30')
+})
+
+// Drag across the track between two fractions of its width; returns the menu.
+async function frame(page, from, to) {
+  const box = await page.locator('.timeline__track').boundingBox()
+  const y = box.y + box.height * 0.6
+  await page.mouse.move(box.x + box.width * from, y)
+  await page.mouse.down()
+  for (let k = 1; k <= 6; k++) await page.mouse.move(box.x + box.width * (from + ((to - from) * k) / 6), y)
+  await page.mouse.up()
+  return page.locator('.tl-range__menu')
+}
+
+test('frame a stretch on the timeline: replay it now, or ask about it', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  await expect(page.locator('.tl-sheet.is-selected')).toHaveCount(0)
+
+  // 8 keyframes over 120 s: a drag across the middle sheets frames a few seconds, capped at 10
+  let menu = await frame(page, 0.45, 0.55)
+  await expect(menu).toBeVisible()
+  const label = await page.locator('.tl-range__label').innerText()
+  const [a, b] = label.match(/\d\d:\d\d\.\d/g).map((t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3)))
+  expect(b - a).toBeGreaterThan(0.4)
+  expect(b - a).toBeLessThanOrEqual(10)
+  await expect(page.locator('.tl-sheet.is-selected')).toHaveCount(0) // a drag doesn't pick frames
+
+  await menu.getByRole('menuitem', { name: '直接慢放' }).click()
+  const card = page.locator('.msg--manual')
+  await expect(card.locator('.manual-replay__tag')).toHaveText('手动慢放')
+  await expect(card.locator('.viz-replay__strip button')).toHaveCount(4)
+  await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(4)
+  expect(mock.requests.filter((r) => r.path.endsWith('/replay')).map((r) => r.body)).toEqual([{ start: a, end: b }])
+  expect(mock.runsSent()).toEqual([]) // no model involved
+
+  // Esc closes the menu without doing anything
+  menu = await frame(page, 0.2, 0.3)
+  await page.keyboard.press('Escape')
+  await expect(menu).toHaveCount(0)
+
+  menu = await frame(page, 0.2, 0.3)
+  await menu.getByRole('menuitem', { name: '带着这段提问' }).click()
+  await expect(page.locator('.clip-chip')).toContainText('慢放')
+  await page.locator('.composer__input').press('Enter') // no question typed: the stretch alone is enough
+  await expect.poll(() => mock.runsSent().map((r) => r.question)).toEqual([expect.stringMatching(/^慢放 \d\d:\d\d(\.\d)? 到 \d\d:\d\d(\.\d)?：这段发生了什么？$/)])
+  await expect(page.locator('.clip-chip')).toHaveCount(0)
+})
+
+test('a hand-framed replay comes back with its session', async ({ page }) => {
+  const data = { start: 60, end: 61, fps: 3, times: [60, 60.33, 60.67], frames: ['00', '01', '02'].map((n) => `/api/link-jobs/s1/replay/0006000-0006100-030/${n}.jpg`) }
+  await start(page, (m) => m.addSession('s1', {
+    title: '有手动慢放的会话',
+    messages: [{ role: 'assistant', content: '', status: 'done', manual: 'replay', events: [
+      { type: 'tool_call.started', call_id: 'manual1', tool_name: 'frames.replay', t: 0 },
+      { type: 'tool_call.output', call_id: 'manual1', stdout: '复看', exit_code: 0, data, t: 0.4 },
+      { type: 'tool_call.completed', call_id: 'manual1', result_count: 3, t: 0.4 },
+    ] }],
+  }))
+  await page.locator('.recent .session-item', { hasText: '有手动慢放的会话' }).locator('.session-item__open').click()
+  await expect(page.locator('.msg--manual .manual-replay__head')).toContainText('01:00.0 – 01:01.0')
+  await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(3)
+  await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(3)
 })

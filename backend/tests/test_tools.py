@@ -71,6 +71,9 @@ def test_view_frames_grabs_then_refreshes_expired_addresses(tmp_path):
     result = asyncio.run(AgentTools(job, grab=grab).run("view_frames", {"start": "02:00", "end": "03:00", "count": 3}))
     assert result.count == 3 and [label for label, _ in result.images] == ["画面 · 02:10", "画面 · 02:30", "画面 · 02:50"]
     assert job.resolver.calls == 1 and all(p.is_file() for _, p in result.images)
+    # the timeline shows these frames too: exact seconds and where to fetch each one
+    assert result.data["secs"] == [130.0, 150.0, 170.0]
+    assert result.data["frames"] == [f"/api/link-jobs/{job.id}/extra/{p.name}" for _, p in result.images]
 
 
 def test_view_frames_falls_back_to_sampled_frames(tmp_path):
@@ -78,6 +81,7 @@ def test_view_frames_falls_back_to_sampled_frames(tmp_path):
     job = make_job(tmp_path, video(streams=()), Resolver(fail=True))
     result = asyncio.run(AgentTools(job, grab=grabber(set())).run("view_frames", {"start": 0, "end": 200}))
     assert "已有的关键帧" in result.text and [label for label, _ in result.images] == ["画面 · 01:15"]
+    assert "frames" not in result.data  # keyframes are on the timeline already
 
 
 def sse(*chunks):

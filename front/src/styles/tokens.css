@@ -19,6 +19,11 @@
   --accent-processing: #F5A623;
   --accent-error: #E5484D;
   --accent-success: #5A9E3A;
+  /* frames the agent read on demand, marked on the timeline: slow-motion replay vs a closer look */
+  --mark-replay: #5B5BD6;
+  --mark-view: #1E9C8A;
+  --mark-cite: #D9822B;   /* times the answers point at */
+  --mark-cut: #8A857D;    /* shot changes */
 
   --border-default: #E0DDD8;
   --border-strong: #C8C4BD;
@@ -109,6 +114,10 @@
 
   --accent-error: #F2555A;
   --accent-success: #7CC35A;
+  --mark-replay: #8E8CF2;
+  --mark-view: #3CC4B0;
+  --mark-cite: #F0A04B;
+  --mark-cut: #8F8A82;
 
   --border-default: #34332F;
   --border-strong: #4C4A45;

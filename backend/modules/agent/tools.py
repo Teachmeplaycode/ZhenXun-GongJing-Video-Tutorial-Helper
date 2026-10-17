@@ -649,5 +649,8 @@ class AgentTools:
             note = "无法重新读取视频，以下是这一段已有的关键帧" if images else "无法读取这一段的画面"
         stamps = "、".join(label.split(" · ")[1] for label, _ in images)
         text = f"{note + '：' if note else ''}{clock(a)}–{clock(b)} 共 {len(images)} 张画面（{stamps}），见下一条消息。" if images else note
-        return ToolResult(text, f"{clock(a)}–{clock(b)} · {len(images)} 张", len(images), images, error=not images,
-                          data={"start": a, "end": b, "times": [label.split(" · ")[1] for label, _ in images], "fallback": bool(note)})
+        data = {"start": a, "end": b, "times": [label.split(" · ")[1] for label, _ in images], "fallback": bool(note)}
+        if images and not note:  # freshly read frames, for the timeline and the zoom view (fallback ones are keyframes already)
+            data |= {"secs": [t for t, good in zip(times, ok) if good],
+                     "frames": [f"/api/link-jobs/{self.job.id}/extra/{p.name}" for p, good in zip(paths, ok) if good]}
+        return ToolResult(text, f"{clock(a)}–{clock(b)} · {len(images)} 张", len(images), images, error=not images, data=data)

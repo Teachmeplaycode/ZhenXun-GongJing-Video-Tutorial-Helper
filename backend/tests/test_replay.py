@@ -29,6 +29,7 @@ def test_slow_motion_questions_name_their_stretch():
     assert slowmo_ranges("逐帧看一下 01:05") == [("64.0", "66.0")]
     assert slowmo_ranges("复看 00:30 到 00:32 他做了什么") == [("30.0", "32.0")]
     assert slowmo_ranges("01:05 发生了什么") == []  # not slow motion: the ordinary close look
+    assert slowmo_ranges("慢放 01:54.3 到 01:55.8：他拿着什么") == [("114.3", "115.8")]  # framed on the timeline
 
 
 def job_for(tmp_path, platform="bilibili"):
@@ -76,3 +77,16 @@ def test_replay_frames_are_served_only_from_their_folder(tmp_path, monkeypatch):
     assert client.get("/api/link-jobs/job1/replay/0011400-0011600-080/01.jpg").content == b"\xff\xd8jpg"
     assert client.get("/api/link-jobs/job1/replay/..%2F..%2Fx/01.jpg").status_code == 404
     assert client.get("/api/link-jobs/job1/replay/0011400-0011600-080/secret.txt").status_code == 404
+
+
+def test_extra_frames_are_served_only_from_their_folder(tmp_path, monkeypatch):
+    import app
+
+    folder = tmp_path / "jobs" / "job1" / "extra"
+    folder.mkdir(parents=True)
+    (folder / "00013000.jpg").write_bytes(b"\xff\xd8jpg")
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path / "jobs")
+    client = TestClient(app.app)
+    assert client.get("/api/link-jobs/job1/extra/00013000.jpg").content == b"\xff\xd8jpg"
+    assert client.get("/api/link-jobs/job1/extra/..%2Fsecret.jpg").status_code == 404
+    assert client.get("/api/link-jobs/job1/extra/00099999.jpg").status_code == 404

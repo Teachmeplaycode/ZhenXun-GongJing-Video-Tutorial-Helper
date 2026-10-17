@@ -17,7 +17,8 @@ from pydantic import BaseModel
 
 from modules import accounts, log
 from modules.agent import browser, run_agent
-from modules.frames import FrameJob
+from modules.agent.tools import AgentTools, TRACE_NAMES
+from modules.frames import FrameJob, cuts
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
@@ -159,6 +160,31 @@ async def read_screen(job: FrameJob) -> None:
                   message=(t.message if t.status != "done" else ""), ms=timer.ms)
 
 
+cutting: set[str] = set()  # job ids whose shot changes are being detected
+
+
+async def find_cuts(job: FrameJob) -> None:
+    """Detect the shot changes for the timeline's marks (modules/frames/cuts.py), cached in the job folder."""
+    timer = log.Timer()
+    cutting.add(job.id)
+
+    async def refresh():
+        job.video = await job.resolver.refresh(job.video)
+        return job.video.streams
+
+    try:
+        if not job.video.streams and job.video.platform != LOCAL:  # restored after a restart: no addresses yet
+            _, job.video = await registry.resolve(job.video.canonical_url, job.video.part)
+            job.restored = False
+        record = await cuts.run(job.root, job.video.streams, job.video.duration or 0, refresh=refresh)
+    except Exception as exc:
+        log.error("cuts", exc, job_id=job.id)
+        record = cuts.save(job.root, "failed", message="镜头切换检测失败")
+    finally:
+        cutting.discard(job.id)
+    log.event("cuts", job_id=job.id, status=record["status"], count=len(record["cuts"]), ms=timer.ms)
+
+
 def busy(job: FrameJob) -> bool:
     """Frames, transcript or on-screen text still in progress."""
     return job.running or job.transcript.running or job.screentext.running
@@ -258,6 +284,7 @@ async def create_link_job(body: LinkRequest):
     spawn(sample(job))
     spawn(transcribe(job))
     spawn(read_screen(job))
+    spawn(find_cuts(job))
     warm_decider()
     return snapshot(job)
 
@@ -293,7 +320,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
 
     async def process() -> None:
         try:
-            await asyncio.gather(sample(job), transcribe(job), read_screen(job))
+            await asyncio.gather(sample(job), transcribe(job), read_screen(job), find_cuts(job))
         finally:
             if not KEEP_UPLOADS:
                 path.unlink(missing_ok=True)
@@ -380,6 +407,58 @@ async def replay_frame(job_id: str, key: str, name: str):
     if not path.is_file() or DATA_DIR.resolve() not in path.resolve().parents:
         raise HTTPException(404, "没有这张画面")
     return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
+
+
+@app.get("/api/link-jobs/{job_id}/extra/{name}")
+async def extra_frame(job_id: str, name: str):
+    """A frame read on demand by view_frames (补看), for the timeline and the zoom view."""
+    if not re.fullmatch(r"\d{8}\.jpg", name):
+        raise HTTPException(404, "没有这张画面")
+    path = DATA_DIR / job_id / "extra" / name
+    if not path.is_file() or DATA_DIR.resolve() not in path.resolve().parents:
+        raise HTTPException(404, "没有这张画面")
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
+
+
+@app.get("/api/link-jobs/{job_id}/cuts")
+async def job_cuts(job_id: str):
+    """The video's shot changes, for marks on the timeline. Sessions from before cuts existed get them on first ask."""
+    job = get_job(job_id)
+    record = cuts.load(job.root)
+    if record is not None:
+        return record
+    if job.id in cutting:
+        return {"status": "running", "cuts": [], "message": ""}
+    if not job.video.streams and job.video.platform == LOCAL:  # an upload whose file was deleted after processing
+        return cuts.save(job.root, "unavailable", message="上传的视频处理完已删除，无法检测镜头切换")
+    spawn(find_cuts(job))
+    return {"status": "running", "cuts": [], "message": ""}
+
+
+class ReplayRequest(BaseModel):
+    start: float
+    end: float
+
+
+@app.post("/api/link-jobs/{job_id}/replay")
+async def manual_replay(job_id: str, body: ReplayRequest):
+    """A slow-motion replay the user framed on the timeline: no model involved. It is saved in the
+    conversation (as an answer with no text, so the model's history skips it) and reopens with the session."""
+    job = get_job(job_id)
+    timer = log.Timer()
+    result = await AgentTools(job).run("replay", {"start": body.start, "end": body.end})
+    log.event("replay.manual", job_id=job.id, start=body.start, end=body.end, ok=not result.error, count=result.count, ms=timer.ms)
+    if result.error:
+        raise HTTPException(409, result.text)
+    call_id = f"manual-{uuid.uuid4().hex[:8]}"
+    events = [
+        {"type": "tool_call.started", "call_id": call_id, "tool_name": TRACE_NAMES["replay"], "t": 0},
+        {"type": "tool_call.input", "call_id": call_id, "input": {"kind": "params", "params": {"start": body.start, "end": body.end, "reason": "手动框选"}}, "t": 0},
+        {"type": "tool_call.output", "call_id": call_id, "stdout": result.text, "exit_code": 0, "data": result.data, "t": round(timer.ms / 1000, 2)},
+        {"type": "tool_call.completed", "call_id": call_id, "result_count": result.count, "t": round(timer.ms / 1000, 2)},
+    ]
+    store.add_message(job.id, "assistant", "", data={"events": events, "manual": "replay"})
+    return {"manual": "replay", "events": events}
 
 
 MOTION_KEY = re.compile(r"^\d{7}-\d{7}$")

@@ -30,7 +30,8 @@ export const loadSwitches = () => {
   }
 }
 
-export default function Composer({ draft, setDraft, running, onSend, onStop, selected, onRemoveFrame, onClearSelection, onPickFrames, scopeNote }) {
+// clip { start, end }: a stretch framed on the timeline, sent with the question (which may then be empty).
+export default function Composer({ draft, setDraft, running, onSend, onStop, selected, onRemoveFrame, onClearSelection, onPickFrames, scopeNote, clip = null, onClearClip = null }) {
   const [switches, setSwitches] = useState(loadSwitches)
   const [active, setActive] = useState(0)
   const [dismissed, setDismissed] = useState(false)
@@ -71,7 +72,7 @@ export default function Composer({ draft, setDraft, running, onSend, onStop, sel
 
   const submit = () => {
     const q = draft.trim()
-    if (!q || running || menuOpen) return
+    if ((!q && !clip) || running || menuOpen) return
     onSend(q, switches)
   }
 
@@ -90,6 +91,16 @@ export default function Composer({ draft, setDraft, running, onSend, onStop, sel
 
   return (
     <div className="composer">
+      {clip ? (
+        <div className="composer__attach">
+          <span className="frame-chip clip-chip">
+            <span className="clip-chip__tag">慢放</span>
+            <span className="mono-sm">{fmtTime(clip.start)} – {fmtTime(clip.end)}</span>
+            <button type="button" className="icon-btn icon-btn--sm" aria-label="移除慢放区间" onClick={onClearClip}><IconClose size={12} /></button>
+          </span>
+          <span className="caption muted">发送时先慢放这一段再回答；不写问题就问"这段发生了什么"</span>
+        </div>
+      ) : null}
       {selected.length ? (
         <div className="composer__attach">
           {selected.length <= 5 ? selected.map((f) => (
@@ -142,7 +153,7 @@ export default function Composer({ draft, setDraft, running, onSend, onStop, sel
           {running ? (
             <button type="button" className="btn btn--dark btn--icon" onClick={onStop} aria-label="停止" title="停止"><IconStop /></button>
           ) : (
-            <button type="button" className="btn btn--dark btn--icon" onClick={submit} disabled={!draft.trim() || menuOpen} aria-label="发送" title="发送"><IconSend /></button>
+            <button type="button" className="btn btn--dark btn--icon" onClick={submit} disabled={(!draft.trim() && !clip) || menuOpen} aria-label="发送" title="发送"><IconSend /></button>
           )}
         </div>
       </div>
