@@ -55,3 +55,17 @@ def test_cuts_are_skipped_not_taken_for_camera_motion(tmp_path):
 
 def test_bar_shows_levels():
     assert instruments.bar([0, 0.5, 1]) == "▁▄█"
+
+
+def test_notes_quote_the_learned_table(monkeypatch, tmp_path):
+    import json
+    path = tmp_path / "cal.json"
+    path.write_text(json.dumps({"camera": {"n": 50, "agreement": 0.55, "readings": {"shake": {"n": 12, "truth": {"shake": 0.5, "static": 0.33}}}},
+                                "count": {"n": 80, "ratio_median": 0.4, "ratio_q1": 0.3, "ratio_q3": 0.6, "pick_with_median": 0.55, "chance": 0.25}}))
+    monkeypatch.setattr("modules.settings.settings", lambda: {"CALIBRATION_FILE": str(path)})
+    assert "12 道" in instruments.camera_note("轻微晃动（有小幅抖动…）") and "晃动 50%、静止 33%" in instruments.camera_note("轻微晃动")
+    assert "太少" in instruments.camera_note("镜头向上移动")
+    note, est = instruments.count_note(10)
+    assert est == 4 and "多半在 3–6 次之间" in note and "选对 55%" in note
+    monkeypatch.setattr("modules.settings.settings", lambda: {})
+    assert instruments.count_note(10)[1] == 5  # no table: half the peaks, the fixed note
