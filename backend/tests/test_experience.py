@@ -44,3 +44,26 @@ def test_a_record_shows_what_was_looked_at():
                                   "reply": "我数到 2 次。答案：A"})
     assert text.startswith("[错] 题目：How many times?") and "正确答案 B，agent 选 A" in text
     assert "frames.motion" in text and "峰值 8 个" in text and "答案：A" in text
+
+
+class FakeLLM:
+    def __init__(self, reply):
+        self.reply = reply
+
+    async def stream(self, messages, usage, max_tokens=60, tools=None):
+        yield self.reply
+
+
+def test_only_the_two_kinds_a_question_belongs_to(monkeypatch, tmp_path):
+    import asyncio
+
+    path = tmp_path / "exp.json"
+    path.write_text(json.dumps({"lessons": {"镜头怎么运动": ["测镜头"], "动作重复了几次": ["峰值除以二"], "动作的先后顺序": ["逐段复看"]}},
+                               ensure_ascii=False))
+    monkeypatch.setattr(experience, "settings", lambda: {"EXPERIENCE_FILE": str(path)})
+    picked = asyncio.run(experience.classify(FakeLLM('{"kinds": ["动作重复了几次", "不存在的类", "镜头怎么运动"]}'), "How many times?"))
+    assert picked == ["动作重复了几次", "镜头怎么运动"]
+    text = experience.guide(picked)
+    assert "峰值除以二" in text and "测镜头" in text and "逐段复看" not in text
+    assert asyncio.run(experience.classify(FakeLLM("不知道"), "?")) is None
+    assert "逐段复看" in experience.guide(None)  # no kinds: every lesson

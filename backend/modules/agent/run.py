@@ -399,8 +399,20 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         allowed = definitions(web, papers, audience)
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
         viewers = AUDIENCE_GUIDE if any(d["function"]["name"] in AUDIENCE_TOOLS for d in allowed) else ""
+        lessons = ""
+        if experience.kinds() and not experience.selective():
+            lessons = experience.guide()
+        elif experience.kinds():
+            steps += 1
+            yield tool("lessons", "started", tool_name="experience.recall")
+            picked = await experience.classify(client, question)
+            lessons = experience.guide(picked)
+            yield tool("lessons", "input", input={"kind": "params", "params": {"question": question[:200]}})
+            yield tool("lessons", "output", exit_code=0, data={"kinds": picked, "count": lessons.count("\n- ")},
+                       stdout=(f"问题属于：{'、'.join(picked)}" if picked else "没能判断类型，用全部经验") + f"\n调取 {lessons.count(chr(10) + '- ')} 条经验")
+            yield tool("lessons", "completed", result_count=lessons.count("\n- "))
         messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))
-                       + experience.guide()}
+                       + lessons}
     prompt_tokens = completion_tokens = 0
     tool_calls = 0
     usage = Usage()

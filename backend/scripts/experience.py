@@ -67,7 +67,15 @@ async def distill(llm, kind: str, rows: list[dict], previous: list[str]) -> list
     prev = ("\n已有的经验（在此基础上修订：保留被记录支持的，改掉不对的，补上缺的）：\n" + "\n".join(f"- {p}" for p in previous) + "\n") if previous else ""
     prompt = PROMPT.format(kind=kind, n=len(rows), right=sum(r["correct"] for r in rows), previous=prev, max=MAX_LESSONS,
                            records="\n\n".join(record(r) for r in rows))
-    text = "".join([d async for d in llm.stream([{"role": "user", "content": prompt}], Usage(), max_tokens=1500)])
+    text = ""
+    for attempt in range(3):  # the connection drops now and then; a lost kind would lose its lessons
+        try:
+            text = "".join([d async for d in llm.stream([{"role": "user", "content": prompt}], Usage(), max_tokens=1500)])
+            break
+        except Exception:
+            if attempt == 2:
+                raise
+            await asyncio.sleep(10 * (attempt + 1))
     match = re.search(r"\{.*\}", text, re.S)
     try:
         lessons = json.loads(match.group(0))["lessons"] if match else []
