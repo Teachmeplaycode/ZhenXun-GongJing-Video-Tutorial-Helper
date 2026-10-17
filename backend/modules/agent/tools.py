@@ -596,12 +596,12 @@ class AgentTools:
             return ToolResult(f"无法测量 {fine_clock(a)}–{fine_clock(b)} 的运动：{why}。", "读取失败", error=True)
         r = await asyncio.to_thread(instruments.analyze, files, a, fps, folder / "out")
         lines = [f"测量 {fine_clock(r.start)}–{fine_clock(r.end)}：每秒 {r.fps:.1f} 帧、共 {r.frames} 帧的低分辨率解码（这些帧不发给你，只给测量结果）。",
-                 f"镜头：{r.camera}（{instruments.camera_note(r.camera)}）"] + [f"  {d}" for d in r.camera_detail] + [
+                 f"镜头：{r.camera}" + (f"（{note}）" if (note := instruments.camera_note(r.camera)) else "")] + [f"  {d}" for d in r.camera_detail] + [
                  f"运动强度（每格约 {r.bucket:.2f} 秒，从 {fine_clock(r.start)} 起）：{instruments.bar(r.energy)}",
                  f"运动峰值时刻：{'、'.join(fine_clock(t) for t in r.peaks[:20]) or '没有明显峰值'}（共 {len(r.peaks)} 个）",
                  f"周期：{f'约 {r.period:.2f} 秒一次' if r.period else '没有明显的周期'}"
                  + (f"；按周期，这段约有 {(r.end - r.start) / r.period:.1f} 个周期" if r.period else ""),
-                 *([f"重复次数估计：{instruments.count_note(len(r.peaks))[0]}"] if len(r.peaks) >= 2 else []),
+                 *([f"重复次数估计：{count}"] if len(r.peaks) >= 2 and (count := instruments.count_note(len(r.peaks))[0]) else []),
                  f"运动区域：{r.region}",
                  "说明：一个来回的动作可能产生两个峰；镜头在动时，运动强度主要反映镜头运动。数次数、判断方向时结合画面核对。"]
         if clipped:

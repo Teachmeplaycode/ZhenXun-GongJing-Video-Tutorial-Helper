@@ -69,3 +69,8 @@ def test_notes_quote_the_learned_table(monkeypatch, tmp_path):
     assert est == 4 and "多半在 3–6 次之间" in note and "选对 55%" in note
     monkeypatch.setattr("modules.settings.settings", lambda: {})
     assert instruments.count_note(10)[1] == 5  # no table: half the peaks, the fixed note
+
+
+def test_zero_practice_gives_bare_readings(monkeypatch):
+    monkeypatch.setattr("modules.settings.settings", lambda: {"CALIBRATION_FILE": "none"})
+    assert instruments.camera_note("轻微晃动") == "" and instruments.count_note(10) == ("", None)
