@@ -106,7 +106,7 @@ def pick_frames(job: FrameJob, requested: list[int] | None, limit: int) -> tuple
     return chosen, notes
 
 
-TIME = r"(\d{1,2}:\d{2}(?::\d{2})?)"
+TIME = r"(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?)"  # "01:54", "1:02:03", "01:54.3" (a range framed on the timeline)
 RANGE_RE = re.compile(TIME + r"\s*(?:到|至|~|～|-|–|—)\s*" + TIME)
 POINT_RE = re.compile(TIME)
 POINT_WINDOW = 10  # seconds around a single time the question names

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { streamAgentRun } from './client'
+import { manualReplay, streamAgentRun } from './client'
 
 let seq = 0
 const nextId = () => `m${(seq += 1)}`
@@ -96,7 +96,8 @@ export function restoreMessages(saved, frames) {
       // Saved before answers kept their text in order: the text goes after the steps.
       msg = applyEvent(msg, { type: 'assistant.message.delta', delta: m.content })
     }
-    out.push({ ...msg, text: m.content, progress: null, status: m.status === 'done' ? 'done' : 'error' })
+    // manual: a replay framed by hand on the timeline (no model, no question): shown as its own card.
+    out.push({ ...msg, text: m.content, progress: null, status: m.status === 'done' ? 'done' : 'error', manual: m.manual || null })
   }
   return out
 }
@@ -150,5 +151,20 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
 
   const stop = useCallback(() => controllerRef.current?.abort(), [])
 
-  return { messages, send, regenerate, stop, running }
+  // A stretch framed on the timeline, replayed without the model; the card shows while it loads.
+  const replay = useCallback(async (start, end) => {
+    if (!video?.jobId) return
+    const id = nextId()
+    const base = { ...emptyAnswer(), id, manual: 'replay', range: [start, end] }
+    setMessages((list) => [...list, base])
+    try {
+      const body = await manualReplay(video.jobId, start, end)
+      const msg = body.events.reduce(applyEvent, base)
+      setMessages((list) => list.map((m) => (m.id === id ? { ...msg, status: 'done' } : m)))
+    } catch (err) {
+      setMessages((list) => list.map((m) => (m.id === id ? { ...m, status: 'error', error: err.message } : m)))
+    }
+  }, [video])
+
+  return { messages, send, regenerate, stop, running, replay }
 }

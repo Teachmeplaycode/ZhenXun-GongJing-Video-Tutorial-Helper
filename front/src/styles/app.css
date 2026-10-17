@@ -516,9 +516,9 @@ img { display: block; }
 
 /* ---------- timeline (§8) ---------- */
 .timeline { flex: none; display: flex; flex-direction: column; gap: var(--sp-8); }
-.timeline__head { display: flex; align-items: center; gap: var(--sp-12); }
+.timeline__head { display: flex; align-items: center; gap: var(--sp-6) var(--sp-12); flex-wrap: wrap; }
 .timeline__spacer { flex: 1; }
-.timeline__track { position: relative; height: 96px; }
+.timeline__track { position: relative; height: 96px; touch-action: pan-y; } /* horizontal drags frame a stretch */
 /* 3D stage: one shared rendering context so overlapping sheets depth-sort correctly */
 .timeline__deck {
   position: absolute; inset: 0;
@@ -571,6 +571,78 @@ img { display: block; }
 .tl-sheet.is-selected .tl-card__face--front img { opacity: 1; filter: none; }
 .tl-sheet.is-selected .tl-card__face--side { background: var(--accent-active-dim); }
 .tl-sheet:focus-visible { outline: none; }
+/* on-demand frames from the chat: tinted by kind, with a band under the stretch they cover */
+.tl-sheet[data-kind='replay'], .tl-band[data-kind='replay'], .timeline__legend[data-kind='replay'], .timeline__tag[data-kind='replay'], .lightbox__tag[data-kind='replay'] { --mark: var(--mark-replay); }
+.tl-sheet[data-kind='view'], .tl-band[data-kind='view'], .timeline__legend[data-kind='view'], .timeline__tag[data-kind='view'], .lightbox__tag[data-kind='view'] { --mark: var(--mark-view); }
+.tl-sheet.is-extra { cursor: zoom-in; }
+.tl-sheet.is-extra .tl-card__face--front { border: 2px solid var(--mark); }
+.tl-sheet.is-extra .tl-card__face--front img { opacity: 0.85; filter: none; }
+.tl-sheet.is-extra .tl-card__face--side { background: var(--mark); }
+.tl-sheet.is-extra:hover .tl-card__face--front, .tl-sheet.is-extra:focus-visible .tl-card__face--front { border-color: var(--mark); }
+.tl-band {
+  position: absolute; bottom: 2px; height: 4px; border-radius: 2px;
+  background: var(--mark); pointer-events: auto;
+}
+.timeline__legend { display: inline-flex; align-items: center; gap: var(--sp-4); color: var(--text-secondary); }
+.timeline__legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--mark); }
+.timeline__legend[data-kind='cut'] i { width: 2px; height: 12px; border-radius: 1px; background: var(--mark-cut); }
+.timeline__legend[data-kind='cite'] i { border-radius: 50%; background: var(--mark-cite); }
+
+/* marks above the sheets: shot changes (ticks) and times the answers point at (dots) */
+.tl-cut {
+  position: absolute; top: 6px; width: 2px; height: 12px; margin-left: -1px; z-index: 6;
+  border-radius: 1px; background: var(--mark-cut); pointer-events: none;
+}
+.tl-cite {
+  position: absolute; top: 2px; width: 12px; height: 12px; margin-left: -6px; padding: 0; z-index: 7;
+  border-radius: 50%; border: 2px solid var(--bg-canvas); background: var(--mark-cite); cursor: pointer;
+}
+.tl-cite[data-many] { box-shadow: 0 0 0 2px color-mix(in srgb, var(--mark-cite) 35%, transparent); }
+.tl-cite:hover { transform: scale(1.25); }
+.tl-cite:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 1px; }
+.timeline__track[data-framing] { cursor: col-resize; user-select: none; }
+
+/* a stretch framed by dragging on the track, and what to do with it */
+.tl-range {
+  position: absolute; top: 0; bottom: 0; z-index: 8; pointer-events: none;
+  background: color-mix(in srgb, var(--mark-replay) 14%, transparent);
+  border-left: 2px solid var(--mark-replay); border-right: 2px solid var(--mark-replay);
+}
+.tl-range__label {
+  position: absolute; left: 50%; top: 2px; transform: translateX(-50%); white-space: nowrap;
+  padding: 1px var(--sp-6); border-radius: var(--radius-xs); background: var(--mark-replay); color: #FFFFFF;
+}
+.tl-range__menu {
+  position: absolute; bottom: calc(100% + var(--sp-8)); width: 220px; z-index: 40;
+  display: flex; flex-direction: column; padding: var(--sp-4);
+  border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
+.tl-range__menu button {
+  display: flex; align-items: center; gap: var(--sp-8); width: 100%; padding: var(--sp-8) var(--sp-8);
+  border: 0; border-radius: var(--radius-xs); background: none; color: var(--text-primary); text-align: left;
+  font: inherit; font-size: var(--fs-body-sm, 14px); cursor: pointer;
+}
+.tl-range__menu button:hover:not([disabled]), .tl-range__menu button:focus-visible { background: var(--bg-surface-alt); outline: none; }
+.tl-range__menu button[disabled] { color: var(--text-tertiary); cursor: not-allowed; }
+.tl-range__menu .tl-range__cancel { color: var(--text-secondary); }
+.tl-range__icon { width: 16px; color: var(--mark-replay); text-align: center; }
+
+/* the framed stretch attached to the next question */
+.clip-chip { border-color: color-mix(in srgb, var(--mark-replay) 45%, transparent); }
+.clip-chip__tag {
+  padding: 0 var(--sp-6); border-radius: var(--radius-pill); background: var(--mark-replay); color: #FFFFFF;
+  font-size: var(--fs-caption);
+}
+
+/* a replay framed by hand: the player in its own card, no steps list */
+.manual-replay { display: flex; flex-direction: column; gap: var(--sp-8); }
+.manual-replay__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-8); }
+.manual-replay__tag {
+  padding: 1px var(--sp-8); border-radius: var(--radius-pill); background: var(--mark-replay); color: #FFFFFF;
+  font-size: var(--fs-caption);
+}
+.timeline__tag { background: color-mix(in srgb, var(--mark) 16%, transparent); color: var(--mark); border-color: color-mix(in srgb, var(--mark) 40%, transparent); }
 .tl-sheet__mark {
   position: absolute; left: 0; top: -10px; width: 6px; height: 6px; margin-left: -3px;
   border-radius: 50%; background: var(--accent-active); border: 1px solid var(--text-primary);
@@ -738,7 +810,9 @@ img { display: block; }
 .bubble__options { color: var(--text-inverse-dim); }
 
 .chat__jump {
-  position: absolute; left: 50%; bottom: calc(100px + var(--sp-24)); transform: translateX(-50%); z-index: 3;
+  /* bottom-right corner, clear of the reading column's captions */
+  position: absolute; right: var(--sp-24); bottom: calc(100px + var(--sp-24)); z-index: 3;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--text-primary) 12%, transparent);
   display: inline-flex; align-items: center; gap: var(--sp-6); height: 30px; padding: 0 var(--sp-12);
   border: var(--border-hairline); border-radius: var(--radius-pill); background: var(--bg-surface); color: var(--text-primary);
   font-size: var(--fs-caption); cursor: pointer;
@@ -793,7 +867,17 @@ img { display: block; }
 /* Slow-motion replay player (StepDetail) */
 .viz-replay { display: flex; flex-direction: column; gap: var(--sp-8); }
 .viz-replay p { margin: 0; }
-.viz-replay__stage { position: relative; max-width: 640px; aspect-ratio: 16 / 9; border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-inverse); }
+.viz-replay__stage {
+  position: relative; display: block; width: 100%; max-width: 640px; aspect-ratio: 16 / 9; padding: 0; border: 0;
+  border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-inverse); cursor: zoom-in;
+}
+.viz-replay__stage:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.viz-replay__zoom {
+  position: absolute; right: var(--sp-8); top: var(--sp-8); display: grid; place-items: center; width: 28px; height: 28px;
+  border-radius: var(--radius-xs); background: rgba(0, 0, 0, 0.55); color: #FFFFFF; opacity: 0.7;
+  transition: opacity var(--dur-micro) var(--ease-enter);
+}
+.viz-replay__stage:hover .viz-replay__zoom, .viz-replay__stage:focus-visible .viz-replay__zoom { opacity: 1; }
 .viz-replay__stage img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .viz-replay__stamp { position: absolute; left: var(--sp-8); bottom: var(--sp-8); padding: var(--sp-2) var(--sp-6); border-radius: var(--radius-xs); background: rgba(0, 0, 0, 0.6); color: #FFFFFF; }
 .viz-replay__controls { display: flex; align-items: center; gap: var(--sp-8); flex-wrap: wrap; }
@@ -803,6 +887,52 @@ img { display: block; }
 .viz-replay__strip button { display: block; padding: 0; border: 2px solid transparent; border-radius: var(--radius-xs); background: none; cursor: pointer; }
 .viz-replay__strip button[data-on] { border-color: var(--accent-active-dim); }
 .viz-replay__strip img { display: block; width: 72px; height: 40px; object-fit: cover; border-radius: 2px; }
+.viz-replay__strip button { cursor: zoom-in; }
+.viz-view__strip img { width: 120px; height: 68px; }
+.viz-view__strip button { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; color: var(--text-secondary); }
+.viz-view__strip button:hover { border-color: var(--mark-view); }
+
+/* Enlarged frame (FrameLightbox) */
+.lightbox {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: var(--sp-24);
+  background: rgba(10, 10, 10, 0.78); cursor: zoom-out;
+}
+.lightbox__box {
+  position: relative; margin: 0; display: flex; flex-direction: column; gap: var(--sp-8);
+  width: min(1200px, 100%); cursor: default;
+}
+/* frames are small (≈640 px): scale them up to the screen, letterboxed to the window height */
+.lightbox__box img {
+  display: block; width: 100%; height: auto; max-height: calc(100vh - 140px); object-fit: contain;
+  border-radius: var(--radius-sm); background: #000;
+}
+.lightbox__bar { display: flex; align-items: center; gap: var(--sp-12); color: #FFFFFF; }
+.lightbox__count { color: rgba(255, 255, 255, 0.65); }
+.lightbox__spacer { flex: 1; }
+.lightbox__tag {
+  padding: 1px var(--sp-8); border-radius: var(--radius-pill); font-size: var(--fs-caption);
+  background: var(--mark, rgba(255, 255, 255, 0.2)); color: #FFFFFF;
+}
+.lightbox__btn {
+  display: inline-flex; align-items: center; gap: var(--sp-4); height: 30px; padding: 0 var(--sp-12);
+  border: 1px solid rgba(255, 255, 255, 0.3); border-radius: var(--radius-pill); background: transparent; color: #FFFFFF;
+  font-size: var(--fs-caption); cursor: pointer;
+}
+.lightbox__btn:hover { border-color: #FFFFFF; }
+.lightbox__btn:focus-visible, .lightbox__nav:focus-visible { outline: 2px solid var(--accent-active); outline-offset: 2px; }
+.lightbox__close { padding: 0; width: 30px; justify-content: center; }
+.lightbox__nav {
+  position: absolute; top: calc(50% - 40px); display: grid; place-items: center; width: 44px; height: 44px;
+  border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #FFFFFF; cursor: pointer;
+}
+.lightbox__nav:hover { background: rgba(0, 0, 0, 0.8); }
+.lightbox__nav--prev { left: var(--sp-12); }
+.lightbox__nav--prev svg { transform: rotate(180deg); }
+.lightbox__nav--next { right: var(--sp-12); }
+@media (max-width: 640px) {
+  .lightbox { padding: var(--sp-8); }
+  .lightbox__nav { width: 36px; height: 36px; }
+}
 
 /* measure_motion readings (StepDetail) */
 .viz-motion { display: flex; flex-direction: column; gap: var(--sp-6); }

@@ -4,7 +4,8 @@ import { prefersReducedMotion } from '../lib/motion'
 import { clock, host } from '../lib/steps'
 import DiffViewer from './DiffViewer'
 import { apiUrl } from '../api/client'
-import { IconChevron } from './Icons'
+import { IconChevron, IconExpand } from './Icons'
+import FrameLightbox from './FrameLightbox'
 
 // Visual detail of one step, animated on first open: probability meters fill, result rows arrive in
 // order and get their verdict, a page scan sweeps window by window. Falls back to args + raw output.
@@ -134,25 +135,39 @@ const SPEEDS = [0.25, 0.5, 1]
 
 // Slow-motion replay: the frames of a few seconds played back slower than real time, or stepped
 // through one by one; the strip below jumps to any frame, and the time button seeks the video there.
-function Replay({ d, onSeek }) {
+// Clicking the picture or a thumbnail enlarges it in the middle of the screen.
+export function Replay({ d, onSeek }) {
   const frames = d.frames || []
   const times = d.times || []
   const [at, setAt] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(0.25)
+  const [zoom, setZoom] = useState(false)
+  const stripRef = useRef(null)
   useEffect(() => {
     if (!playing || frames.length < 2) return undefined
     const t = setInterval(() => setAt((i) => (i + 1) % frames.length), 1000 / (d.fps * speed))
     return () => clearInterval(t)
   }, [playing, speed, d.fps, frames.length])
+  // Keep the current thumbnail in view while stepping or playing (scroll the strip only, not the page).
+  useEffect(() => {
+    const strip = stripRef.current
+    const el = strip?.children[at]
+    if (!el) return
+    const left = el.offsetLeft - strip.offsetLeft
+    if (left < strip.scrollLeft) strip.scrollLeft = left
+    else if (left + el.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = left + el.offsetWidth - strip.clientWidth
+  }, [at])
   const step = (k) => { setPlaying(false); setAt((i) => (i + k + frames.length) % frames.length) }
+  const open = (i) => { setPlaying(false); setAt(i); setZoom(true) }
   if (!frames.length) return null
   return (
     <div className="viz-replay" data-row>
-      <div className="viz-replay__stage">
+      <button type="button" className="viz-replay__stage" onClick={() => open(at)} title="放大查看" aria-label={`放大查看 ${fine(times[at] ?? 0)}`}>
         <img src={apiUrl(frames[at])} alt={`复看画面 ${fine(times[at] ?? 0)}`} />
         <span className="viz-replay__stamp mono-sm">{fine(times[at] ?? 0)} · {at + 1}/{frames.length}</span>
-      </div>
+        <span className="viz-replay__zoom" aria-hidden="true"><IconExpand size={14} /></span>
+      </button>
       <div className="viz-replay__controls">
         <button type="button" className="icon-btn viz-replay__prev" aria-label="上一帧" onClick={() => step(-1)}><IconChevron size={12} /></button>
         <button type="button" className="btn btn--ghost" onClick={() => setPlaying((v) => !v)}>{playing ? '暂停' : '慢放'}</button>
@@ -164,15 +179,21 @@ function Replay({ d, onSeek }) {
         </span>
         <button type="button" className="ts-chip" onClick={() => onSeek?.(times[at] ?? 0)} title="在原视频里跳到这一帧">{fine(times[at] ?? 0)}</button>
       </div>
-      <ol className="viz-replay__strip">
+      <ol ref={stripRef} className="viz-replay__strip">
         {frames.map((src, i) => (
           <li key={src}>
-            <button type="button" data-on={i === at || undefined} onClick={() => { setPlaying(false); setAt(i) }} aria-label={`第 ${i + 1} 帧 ${fine(times[i] ?? 0)}`}>
+            <button type="button" data-on={i === at || undefined} onClick={() => open(i)} aria-label={`放大第 ${i + 1} 帧 ${fine(times[i] ?? 0)}`}>
               <img src={apiUrl(src)} alt="" loading="lazy" />
             </button>
           </li>
         ))}
       </ol>
+      {zoom ? (
+        <FrameLightbox
+          items={frames.map((src, i) => ({ src: apiUrl(src), time: times[i] ?? 0, tag: '慢放', kind: 'replay' }))}
+          at={at} onAt={setAt} onClose={() => setZoom(false)} onSeek={onSeek}
+        />
+      ) : null}
       <p className="mono-sm muted">每秒 {d.fps} 帧 · 共 {frames.length} 帧{d.clipped ? ' · 只复看了前 10 秒' : ''}</p>
     </div>
   )
@@ -315,6 +336,32 @@ function Browse({ d }) {
   )
 }
 
+// A closer look (补看): the frames read on demand, each one enlargeable.
+function ViewFrames({ d, onSeek }) {
+  const [zoom, setZoom] = useState(null)
+  const secs = d.secs || []
+  return (
+    <div className="viz-view" data-row>
+      <ol className="viz-replay__strip viz-view__strip">
+        {d.frames.map((src, i) => (
+          <li key={src}>
+            <button type="button" onClick={() => setZoom(i)} aria-label={`放大 ${fine(secs[i] ?? 0)}`}>
+              <img src={apiUrl(src)} alt="" loading="lazy" />
+              <span className="mono-sm">{fine(secs[i] ?? 0)}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      {zoom != null ? (
+        <FrameLightbox
+          items={d.frames.map((src, i) => ({ src: apiUrl(src), time: secs[i] ?? 0, tag: '补看', kind: 'view' }))}
+          at={zoom} onAt={setZoom} onClose={() => setZoom(null)} onSeek={onSeek}
+        />
+      ) : null}
+    </div>
+  )
+}
+
 function Raw({ call }) {
   const params = call.input?.params
   return (
@@ -356,6 +403,8 @@ export default function StepDetail({ call, onSeek }) {
     body = <Papers papers={d.papers} />
   } else if (call.tool === 'transcript.search' && d.hits) {
     body = <Hits hits={d.hits} onSeek={onSeek} />
+  } else if (call.tool === 'frames.view' && d.frames?.length) {
+    body = <ViewFrames d={d} onSeek={onSeek} />
   } else if (call.tool === 'frames.view' && d.times) {
     body = (
       <div className="viz-times" data-row>

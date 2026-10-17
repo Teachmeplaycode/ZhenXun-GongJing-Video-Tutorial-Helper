@@ -56,6 +56,26 @@ export function researchAnswer() {
   ]
 }
 
+/** An answer that replays 01:00–01:01 slowly (4 frames) and takes a closer look at 00:10–00:20 (2 frames). */
+export function replayAnswer() {
+  const replay = { start: 60, end: 61, fps: 3, clipped: false, times: [60, 60.33, 60.67, 61],
+    frames: ['00', '01', '02', '03'].map((n) => `/api/link-jobs/job1/replay/0006000-0006100-030/${n}.jpg`) }
+  const view = { start: 10, end: 20, times: ['00:12', '00:17'], fallback: false, secs: [12.5, 17.5],
+    frames: ['00001250', '00001750'].map((n) => `/api/link-jobs/job1/extra/${n}.jpg`) }
+  return [
+    { type: 'tool_call.started', call_id: 'replay1', tool_name: 'frames.replay', t: 0.1 },
+    { type: 'tool_call.input', call_id: 'replay1', input: { kind: 'params', params: { start: '60', end: '61' } }, t: 0.1 },
+    { type: 'tool_call.output', call_id: 'replay1', stdout: '复看 01:00–01:01', exit_code: 0, data: replay, t: 0.5 },
+    { type: 'tool_call.completed', call_id: 'replay1', result_count: 4, t: 0.5 },
+    { type: 'tool_call.started', call_id: 'view1', tool_name: 'frames.view', t: 0.6 },
+    { type: 'tool_call.input', call_id: 'view1', input: { kind: 'params', params: { start: '00:10', end: '00:20', count: 2 } }, t: 0.6 },
+    { type: 'tool_call.output', call_id: 'view1', stdout: '2 张画面', exit_code: 0, data: view, t: 0.9 },
+    { type: 'tool_call.completed', call_id: 'view1', result_count: 2, t: 0.9 },
+    { type: 'assistant.message.delta', delta: '他在 [01:00] 起跳。', t: 1.0 },
+    { type: 'run.completed', steps: 2, elapsed_ms: 1100, summary: '慢放 4 帧 · 补看 2 帧', t: 1.1 },
+  ]
+}
+
 export class MockApi {
   constructor(page) {
     this.page = page
@@ -65,6 +85,7 @@ export class MockApi {
     this.gate = null // when set, the next agent run waits for gate.release()
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
     this.frames = 8
+    this.cuts = [30, 75] // shot changes the mock reports
     this.accounts = [
       { id: 'bilibili', label: 'B 站', purpose: '读更多评论', app: 'B 站 App', configured: false, source: null, user: '', expires: null, valid: null },
       { id: 'yuanbao', label: '腾讯元宝', purpose: '解析视频号链接', app: '微信', configured: true, source: 'env', user: '', expires: null, valid: null },
@@ -134,8 +155,21 @@ export class MockApi {
     if (path === '/api/videos') return json(this.snapshot('upload1', { v: video({ platform: 'local', video_id: 'clip.mp4', title: 'clip' }) }))
     m = path.match(/^\/api\/link-jobs\/(\w+)\/events$/)
     if (m) return stream(this.jobEvents().filter((e) => e.seq >= Number(url.searchParams.get('since') || 0)))
-    m = path.match(/^\/api\/link-jobs\/(\w+)\/frames\/\d+\.jpg$/)
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/(frames\/\d+|replay\/[\d-]+\/\d{2}|extra\/\d{8})\.jpg$/)
     if (m) return route.fulfill({ status: 200, contentType: 'image/jpeg', body: FRAME })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
+    if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/replay$/)
+    if (m && req.method() === 'POST') {
+      const { start, end } = body
+      const frames = [0, 1, 2, 3].map((i) => `/api/link-jobs/${m[1]}/replay/0000000-0000000-030/0${i}.jpg`)
+      const data = { start, end, fps: 3, clipped: false, times: [0, 1, 2, 3].map((i) => Math.round((start + (i * (end - start)) / 3) * 100) / 100), frames }
+      return json({ manual: 'replay', events: [
+        { type: 'tool_call.started', call_id: 'manual1', tool_name: 'frames.replay', t: 0 },
+        { type: 'tool_call.output', call_id: 'manual1', stdout: '复看', exit_code: 0, data, t: 0.4 },
+        { type: 'tool_call.completed', call_id: 'manual1', result_count: 4, t: 0.4 },
+      ] })
+    }
     if (path === '/api/accounts') return json({ accounts: this.accounts })
     m = path.match(/^\/api\/accounts\/(\w+)\/login$/)
     if (m && req.method() === 'POST') {
