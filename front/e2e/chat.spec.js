@@ -357,3 +357,21 @@ test('a hand-framed replay comes back with its session', async ({ page }) => {
   await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(3)
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(3)
 })
+
+test('back goes up one level behind the pixel wipe: chat → timeline → import', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' }) // the suite turns motion off; this test is about it
+  await start(page)
+  await enterChat(page)
+  await expect(page.locator('.wipe')).toBeHidden()
+  await page.locator('.btn--back').click()
+  await expect(page.locator('.wipe')).toBeVisible() // the cells cover the switch
+  await expect(page.locator('.wipe')).toBeHidden()
+  await expect(page.locator('.btn--next:not(.btn--early)')).toBeVisible() // the analysed timeline again
+  await expect(page.locator('.composer__input')).toBeHidden()
+
+  await page.locator('.btn--back').click()
+  await expect(page.locator('.wipe')).toBeVisible()
+  await expect(page.locator('.wipe')).toBeHidden()
+  await expect(page.locator('.import-control__link')).toBeVisible()
+  await expect(page.locator('.import-control__link')).toHaveValue(LINK) // kept, to adjust and parse again
+})

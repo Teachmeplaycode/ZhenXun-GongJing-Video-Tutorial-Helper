@@ -413,18 +413,36 @@ export default function App() {
     }
   }, [])
 
-  // Container refresh: pixel cells cover the workspace, content swaps behind them,
-  // then the cells release diagonally like extracted video frames.
-  const enterChat = () => {
+  // Container refresh: pixel cells cover the workspace, `apply` swaps the content behind them at the
+  // peak, then the cells release diagonally like extracted video frames. The snake mark either flies
+  // to `snakeTo` (an {x, y} offset from the centre) or fades where it is.
+  const wipeThrough = (apply, snakeTo = null) => {
     navigationRef.current?.kill()
     const wipe = wipeRef.current
-    if (prefersReducedMotion()) {
-      setAnalysis((a) => ({ ...a, index: true }))
-      setStage('chat')
+    if (prefersReducedMotion() || !wipe) {
+      apply()
       return
     }
     const wipeSnake = wipe.querySelector('.wipe__snake')
     const pixels = [...wipe.querySelectorAll('.wipe__pixel')]
+    navigationRef.current = gsap.timeline()
+      .set(wipe, { display: 'block' })
+      .set(pixels, { scale: 0, transformOrigin: '50% 50%' })
+      .set(wipeSnake, { opacity: 0, scale: 0.72, x: 0, y: 10, rotation: -8 })
+      .to(pixels, { scale: 1.035, duration: 0.2, ease: EASE.enter, stagger: (index) => pixelDelay(index) }, 0)
+      .to(wipeSnake, { opacity: 1, scale: 1, y: 0, rotation: 0, duration: 0.3, ease: EASE.bounce }, 0.24)
+      .add(apply, 0.44)
+      .to(wipeSnake, snakeTo
+        ? { ...snakeTo, scale: 0.32, opacity: 0, duration: 0.42, ease: EASE.enter }
+        : { opacity: 0, scale: 0.7, duration: 0.24, ease: EASE.exit }, 0.56)
+      .to(pixels, { scale: 0, duration: 0.2, ease: EASE.exit, stagger: (index) => pixelDelay(index, true) }, 0.58)
+      .set(wipe, { display: 'none' })
+      .set(pixels, { clearProps: 'transform' })
+      .set(wipeSnake, { clearProps: 'all' })
+  }
+
+  const enterChat = () => {
+    // The snake lands on the brand mark: the conversation is "inside" the workbench.
     const brandBox = document.querySelector('.brand__mark')?.getBoundingClientRect()
     const target = brandBox
       ? {
@@ -432,21 +450,10 @@ export default function App() {
           y: brandBox.top + brandBox.height / 2 - window.innerHeight / 2,
         }
       : { x: -window.innerWidth * 0.44, y: -window.innerHeight * 0.46 }
-    navigationRef.current = gsap.timeline()
-      .set(wipe, { display: 'block' })
-      .set(pixels, { scale: 0, transformOrigin: '50% 50%' })
-      .set(wipeSnake, { opacity: 0, scale: 0.72, x: 0, y: 10, rotation: -8 })
-      .to(pixels, { scale: 1.035, duration: 0.2, ease: EASE.enter, stagger: (index) => pixelDelay(index) }, 0)
-      .to(wipeSnake, { opacity: 1, scale: 1, y: 0, rotation: 0, duration: 0.3, ease: EASE.bounce }, 0.24)
-      .add(() => {
-        setAnalysis((a) => ({ ...a, index: true }))
-        setStage('chat')
-      }, 0.44)
-      .to(wipeSnake, { ...target, scale: 0.32, opacity: 0, duration: 0.42, ease: EASE.enter }, 0.56)
-      .to(pixels, { scale: 0, duration: 0.2, ease: EASE.exit, stagger: (index) => pixelDelay(index, true) }, 0.58)
-      .set(wipe, { display: 'none' })
-      .set(pixels, { clearProps: 'transform' })
-      .set(wipeSnake, { clearProps: 'all' })
+    wipeThrough(() => {
+      setAnalysis((a) => ({ ...a, index: true }))
+      setStage('chat')
+    }, target)
   }
 
   // Reopen a saved session straight into the conversation, behind the same container wipe.
@@ -493,25 +500,7 @@ export default function App() {
       setRetrying(false)
       setStage('chat')
     }
-    navigationRef.current?.kill()
-    const wipe = wipeRef.current
-    if (prefersReducedMotion()) apply()
-    else {
-      const pixels = [...wipe.querySelectorAll('.wipe__pixel')]
-      const wipeSnake = wipe.querySelector('.wipe__snake')
-      navigationRef.current = gsap.timeline()
-        .set(wipe, { display: 'block' })
-        .set(pixels, { scale: 0, transformOrigin: '50% 50%' })
-        .set(wipeSnake, { opacity: 0, scale: 0.72, x: 0, y: 8, rotation: -6 })
-        .to(pixels, { scale: 1.035, duration: 0.2, ease: EASE.enter, stagger: (index) => pixelDelay(index) }, 0)
-        .to(wipeSnake, { opacity: 1, scale: 1, y: 0, rotation: 0, duration: 0.28, ease: EASE.bounce }, 0.24)
-        .add(apply, 0.44)
-        .to(wipeSnake, { opacity: 0, scale: 0.7, duration: 0.24, ease: EASE.exit }, 0.56)
-        .to(pixels, { scale: 0, duration: 0.2, ease: EASE.exit, stagger: (index) => pixelDelay(index, true) }, 0.58)
-        .set(wipe, { display: 'none' })
-        .set(pixels, { clearProps: 'transform' })
-        .set(wipeSnake, { clearProps: 'all' })
-    }
+    wipeThrough(apply)
     // Sampling still running (e.g. reopened right after parsing): keep the timeline filling in.
     if (saved.running || saved.transcript?.status === 'running' || saved.screentext?.status === 'running') {
       followLinkJob(id, saved.seq, signal).catch((err) => {
@@ -536,11 +525,14 @@ export default function App() {
     if (parts?.length) gsap.set(parts, { clearProps: 'opacity,transform' })
   }
 
-  const reset = () => {
+  // Back to an empty import screen. Inside a wipe (`midWipe`) the running transition is left alone.
+  const reset = ({ midWipe = false } = {}) => {
     abortRef.current?.abort()
-    navigationRef.current?.kill()
-    gsap.set(wipeRef.current, { display: 'none', clearProps: 'transform' })
-    gsap.set(wipeRef.current?.querySelectorAll('.wipe__pixel'), { clearProps: 'transform' })
+    if (!midWipe) {
+      navigationRef.current?.kill()
+      gsap.set(wipeRef.current, { display: 'none', clearProps: 'transform' })
+      gsap.set(wipeRef.current?.querySelectorAll('.wipe__pixel'), { clearProps: 'transform' })
+    }
     if (sculptureLayerRef.current) gsap.set(sculptureLayerRef.current, { opacity: 1, scale: 1 })
     restoreImport()
     setStage('idle')
@@ -556,15 +548,10 @@ export default function App() {
     setRetrying(false)
   }
 
+  // Back one level behind the same pixel wipe as going forward: chat → timeline, anything else → import.
   const goBack = () => {
-    if (stage !== 'chat') {
-      reset()
-      return
-    }
-    navigationRef.current?.kill()
-    gsap.set(wipeRef.current, { display: 'none', clearProps: 'transform' })
-    gsap.set(wipeRef.current?.querySelectorAll('.wipe__pixel'), { clearProps: 'transform' })
-    setStage('ready')
+    if (stage === 'chat') wipeThrough(() => setStage('ready'))
+    else wipeThrough(() => reset({ midWipe: true }))
   }
 
   const toggleFrame = (frame) =>
