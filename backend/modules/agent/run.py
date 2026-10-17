@@ -19,7 +19,7 @@ from modules.decide import questions as dq
 
 from . import experience
 
-from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, parse_time
+from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
 
 HISTORY_MESSAGES = 8      # earlier turns sent back as plain text (frames only go with the current turn)
 HISTORY_CHARS = 4000
@@ -325,8 +325,9 @@ async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
 
 async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: str, *,
                     frames: list[int] | None = None, history: list[dict] | None = None, decider=None,
-                    web: bool = True, papers: bool = True) -> AsyncIterator[dict]:
-    """`web` / `papers`: the composer's switches for this question (both still subject to LLM_WEB)."""
+                    web: bool = True, papers: bool = True, framed: list[tuple[float, float]] | None = None) -> AsyncIterator[dict]:
+    """`web` / `papers`: the composer's switches for this question (both still subject to LLM_WEB).
+    `framed`: stretches the user replayed by hand on the timeline right before asking (oldest first)."""
     """Yield §9.2 events. Errors end the stream with `run.error` instead of raising."""
     started = time.perf_counter()
     steps = 0
@@ -380,19 +381,29 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     # rarely decides on its own that the sampled frames are too sparse there.
     zoomed = []
     slow = slowmo_ranges(question)
-    for i, (a, b) in enumerate(slow or asked_ranges(question)):
+    asked = [] if slow else asked_ranges(question)
+    # Replayed by hand just before asking ("这段慢放的部分做了什么"): the model never saw that replay,
+    # so it gets the same frames (cached on disk) unless the question names its own stretch.
+    # Several replays in a row: "这段" is the last one.
+    by_hand = [] if slow or asked else [(str(a), str(b)) for a, b in (framed or [])[-1:]]
+    reason = "你刚在时间轴上手动慢放了这一段" if by_hand else "问题要求慢放这一段" if slow else "问题指定了时间段"
+    slow = slow or by_hand
+    for i, (a, b) in enumerate(slow or asked):
         steps += 1
         tid = f"zoom{i}"
         name, args = ("replay", {"start": a, "end": b}) if slow else ("view_frames", {"start": a, "end": b, "count": 6})
         yield tool(tid, "started", tool_name=TRACE_NAMES[name])
-        yield tool(tid, "input", input={"kind": "params", "params": {**args, "reason": "问题要求慢放这一段" if slow else "问题指定了时间段"}})
+        yield tool(tid, "input", input={"kind": "params", "params": {**args, "reason": reason}})
         result = await tools.run(name, args)
         yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0, data=result.data)
         yield tool(tid, "completed", result_count=result.count)
         zoomed += result.images
     if zoomed:
         question_part = messages[-1]["content"].pop()  # keep the question last
-        lead = ("问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用再调用 replay 看同一段：" if slow
+        spans = "、".join(f"{fine_clock(float(a))}–{fine_clock(float(b))}" for a, b in slow)
+        lead = (f"用户提问前刚在时间轴上手动慢放了 {spans}，下面是这段的逐帧画面（标了精确时间）。问题里说的"
+                "「这段」「慢放的部分」「刚才」指的就是它；不用再调用 replay 看同一段：" if by_hand
+                else "问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用再调用 replay 看同一段：" if slow
                 else "问题所问时间段的加密画面：")
         messages[-1]["content"] += [{"type": "text", "text": lead}] + image_message(zoomed)["content"] + [question_part]
     if rounds:
