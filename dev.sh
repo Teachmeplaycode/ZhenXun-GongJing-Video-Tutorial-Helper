@@ -175,9 +175,11 @@ cleanup() {
   trap - INT TERM EXIT
   printf '\n%s正在停止…%s\n' "$DIM" "$RESET"
   for pid in $PIDS; do kill "$pid" 2>/dev/null; done
-  # uvicorn --reload and vite each run child processes: stop the process groups' leftovers too.
+  # uvicorn --reload and vite each run child processes: stop the process groups' leftovers too —
+  # only this copy's (by port), so a second copy on other ports leaves the main one running.
   pkill -f "uvicorn app:app --port $API_PORT" 2>/dev/null
-  pkill -f "$FRONT/node_modules/.bin/vite" 2>/dev/null
+  local web; web="$(port_owner "$WEB_PORT")"
+  [ -n "$web" ] && kill "$web" 2>/dev/null
   wait 2>/dev/null
   exit 0
 }
