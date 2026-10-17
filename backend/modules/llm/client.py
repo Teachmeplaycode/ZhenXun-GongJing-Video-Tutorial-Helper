@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -32,6 +33,14 @@ ANSWER_TIMEOUT = 300       # seconds for the whole answer once it has started
 OLLAMA_BASE_URL = "http://localhost:11434"
 OLLAMA_MODEL = "qwen3.5:9b"
 OLLAMA_FIRST_TOKEN_TIMEOUT = 300
+
+
+def temperature() -> float:
+    """LLM_TEMPERATURE (default 0.3); benchmarks use 0 so two runs differ less."""
+    try:
+        return float(os.environ.get("LLM_TEMPERATURE", "0.3"))
+    except ValueError:
+        return 0.3
 
 
 class LLMError(Exception):
@@ -172,7 +181,7 @@ class ChatClient:
     def body(self, messages: list[dict], max_tokens: int, tools: list[dict] | None = None) -> dict:
         body = {
             "model": self.config.model, "messages": messages, "stream": True,
-            "stream_options": {"include_usage": True}, "max_tokens": max_tokens, "temperature": 0.3,
+            "stream_options": {"include_usage": True}, "max_tokens": max_tokens, "temperature": temperature(),
         }
         if tools:
             body["tools"] = tools
@@ -295,7 +304,7 @@ class OllamaClient:
             "model": self.config.model, "messages": self.native_messages(messages), "stream": True,
             "think": False,  # thinking would delay the first word by minutes on a local model
             "keep_alive": "30m",
-            "options": {"num_ctx": self.config.num_ctx, "num_predict": max_tokens, "temperature": 0.3},
+            "options": {"num_ctx": self.config.num_ctx, "num_predict": max_tokens, "temperature": temperature()},
         }
         if tools:
             body["tools"] = tools
