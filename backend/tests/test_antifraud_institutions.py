@@ -111,3 +111,22 @@ def test_config_errors_and_lookup_cap_are_explicit(tmp_path):
     segments = SEGMENTS + [('screentext', 22, 24, '另一科技有限公司')]
     answer = asyncio.run(inst.check(segments, config={'ANTIFRAUD_MAX_INSTITUTIONS': '1'}, searcher=results, fetcher=record))
     assert answer['omitted'] == 1 and answer['status'] == 'partial'
+
+
+def test_narrative_boundaries_do_not_become_part_of_legal_name():
+    for text in (f'这是{NAME}推出的产品', f'今天介绍的是{NAME}', f'该产品由{NAME}推出',
+                 f'我们与{NAME}合作', f'声称来自{NAME}', NAME):
+        assert [item['name'] for item in inst.extract([('transcript', 1, 2, text)])] == [NAME]
+    assert inst.extract([('transcript', 1, 2, '这是北京示例科技有限公司推出的产品')])[0]['name'] == '北京示例科技有限公司'
+
+
+def test_narration_uses_exact_configured_name_instead_of_inventing_institution(tmp_path):
+    import json
+    path = tmp_path / 'sources.json'
+    path.write_text(json.dumps({NAME: ['https://www.gsxt.gov.cn/direct']}))
+    async def no_search(*args, **kwargs):
+        raise AssertionError('configured exact legal name must be used')
+    result = asyncio.run(inst.check([('transcript', 4, 6, f'这是{NAME}推出的产品')],
+        config={'ANTIFRAUD_INSTITUTION_SOURCES': str(path)}, searcher=no_search, fetcher=record))
+    assert result['items'][0]['status'] == 'record_found'
+    assert result['items'][0]['name'] == NAME

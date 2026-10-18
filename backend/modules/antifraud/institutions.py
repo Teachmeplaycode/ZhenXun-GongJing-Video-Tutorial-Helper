@@ -18,6 +18,13 @@ from modules.settings import settings
 SUFFIX = r'(?:股份有限公司|有限责任公司|有限公司|证券公司|保险公司|基金管理公司|投资公司|银行|基金会|医院|研究院|研究所|大学|集团)'
 NAME = re.compile(rf'[\u4e00-\u9fffA-Za-z·]{{2,36}}{SUFFIX}')
 INTRO = re.compile(r'^(?:(?:视频中|我们|他们|我是|来自|欢迎来到|声称|所谓|这家|一家|机构名称|公司名称|机构|公司|名称|由|在|向|与|是|的|本视频推荐|推荐|请核查|核查|介绍|据称))+')
+# Narration boundaries are separated before matching, so prose cannot become part of
+# the legal name. Keep standalone names (including location prefixes) unchanged.
+CLAUSE_BREAK = re.compile(
+    r'(?:这是|那是|这就是|那就是|(?:介绍|推荐|提到|核查|声称|宣称)的是|'
+    r'(?:产品|项目|服务)(?:由|来自)|(?:我们|他们)(?:与|由|在|来自|推荐)|'
+    r'(?:声称|宣称|据称)?来自|欢迎来到|所属(?:机构|公司)是|机构名称|公司名称)\s*[:：]?\s*'
+)
 REGISTRY_HOSTS = ('gsxt.gov.cn',)
 REGISTRY_LABEL = re.compile(r'(?:企业名称|机构名称|单位名称)\s*[:：]\s*([^\n，。；;]{2,60})')
 CODE = re.compile(r'(?:统一社会信用代码|注册号)\s*[:：]\s*([0-9A-Z]{18}|[0-9]{15})(?![A-Za-z0-9])')
@@ -45,7 +52,7 @@ def registry_record(url: str, text: str, name: str) -> dict | None:
 def extract(segments) -> list[dict]:
     found = {}
     for source, start, end, text in segments:
-        for match in NAME.finditer(text):
+        for match in NAME.finditer(CLAUSE_BREAK.sub(" ", text)):
             name = INTRO.sub('', match.group(0)).strip()
             if len(name) < 4:
                 continue
