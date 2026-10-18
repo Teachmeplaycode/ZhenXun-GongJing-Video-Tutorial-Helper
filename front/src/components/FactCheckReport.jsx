@@ -145,7 +145,9 @@ function useEntrance(ref) {
   }, [])
 }
 
-export default function FactCheckReport({ jobId, video, onSeek, onClose, open = false }) {
+// embedded: rendered inside the workbench sidebar (no overlay, no close button); `open` then means the
+// tab is showing, and each time it shows the saved report is read again (unless a check is running).
+export default function FactCheckReport({ jobId, video, onSeek, onClose, open = false, embedded = false }) {
   const [report, setReport] = useState(null)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState('')
@@ -161,9 +163,10 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
     } catch { /* ignore */ }
   }, [jobId])
 
+  const runningRef = useRef(false)
   useEffect(() => {
-    if (open) loadSaved()
-  }, [open, loadSaved])
+    if (open && jobId && !runningRef.current) loadSaved()
+  }, [open, jobId, loadSaved])
 
   useEffect(() => () => ctrlRef.current?.abort(), [])
 
@@ -172,6 +175,7 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
     const ctrl = new AbortController()
     ctrlRef.current = ctrl
     setRunning(true)
+    runningRef.current = true
     setError('')
     setProgress({ count: 0, total: 0, verifying: '' })
     setReport(null)
@@ -188,11 +192,11 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message || '核查失败')
     } finally {
-      if (ctrlRef.current === ctrl) setRunning(false)
+      if (ctrlRef.current === ctrl) { setRunning(false); runningRef.current = false }
     }
   }, [jobId])
 
-  const stop = useCallback(() => { ctrlRef.current?.abort(); setRunning(false) }, [])
+  const stop = useCallback(() => { ctrlRef.current?.abort(); setRunning(false); runningRef.current = false }, [])
 
   const sortedClaims = useMemo(() => {
     if (!report?.claims) return []
@@ -203,12 +207,10 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
     })
   }, [report])
 
-  if (!open) return null
+  if (!open && !embedded) return null
 
-  return (
-    <div className="fc-shell" ref={shellRef} role="dialog" aria-label="科普核查报告">
-      <div className="fc-shell__backdrop" onClick={onClose} />
-      <div className="fc-shell__panel">
+  const body = (
+    <>
         <header className="fc-head">
           <div className="fc-head__title">
             <IconSearch size={18} />
@@ -229,9 +231,11 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
                 开始核查
               </button>
             )}
-            <button type="button" className="fc-close" onClick={onClose} aria-label="关闭">
-              <IconX size={16} />
-            </button>
+            {embedded ? null : (
+              <button type="button" className="fc-close" onClick={onClose} aria-label="关闭">
+                <IconX size={16} />
+              </button>
+            )}
           </div>
         </header>
 
@@ -267,7 +271,13 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
             <p className="muted fc-empty__sub">面向"子女帮父母查"的场景，每条结论给出正确/部分正确/错误/无法核实、出处和夸大用语标注。</p>
           </div>
         ) : null}
-      </div>
+    </>
+  )
+  if (embedded) return <div className="fc-embedded" ref={shellRef} role="region" aria-label="科普核查报告">{body}</div>
+  return (
+    <div className="fc-shell" ref={shellRef} role="dialog" aria-label="科普核查报告">
+      <div className="fc-shell__backdrop" onClick={onClose} />
+      <div className="fc-shell__panel">{body}</div>
     </div>
   )
 }

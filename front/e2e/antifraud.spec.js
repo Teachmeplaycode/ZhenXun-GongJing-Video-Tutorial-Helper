@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { MockApi } from './mock-api.js'
+import { MockApi, openBench } from './mock-api.js'
 
 async function enter(page, setup) {
   const mock = new MockApi(page)
@@ -26,10 +26,16 @@ const report = {
   ] },
 }
 
+// The anti-fraud tab of the workbench runs nothing until asked.
+async function openAntifraud(page) {
+  await openBench(page, '反诈')
+  await page.getByRole('button', { name: '开始识别', exact: true }).click()
+}
+
 test('antifraud report shows model context, timestamp and verification limits, then closes', async ({ page }) => {
   await enter(page)
   await page.route('**/api/link-jobs/job1/antifraud', (r) => r.fulfill({ json: report }))
-  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  await openAntifraud(page)
   const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('尚未核查机构登记')
@@ -49,7 +55,7 @@ test('antifraud toolbar and open panel leave the stop action usable', async ({ p
   await page.locator('.composer__input').fill('看看视频')
   await page.locator('.composer__input').press('Enter')
   await expect(page.getByRole('button', { name: '停止', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  await openAntifraud(page)
   await expect(page.getByRole('dialog', { name: '反诈分析报告' })).toBeVisible()
   await page.getByRole('button', { name: '停止', exact: true }).click()
   await expect(page.getByRole('button', { name: '发送', exact: true })).toBeVisible()
@@ -59,7 +65,7 @@ test('antifraud toolbar and open panel leave the stop action usable', async ({ p
 test('antifraud failures are explained and can be closed', async ({ page }) => {
   await enter(page)
   await page.route('**/api/link-jobs/job1/antifraud', (r) => r.fulfill({ status: 503, json: { detail: '分析服务繁忙' } }))
-  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  await openAntifraud(page)
   await expect(page.locator('.antifraud--error')).toContainText('分析服务繁忙')
   await page.locator('.antifraud--error').getByRole('button', { name: '关闭', exact: true }).click()
   await expect(page.locator('.antifraud')).toHaveCount(0)
@@ -93,7 +99,7 @@ test('an open report refreshes when background transcription and OCR finish', as
     requests++
     return r.fulfill({ json: { ...report, summary: completed ? '已纳入完成后的转写和画面文字' : '当前只有抽帧，转写尚未完成' } })
   })
-  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  await openAntifraud(page)
   const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
   await expect(dialog).toContainText('转写尚未完成')
   completed = true
@@ -128,7 +134,7 @@ test('an open report includes QR evidence recovered by retrying missing frames',
     recovered = true
     return route.fulfill({ json: { retrying: 1, transcript: false, screentext: false, since: 0 } })
   })
-  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  await openAntifraud(page)
   const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
   await expect(dialog).toContainText('补抓前的旧帧报告')
   await page.locator('.timeline__missing').getByRole('button', { name: '补抓', exact: true }).click()
@@ -145,7 +151,7 @@ test('QR badges use decoded results even when their text contains no drainage si
       { frame_index: 1, time: 8, content: 'ordinary second QR content' },
     ],
   } }))
-  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  await openAntifraud(page)
   const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
   await expect(dialog.locator('.antifraud__badge')).toHaveText('二维码 ×2')
 })

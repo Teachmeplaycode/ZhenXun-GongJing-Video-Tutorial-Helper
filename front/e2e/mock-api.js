@@ -102,6 +102,26 @@ export function replayAnswer() {
   ]
 }
 
+/** Open the workbench sidebar on a tab ('章节' | '反诈' | '科普' | '笔记'). */
+export async function openBench(page, tab) {
+  const handle = page.locator('.bench__handle')
+  if ((await handle.getAttribute('aria-expanded')) !== 'true') await handle.click()
+  await page.getByRole('tab', { name: tab }).click()
+}
+
+/** A written note (backend modules/notes): two sections, one with a figure and a formula, and a mind map. */
+export function lectureNote() {
+  return {
+    title: '柚子与药物笔记', summary: '柚子抑制 CYP3A4，影响部分药物代谢。', video: { title: '测试视频：柚子与药物', duration: 120 },
+    sections: [
+      { id: 's1', title: '作用机制', start: 0, end: 60, points: ['柚子中的呋喃香豆素抑制 CYP3A4', '药物在体内浓度升高'], formulas: ['C_{max} \\uparrow'],
+        examples: [], keywords: ['CYP3A4'], figures: [{ time: 30, caption: '酶的示意图', src: '/api/link-jobs/job1/extra/00003000.jpg' }] },
+      { id: 's2', title: '实用建议', start: 60, end: 120, points: ['服药期间避免吃柚子'], formulas: [], examples: ['降压药：间隔不够仍有影响'], keywords: [], figures: [] },
+    ],
+    mindmap: { label: '柚子与药物', children: [{ label: '作用机制', children: [{ label: 'CYP3A4' }] }, { label: '实用建议' }] },
+  }
+}
+
 export class MockApi {
   constructor(page) {
     this.page = page
@@ -112,6 +132,8 @@ export class MockApi {
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
     this.frames = 8
     this.cuts = [30, 75] // shot changes the mock reports
+    this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
+    this.noteBoard = null // the editor's saved board (PUT /notes/board)
     this.chaptersStatus = 'done' // what /chapters answers; 'running' | 'done' | 'failed' in tests
     this.chaptersMessage = '' // a custom message, e.g. the reason for a failed build
     this.chapters = [ // the chapter list the mock reports (backend modules/chapters)
@@ -214,6 +236,23 @@ export class MockApi {
     if (m) return stream(this.jobEvents().filter((e) => e.seq >= Number(url.searchParams.get('since') || 0)))
     m = path.match(/^\/api\/link-jobs\/(\w+)\/(frames\/\d+|replay\/[\d-]+\/\d{2}|extra\/\d{8})\.jpg$/)
     if (m) return route.fulfill({ status: 200, contentType: 'image/jpeg', body: FRAME })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/notes(\/board|\/export)?$/)
+    if (m) {
+      if (m[2] === '/board') {
+        if (req.method() === 'PUT') { this.noteBoard = body; return json({ saved: 1 }) }
+      } else if (m[2] === '/export') {
+        return route.fulfill({ status: 200, contentType: 'application/zip', body: 'PK' })
+      } else if (req.method() === 'POST') {
+        // Writing takes one status check: running now, done on the next GET.
+        this.notes = { status: 'running', message: '已整理第 1 节', progress: { done: 1, total: 4 }, note: null }
+        return json({ ...this.notes, board: null })
+      } else if (this.notes.status === 'running') {
+        const answer = { ...this.notes, board: null }
+        this.notes = { status: 'done', message: '已整理 2 节', progress: {}, note: lectureNote() }
+        return json(answer)
+      }
+      return json({ ...this.notes, board: this.noteBoard })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)

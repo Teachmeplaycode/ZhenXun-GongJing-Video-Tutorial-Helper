@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test'
-import {MockApi} from './mock-api.js'
+import {MockApi, openBench} from './mock-api.js'
 
 const endpoint = /\/api\/link-jobs\/job1\/factcheck$/
 const sse = (events) => events.map(e => `data: ${JSON.stringify(e)}\n\n`).join('')
@@ -36,15 +36,31 @@ test('fact-check report streams, displays evidence and reopens from saved report
       {type:'factcheck.claim.done'}, {type:'factcheck.completed',report},
     ])})
   })
-  await page.getByRole('button',{name:'生成科普核查报告'}).click()
-  const dialog = page.getByRole('dialog',{name:'科普核查报告'})
+  await openBench(page, '科普')
+  const dialog = page.getByRole('region',{name:'科普核查报告'})
   await dialog.getByRole('button',{name:'开始核查',exact:true}).click()
   await expect(dialog.getByText('部分正确',{exact:true}).last()).toBeVisible()
   await expect(dialog.getByRole('link',{name:'模拟核查出处'})).toHaveAttribute('href',report.claims[0].sources[0].url)
   await expect(dialog.getByText('辅助判断，不构成医疗建议',{exact:false})).toBeVisible()
-  await dialog.getByRole('button',{name:'关闭',exact:true}).click()
-  await page.getByRole('button',{name:'生成科普核查报告'}).click()
+  // the report stays while the sidebar is folded away and shown again
+  await page.locator('.bench__handle').click()
+  await expect(dialog).toBeHidden()
+  await page.locator('.bench__handle').click()
   await expect(dialog.getByText(report.claims[0].reason)).toBeVisible()
+})
+
+test('a saved report shows without starting a new check', async ({page}) => {
+  await enterChat(page)
+  let posted = false
+  await page.route(endpoint, route => {
+    if (route.request().method() !== 'GET') posted = true
+    return route.fulfill({contentType:'application/json', body:JSON.stringify(report)})
+  })
+  await openBench(page, '科普')
+  const region = page.getByRole('region',{name:'科普核查报告'})
+  await expect(region.getByText(report.claims[0].reason)).toBeVisible()
+  await expect(region.getByRole('button',{name:'重新核查'})).toBeVisible()
+  expect(posted).toBe(false)
 })
 
 test('server SSE errors are shown to the user', async ({page}) => {
@@ -52,8 +68,8 @@ test('server SSE errors are shown to the user', async ({page}) => {
   await page.route(endpoint, route => route.fulfill(route.request().method()==='GET'
     ? {status:404,body:'{}'}
     : {contentType:'text/event-stream',body:sse([{type:'factcheck.error',code:'no_content',message:'转写尚未完成，请稍后再试'}])}))
-  await page.getByRole('button',{name:'生成科普核查报告'}).click()
-  const dialog=page.getByRole('dialog',{name:'科普核查报告'})
+  await openBench(page, '科普')
+  const dialog=page.getByRole('region',{name:'科普核查报告'})
   await dialog.getByRole('button',{name:'开始核查',exact:true}).click()
   await expect(dialog.getByText('转写尚未完成，请稍后再试')).toBeVisible()
 })
@@ -67,8 +83,8 @@ test('stopping a request restores the start action', async ({page}) => {
     await gate
     await route.fulfill({contentType:'text/event-stream',body:sse([{type:'factcheck.completed',report}])}).catch(()=>{})
   })
-  await page.getByRole('button',{name:'生成科普核查报告'}).click()
-  const dialog=page.getByRole('dialog',{name:'科普核查报告'})
+  await openBench(page, '科普')
+  const dialog=page.getByRole('region',{name:'科普核查报告'})
   await dialog.getByRole('button',{name:'开始核查',exact:true}).click()
   await dialog.getByRole('button',{name:'停止',exact:true}).click()
   await expect(dialog.getByRole('button',{name:'开始核查',exact:true})).toBeVisible()

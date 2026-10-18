@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { MockApi } from './mock-api.js'
+import { MockApi, openBench } from './mock-api.js'
 import { readFile } from 'node:fs/promises'
 
 // A saved session as the backend returns it: two Q&A turns (the second's answer cites a slow-motion
@@ -24,14 +24,22 @@ function savedMessages() {
   ]
 }
 
+// The Q&A export lives in the 笔记 tab of the workbench.
+async function openExport(page) {
+  await openBench(page, '笔记')
+  await page.getByRole('button', { name: '导出问答记录' }).click()
+  // The boxes show unticked (and disabled) until the saved ids load; uncheck() on an unticked box
+  // does nothing, so wait for the load before touching them.
+  await expect(page.locator('.export-item--all input')).toBeEnabled()
+}
+
 async function openExportDialog(page) {
   const mock = new MockApi(page)
   mock.addSession('s1', { title: '导出会话', messages: savedMessages() })
   await mock.install()
   await page.goto('/')
   await page.locator('.recent .session-item', { hasText: '导出会话' }).locator('.session-item__open').click()
-  await expect(page.locator('.chat__export')).toBeVisible()
-  await page.locator('.chat__export').click()
+  await openExport(page)
   const dialog = page.locator('.export-dialog')
   await expect(dialog).toBeVisible()
   return { mock, dialog }
@@ -107,7 +115,7 @@ test('export: an answer still streaming cannot be picked yet', async ({ page }) 
   const release = mock.holdNextRun()
   await page.locator('.composer__input').fill('一个还没保存的问题')
   await page.locator('.composer__input').press('Enter')
-  await page.locator('.chat__export').click()
+  await openExport(page)
   const turns = page.locator('.export-dialog .export-item:not(.export-item--all)')
   await expect(turns).toHaveCount(4)
   await expect(turns.nth(3)).toContainText('一个还没保存的问题')
@@ -136,7 +144,7 @@ test('export: a fresh completed chat exports without reopening the session', asy
   await page.locator('.composer__input').fill('刚刚提出的新问题')
   await page.locator('.composer__input').press('Enter')
   await expect(page.locator('.msg--assistant .msg-footer')).toBeVisible()
-  await page.locator('.chat__export').click()
+  await openExport(page)
   const dialog = page.locator('.export-dialog')
   await expect(dialog.locator('.export-item:not(.export-item--all) input')).toBeEnabled()
   const [download] = await Promise.all([
@@ -155,7 +163,7 @@ test('export: the pending turn becomes selectable after completion without repla
   const release = mock.holdNextRun()
   await page.locator('.composer__input').fill('等待完成再导出')
   await page.locator('.composer__input').press('Enter')
-  await page.locator('.chat__export').click()
+  await openExport(page)
   const turn = page.locator('.export-dialog .export-item:not(.export-item--all)').last()
   await expect(turn.locator('input')).toBeDisabled()
   release()
