@@ -53,8 +53,10 @@ class Registry:
 
 def default_registry() -> Registry:
     from .bilibili import BilibiliResolver
+    from .douyin import DouyinResolver
     from .local import LocalResolver
     from .wechat import WeChatChannelsResolver
+    from .youtube import YouTubeResolver
 
     # LocalResolver never matches a URL; it is listed so restored upload sessions find their resolver.
-    return Registry([BilibiliResolver(), WeChatChannelsResolver(), LocalResolver()])
+    return Registry([BilibiliResolver(), WeChatChannelsResolver(), YouTubeResolver(), DouyinResolver(), LocalResolver()])
