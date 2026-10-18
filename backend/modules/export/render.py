@@ -108,7 +108,7 @@ def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: 
             out.append(_img_tag(api, label, base_url))
         out.append("</div>")
 
-    sources = collect_sources(events)
+    sources = collect_sources(events, text)
     if sources:
         out.append('<div class="sources"><h4>来源</h4><ol>')
         for s in sources:
