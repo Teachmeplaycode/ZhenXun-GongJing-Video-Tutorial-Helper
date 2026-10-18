@@ -17,6 +17,7 @@ export default function PictureStage({ meta, jobId, frames, selected, onToggle, 
   const [at, setAt] = useState(0)
   const [zoom, setZoom] = useState(false)
   const [texts, setTexts] = useState({}) // index → lines
+  const [fullBody, setFullBody] = useState(false)
   const stripRef = useRef(null)
   const total = pictures.length
   const current = pictures[Math.min(at, Math.max(0, total - 1))]
@@ -55,6 +56,11 @@ export default function PictureStage({ meta, jobId, frames, selected, onToggle, 
     : screentext?.status === 'unavailable' ? (screentext.message || '本机不支持文字识别') : '这张没有文字'
 
   const on = current ? picked.has(current.index) : false
+  const body = (meta?.description || '').trim()
+  const tags = meta?.tags || []
+  const stats = meta?.stats || {}
+  const counts = [['likes', '赞'], ['favorites', '收藏'], ['comments', '评论']]
+    .filter(([k]) => stats[k] != null).map(([k, label]) => `${label} ${stats[k]}`)
 
   return (
     <div className="pics-stage">
@@ -64,6 +70,7 @@ export default function PictureStage({ meta, jobId, frames, selected, onToggle, 
           <p className="pics-post__meta mono-sm muted">
             <span className="pics-post__tag">{platform ? `${platform} · ` : ''}图文</span>{' · '}
             {meta?.author ? `${meta.author} · ` : ''}{total} 张{ready < total ? ` · 已读取 ${ready} 张` : ''}
+            {counts.length ? ` · ${counts.join(' · ')}` : ''}
             {screentext?.status === 'running' ? ' · 正在识别文字…' : ''}
           </p>
         </header>
@@ -114,6 +121,18 @@ export default function PictureStage({ meta, jobId, frames, selected, onToggle, 
               </li>
             ))}
           </ol>
+        ) : null}
+
+        {body || tags.length ? (
+          <section className="pics-body" data-full={fullBody || undefined} aria-label="正文">
+            {body ? <p className="pics-body__text">{body}</p> : null}
+            {tags.length ? <p className="pics-body__tags">{tags.map((t) => <span key={t}>#{t}</span>)}</p> : null}
+            {body.length > 120 ? (
+              <button type="button" className="link-btn pics-body__more" onClick={() => setFullBody((v) => !v)} aria-expanded={fullBody}>
+                {fullBody ? '收起' : '展开全文'}
+              </button>
+            ) : null}
+          </section>
         ) : null}
 
         <details className="pics-text" aria-label={`第 ${at + 1} 张的文字`}>

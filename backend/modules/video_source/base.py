@@ -83,6 +83,7 @@ class ResolvedVideo:
             "stream_count": len(self.streams),
             "has_audio": bool(self.audio_streams),
             "stats": self.extra.get("stats") or {},
+            "tags": self.extra.get("tags") or [],
             "kind": self.extra.get("kind") or "video",  # "images": an image post or uploaded pictures
             "image_count": len(self.extra.get("images") or []),
         }

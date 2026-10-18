@@ -35,6 +35,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from ..settings import settings
+from . import post_text
 from .base import ResolveError, ResolvedVideo, Resolver, Stream
 
 PLATFORM = "alcedo"
@@ -176,6 +177,21 @@ async def probe_duration(stream: Stream) -> float:
         return 0.0
 
 
+async def add_post_text(video: ResolvedVideo) -> None:
+    """The body, topics and counts alcedo doesn't return (小红书 notes), when the page has them."""
+    note = await post_text.fetch(video.canonical_url)
+    if not note:
+        return
+    if note["desc"]:
+        video.description = note["desc"]
+    if note["tags"]:
+        video.extra["tags"] = note["tags"]
+    if note["stats"]:
+        video.extra["stats"] = note["stats"]
+    if note["ip"]:
+        video.extra["ip"] = note["ip"]
+
+
 class AlcedoResolver(Resolver):
     platform = PLATFORM
 
@@ -192,6 +208,8 @@ class AlcedoResolver(Resolver):
     async def resolve(self, url: str, part: int | None = None) -> ResolvedVideo:
         data = await (self._serve(url) if settings().get("ALCEDO_URL", "").strip() else self._run(url))
         video = to_video(data, url)
+        video.description = (data.get("desc") or data.get("description") or "").strip()
+        await add_post_text(video)
         if not video.duration and video.streams:  # some platforms (微博, 梨视频, Vimeo) give an address but no duration
             video.duration = await probe_duration(video.streams[0])
             if not video.duration:
