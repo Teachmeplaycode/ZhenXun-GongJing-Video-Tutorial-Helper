@@ -33,6 +33,10 @@ TARGET_VIDEOS = 30
 TARGET_CASES = 150
 TARGET_PER_CATEGORY = 5
 
+# Fields consumed by scripts/eval.py (including this module's classification metadata).
+# Optional execution controls remain optional: web/papers default True; absent/empty frames mean all.
+CASE_FIELDS = frozenset({"id", "video", "question", "rubric", "qtype", "checks", "frames", "web", "papers"})
+
 
 def validate(spec: dict) -> list[str]:
     """返回错误列表，空表示合法。只检查结构，不检查内容真假。"""
@@ -69,6 +73,7 @@ def validate(spec: dict) -> list[str]:
         if not isinstance(c, dict):
             errors.append("cases 里有非对象元素")
             continue
+        errors.extend(f"{c.get('id') or '?'}.case 不支持字段 {key}" for key in c if key not in CASE_FIELDS)
         cid = c.get("id")
         if not isinstance(cid, str) or not cid.strip():
             errors.append("题目 id 应为非空字符串")
@@ -93,6 +98,9 @@ def validate(spec: dict) -> list[str]:
         if "frames" in c and (not isinstance(c["frames"], list)
                               or not all(type(frame) is int and frame >= 0 for frame in c["frames"])):
             errors.append(f"{cid or '?'} 的 frames 应为非负整数数组")
+        for flag in ("web", "papers"):
+            if flag in c and not isinstance(c[flag], bool):
+                errors.append(f"{cid or '?'} 的 {flag} 应为布尔值")
         errors.extend(_validate_checks(cid or "?", c.get("checks", {})))
     return errors
 
