@@ -2,7 +2,7 @@
 
 `GET /api/link-jobs/{job_id}/antifraud` 从已取得的转写、画面文字、抽样关键帧生成带时间点的规则与引流线索，查询机构公开证据，并使用项目已配置的模型做上下文综合判断。二维码通过 OpenCV 实际解码；相同二维码重复出镜只保留一次。模型输出必须引用输入中已有的证据 ID；模型未配置、失败、超时或返回无效证据时，保留规则线索并明确标为未完成模型判断。
 
-报告不依赖未合并的 factcheck 分支。逐条说法遵循 #2 约定的 `claim/original_text`、`timestamp/evidence`、`verdict/risk`、`reason/sources/status` 字段。规则匹配或模型判断均不等于权威核实，条目保持 `unverified`。联系方式或二维码本身不被认定为诈骗；前端分别展示规则评分、模型可用时的综合风险以及机构来源。
+报告不依赖未合并的 factcheck 分支。逐条说法遵循 #2 约定的 `claim/original_text`、`timestamp/evidence`、`verdict/risk`、`reason/sources/status` 字段。规则匹配或模型判断均不等于权威核实，条目保持 `unverified`。ASR、OCR 或抽帧仍待完成/失败时，不提供安全或低风险结论；保留已有中/高风险线索，`score.level` 与 `assessment.risk` 表示已观察到的风险下限，数值规则分不变。二维码公开结果只含帧序号、时间及内容，服务器路径仅在内部使用。联系方式或二维码本身不被认定为诈骗；前端分别展示规则评分、模型可用时的综合风险以及机构来源。
 
 ## 机构公开证据核查
 
