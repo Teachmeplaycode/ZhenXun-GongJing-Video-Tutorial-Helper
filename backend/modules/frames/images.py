@@ -116,3 +116,14 @@ async def process(job: FrameJob) -> None:
     cuts.save(job.root, "unavailable", message="图集没有镜头切换")
     await fetch(job)
     await read_text(job)
+
+
+def texts_by_picture(job: FrameJob) -> list[dict]:
+    """The text read on each picture: [{index, lines}] in picture order (a caption the same on
+    several pictures in a row is listed under each of them)."""
+    out: dict[int, list[str]] = {s.index: [] for s in job.slots}
+    for c in (job.screentext.segments if job.screentext else []):
+        for i in range(int(c.start), max(int(c.start) + 1, int(round(c.end)))):
+            if i in out and c.text not in out[i]:
+                out[i].append(c.text)
+    return [{"index": i, "lines": lines} for i, lines in sorted(out.items())]

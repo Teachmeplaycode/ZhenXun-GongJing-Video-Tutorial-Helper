@@ -275,6 +275,8 @@ export class MockApi {
       }
       return json({ ...this.notes, board: this.noteBoard })
     }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/texts$/)
+    if (m) return json({ status: 'done', items: [{ index: 0, lines: ['燕麦 50 克', '牛奶 250 毫升'] }, { index: 1, lines: ['热量 320 千卡'] }].slice(0, this.frames) })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)

@@ -17,40 +17,54 @@ async function uploadPictures(page, mock) {
     { name: '热量.png', mimeType: 'image/png', buffer: png },
   ])
   await expect(page.locator('.import-control__file')).toContainText('2 张图片')
-  await expect(page.locator('.import-control__submit')).toHaveText(/开始分析/)
   await page.locator('.import-control__submit').click()
 }
 
-test('pictures: several images import as a picture set, without the video steps', async ({ page }) => {
+test('pictures: an upload goes straight to the picture page — no analysis screen, no timeline', async ({ page }) => {
   const mock = new MockApi(page)
   mock.frames = 2
   await uploadPictures(page, mock)
-  await expect(page.locator('.hud__step', { hasText: '读取图片' })).toContainText('2 / 2')
-  await expect(page.locator('.hud__step', { hasText: '图片文字' })).toBeVisible()
-  await expect(page.locator('.hud__step', { hasText: '语音转写' })).toHaveCount(0)
-  await expect(page.locator('.hud__step', { hasText: '建立时间轴索引' })).toHaveCount(0)
-  await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
+  await expect(page.locator('.pics-stage')).toBeVisible()
   expect(mock.uploadedImages).toBe(2)
-
+  await expect(page.locator('.hud__step')).toHaveCount(0)
+  await expect(page.locator('.btn--next')).toHaveCount(0)
+  await expect(page.locator('.timeline')).toHaveCount(0)
+  await expect(page.locator('.pics-post__tag')).toHaveText('上传 · 图文')
+  await expect(page.locator('.pics-strip__thumb')).toHaveCount(2)
+  await expect(page.locator('.pics-view__count')).toHaveText('1 / 2')
+  await expect(page.locator('.pics-text li')).toHaveText(['燕麦 50 克', '牛奶 250 毫升'])
+  await page.getByRole('button', { name: '下一张' }).click()
+  await expect(page.locator('.pics-view__count')).toHaveText('2 / 2')
+  await expect(page.locator('.pics-text li')).toHaveText(['热量 320 千卡'])
   await expect(page.locator('.chat__empty h1')).toHaveText('关于这组图片，你想知道什么？')
-  await expect(page.locator('.timeline__head')).toContainText('2 张图片')
-  await expect(page.getByRole('button', { name: '输入区间' })).toHaveCount(0) // no time to frame
-  await expect(page.locator('.tl-sheet').first()).toHaveAttribute('aria-label', '第 1 张')
-  await expect(page.locator('.composer__scope')).toContainText('范围：全部图片')
   await openBench(page, '笔记')
-  await expect(page.getByRole('tab')).toHaveText(['反诈', '科普', '笔记']) // no chapters in a picture set
+  await expect(page.getByRole('tab')).toHaveText(['反诈', '科普', '笔记'])
 })
 
-test('pictures: 第 n 张 in an answer points the timeline at that picture', async ({ page }) => {
+test('pictures: pick a picture as an attachment; 第 n 张 in an answer shows that picture', async ({ page }) => {
   const mock = new MockApi(page)
   mock.frames = 2
   mock.runs.push(pictureAnswer())
   await uploadPictures(page, mock)
-  await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
-  await page.locator('.composer__input').fill('这两张图说了什么')
+  await page.getByRole('button', { name: '选第 2 张作附件' }).click()
+  await expect(page.locator('.composer__scope')).toContainText('已选 1 张')
+  await page.locator('.composer__input').fill('这张写了什么')
   await page.locator('.composer__input').press('Enter')
-  const chip = page.locator('.msg--assistant .streaming-text .ts-chip', { hasText: '第 2 张' })
+  await expect.poll(() => mock.runsSent()[0]?.scope).toEqual({ type: 'frames', frames: [1] })
+  const chip = page.locator('.msg--assistant .streaming-text .ts-chip', { hasText: '第 1 张' })
   await expect(chip).toBeVisible()
+  await page.getByRole('button', { name: '下一张' }).click()
+  await expect(page.locator('.pics-view__count')).toHaveText('2 / 2')
   await chip.click()
-  await expect(page.locator('.sheet-preview')).toContainText('第 2 张')
+  await expect(page.locator('.pics-view__count')).toHaveText('1 / 2')
+})
+
+test('pictures: back from the picture page returns to the import screen', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.frames = 2
+  await uploadPictures(page, mock)
+  await expect(page.locator('.pics-stage')).toBeVisible()
+  await page.locator('.btn--back').click()
+  await expect(page.locator('.pics-stage')).toBeHidden()
+  await expect(page.locator('.import-control__file')).toContainText('2 张图片') // kept, like a pasted link
 })

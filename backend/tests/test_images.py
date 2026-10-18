@@ -138,3 +138,12 @@ def test_an_image_post_link_skips_sampling(tmp_path, monkeypatch):
     monkeypatch.setattr(app.registry, "resolve", resolve)
     body = TestClient(app.app).post("/api/link-jobs", json={"url": "https://www.xiaohongshu.com/explore/1"}).json()
     assert len(body["slots"]) == 3 and started == ["process_images"]  # no sampling, speech, text pass or cuts
+
+
+def test_text_is_listed_picture_by_picture(tmp_path):
+    from modules.screentext.merge import Caption
+    job = picture_job(tmp_path, [{"path": "a"}, {"path": "b"}, {"path": "c"}])
+    job.screentext.segments = [Caption(0, 1, "燕麦 50 克", "middle"), Caption(1, 3, "热量 320 千卡", "middle"), Caption(2, 3, "加微信", "top")]
+    assert images.texts_by_picture(job) == [
+        {"index": 0, "lines": ["燕麦 50 克"]}, {"index": 1, "lines": ["热量 320 千卡"]},
+        {"index": 2, "lines": ["热量 320 千卡", "加微信"]}]
