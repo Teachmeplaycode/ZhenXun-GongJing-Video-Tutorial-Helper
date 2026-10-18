@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test'
 import { MockApi } from './mock-api.js'
 
-async function enter(page) {
+async function enter(page, setup) {
   const mock = new MockApi(page)
+  setup?.(mock)
   await mock.install()
   await page.goto('/')
   await page.locator('.import-control__link').fill('https://www.bilibili.com/video/BV1TEST00001')
@@ -99,4 +100,52 @@ test('an open report refreshes when background transcription and OCR finish', as
   await page.evaluate(() => window.finishBackgroundAnalysis())
   await expect(dialog).toContainText('已纳入完成后的转写和画面文字')
   expect(requests).toBeGreaterThanOrEqual(2)
+})
+
+
+test('an open report includes QR evidence recovered by retrying missing frames', async ({ page }) => {
+  let recovered = false
+  await enter(page, (mock) => {
+    const original = mock.jobEvents.bind(mock)
+    mock.jobEvents = () => {
+      if (recovered) return [
+        { seq: 0, type: 'frame', index: 7, time: 112.5 },
+        { seq: 1, type: 'done', coverage: { ok: 8, missing: 0, total: 8, pending: 0, missing_ranges: [], reasons: {} } },
+      ]
+      return original().map((event) => event.type === 'frame' && event.index === 7
+        ? { ...event, type: 'missing', reason: 'timeout', message: '读取超时' }
+        : event.type === 'done' ? { ...event, coverage: { ok: 7, missing: 1, total: 8, pending: 0,
+            missing_ranges: [[105, 120]], reasons: { timeout: 1 } } } : event)
+    }
+  })
+  let reports = 0
+  await page.route('**/api/link-jobs/job1/antifraud', (route) => {
+    reports++
+    return route.fulfill({ json: { ...report, summary: recovered ? '已包含补抓二维码' : '补抓前的旧帧报告',
+      drainage_signals: [], qrcodes: recovered ? [{ frame_index: 7, time: 112.5, content: 'ordinary QR content' }] : [] } })
+  })
+  await page.route('**/api/link-jobs/job1/retry', (route) => {
+    recovered = true
+    return route.fulfill({ json: { retrying: 1, transcript: false, screentext: false, since: 0 } })
+  })
+  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
+  await expect(dialog).toContainText('补抓前的旧帧报告')
+  await page.locator('.timeline__missing').getByRole('button', { name: '补抓', exact: true }).click()
+  await expect(dialog).toContainText('已包含补抓二维码')
+  await expect(dialog.locator('.antifraud__badge')).toHaveText('二维码 ×1')
+  expect(reports).toBe(2) // the successful completion, not every frame update, refreshes it
+})
+
+test('QR badges use decoded results even when their text contains no drainage signal', async ({ page }) => {
+  await enter(page)
+  await page.route('**/api/link-jobs/job1/antifraud', (route) => route.fulfill({ json: {
+    ...report, drainage_signals: [], qrcodes: [
+      { frame_index: 0, time: 3, content: 'ordinary first QR content' },
+      { frame_index: 1, time: 8, content: 'ordinary second QR content' },
+    ],
+  } }))
+  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
+  await expect(dialog.locator('.antifraud__badge')).toHaveText('二维码 ×2')
 })
