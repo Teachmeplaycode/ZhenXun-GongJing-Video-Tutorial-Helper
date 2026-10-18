@@ -40,6 +40,7 @@
   "reason": "西柚确实会与某些降压药相互作用，但普通柚子影响有限，视频未区分种类。",  # 判定理由
   "sources": [                        # 出处（#3 约定字段）
     {
+      "id": "s1",                    # 核实模型实际引用的来源编号
       "title": "...", "url": "...", "snippet": "...",
       "trusted": true, "kind": "journal", "name": "PubMed"
     }

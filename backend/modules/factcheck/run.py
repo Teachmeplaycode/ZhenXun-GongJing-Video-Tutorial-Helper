@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import uuid
+from itertools import zip_longest
 from collections.abc import AsyncIterator
 
 from modules.frames import FrameJob
@@ -38,13 +39,14 @@ async def _ask(client: ChatClient | OllamaClient, messages: list[dict], max_toke
 
 async def _search(query: str, limit: int, *, web: bool, papers: bool) -> list[dict]:
     """组合网页 + 学术论文检索，返回 build_source 格式列表。任一来源失败不影响整体。"""
-    out: list[dict] = []
+    web_sources: list[dict] = []
+    paper_sources: list[dict] = []
     if web:
         try:
             from modules.agent.web import search as web_search
             results = await web_search(query, limit=limit)
             for r in results:
-                out.append(report.build_source(r.title, r.url, r.snippet))
+                web_sources.append(report.build_source(r.title, r.url, r.snippet))
         except Exception:
             pass
     if papers:
@@ -54,20 +56,22 @@ async def _search(query: str, limit: int, *, web: bool, papers: bool) -> list[di
                 try:
                     found = await search_papers(query, limit=limit, source=source)
                     for p in found:
-                        out.append(report.build_source(p.title, p.url, p.abstract[:300]))
+                        paper_sources.append(report.build_source(p.title, p.url, p.abstract[:300]))
                     if found:
                         break
                 except Exception:
                     continue
         except Exception:
             pass
+    # Interleave before limiting so a full web response cannot exclude all scholarly sources.
+    out = [source for pair in zip_longest(web_sources, paper_sources) for source in pair if source is not None]
     # 去重（同 URL）
     seen, dedup = set(), []
     for s in out:
         if s["url"] and s["url"] not in seen:
             seen.add(s["url"])
             dedup.append(s)
-    return dedup[: limit * 2]
+    return dedup[:limit]
 
 
 def _segments(job: FrameJob) -> tuple[list[dict], list[dict]]:
