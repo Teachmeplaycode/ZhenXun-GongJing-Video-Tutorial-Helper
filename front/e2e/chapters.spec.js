@@ -65,3 +65,13 @@ test('chapters show as faint bands on the timeline', async ({ page }) => {
   await expect(page.locator('.tl-chapterband')).toHaveCount(5)
   await expect(page.locator('.timeline__legend[data-kind="chapter"]')).toContainText('章节 5')
 })
+
+
+test('chapter polling recovers after a transient server failure', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.chapterFailureCount = 1
+  await mock.install()
+  await page.goto('/')
+  await enterChat(page)
+  await expect(page.locator('.chapters__item')).toHaveCount(5, { timeout: 15000 })
+})

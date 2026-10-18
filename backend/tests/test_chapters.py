@@ -118,6 +118,9 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setattr(app, "store", store)
     monkeypatch.setitem(app.jobs, "job1", job)
     app.chapter_service.running.clear()
+    app.chapter_service.deleted.clear()
+    from modules.frames import cuts
+    cuts.save(job.root, "done", [])
     return app, job, store
 
 
@@ -261,3 +264,54 @@ def test_retry_discards_cached_and_inflight_old_chapters(api, monkeypatch):
     assert len(pending) == 1
     assert '重试后的文字' in calls[1][1]['content']
     assert load(job.root)['chapters'][0]['title'] == '新标题'
+
+
+def test_deleted_session_cancels_builder_without_recreating_files(api, monkeypatch):
+    import shutil
+    app, job, _ = api
+    service = app.chapter_service
+
+    async def scenario():
+        started = asyncio.Event()
+        release = asyncio.Event()
+
+        class Client:
+            async def stream(self, *args, **kwargs):
+                started.set()
+                await release.wait()
+                yield '标题|摘要'
+
+        monkeypatch.setattr(service, 'get_client', Client)
+        task = asyncio.create_task(service.build(job))
+        await started.wait()
+        service.remove(job.id)
+        shutil.rmtree(job.root)
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert not job.root.exists()
+        assert job.id not in service.running
+
+    asyncio.run(scenario())
+
+
+def test_restored_session_runs_missing_cut_detection_before_build(api, monkeypatch):
+    from modules.frames import cuts
+    app, job, _ = api
+    (job.root / cuts.FILE).unlink()
+    called = []
+
+    async def ensure(job):
+        called.append(job.id)
+        cuts.save(job.root, 'done', [100, 200])
+
+    from modules.llm import LLMError
+    def no_client():
+        raise LLMError('unavailable', 'test')
+
+    monkeypatch.setattr(app.chapter_service, 'get_client', no_client)
+    monkeypatch.setattr(app.chapter_service, 'ensure_cuts', ensure)
+    asyncio.run(app.chapter_service.build(job))
+    assert called == [job.id]
+    assert load(job.root)['status'] == 'done'
+    assert 100 in {c['end'] for c in load(job.root)['chapters']}
