@@ -47,10 +47,11 @@ def test_tentative_lists_are_documented():
 
 
 def test_meets_target_when_full():
-    spec = {"videos": {f"v{i}": {"category": c} for i, c in enumerate(list(__import__("evals.schema", fromlist=["CATEGORIES"]).CATEGORIES) * 6)},
-            "cases": [{"id": f"c{i}", "video": "v0", "qtype": "summary"} for i in range(150)]}
+    spec = full_valid_spec()
     g = gap_report(spec)
     assert g["meets_target"] is True
+    assert g["videos"] == 30 and g["cases"] == 150
+    assert all(count == 5 for count in g["videos_per_category"].values())
 
 
 
@@ -102,3 +103,75 @@ def test_gap_cli_counts_distinct_query_video_ids_without_merging_them(tmp_path, 
     report = json.loads(capsys.readouterr().out)
     assert report["videos"] == 30 and report["meets_target"] is True
     assert all(count == 5 for count in report["videos_per_category"].values())
+
+
+@pytest.mark.parametrize("has_cases", [False, True])
+def test_unreferenced_inventory_does_not_count_towards_video_or_category_coverage(has_cases):
+    from evals.schema import CATEGORIES
+    spec = full_valid_spec()
+    if has_cases:
+        for case in spec["cases"]:
+            case["video"] = "v0"
+    else:
+        spec["cases"] = []
+    report = gap_report(spec)
+    active = 1 if has_cases else 0
+    assert report["registered_videos"] == 30
+    assert report["videos"] == active and report["videos_short"] == 30 - active
+    assert len(report["unreferenced_videos"]) == 30 - active
+    assert sum(report["videos_per_category"].values()) == active
+    assert report["videos_per_category"][next(iter(CATEGORIES))] == active
+    assert report["categories_below_target"] == list(CATEGORIES)
+    assert report["meets_target"] is False
+
+
+def test_last_video_must_have_a_case_before_video_and_category_targets_are_met():
+    spec = full_valid_spec()
+    for case in spec["cases"]:
+        if case["video"] == "v29":
+            case["video"] = "v0"
+    report = gap_report(spec)
+    assert report["videos"] == 29 and report["videos_short"] == 1
+    assert report["videos_per_category"]["ad_shopping"] == 4
+    assert report["categories_below_target"] == ["ad_shopping"]
+    assert report["unreferenced_videos"] == ["v29"]
+    assert report["meets_target"] is False
+    spec["cases"][-1]["video"] = "v29"
+    covered = gap_report(spec)
+    assert covered["videos"] == 30 and covered["cases"] == 150
+    assert covered["unreferenced_videos"] == []
+    assert covered["videos_per_category"]["ad_shopping"] == 5
+    assert covered["meets_target"] is True
+
+
+def test_thirty_exercised_videos_still_require_five_in_each_category():
+    spec = full_valid_spec()
+    spec["videos"]["v29"]["category"] = "lecture"
+    report = gap_report(spec)
+    assert report["videos"] == 30 and report["videos_short"] == 0
+    assert report["videos_per_category"]["ad_shopping"] == 4
+    assert report["categories_below_target"] == ["ad_shopping"]
+    assert report["meets_target"] is False
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_gap_cli_reports_unreferenced_inventory_without_claiming_coverage(tmp_path, monkeypatch, capsys, json_mode):
+    from scripts import eval_gap
+    spec = full_valid_spec()
+    for case in spec["cases"]:
+        case["video"] = "v0"
+    path = tmp_path / "inventory.json"
+    path.write_text(json.dumps(spec))
+    monkeypatch.setattr(eval_gap, "CASES", path)
+    monkeypatch.setattr("sys.argv", ["eval_gap.py"] + (["--json"] if json_mode else []))
+    eval_gap.main()
+    text = capsys.readouterr().out
+    if json_mode:
+        report = json.loads(text)
+        assert report["videos"] == 1 and report["registered_videos"] == 30
+        assert report["cases"] == 150 and report["meets_target"] is False
+        assert sum(report["videos_per_category"].values()) == 1
+    else:
+        assert "视频（已关联题目）：1/30（还差 29）" in text
+        assert "29 个未关联题目，不计入覆盖率" in text
+        assert "是否达标：否" in text

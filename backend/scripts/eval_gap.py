@@ -43,9 +43,12 @@ TENTATIVE_QTYPES = {
 
 
 def gap_report(spec: dict) -> dict:
-    """返回结构化缺口数据。"""
-    videos = spec["videos"]
+    """Count coverage over videos exercised by cases, matching eval.py's normal video selection."""
+    registered = spec["videos"]
     cases = spec["cases"]
+    referenced = {case["video"] for case in cases}
+    videos = {key: video for key, video in registered.items() if key in referenced}
+    unreferenced = [key for key in registered if key not in referenced]
     by_cat: dict[str, int] = {c: 0 for c in CATEGORIES}
     for v in videos.values():
         cat = v.get("category")
@@ -65,6 +68,8 @@ def gap_report(spec: dict) -> dict:
 
     return {
         "videos": len(videos),
+        "registered_videos": len(registered),
+        "unreferenced_videos": unreferenced,
         "videos_target": TARGET_VIDEOS,
         "videos_short": max(0, TARGET_VIDEOS - len(videos)),
         "cases": len(cases),
@@ -85,9 +90,11 @@ def gap_report(spec: dict) -> dict:
 def print_gap(spec: dict) -> None:
     g = gap_report(spec)
     print(f"评测集缺口清单（Issue #7）")
-    print(f"  视频：{g['videos']}/{g['videos_target']}（还差 {g['videos_short']}）")
+    print(f"  视频（已关联题目）：{g['videos']}/{g['videos_target']}（还差 {g['videos_short']}）")
+    if g["unreferenced_videos"]:
+        print(f"  已登记 {g['registered_videos']} 个来源，其中 {len(g['unreferenced_videos'])} 个未关联题目，不计入覆盖率")
     print(f"  题目：{g['cases']}/{g['cases_target']}（还差 {g['cases_short']}）")
-    print(f"\n每类视频数（目标每类 ≥{g['videos_per_category_target']}）：")
+    print(f"\n每类已关联题目的视频数（目标每类 ≥{g['videos_per_category_target']}）：")
     for c in CATEGORIES:
         n = g["videos_per_category"][c]
         mark = "✓" if n >= g["videos_per_category_target"] else "✗"
