@@ -14,7 +14,7 @@ from pathlib import Path
 
 # A time stamp in an answer, e.g. [00:30] or 01:55 — kept as [mm:ss] in the note.
 STAMP_RE = re.compile(r"(?<![\d:])\[(\d{1,2}:\d{2}(?::\d{2})?)\](?![\d:])")
-URL_RE = re.compile(r"https?://[^\s<>()（）[\]，。；、\"“”]+")
+URL_RE = re.compile(r"https?://[^\s<>（）[\]，。；、\"“”]+")
 
 
 def clock(seconds: float) -> str:
@@ -57,12 +57,58 @@ def markdown_link(label: str, url: str) -> str:
 
 
 MARKDOWN_PROTECTED = re.compile(
-    r"^ {0,3}(?P<fence>`{3,}|~{3,})[^\n]*\n.*?(?:^ {0,3}(?P=fence)[ \t]*$|\Z)"
-    r"|^(?: {4}| {0,3}\t)[^\n]*"
-    r"|(?P<tick>`+).*?(?P=tick)"
+    r"(?P<tick>`+).*?(?P=tick)"
     r"|!?\[[^\n]*?\]\((?:\\.|[^()\n]|\([^()\n]*\))*\)"
     r"|!?\[[^\n]*?\]\[[^\n]*?\]"
     r"|^ {0,3}\[[^]\n]+\]:[^\n]*$", re.MULTILINE | re.DOTALL)
+
+
+def _block_code_ranges(text: str) -> list[tuple[int, int]]:
+    """Inspect indentation after consuming quote/list markers without regex backtracking."""
+    ranges, offset, fence = [], 0, None
+    for line in text.splitlines(keepends=True):
+        content = line
+        if fence:
+            # A code line cannot introduce new Markdown containers. Consume only
+            # the quote markers/list indentation present when this fence opened.
+            for kind, width in fence[2]:
+                if kind == "quote":
+                    prefix = re.match(r" {0,3}>[ \t]?", content)
+                    if not prefix:
+                        fence = None
+                        break
+                    content = content[prefix.end():]
+                else:
+                    expanded = content.expandtabs(4)
+                    if expanded.startswith(" " * width):
+                        content = expanded[width:]
+                    elif content.strip():
+                        fence = None
+                        break
+            if fence:
+                ranges.append((offset, offset + len(line)))
+                if re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(fence[1]) + r",}[ \t\r\n]*", content):
+                    fence = None
+                offset += len(line)
+                continue
+        content, containers = line, []
+        while True:
+            quote = re.match(r" {0,3}>[ \t]?", content)
+            item = re.match(r" {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]", content)
+            prefix = quote or item
+            if not prefix:
+                break
+            containers.append(("quote" if quote else "list", len(prefix[0].expandtabs(4))))
+            content = content[prefix.end():]
+        if content.expandtabs(4).startswith("    "):
+            ranges.append((offset, offset + len(line)))
+        else:
+            opening = re.match(r" {0,3}(`{3,}|~{3,})([^\r\n]*)", content)
+            if opening and not (opening[1][0] == "`" and "`" in opening[2]):
+                fence = (opening[1][0], len(opening[1]), containers)
+                ranges.append((offset, offset + len(line)))
+        offset += len(line)
+    return ranges
 
 
 def linkify_stamps(text: str, canonical_url: str, platform: str) -> str:
@@ -74,7 +120,7 @@ def linkify_stamps(text: str, canonical_url: str, platform: str) -> str:
         url = time_link(canonical_url, platform, stamp_to_seconds(m.group(1)))
         return markdown_link(f"[{m.group(1)}]", url)
 
-    protected = [(m.start(), m.end()) for m in MARKDOWN_PROTECTED.finditer(text)]
+    protected = [(m.start(), m.end()) for m in MARKDOWN_PROTECTED.finditer(text)] + _block_code_ranges(text)
     reference_labels = set(re.findall(r"^ {0,3}\[([^]\n]+)\]:", text, re.MULTILINE))
 
     def unprotected(match):
@@ -202,6 +248,39 @@ def _label_for(tool: str, data: dict) -> str:
     return "画面"
 
 
+def _cited_urls(text: str, known: dict[str, dict]):
+    for match in URL_RE.finditer(text):
+        raw = match.group(0)
+        before = text[:match.start()]
+        if before.endswith("<"):
+            # Explicit autolink boundaries preserve even unbalanced URI sub-delimiters.
+            yield raw
+            continue
+        if re.search(r"\]\([ \t]*$", before):
+            depth, end = 1, 0
+            for end, char in enumerate(raw):
+                if char == "(":
+                    depth += 1
+                elif char == ")":
+                    depth -= 1
+                    if depth == 0:
+                        break
+            else:
+                end = len(raw)
+            yield raw[:end]
+            continue
+        # Prefer an exact cited tool URL when the remaining text is only punctuation.
+        exact = next((url for url in sorted(known, key=len, reverse=True)
+                      if raw.startswith(url) and not raw[len(url):].strip(".,;:!)")), None)
+        if exact:
+            yield exact
+            continue
+        url = raw.rstrip(".,;:")
+        while url.endswith(")") and url.count(")") > url.count("("):
+            url = url[:-1].rstrip(".,;:")
+        yield url
+
+
 def collect_sources(events: list[dict], text: str = "") -> list[dict]:
     """Source links an answer cites: web results, fetched pages and papers, matched to its text."""
     known: dict[str, dict] = {}
@@ -220,8 +299,7 @@ def collect_sources(events: list[dict], text: str = "") -> list[dict]:
                 meta = " · ".join(str(x) for x in (p.get("year"), p.get("venue")) if x)
                 known[p["url"]] = {"title": p.get("title") or "", "url": p["url"], "kind": "论文", "meta": meta}
     cited, seen = [], set()
-    for raw in URL_RE.findall(text):
-        url = raw.rstrip(".,;:）)")
+    for url in _cited_urls(text, known):
         if url in seen or not safe_http_url(url):
             continue
         seen.add(url)
