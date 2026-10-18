@@ -154,15 +154,15 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
                   <span>视频理解与事实核验</span>
                 </span>
               </div>
-              <div className="eyebrow">03 · 对话分析</div>
+              {pictures ? null : <div className="eyebrow">03 · 对话分析</div>}
               <h1 className="h1">{pictures ? '关于这组图片，你想知道什么？' : '关于这段视频，你想知道什么？'}</h1>
               <p className="body-sm muted">
                 {pictures
-                  ? '在下方点选图片，可只针对这几张提问；未选择时默认理解全部图片。输入 / 可以选择常用任务。'
+                  ? '默认理解全部图片；在左边把某几张「选作附件」，就只针对它们提问。'
                   : '在下方时间轴中点选薄片，可将对应关键帧作为附件带入提问；未选择时默认理解整段视频。输入 / 可以选择常用任务。'}
               </p>
               <div className="chat__suggest">
-                {WORKSPACE_CONTENT.suggestions.map((s) => (
+                {(pictures ? WORKSPACE_CONTENT.pictureSuggestions : WORKSPACE_CONTENT.suggestions).map((s) => (
                   <SpotlightCard key={s.title} theme="light" spotlightColor="var(--accent-active)" intensity={0.7} className="workspace-card chat-task">
                     <button type="button" onClick={() => ask(s.question, loadSwitches())}>
                       <strong>{s.title}</strong><span className="workspace-card__description">{s.description}</span>
@@ -195,7 +195,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         selected={selected}
         onRemoveFrame={onRemoveFrame}
         onClearSelection={onClearSelection}
-        onPickFrames={onPickFrames}
+        onPickFrames={pictures ? null : onPickFrames}
         clip={clip}
         onClearClip={onClearClip}
         scopeNote={scopeNote}

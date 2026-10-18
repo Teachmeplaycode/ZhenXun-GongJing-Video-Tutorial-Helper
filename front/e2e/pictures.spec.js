@@ -46,6 +46,7 @@ test('pictures: pick a picture as an attachment; 第 n 张 in an answer shows th
   mock.frames = 2
   mock.runs.push(pictureAnswer())
   await uploadPictures(page, mock)
+  await page.getByRole('button', { name: '下一张' }).click()
   await page.getByRole('button', { name: '选第 2 张作附件' }).click()
   await expect(page.locator('.composer__scope')).toContainText('已选 1 张')
   await page.locator('.composer__input').fill('这张写了什么')
@@ -53,7 +54,6 @@ test('pictures: pick a picture as an attachment; 第 n 张 in an answer shows th
   await expect.poll(() => mock.runsSent()[0]?.scope).toEqual({ type: 'frames', frames: [1] })
   const chip = page.locator('.msg--assistant .streaming-text .ts-chip', { hasText: '第 1 张' })
   await expect(chip).toBeVisible()
-  await page.getByRole('button', { name: '下一张' }).click()
   await expect(page.locator('.pics-view__count')).toHaveText('2 / 2')
   await chip.click()
   await expect(page.locator('.pics-view__count')).toHaveText('1 / 2')
