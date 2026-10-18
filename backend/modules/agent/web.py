@@ -1,9 +1,12 @@
 """Web access for the agent, run by this backend: search, and fetch a page as plain text.
 
-Search providers, tried in order (SEARCH_PROVIDERS): a self-hosted SearXNG (SEARXNG_URL), Tavily
-(TAVILY_API_KEY), Bocha 博查 (BOCHA_API_KEY), then the keyless open-source ddgs metasearch library
-(Bing, Brave, Google, DuckDuckGo, Wikipedia). Providers without configuration are skipped. In testing
-Tavily's results were by far the best; Bocha's Chinese results included unrelated content-farm pages. Pages are fetched with httpx and reduced to their main text with trafilatura.
+Search providers, tried in order (SEARCH_PROVIDERS): DeepSeek's search API (the DeepSeek key the chat
+model already uses), a self-hosted SearXNG (SEARXNG_URL), Tavily (TAVILY_API_KEY), then the keyless
+open-source ddgs metasearch library (Bing, Brave, Google, DuckDuckGo, Wikipedia). Providers without
+configuration are skipped. DeepSeek's results carry the site, the date and an authority score (0–4,
+4 = government, state media, journals), which the agent and the fact check use to weigh sources.
+Bocha 博查 was dropped (2026-10-19): its Chinese results mixed in unrelated content-farm pages.
+Pages are fetched with httpx and reduced to their main text with trafilatura.
 
 Fetching follows URLs a model chose, possibly from text on other pages, so every request and every
 redirect hop is checked: only http(s) to public addresses, never this machine or the local network.
@@ -11,6 +14,7 @@ redirect hop is checked: only http(s) to public addresses, never this machine or
 from __future__ import annotations
 
 import asyncio
+import datetime
 import html
 import ipaddress
 import re
@@ -60,6 +64,13 @@ class SearchResult:
     title: str
     url: str
     snippet: str
+    authority: int | None = None  # DeepSeek: 0–4 (≥3 authoritative, 4 most), None when unknown
+    site: str = ""
+    date: str = ""                # YYYY-MM-DD when the provider knows it
+
+
+def authority_label(authority: int | None) -> str:
+    return {4: "权威", 3: "较可信", 2: "一般", 1: "可信度低", 0: "可信度很低"}.get(authority, "")
 
 
 def _text(fragment: str) -> str:
@@ -115,17 +126,6 @@ async def _tavily(query: str, limit: int, key: str, client: httpx.AsyncClient, f
             for r in response.json().get("results", []) if r.get("url")]
 
 
-async def _bocha(query: str, limit: int, key: str, client: httpx.AsyncClient, freshness: str = "") -> list[SearchResult]:
-    response = await client.post("https://api.bochaai.com/v1/web-search", headers={"Authorization": f"Bearer {key}"},
-                                 json={"query": query, "count": limit, "summary": True, "freshness": freshness if freshness in FRESHNESS else "noLimit"})
-    payload = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
-    if response.status_code != 200 or payload.get("code") not in (200, None):
-        raise WebError(f"博查返回错误（{payload.get('code') or response.status_code}）：{payload.get('msg') or ''}".rstrip("："))
-    pages = ((payload.get("data") or {}).get("webPages") or {}).get("value") or []
-    return [SearchResult(p.get("name", ""), p.get("url", ""),
-                         " ".join((p.get("summary") or p.get("snippet") or "").split())[:400]) for p in pages if p.get("url")]
-
-
 async def _searxng(query: str, limit: int, base: str, client: httpx.AsyncClient, freshness: str = "") -> list[SearchResult]:
     params = {"q": query, "format": "json"}
     if freshness in FRESHNESS:
@@ -137,48 +137,56 @@ async def _searxng(query: str, limit: int, base: str, client: httpx.AsyncClient,
             for r in response.json().get("results", [])[:limit] if r.get("url")]
 
 
-DEFAULT_PROVIDERS = "searxng,tavily,bocha,ddgs"
-# Bocha's rerank API, off unless SEARCH_RERANK=on. Tested 2026-10-15: on Bocha's Chinese results it scored a
-# content-farm page 0.77 and a professional medical article 0.19 (relevance, not reliability), and on
-# OpenAlex it barely changed an already good order, so by default it isn't worth the extra call.
-RERANK_MODEL = "gte-rerank"  # Bocha's own bocha-semantic-reranker-* answered 500 on the test account
-RERANK_FLOOR = 0.15          # results scoring below this are dropped (at least RERANK_KEEP stay)
-RERANK_KEEP = 3
+DEFAULT_PROVIDERS = "deepseek,searxng,tavily,ddgs"
+DEEPSEEK_SEARCH = "https://api.deepseek.com/v1/tools/search"
+DEEPSEEK_QUERY_MAX = 128   # characters the API accepts in a query
+FRESHNESS_DAYS = {"oneDay": 1, "oneWeek": 7, "oneMonth": 31, "oneYear": 366}
 
 
-async def rerank(query: str, documents: list[str], client: httpx.AsyncClient) -> list[tuple[int, float]] | None:
-    """(index, relevance) best first via Bocha's rerank API, or None without a key or on any failure."""
-    key = setting(settings(), "BOCHA_API_KEY", "BOCHA_API", "Bocha_API_KEY")
-    if not key or len(documents) < 2 or settings().get("SEARCH_RERANK", "off").lower() not in ("on", "1", "true"):
-        return None
-    try:
-        response = await client.post("https://api.bochaai.com/v1/rerank", headers={"Authorization": f"Bearer {key}"},
-                                     json={"model": RERANK_MODEL, "query": query, "documents": documents,
-                                           "top_n": len(documents), "return_documents": False}, timeout=15)
-        rows = ((response.json() or {}).get("data") or {}).get("results") or []
-        ranked = [(int(r["index"]), float(r["relevance_score"])) for r in rows]
-    except (httpx.HTTPError, ValueError, KeyError, TypeError):
-        return None
-    return ranked if len(ranked) == len(documents) else None
+def deepseek_key(config: dict) -> str:
+    """The DeepSeek key: DEEPSEEK_API_KEY, or LLM_API_KEY when the chat model is DeepSeek's."""
+    key = setting(config, "DEEPSEEK_API_KEY")
+    if key:
+        return key
+    base = config.get("LLM_BASE_URL", "").strip()
+    deepseek = config.get("LLM_PROVIDER", "").strip().lower() in ("", "deepseek") and (not base or "deepseek.com" in base)
+    return setting(config, "LLM_API_KEY") if deepseek else ""
 
 
-async def rerank_results(query: str, results: list[SearchResult], client: httpx.AsyncClient) -> list[SearchResult]:
-    """Order results by semantic relevance and drop clear misses (e.g. content-farm pages)."""
-    ranked = await rerank(query, [f"{r.title}\n{r.snippet}" for r in results], client)
-    if ranked is None:
-        return results
-    kept = [results[i] for n, (i, score) in enumerate(ranked) if score >= RERANK_FLOOR or n < RERANK_KEEP]
-    return kept
+async def _deepseek(query: str, limit: int, key: str, client: httpx.AsyncClient, freshness: str = "") -> list[SearchResult]:
+    if freshness in FRESHNESS_DAYS:  # its search syntax: after:YYYY-MM-DD
+        since = datetime.date.today() - datetime.timedelta(days=FRESHNESS_DAYS[freshness])
+        query = f"{query[:DEEPSEEK_QUERY_MAX - 18]} after:{since.isoformat()}"
+    response = await client.post(DEEPSEEK_SEARCH, headers={"Authorization": f"Bearer {key}"},
+                                 json={"query": query[:DEEPSEEK_QUERY_MAX], "count": min(max(limit, 1), 50)})
+    if response.status_code == 401:
+        raise WebError("DeepSeek key 无效")
+    if response.status_code == 402:
+        raise WebError("DeepSeek 余额不足")
+    if response.status_code == 429:
+        raise WebError("DeepSeek 搜索请求过多")
+    if response.status_code != 200:
+        raise WebError(f"DeepSeek 搜索返回 HTTP {response.status_code}")
+    out = []
+    for r in response.json().get("results") or []:
+        if not r.get("url"):
+            continue
+        authority = r.get("authority")
+        out.append(SearchResult(
+            r.get("title") or "", r["url"], " ".join((r.get("summary") or r.get("snippet") or "").split())[:500],
+            authority if isinstance(authority, int) and 0 <= authority <= 4 else None,
+            r.get("site_name") or "", (r.get("date") or "")[:10]))
+    return out
 
 
 async def search(query: str, limit: int = 8, freshness: str = "", *, client: httpx.AsyncClient | None = None) -> list[SearchResult]:
-    """Try SEARCH_PROVIDERS in order (default searxng, tavily, bocha, ddgs), skipping those without
+    """Try SEARCH_PROVIDERS in order (default deepseek, searxng, tavily, ddgs), skipping those without
     configuration; the first one that returns results wins, a failure moves on to the next."""
     config = settings()
     keyed = {
         "searxng": setting(config, "SEARXNG_URL").rstrip("/"),
         "tavily": setting(config, "TAVILY_API_KEY", "Tavily_API_KEY", "TAVILY_API"),
-        "bocha": setting(config, "BOCHA_API_KEY", "BOCHA_API", "Bocha_API_KEY"),
+        "deepseek": deepseek_key(config),
         "ddgs": "builtin",
     }
     providers = [p.strip().lower() for p in config.get("SEARCH_PROVIDERS", DEFAULT_PROVIDERS).split(",")]
@@ -196,7 +204,7 @@ async def search(query: str, limit: int = 8, freshness: str = "", *, client: htt
                     if not results:
                         failures.append("ddgs 的搜索引擎都没有返回结果（可能被拦截）")
                 else:
-                    fetcher = {"tavily": _tavily, "bocha": _bocha, "searxng": _searxng}[provider]
+                    fetcher = {"deepseek": _deepseek, "tavily": _tavily, "searxng": _searxng}[provider]
                     results = await fetcher(query, limit, keyed[provider], client, freshness)
             except WebError as exc:
                 failures.append(str(exc))
@@ -205,7 +213,7 @@ async def search(query: str, limit: int = 8, freshness: str = "", *, client: htt
                 failures.append(f"{provider} 连接失败")
                 continue
             if results:
-                return await rerank_results(query, results[:limit], client)
+                return results[:limit]
         if failures:
             # ddgs reports "no results" both for empty searches and for engines that blocked the request.
             raise WebError("搜索没有返回结果：" + "；".join(failures) + "。换个关键词或稍后再试")

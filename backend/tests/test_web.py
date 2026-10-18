@@ -121,27 +121,45 @@ def test_search_tries_backends_in_order(monkeypatch):
 
 
 
-def test_rerank_reorders_and_drops_misses(monkeypatch):
-    monkeypatch.setattr(web, "settings", lambda: {"BOCHA_API": "sk-test", "SEARCH_RERANK": "on"})
-    results = [web.SearchResult("腹胀", "https://farm.com", "饭后腹胀"), web.SearchResult("Amlodipine", "https://a.com", "no effect"),
-               web.SearchResult("Nifedipine", "https://n.com", "raises levels"), web.SearchResult("维C", "https://c.com", "柚子维C"),
-               web.SearchResult("FDA", "https://fda.gov", "grapefruit")]
-    scores = {"index": 0}
+def test_deepseek_search_brings_authority_site_and_date(monkeypatch):
+    seen = {}
 
     def handler(request):
-        body = json.loads(request.content)
-        assert body["model"] == "gte-rerank" and len(body["documents"]) == 5
-        ranked = [(1, 0.96), (2, 0.8), (4, 0.3), (3, 0.05), (0, 0.02)]
-        return httpx.Response(200, json={"code": 200, "data": {"results": [{"index": i, "relevance_score": s} for i, s in ranked]}})
+        seen["auth"] = request.headers["Authorization"]
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"results": [
+            {"title": "喝醋软化血管？别再被骗了", "url": "https://news.cctv.com/1", "snippet": "短", "summary": "长摘要 " * 3,
+             "site_name": "央视网", "date": "2019-04-21T16:00:00+00:00", "authority": 4, "rerank_score": 1.7},
+            {"title": "无名站", "url": "https://farm.example/2", "snippet": "s", "summary": None, "authority": -1, "date": None},
+            {"title": "没有链接", "url": ""}]})
+    monkeypatch.setattr(web, "settings", lambda: {"DEEPSEEK_API_KEY": "sk-test", "SEARCH_PROVIDERS": "deepseek"})
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    kept = asyncio.run(web.rerank_results("does grapefruit affect amlodipine", results, client))
-    assert [r.url for r in kept] == ["https://a.com", "https://n.com", "https://fda.gov"]  # the two misses are gone
+    results = asyncio.run(web.search("喝醋 降血压", 5, "oneYear", client=client))
+    assert seen["auth"] == "Bearer sk-test" and seen["body"]["count"] == 5
+    assert seen["body"]["query"].startswith("喝醋 降血压 after:20")  # freshness in its own syntax
+    assert [(r.authority, r.site, r.date) for r in results] == [(4, "央视网", "2019-04-21"), (None, "", "")]
+    assert results[0].snippet.startswith("长摘要") and results[1].snippet == "s"  # the long summary, for the model
+    assert web.authority_label(4) == "权威" and web.authority_label(None) == ""
 
-    # Off by default, and without a key: the original order stays.
-    monkeypatch.setattr(web, "settings", lambda: {"BOCHA_API": "sk-test"})
-    assert asyncio.run(web.rerank_results("q", results, client)) == results
-    monkeypatch.setattr(web, "settings", lambda: {"SEARCH_RERANK": "on"})
-    assert asyncio.run(web.rerank_results("q", results, client)) == results
+
+def test_deepseek_key_is_the_chat_models(monkeypatch):
+    assert web.deepseek_key({"DEEPSEEK_API_KEY": "a", "LLM_API_KEY": "b"}) == "a"
+    assert web.deepseek_key({"LLM_API_KEY": "b"}) == "b"
+    assert web.deepseek_key({"LLM_API_KEY": "b", "LLM_BASE_URL": "https://api.openai.com"}) == ""
+    assert web.deepseek_key({"LLM_API_KEY": "b", "LLM_PROVIDER": "ollama"}) == ""
+
+
+def test_deepseek_failures_move_on_to_the_next_provider(monkeypatch):
+    def handler(request):
+        if "deepseek" in request.url.host:
+            return httpx.Response(402, json={"error": {"message": "Insufficient Balance"}})
+        return httpx.Response(200, json={"results": [{"title": "T", "url": "https://t.com", "content": "c"}]})
+    monkeypatch.setattr(web, "settings", lambda: {"DEEPSEEK_API_KEY": "k", "TAVILY_API_KEY": "t", "SEARCH_PROVIDERS": "deepseek,tavily"})
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    assert [r.url for r in asyncio.run(web.search("q", client=client))] == ["https://t.com"]
+    monkeypatch.setattr(web, "settings", lambda: {"DEEPSEEK_API_KEY": "k", "SEARCH_PROVIDERS": "deepseek"})
+    with pytest.raises(web.WebError, match="余额不足"):
+        asyncio.run(web.search("q", client=client))
 
 
 def test_definitions_follow_the_composer_switches(monkeypatch):

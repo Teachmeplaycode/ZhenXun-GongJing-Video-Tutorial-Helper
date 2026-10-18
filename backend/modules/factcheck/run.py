@@ -45,8 +45,12 @@ async def _search(query: str, limit: int, *, web: bool, papers: bool) -> list[di
         try:
             from modules.agent.web import search as web_search
             results = await web_search(query, limit=limit)
-            for r in results:
-                web_sources.append(report.build_source(r.title, r.url, r.snippet))
+            # Most authoritative first (unknown counts as middling); low-authority pages only fill gaps.
+            level = lambda r: getattr(r, "authority", None)  # noqa: E731 — only DeepSeek's results carry it
+            results = sorted(results, key=lambda r: -(level(r) if level(r) is not None else 2))
+            solid = [r for r in results if level(r) is None or level(r) >= 2]
+            for r in (solid if len(solid) >= 3 else results):
+                web_sources.append(report.build_source(r.title, r.url, r.snippet, level(r), getattr(r, "site", "")))
         except Exception:
             pass
     if papers:

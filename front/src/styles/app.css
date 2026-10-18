@@ -1084,6 +1084,7 @@ img { display: block; }
 .fc-trust { display: inline-flex; align-items: center; gap: var(--sp-4); font-size: var(--fs-body-sm); }
 .fc-trust--yes { color: #16a34a; }
 .fc-trust--no { color: var(--text-secondary); }
+.fc-authority { padding: 0 var(--sp-6); border: var(--border-hairline); border-radius: var(--radius-pill); color: var(--text-secondary); font-size: var(--fs-caption); }
 
 .fc-disclaimer { margin-top: var(--sp-16); padding-top: var(--sp-12); border-top: 1px solid rgba(0,0,0,0.08); text-align: center; font-size: var(--fs-body-sm); color: var(--text-secondary); }
 

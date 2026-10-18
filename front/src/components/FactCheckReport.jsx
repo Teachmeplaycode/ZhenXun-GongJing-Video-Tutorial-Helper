@@ -27,6 +27,9 @@ function fmtTime(s) {
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
 
+// The search engine's site authority (DeepSeek search, 0–4) for sources outside the whitelist.
+const AUTHORITY = { 3: '较可信网站', 2: '普通网页', 1: '可信度低', 0: '可信度很低' }
+
 function SourceItem({ src, i }) {
   const trusted = src.trusted
   return (
@@ -43,8 +46,9 @@ function SourceItem({ src, i }) {
           {trusted ? (
             <span className="fc-trust fc-trust--yes"><IconShield size={12} />{src.name || '权威来源'} · {src.kind || ''}</span>
           ) : (
-            <span className="fc-trust fc-trust--no">普通网页</span>
+            <span className="fc-trust fc-trust--no">{src.name ? `${src.name} · ` : ''}{AUTHORITY[src.authority] || '普通网页'}</span>
           )}
+          {src.authority != null ? <span className="fc-authority mono-sm" title="搜索引擎评定的站点权威度（0–4）">权威度 {src.authority}/4</span> : null}
         </div>
       </div>
     </li>

@@ -235,3 +235,20 @@ def test_evidence_backed_verdict_controls_risk_despite_conflicting_model_respons
     result = asyncio.run(verify.verify_claim(ask, "claim", [report.build_source("study", "https://example.org", "evidence")]))
     assert result["verdict"] == verdict and result["risk"] == expected
     assert bool(result["sources"]) == (verdict != "unverifiable")
+
+
+def test_web_sources_go_most_authoritative_first_and_farms_only_fill_gaps(monkeypatch):
+    from modules.agent import web as web_module
+    from modules.factcheck import run as run_module
+    from modules.factcheck.verify import _source_data
+
+    rows = [("farm", 0), ("portal", 3), ("cctv", 4), ("blog", 2), ("unknown", None)]
+
+    async def web_search(query, limit):
+        return [web_module.SearchResult(n, f"https://{n}.example/", "t", a, n) for n, a in rows]
+    monkeypatch.setattr(web_module, "search", web_search)
+    found = asyncio.run(run_module._search("q", 6, web=True, papers=False))
+    assert [s["title"] for s in found] == ["cctv", "portal", "blog", "unknown"]  # the farm isn't needed
+    assert found[0]["trusted"] and found[0]["kind"] == "高权威站点" and found[0]["name"] == "cctv"
+    assert not found[1]["trusted"] and found[1]["authority"] == 3
+    assert _source_data(found[0])["authority"] == 4  # survives the screening payload

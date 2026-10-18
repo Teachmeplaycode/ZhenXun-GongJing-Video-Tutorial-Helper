@@ -74,8 +74,8 @@ check_env() {
   else
     fail "没有问答模型的 key：写 DEEPSEEK_API_KEY=…，或 LLM_PROVIDER=ollama 改用本地模型"
   fi
-  if has_setting TAVILY_API_KEY || has_setting Tavily_API_KEY; then ok "联网搜索：Tavily"; else warn "没有 Tavily key：联网搜索会退到博查或 ddgs，结果质量差一些"; fi
-  if has_setting BOCHA_API_KEY || has_setting BOCHA_API; then ok "联网搜索备用：博查"; fi
+  if has_setting DEEPSEEK_API_KEY; then ok "联网搜索：DeepSeek 搜索（带权威度）"; fi
+  if has_setting TAVILY_API_KEY || has_setting Tavily_API_KEY; then ok "联网搜索备用：Tavily"; fi
   if has_setting OPENALEX_API_KEY; then ok "论文检索：OpenAlex（带 key，约 1000 次/天）"; else warn "没有 OPENALEX_API_KEY：论文检索每天约 100 次（openalex.org 免费注册）"; fi
   if has_setting BILIBILI_COOKIE; then ok "B 站评论：已配置登录 Cookie"; else warn "没有登录 B 站：评论只能读前 3 条热门（弹幕不受影响）；启动后在页面右上角「账号」扫码登录"; fi
   if has_setting YUANBAO_COOKIE; then ok "视频号：已登录腾讯元宝（过期后在页面「账号」里重新扫码）"; else warn "没有登录腾讯元宝：视频号链接解析不了；启动后在页面右上角「账号」用微信扫码登录"; fi
