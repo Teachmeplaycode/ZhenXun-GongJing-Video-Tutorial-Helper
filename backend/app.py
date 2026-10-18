@@ -25,6 +25,7 @@ from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_cl
 from modules.store import SessionStore
 from modules.screentext import ScreenText, run_screentext
 from modules.transcript import Transcript, run_transcript
+from modules.antifraud.review import analyze_reviewed
 from modules.video_source import ResolveError, Stream, default_registry
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
@@ -485,6 +486,18 @@ async def job_screentext(job_id: str):
 async def job_transcript(job_id: str):
     """Transcript status and timed segments."""
     return get_job(job_id).transcript.as_dict()
+
+
+@app.get("/api/link-jobs/{job_id}/antifraud")
+async def job_antifraud(job_id: str):
+    """Time-point evidence and bounded model context review; registry checks remain partial."""
+    job = get_job(job_id)
+    try:
+        client = get_llm()
+    except LLMError:
+        client = None
+    report = await analyze_reviewed(job, client=client, job_id=job_id)
+    return report.as_dict()
 
 
 @app.post("/api/agent/runs")
