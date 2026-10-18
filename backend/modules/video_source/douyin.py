@@ -198,6 +198,8 @@ def _http_error(status: int) -> ResolveError | None:
         return ResolveError("forbidden", "该内容在当前地区或条件下受限，无法观看")
     if status == 429:
         return ResolveError("rate_limited", "请求过于频繁，请稍后重试", retryable=True)
+    if status >= 500:
+        return ResolveError("upstream", f"抖音返回了错误（HTTP {status}）", retryable=True)
     return None
 
 
@@ -264,6 +266,4 @@ class DouyinResolver(Resolver):
             raise err
         if response.status_code == 404:
             raise ResolveError("not_found", "视频不存在或已被删除")
-        if response.status_code >= 500:
-            raise ResolveError("upstream", f"抖音返回了错误（HTTP {response.status_code}）", retryable=True)
         return parse_share_data(response.text, ident, self.headers)
