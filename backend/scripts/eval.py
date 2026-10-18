@@ -39,6 +39,8 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from evals.schema import CATEGORIES, QTYPES  # noqa: E402
+
 CASES = ROOT / "evals" / "cases.json"
 DATA = ROOT / "data" / "evals"
 VIDEOS = DATA / "videos.json"
@@ -235,6 +237,40 @@ def previous() -> dict | None:
     return json.loads(runs[-1].read_text()) if runs else None
 
 
+def print_matrix(results: list[dict]) -> None:
+    """按类别 × 题型打印通过率矩阵（Issue #7）。没有 category/qtype 的旧结果会跳过。"""
+    if not any(r.get("category") and r.get("qtype") for r in results):
+        return
+    cats = list(CATEGORIES)
+    qts = list(QTYPES)
+    cells = {(c, q): [0, 0] for c in cats for q in qts}  # [passed, total]
+    cat_tot = {c: [0, 0] for c in cats}
+    qt_tot = {q: [0, 0] for q in qts}
+    for r in results:
+        c, q = r.get("category"), r.get("qtype")
+        if c not in CATEGORIES or q not in QTYPES:
+            continue
+        cells[(c, q)][1] += 1
+        cat_tot[c][1] += 1
+        qt_tot[q][1] += 1
+        if r["passed"]:
+            cells[(c, q)][0] += 1
+            cat_tot[c][0] += 1
+            qt_tot[q][0] += 1
+
+    def cell(p, n):
+        return f"{p}/{n}" if n else "·"
+
+    print(f"\n{'类别 × 题型通过率':}")
+    header = f"{'':<10}" + "".join(f"{QTYPES[q]:<8}" for q in qts) + "合计"
+    print(header)
+    for c in cats:
+        row = f"{CATEGORIES[c]:<10}" + "".join(f"{cell(*cells[(c, q)]):<8}" for q in qts) + cell(*cat_tot[c])
+        print(row)
+    print(f"{'合计':<10}" + "".join(f"{cell(*qt_tot[q]):<8}" for q in qts)
+          + cell(sum(p for p, _ in qt_tot.values()), sum(n for _, n in qt_tot.values())))
+
+
 def print_report(results: list[dict], before: dict | None) -> None:
     print(f"\n{'':2}{'用例':<26}{'结果':<6}{'耗时':>7}{'输入k':>7}  说明")
     old = {r["id"]: r for r in (before or {}).get("results", [])}
@@ -255,6 +291,7 @@ def print_report(results: list[dict], before: dict | None) -> None:
         same = {r["id"] for r in results} == {r["id"] for r in before["results"]}
         print(f"上次（{before['started']}{'' if same else '，用例不同'}）：通过 {b['passed']}/{b['cases']} · 平均 {b['avg_seconds']}s · "
               f"平均输入 {b['avg_prompt_k']}k" + (f" · 评分均值 {b['judge_avg']}/2" if b.get("judge_avg") is not None else ""))
+    print_matrix(results)
 
 
 async def main() -> None:
@@ -303,6 +340,9 @@ async def main() -> None:
                 return {"id": case["id"], "question": case["question"], **run, "fails": fails, "passed": not fails, "judge": verdict}
 
             results = await asyncio.gather(*(one(c) for c in cases))
+            for case, result in zip(cases, results):
+                result["category"] = spec["videos"].get(case["video"], {}).get("category")
+                result["qtype"] = case.get("qtype")
             if llm:
                 await llm.aclose()
     RESULTS.mkdir(parents=True, exist_ok=True)
