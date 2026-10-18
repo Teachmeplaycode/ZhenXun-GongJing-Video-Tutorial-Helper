@@ -11,7 +11,7 @@ import html
 import zipfile
 from pathlib import Path
 
-from .markdown import ImageRef, STAMP_RE, clock, collect_sources, image_relative_path, safe_http_url, select_messages, stamp_to_seconds, time_link
+from .markdown import ImageRef, STAMP_RE, clock, collect_image_refs, collect_sources, image_relative_path, safe_http_url, select_messages, stamp_to_seconds, time_link
 
 
 def build_zip(markdown_text: str, image_refs: list[ImageRef]) -> bytes:
@@ -82,7 +82,8 @@ def _text_html(text: str, canonical_url: str, platform: str) -> str:
     return "".join(chunks)
 
 
-def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: str) -> str:
+def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: str,
+                 available_images: set[str]) -> str:
     canonical_url = video.get("canonical_url") or ""
     platform = video.get("platform") or ""
     events = message.get("events") or []
@@ -92,7 +93,8 @@ def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: 
     out.append(f"<h3>{index}. {label}</h3>")
     out.append(f'<div class="answer">{_text_html(text, canonical_url, platform)}</div>')
 
-    frames = message.get("frames") or []
+    frames = [i for i in message.get("frames") or []
+              if type(i) is int and i >= 0 and f"/api/link-jobs/{job_id}/frames/{i}.jpg" in available_images]
     if frames:
         out.append('<div class="shots"><h4>附件关键帧</h4>')
         for i in frames:
@@ -101,7 +103,7 @@ def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: 
                 out.append(f'<figure class="shot"><img src="{_esc(base_url + api)}" alt="关键帧 {i}"></figure>')
         out.append("</div>")
 
-    imgs = _event_image_paths(events, job_id)
+    imgs = [(api, label) for api, label in _event_image_paths(events, job_id) if api in available_images]
     if imgs:
         out.append('<div class="shots"><h4>引用画面</h4>')
         for api, label in imgs:
@@ -120,9 +122,17 @@ def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: 
 
 
 def build_print_html(video: dict, task: str, messages: list[dict], slots: list[dict],
-                     job_id: str, base_url: str, selected_ids: set[int] | None = None) -> str:
+                     job_id: str, base_url: str, selected_ids: set[int] | None = None, *, data_dir=None) -> str:
     """A self-contained, print-styled HTML page for the browser's Print → PDF."""
     chosen = select_messages(messages, selected_ids)
+    available_images = set()
+    ok_frames = {f"/api/link-jobs/{job_id}/frames/{slot['index']}.jpg"
+                 for slot in slots if type(slot.get("index")) is int and slot.get("status") == "ok"}
+    if data_dir is not None:
+        for ref in collect_image_refs(chosen, slots, data_dir, job_id):
+            relative = image_relative_path(ref.api_path, job_id)
+            if len(relative.parts) > 1 or ref.api_path in ok_frames:
+                available_images.add(ref.api_path)
     title = video.get("title") or video.get("video_id") or "视频笔记"
     meta_bits = []
     if video.get("author"):
@@ -157,7 +167,7 @@ def build_print_html(video: dict, task: str, messages: list[dict], slots: list[d
                 index += 1
             elif index == 0:
                 index = 1
-            body.append(_answer_html(m, video, index, job_id, base_url))
+            body.append(_answer_html(m, video, index, job_id, base_url, available_images))
 
     if manuals:
         body.append("<h2>手动慢放</h2>")
@@ -170,7 +180,7 @@ def build_print_html(video: dict, task: str, messages: list[dict], slots: list[d
                 head += f" · 每秒 {fps:g} 帧"
             body.append('<section class="qa manual">')
             body.append(f"<h3>{_esc(head)}</h3>")
-            imgs = _event_image_paths(events, job_id)
+            imgs = [(api, label) for api, label in _event_image_paths(events, job_id) if api in available_images]
             if imgs:
                 body.append('<div class="shots">')
                 for api, label in imgs:

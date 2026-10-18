@@ -58,6 +58,7 @@ def markdown_link(label: str, url: str) -> str:
 
 MARKDOWN_PROTECTED = re.compile(
     r"^ {0,3}(?P<fence>`{3,}|~{3,})[^\n]*\n.*?(?:^ {0,3}(?P=fence)[ \t]*$|\Z)"
+    r"|^(?: {4}| {0,3}\t)[^\n]*"
     r"|(?P<tick>`+).*?(?P=tick)"
     r"|!?\[[^\n]*?\]\((?:\\.|[^()\n]|\([^()\n]*\))*\)"
     r"|!?\[[^\n]*?\]\[[^\n]*?\]"
