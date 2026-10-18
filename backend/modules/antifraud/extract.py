@@ -10,13 +10,10 @@ from dataclasses import dataclass
 
 # 微信号：字母开头，6-20 位字母/数字/下划线（微信官方规则）。前缀引导，避免把任意英文词误判。
 WECHAT_PREFIX = re.compile(
-    r"(?:加(?:我)?(?:微信|v|x|vx|VX|Vx)|微?信(?:号)?|VX|vx|Vx|v/x|x/v|威信|薇信)"
+    # Choose the complete prefix once: a failed VX ID must not fall back to V + X….
+    r"(?>加(?:我)?\s*(?:微信(?:号)?|v/x|x/v|vx|v|x)|微信(?:号)?|威信|薇信|"
+    r"(?<![A-Za-z0-9_/])(?:vx|v/x|x/v)|(?<![A-Za-z0-9_/])[vx](?=\s*[:：]))"
     r"\s*[:：是]?\s*([A-Za-z][A-Za-z0-9_]{5,19})(?![A-Za-z0-9_])",
-    re.IGNORECASE,
-)
-# "微信号:abc123" 里冒号后可能跟空格；也匹配 "加v abc1234"
-WECHAT_LOOSE = re.compile(
-    r"(?:加\s*v\s*|加\s*x\s*|v\s*[:：]\s*|x\s*[:：]\s*)([A-Za-z][A-Za-z0-9_]{5,19})(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
 
@@ -70,12 +67,11 @@ def extract_wechat_ids(text: str) -> list[str]:
     """
     found: list[str] = []
     seen: set[str] = set()
-    for pat in (WECHAT_PREFIX, WECHAT_LOOSE):
-        for m in pat.finditer(text):
-            wid = m.group(1)
-            if wid not in seen:
-                seen.add(wid)
-                found.append(wid)
+    for m in WECHAT_PREFIX.finditer(text):
+        wid = m.group(1)
+        if wid not in seen:
+            seen.add(wid)
+            found.append(wid)
     return found
 
 
