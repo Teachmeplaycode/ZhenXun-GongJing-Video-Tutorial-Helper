@@ -93,6 +93,12 @@ async def run_factcheck(
     run_id = uuid.uuid4().hex[:12]
     yield {"type": "factcheck.started", "run_id": run_id, "job_id": job.id}
 
+    if any(getattr(channel, "status", None) in ("pending", "running")
+           for channel in (job.transcript, job.screentext)):
+        yield {"type": "factcheck.error", "run_id": run_id, "code": "content_not_ready",
+               "message": "语音转写或画面文字识别尚未完成，请完成后重试核查。", "retryable": True}
+        return
+
     t_segs, s_segs = _segments(job)
     if not t_segs and not s_segs:
         yield {"type": "factcheck.error", "run_id": run_id, "code": "no_content",

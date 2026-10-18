@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 from collections.abc import Awaitable, Callable
+from itertools import zip_longest
 
 # ask(messages, max_tokens) -> 完整文本（由 run.py 提供真实 LLM 调用，测试可传 mock）
 Ask = Callable[[list[dict], int], Awaitable[str]]
@@ -22,10 +24,10 @@ SYSTEM = """你是科普内容核查助手。从视频的语音转写和画面�
 
 每条说法返回：
 - claim：把原话标准化成简洁命题（去掉语气词，补全主语），用于检索核实
-- original_text：视频里的原话（保留原措辞，用于标夸大用语）
+- original_text：视频里的单条完整说法原文，必须是所引片段的连续子串，保留原措辞，不要把多条说法合并
 - start / end：这句话的时间点（秒）
 - source：transcript（语音）或 screentext（画面文字）
-- segment_index：在对应来源里的段序号
+- segment_index：输入中展示的对应来源全局段序号，不要在批次内重新编号
 
 只返回 JSON 数组，不要解释。没有可核实说法时返回 []。"""
 
@@ -48,6 +50,43 @@ def screentext_text(segments: list[dict]) -> str:
         start, end = s.get("start", 0), s.get("end", 0)
         lines.append(f"[{i:02d} {start:.1f}-{end:.1f}] {s.get('text', '').strip()}")
     return "\n".join(lines)
+
+
+def _windows(segments: list[dict], budget: int):
+    """Bound every input window including labels, keep global indexes and never discard the tail.
+
+    Oversized segments are split near a sentence/word boundary where possible, with overlap so a
+    statement at a boundary can still be extracted. Every piece retains its real source segment.
+    """
+    window, used = [], 0
+    for index, segment in enumerate(segments):
+        text = segment.get("text", "")
+        if not isinstance(text, str) or not text.strip():
+            continue
+        text = text.strip()
+        prefix = f"[{index:02d} {segment.get('start', 0):.1f}-{segment.get('end', 0):.1f}] "
+        capacity = budget - len(prefix) - 1
+        if capacity <= 0:
+            raise ValueError("抽取窗口不足以容纳片段时间标记")
+        offset = 0
+        while offset < len(text):
+            end = min(len(text), offset + capacity)
+            if end < len(text):
+                boundary = max(text.rfind(mark, offset + capacity // 2, end) for mark in "。！？；.!?;\n ")
+                if boundary >= 0:
+                    end = boundary + 1
+            piece = text[offset:end]
+            line = prefix + piece
+            if window and used + len(line) + 1 > budget:
+                yield window
+                window, used = [], 0
+            window.append((index, piece, line))
+            used += len(line) + 1
+            if end == len(text):
+                break
+            offset = end - min(200, capacity // 8)
+    if window:
+        yield window
 
 
 def _parse(raw: str) -> list[dict]:
@@ -116,7 +155,7 @@ def _clean(item: dict) -> dict | None:
     }
 
 
-def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[dict]) -> dict | None:
+def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[dict], context: list[tuple]) -> dict | None:
     """Resolve the cited source/index against input, never trust generated quotes or timestamps."""
     source, index = item.get("source"), item.get("segment_index")
     if source not in ("transcript", "screentext") or type(index) is not int:
@@ -129,9 +168,18 @@ def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[di
     if not isinstance(text, str) or not text.strip():
         return None
     # A generated quote must occur in the cited input; reject an unrelated or invented quote.
-    quote = "".join(claim["original_text"].split())
-    if not quote or quote not in "".join(text.split()):
+    # Validate the entire generated quote, before _clean's display truncation. A real prefix cannot
+    # legitimize an invented ending. Only accept quotes present in this request's input window.
+    original = item.get("original_text") or item.get("original") or ""
+    quote = "".join(original.split())
+    if not quote or not any(i == index and quote in "".join(piece.split()) for i, piece, _ in context):
         return None
+    positions = [i for i, char in enumerate(text) if not char.isspace()]
+    compact = "".join(text[i] for i in positions)
+    match = compact.find(quote)
+    if match < 0:
+        return None
+    actual_quote = text[positions[match]:positions[match + len(quote) - 1] + 1]
     try:
         start, end = float(segment["start"]), float(segment["end"])
     except (KeyError, TypeError, ValueError, OverflowError):
@@ -139,9 +187,9 @@ def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[di
     if not math.isfinite(start) or not math.isfinite(end) or start < 0 or end < start:
         return None
     # The generated normalization may invent or invert a proposition even when its quote is real.
-    # Use the actual cited segment as the proposition as well as the displayed original evidence.
-    return {**claim, "source": source, "segment_index": index, "claim": text.strip(),
-            "original_text": text, "start": start, "end": end}
+    # Use the verified statement-level substring, so distinct claims in one segment stay distinct.
+    return {**claim, "source": source, "segment_index": index, "claim": actual_quote,
+            "original_text": actual_quote, "start": start, "end": end}
 
 
 async def extract_claims(
@@ -150,26 +198,29 @@ async def extract_claims(
     screentext_segments: list[dict],
 ) -> list[dict]:
     """抽取可核实的说法。返回清洗后的列表。"""
-    t_text = transcript_text(transcript_segments)
-    s_text = screentext_text(screentext_segments)
-    if not t_text and not s_text:
-        return []
-    parts = []
-    if t_text:
-        parts.append("【语音转写】\n" + t_text)
-    if s_text:
-        parts.append("【画面文字】\n" + s_text)
-    messages = [
-        {"role": "system", "content": SYSTEM},
-        {"role": "user", "content": "\n\n".join(parts) + f"\n\n示例输出：{EXAMPLE}"},
-    ]
-    raw = await ask(messages, 2048)
-    items = _parse(raw)
-    cleaned = []
-    for item in items:
-        c = _clean(item)
-        if c is not None:
-            anchored = _anchor(item, c, transcript_segments, screentext_segments)
-            if anchored is not None:
-                cleaned.append(anchored)
+    t_budget = max(1000, int(os.environ.get("LLM_MAX_TRANSCRIPT_CHARS", "60000")))
+    s_budget = max(1000, int(os.environ.get("LLM_MAX_SCREEN_CHARS", "20000")))
+    cleaned, seen = [], set()
+    for t_window, s_window in zip_longest(_windows(transcript_segments, t_budget),
+                                        _windows(screentext_segments, s_budget), fillvalue=()):
+        parts = []
+        if t_window:
+            parts.append("【语音转写】\n" + "\n".join(line for _, _, line in t_window))
+        if s_window:
+            parts.append("【画面文字】\n" + "\n".join(line for _, _, line in s_window))
+        messages = [
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": "\n\n".join(parts) + f"\n\n示例输出：{EXAMPLE}"},
+        ]
+        raw = await ask(messages, 2048)
+        for item in _parse(raw):
+            c = _clean(item)
+            if c is not None:
+                context = t_window if item.get("source") == "transcript" else s_window
+                anchored = _anchor(item, c, transcript_segments, screentext_segments, context)
+                if anchored is not None:
+                    key = (anchored["source"], anchored["segment_index"], anchored["original_text"])
+                    if key not in seen:
+                        seen.add(key)
+                        cleaned.append(anchored)
     return cleaned
