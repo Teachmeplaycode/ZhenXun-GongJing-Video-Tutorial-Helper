@@ -16,7 +16,7 @@ import ImportPanel from './stages/ImportPanel'
 import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
-import { createLinkJob, deleteSession, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, fetchChapters, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadVideo } from './api/client'
 import { mockUpload } from './api/mock'
 import { restoreMessages } from './api/useAgentChat'
 import { pickFrameCount, syntheticFrames } from './lib/video'
@@ -90,6 +90,7 @@ export default function App() {
   const [extraFrames, setExtraFrames] = useState([]) // replayed / closer-look frames from the chat, shown on the timeline
   const [cited, setCited] = useState([]) // times the answers point at, marked on the timeline
   const [cuts, setCuts] = useState([]) // the video's shot changes, marked on the timeline
+  const [chaptersData, setChaptersData] = useState(null) // the video's chapter list (modules/chapters)
   const [chatBusy, setChatBusy] = useState(false) // an answer or a replay in progress: no new replay meanwhile
   const [clip, setClip] = useState(null) // { start, end } framed on the timeline to ask about
   const [replayRequest, setReplayRequest] = useState(null) // { start, end, key } framed to replay now
@@ -109,6 +110,26 @@ export default function App() {
         else if (r.status === 'running' && tries < 200) timer = setTimeout(() => poll(tries + 1), 3000)
       } catch {
         // no marks: the timeline works without them
+      }
+    }
+    poll(0)
+    return () => { stopped = true; clearTimeout(timer) }
+  }, [video?.jobId, inChat])
+  // Chapters: built in the background after the transcript lands; poll until they settle.
+  useEffect(() => {
+    setChaptersData(null)
+    const jobId = video?.jobId
+    if (!jobId || !inChat) return undefined
+    let stopped = false
+    let timer = 0
+    const poll = async (tries) => {
+      try {
+        const r = await fetchChapters(jobId)
+        if (stopped) return
+        setChaptersData(r)
+        if (r.status === 'running' && tries < 200) timer = setTimeout(() => poll(tries + 1), 3000)
+      } catch {
+        // no chapters: the panel stays hidden
       }
     }
     poll(0)
@@ -685,6 +706,7 @@ export default function App() {
               onExtras={setExtraFrames}
               onCited={setCited}
               onBusy={setChatBusy}
+              chapters={chaptersData}
               replayRequest={replayRequest}
               clip={clip}
               onClearClip={() => setClip(null)}
@@ -718,6 +740,7 @@ export default function App() {
           extras={extraFrames}
           cuts={cuts}
           cited={cited}
+          chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
           busy={chatBusy}
           onRange={(start, end, action) => {
             if (action === 'play') setReplayRequest({ start, end, key: Date.now() })

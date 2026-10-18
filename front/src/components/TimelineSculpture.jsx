@@ -33,11 +33,13 @@ const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).t
 
 // seek: { time, key } from a time clicked in an answer — the nearest sheet rises and shows its preview.
 // cuts: shot changes (seconds) and cited: [{ time, n }] times the answers point at, both marked above
-// the sheets. Dragging across the track frames a stretch (≤ 10 s): onRange(start, end, 'play' | 'ask')
+// the sheets. chapters: [{ start, end, title, summary }] faint bands under the sheets (backend
+// modules/chapters), alternating two tints so neighbouring chapters stay apart.
+// Dragging across the track frames a stretch (≤ 10 s): onRange(start, end, 'play' | 'ask')
 // replays it now or attaches it to the next question; busy disables 'play' while an answer runs.
 // open / onOpenChange: the track can fold away to give the chat more height; `pulse` (a changing
 // number) flashes the head to show where frames are picked.
-export default function TimelineSculpture({ frames, extras = [], cuts = [], cited = [], busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
+export default function TimelineSculpture({ frames, extras = [], cuts = [], cited = [], chapters = [], busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
   const trackRef = useRef(null)
   const sectionRef = useRef(null)
   const deckRef = useRef(null)
@@ -273,6 +275,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
         {['replay', 'view'].map((kind) => (extraCount(kind) ? (
           <span key={kind} className="mono-sm timeline__legend" data-kind={kind}><i aria-hidden="true" />{EXTRA[kind]} {extraCount(kind)} 帧</span>
         ) : null))}
+        {chapters.length ? <span className="mono-sm timeline__legend" data-kind="chapter"><i aria-hidden="true" />章节 {chapters.length}</span> : null}
         {cuts.length ? <span className="mono-sm timeline__legend" data-kind="cut"><i aria-hidden="true" />镜头切换 {cuts.length}</span> : null}
         {cited.length ? <span className="mono-sm timeline__legend" data-kind="cite"><i aria-hidden="true" />回答提到 {cited.length}</span> : null}
         {pendingCount ? <span className="mono-sm timeline__pending">抓取中 {frames.length - pendingCount}/{frames.length}</span> : null}
@@ -305,6 +308,11 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
         onPointerLeave={() => { if (!press.current?.dragging) hover(null) }}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerCancel={() => { press.current = null; setDrag(null) }}>
+        {chapters.map((c, i) => (
+          <span key={`ch${c.start}`} className="tl-chapterband" data-alt={i % 2 || undefined}
+            style={{ left: xOfTime(c.start), width: Math.max(0, xOfTime(c.end) - xOfTime(c.start)) }}
+            title={`${i + 1}. ${c.title}`} aria-hidden="true" />
+        ))}
         <div
           ref={deckRef}
           className="timeline__deck"

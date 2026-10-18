@@ -86,6 +86,15 @@ export class MockApi {
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
     this.frames = 8
     this.cuts = [30, 75] // shot changes the mock reports
+    this.chaptersStatus = 'done' // what /chapters answers; 'running' | 'done' | 'failed' in tests
+    this.chaptersMessage = '' // a custom message, e.g. the reason for a failed build
+    this.chapters = [ // the chapter list the mock reports (backend modules/chapters)
+      { start: 0, end: 20, title: '开场', summary: '引入话题：柚子与药物' },
+      { start: 20, end: 45, title: '背景介绍', summary: '柚子的营养成分和常见吃法' },
+      { start: 45, end: 70, title: '作用机制', summary: 'CYP3A4 酶被抑制的过程' },
+      { start: 70, end: 95, title: '相互影响', summary: '与常见药物的相互作用' },
+      { start: 95, end: 120, title: '实用建议', summary: '服药期间该怎么吃柚子' },
+    ]
     this.accounts = [
       { id: 'bilibili', label: 'B 站', purpose: '读更多评论', app: 'B 站 App', configured: false, source: null, user: '', expires: null, valid: null },
       { id: 'yuanbao', label: '腾讯元宝', purpose: '解析视频号链接', app: '微信', configured: true, source: 'env', user: '', expires: null, valid: null },
@@ -159,6 +168,11 @@ export class MockApi {
     if (m) return route.fulfill({ status: 200, contentType: 'image/jpeg', body: FRAME })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)
+    if (m) return json({
+      status: this.chaptersStatus, chapters: this.chapters, summary: "整段视频介绍柚子与药物相互作用的原理。",
+      message: this.chaptersMessage || (this.chaptersStatus === 'done' ? `已生成 ${this.chapters.length} 个章节` : ''),
+    })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/replay$/)
     if (m && req.method() === 'POST') {
       const { start, end } = body

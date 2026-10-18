@@ -15,7 +15,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, log
+from modules import accounts, chapters, log
 from modules.agent import browser, run_agent
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.frames import FrameJob, cuts
@@ -185,6 +185,61 @@ async def find_cuts(job: FrameJob) -> None:
     log.event("cuts", job_id=job.id, status=record["status"], count=len(record["cuts"]), ms=timer.ms)
 
 
+chaptering: set[str] = set()  # job ids whose chapters are being built
+
+
+async def _await_chapter_inputs(job: FrameJob, timeout: float = 600.0) -> None:
+    """Wait for transcript and on-screen text to finish; chapters build on both."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        t, s = job.transcript, job.screentext
+        if ((t is None or t.status not in {"pending", "running"})
+                and (s is None or s.status not in {"pending", "running"})
+                and job.id not in cutting):
+            return
+        await asyncio.sleep(2.0)
+    raise TimeoutError("章节输入尚未准备完成")
+
+
+def _chapter_completer(client):
+    """Join the model's streamed deltas into one string, for run_chapters' `complete`."""
+    from modules.llm import Usage
+
+    async def complete(messages: list[dict]) -> str:
+        usage = Usage()
+        parts: list[str] = []
+        async for delta in client.stream(messages, usage, max_tokens=512):
+            parts.append(delta)
+        return "".join(parts)
+
+    return complete
+
+
+async def find_chapters(job: FrameJob) -> None:
+    """Build the chapter list (modules/chapters), cached in the job folder."""
+    timer = log.Timer()
+    chaptering.add(job.id)
+    try:
+        await _await_chapter_inputs(job)
+        cuts_record = cuts.load(job.root)
+        complete = None
+        try:
+            complete = _chapter_completer(get_llm())
+        except LLMError:
+            complete = None
+        record = await chapters.run_chapters(job.root,
+                                             job.transcript.segments if job.transcript else [],
+                                             job.screentext.segments if job.screentext else [],
+                                             cuts_record, job.video.duration or 0, complete=complete)
+    except Exception as exc:
+        log.error("chapters", exc, job_id=job.id)
+        record = chapters.save(job.root, "failed", message="章节生成失败")
+    finally:
+        chaptering.discard(job.id)
+    log.event("chapters", job_id=job.id, status=record["status"],
+              count=len(record["chapters"]), ms=timer.ms)
+
+
 def busy(job: FrameJob) -> bool:
     """Frames, transcript or on-screen text still in progress."""
     return job.running or job.transcript.running or job.screentext.running
@@ -285,6 +340,7 @@ async def create_link_job(body: LinkRequest):
     spawn(transcribe(job))
     spawn(read_screen(job))
     spawn(find_cuts(job))
+    spawn(find_chapters(job))
     warm_decider()
     return snapshot(job)
 
@@ -321,6 +377,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
     async def process() -> None:
         try:
             await asyncio.gather(sample(job), transcribe(job), read_screen(job), find_cuts(job))
+            spawn(find_chapters(job))
         finally:
             if not KEEP_UPLOADS:
                 path.unlink(missing_ok=True)
@@ -433,6 +490,19 @@ async def job_cuts(job_id: str):
         return cuts.save(job.root, "unavailable", message="上传的视频处理完已删除，无法检测镜头切换")
     spawn(find_cuts(job))
     return {"status": "running", "cuts": [], "message": ""}
+
+
+@app.get("/api/link-jobs/{job_id}/chapters")
+async def job_chapters(job_id: str):
+    """The video's chapter list, for the table-of-contents panel. Built after transcript + on-screen text."""
+    job = get_job(job_id)
+    record = chapters.load(job.root)
+    if record is not None:
+        return record
+    if job.id in chaptering:
+        return {"status": "running", "chapters": [], "message": ""}
+    spawn(find_chapters(job))
+    return {"status": "running", "chapters": [], "message": ""}
 
 
 class ReplayRequest(BaseModel):
