@@ -7,6 +7,8 @@ for ffmpeg: the first pass stops early, the next ones (an input seek to where it
 import asyncio
 import wave
 
+import pytest
+
 from modules.frames import cuts, resume
 from modules.screentext import task as screen
 from modules.transcript import audio
@@ -133,12 +135,13 @@ def test_shot_changes_after_a_cut_off_are_shifted_by_where_the_pass_began(tmp_pa
     assert why == "" and found == [30.5, 193.0]
 
 
-def test_a_throttled_source_keeps_the_frames_read_in_time(tmp_path, monkeypatch):
+@pytest.mark.parametrize("fps,covered", [(0.5, "03:00"), (1, "01:30"), (2, "00:45")])
+def test_a_throttled_source_keeps_the_frames_read_in_time(tmp_path, monkeypatch, fps, covered):
     async def frames_from(stream, folder, offset, timeout, *rest):
         for i in range(1, 91):  # 1:30 read, then the time limit
             (folder / f"{i:05d}.jpg").write_bytes(b"jpg")
         return None, ""
 
     monkeypatch.setattr(screen, "_frames_from", frames_from)
-    result = asyncio.run(screen.read_frames(STREAM, tmp_path / "f", 60))
-    assert result.ok and result.kind == "partial" and "01:30" in result.detail
+    result = asyncio.run(screen.read_frames(STREAM, tmp_path / "f", 60, fps=fps))
+    assert result.ok and result.kind == "partial" and covered in result.detail
