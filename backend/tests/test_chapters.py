@@ -197,3 +197,67 @@ def test_duplicate_chapter_requests_only_schedule_one_build(api, monkeypatch):
     assert len(pending) == 1
     pending[0].close()
     app.chapter_service.running.clear()
+
+
+def test_ocr_boundaries_use_real_caption_gaps():
+    from modules.screentext import Caption
+    captions = [Caption(0, 5, '开场', 'middle'), Caption(12, 16, '第二章', 'middle'),
+                Caption(16, 20, '继续介绍', 'bottom'), Caption(30, 35, '第三章', 'top')]
+    assert split.pauses(screen=captions) == [0, 12, 30]
+
+
+def test_first_boundary_cannot_create_a_short_chapter():
+    assert split.segment(60, cuts=[15]) == [(0.0, 60)]
+
+
+def test_touching_segments_do_not_leak_into_adjacent_prompts():
+    from modules.chapters.task import _chapter_text
+    rows = [(0, 30, '前一章'), (30, 60, '当前章'), (60, 90, '后一章'), (29, 31, '跨界')]
+    assert _chapter_text(rows, [], 30, 60) == '当前章 跨界'
+
+
+def test_inputs_can_run_longer_than_ten_minutes(api, monkeypatch):
+    app, job, _ = api
+    from modules.chapters import router
+    job.transcript.status = 'running'
+    ticks = iter([0, 700, 1400, 2100])
+    monkeypatch.setattr(router.time, 'monotonic', lambda: next(ticks, 9999))
+    waits = []
+
+    async def finish(_):
+        waits.append(True)
+        job.transcript.status = 'done'
+
+    monkeypatch.setattr(router.asyncio, 'sleep', finish)
+    asyncio.run(app.chapter_service.wait_inputs(job))
+    assert waits == [True]
+
+
+def test_retry_discards_cached_and_inflight_old_chapters(api, monkeypatch):
+    app, job, _ = api
+    service = app.chapter_service
+    calls = []
+    save(job.root, 'done', [Chapter(0, 300, '旧标题', '旧摘要')])
+    pending = []
+    monkeypatch.setattr(service, 'spawn', pending.append)
+
+    class Client:
+        async def stream(self, messages, usage, **kwargs):
+            calls.append(messages)
+            if len(calls) == 1:
+                job.transcript.segments = [Segment(0, 100, '重试后的文字')]
+                service.invalidate(job)
+                assert load(job.root) is None
+                yield '过时标题|过时摘要'
+            else:
+                yield '新标题|新摘要'
+
+    monkeypatch.setattr(service, 'get_client', Client)
+    service.invalidate(job)
+    assert load(job.root) is None
+    assert len(pending) == 1
+    asyncio.run(pending[0])
+    assert len(calls) == 2
+    assert len(pending) == 1
+    assert '重试后的文字' in calls[1][1]['content']
+    assert load(job.root)['chapters'][0]['title'] == '新标题'

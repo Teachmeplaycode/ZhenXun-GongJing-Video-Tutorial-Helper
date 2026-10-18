@@ -59,6 +59,10 @@ def load(root: Path) -> dict | None:
 
 def save(root: Path, status: str, chapters: list[Chapter] | None = None, message: str = "", *, summary: str = "") -> dict:
     record = {"status": status, "chapters": [c.as_dict() for c in (chapters or [])], "message": message, "summary": summary}
+    return write_record(root, record)
+
+
+def write_record(root: Path, record: dict) -> dict:
     root.mkdir(parents=True, exist_ok=True)
     (root / FILE).write_text(json.dumps(record, ensure_ascii=False))
     return record
@@ -93,10 +97,10 @@ def _rows(items: Iterable | None) -> list[tuple[float, float, str]]:
 def _chapter_text(transcript, screen, start: float, end: float) -> str:
     parts: list[str] = []
     for s_start, s_end, s_text in _rows(transcript):
-        if s_end >= start and s_start <= end:
+        if s_end > start and s_start < end:
             parts.append(s_text)
     for s_start, s_end, s_text in _rows(screen):
-        if s_end >= start and s_start <= end:
+        if s_end > start and s_start < end:
             parts.append(s_text)
     return " ".join(parts)
 
@@ -131,12 +135,13 @@ def _parse(lines: str, n: int) -> list[tuple[str, str]]:
 
 
 async def run_chapters(root: Path, transcript, screen, cuts_record: dict | None,
-                       duration: float, *, complete: Completer | None = None) -> dict:
+                       duration: float, *, complete: Completer | None = None, cache: bool = True) -> dict:
     """Split, title and summarise; cache to chapters.json. Never raises."""
     cuts = (cuts_record or {}).get("cuts") or []
     spans = split.segment(duration, cuts, transcript or [], screen or [])
     if not spans:
-        return save(root, "empty", message="视频时长未知，无法切分章节")
+        record = {"status": "empty", "chapters": [], "message": "视频时长未知，无法切分章节", "summary": ""}
+        return write_record(root, record) if cache else record
     chunks = [(i, start, end, _chapter_text(transcript, screen, start, end))
               for i, (start, end) in enumerate(spans)]
     titles: list[tuple[str, str]] = [("", "")] * len(chunks)
@@ -152,5 +157,7 @@ async def run_chapters(root: Path, transcript, screen, cuts_record: dict | None,
             titles = [("", "")] * len(chunks)
     chapters = [Chapter(start, end, title or fallback_title(i, text), summary or fallback_summary(text))
                 for (i, start, end, text), (title, summary) in zip(chunks, titles)]
-    return save(root, "done", chapters, message=f"已生成 {len(chapters)} 个章节",
-                summary=summary or _clip(" ".join(c.summary for c in chapters), 300))
+    record = {"status": "done", "chapters": [c.as_dict() for c in chapters],
+              "message": f"已生成 {len(chapters)} 个章节",
+              "summary": summary or _clip(" ".join(c.summary for c in chapters), 300)}
+    return write_record(root, record) if cache else record
