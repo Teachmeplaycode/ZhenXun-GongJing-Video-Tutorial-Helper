@@ -14,7 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..frames import FrameJob
-from ..frames.grabber import GrabResult, classify, input_args
+from ..frames import resume
+from ..frames.grabber import GrabResult, classify
 from ..video_source import ResolveError, Stream
 from . import ocr
 from .merge import Caption, build
@@ -55,26 +56,47 @@ class ScreenText:
         return cls(status, data.get("message", ""), segments)
 
 
-async def read_frames(stream: Stream, folder: Path, timeout: float) -> GrabResult:
-    """One pass over the stream, one JPEG per second into `folder` (00001.jpg = 0 s)."""
-    folder.mkdir(parents=True, exist_ok=True)
-    args = ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", *input_args(stream), "-an",
-            "-vf", f"fps={FPS},scale=-2:{HEIGHT}", "-q:v", "5", str(folder / "%05d.jpg")]
-    try:
-        proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
-    except FileNotFoundError:
-        return GrabResult(False, "error", "未安装 ffmpeg")
+async def _frames_from(stream: Stream, folder: Path, offset: float, timeout: float) -> tuple[int | None, str]:
+    """(exit code, stderr) of one pass from `offset` s; frames continue the numbering (None: timed out)."""
+    first = round(offset * FPS) + 1  # 00001.jpg is 0 s
+    args = ["ffmpeg", "-nostdin", "-hide_banner", *resume.LOG_ARGS, "-y", *resume.seek_args(stream, offset), "-an",
+            "-vf", f"fps={FPS},scale=-2:{HEIGHT}", "-q:v", "5", "-start_number", str(first), str(folder / "%05d.jpg")]
+    proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
     try:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
+        return None, ""
+    return proc.returncode, stderr.decode(errors="replace")
+
+
+async def read_frames(stream: Stream, folder: Path, timeout: float) -> GrabResult:
+    """One pass over the stream, one JPEG per second into `folder` (00001.jpg = 0 s). A pass the server
+    cut off part-way is carried on from where it stopped (modules/frames/resume.py)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        code, text = await _frames_from(stream, folder, 0.0, timeout)
+    except FileNotFoundError:
+        return GrabResult(False, "error", "未安装 ffmpeg")
+    if code is None:
         return GrabResult(False, "timeout", f"超过 {timeout:.0f}s")
-    text = stderr.decode(errors="replace")
-    if proc.returncode == 0 and any(folder.glob("*.jpg")):
-        return GrabResult(True)
-    detail = " ".join(w for w in text.split() if "://" not in w)[-300:]
-    return GrabResult(False, classify(text), detail or f"ffmpeg 退出码 {proc.returncode}")
+    count = lambda: len(list(folder.glob("*.jpg")))  # noqa: E731
+    if code != 0 or not count():
+        return GrabResult(False, classify(text), resume.error_text(text) or f"ffmpeg 退出码 {code}")
+    duration = resume.input_duration(text)
+    for _ in range(resume.MAX_RESUMES):
+        covered = count() / FPS
+        if not resume.short(covered, duration):
+            break
+        before = count()
+        await _frames_from(stream, folder, covered, timeout)
+        if count() - before < 1:
+            break  # no progress: keep what there is
+    covered = count() / FPS
+    if resume.short(covered, duration):
+        return GrabResult(True, "partial", f"只读到 {resume.clock(covered)}（共 {resume.clock(duration)}）")
+    return GrabResult(True)
 
 
 def pick_streams(streams: list[Stream]) -> list[Stream]:
@@ -129,8 +151,9 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
             frames += [((int(f.stem) - 1) / FPS, found) for f, found in zip(batch, lines)]
             job.emit({"type": "screentext", **state.summary(), "message": f"正在识别文字 {min(i + BATCH, len(files))}/{len(files)}"})
         state.segments = build(frames, 1 / FPS)
+        partial = f"；{result.detail}，后面没能读取" if result.kind == "partial" else ""
         if state.segments:
-            finish("done", f"识别到 {len(state.segments)} 段画面文字")
+            finish("done", f"识别到 {len(state.segments)} 段画面文字{partial}")
         else:
             finish("empty", "画面上没有识别到文字")
     except Exception as exc:  # decoding / OCR failures are reported, not raised

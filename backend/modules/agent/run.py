@@ -145,6 +145,18 @@ def slowmo_ranges(question: str) -> list[tuple[str, str]]:
     return found[:2]
 
 
+CONTINUATIONS = 2  # times a cut-off answer is asked to carry on
+CONTINUE = "上面的回答因为长度限制被截断了。请从截断的地方直接接着写完：不要重复已经写过的内容，不要加开场白或总结性的重复。"
+
+
+def max_output() -> int:
+    """Tokens one answer may take (LLM_MAX_OUTPUT, default 8192: page-by-page answers on a long lecture need it)."""
+    try:
+        return max(512, int(os.environ.get("LLM_MAX_OUTPUT", "8192")))
+    except ValueError:
+        return 8192
+
+
 def tool_rounds() -> int:
     """Rounds of tool calls before the model must answer; 0 (LLM_TOOLS=off) disables tools."""
     if os.environ.get("LLM_TOOLS", "on").lower() in ("off", "0", "false"):
@@ -454,7 +466,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         streaming = last  # in the final round everything is answer
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
-            async for delta in client.stream(messages, usage, tools=None if last else definitions(web, papers, audience)):
+            async for delta in client.stream(messages, usage, max_tokens=max_output(),
+                                             tools=None if last else definitions(web, papers, audience)):
                 text.append(delta)
                 if not streaming:
                     held += delta
@@ -522,6 +535,23 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             messages.append(image_message(images))
         if streaming and text:
             yield {"type": "assistant.message.delta", "delta": "\n\n"}
+
+    # An answer that ran into the limit carries on where it stopped instead of ending mid-sentence.
+    for _ in range(CONTINUATIONS):
+        if usage.finish_reason != "length" or not text:
+            break
+        messages.append({"role": "assistant", "content": "".join(text)})
+        messages.append({"role": "user", "content": CONTINUE})
+        yield {"type": "progress.update", "step": "回答较长，继续写", "percent": 90}
+        usage, text = Usage(), []
+        try:
+            async for delta in client.stream(messages, usage, max_tokens=max_output()):
+                text.append(delta)
+                yield {"type": "assistant.message.delta", "delta": delta}
+        except LLMError:
+            break  # what was written stands; the note below says it was cut off
+        prompt_tokens += usage.prompt_tokens or 0
+        completion_tokens += usage.completion_tokens or 0
 
     tokens = f"输入 {prompt_tokens} · 输出 {completion_tokens} tokens"
     if usage.finish_reason == "length":

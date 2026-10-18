@@ -94,6 +94,24 @@ def test_truncated_answer_is_marked(tmp_path):
     assert "截断" in events[-2]["delta"] and events[-1]["type"] == "run.completed"
 
 
+def test_a_cut_off_answer_carries_on_where_it_stopped(tmp_path, monkeypatch):
+    monkeypatch.setenv("LLM_TOOLS", "off")
+    job = make_job(tmp_path, ["ok"])
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            return httpx.Response(200, text=sse_body({"choices": [{"delta": {"content": "第一页……第二"}, "finish_reason": "length"}]}))
+        return httpx.Response(200, text=sse_body({"choices": [{"delta": {"content": "页……完"}, "finish_reason": "stop"}]}))
+
+    events = collect(run_agent(job, client_for(handler), "逐页整理"))
+    text = "".join(e["delta"] for e in events if e["type"] == "assistant.message.delta")
+    assert text == "第一页……第二页……完" and "截断" not in text
+    assert bodies[0]["max_tokens"] == 8192
+    assert bodies[1]["messages"][-2] == {"role": "assistant", "content": "第一页……第二"} and "接着写完" in bodies[1]["messages"][-1]["content"]
+
+
 def test_config_from_env_and_key_file(tmp_path):
     with pytest.raises(LLMError):
         LLMConfig.from_env({})
