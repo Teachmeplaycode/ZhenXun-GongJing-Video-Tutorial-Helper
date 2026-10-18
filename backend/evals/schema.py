@@ -49,6 +49,8 @@ def validate(spec: dict) -> list[str]:
         cases = []
 
     for key, v in videos.items():
+        if not isinstance(key, str) or not key.strip():
+            errors.append("videos 的编号应为非空字符串")
         if not isinstance(v, dict):
             errors.append(f"videos.{key} 不是对象")
             continue
@@ -88,6 +90,9 @@ def validate(spec: dict) -> list[str]:
             errors.append(f"{cid or '?'} 缺少 qtype（Issue #7 要求按题型统计）")
         elif not isinstance(qt, str) or qt not in QTYPES:
             errors.append(f"{cid or '?'} 的 qtype={qt} 不在 {list(QTYPES)}")
+        if "frames" in c and (not isinstance(c["frames"], list)
+                              or not all(type(frame) is int and frame >= 0 for frame in c["frames"])):
+            errors.append(f"{cid or '?'} 的 frames 应为非负整数数组")
         errors.extend(_validate_checks(cid or "?", c.get("checks", {})))
     return errors
 
