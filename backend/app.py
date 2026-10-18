@@ -26,6 +26,7 @@ from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_cl
 from modules.store import SessionStore
 from modules.screentext import ScreenText, run_screentext
 from modules.transcript import Transcript, run_transcript
+from modules.antifraud.router import create_router as antifraud_router
 from modules.video_source import ResolveError, Stream, default_registry
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
@@ -494,6 +495,9 @@ async def job_screentext(job_id: str):
 async def job_transcript(job_id: str):
     """Transcript status and timed segments."""
     return get_job(job_id).transcript.as_dict()
+
+
+app.include_router(antifraud_router(lambda job_id: get_job(job_id), lambda: get_llm()))
 
 
 @app.post("/api/agent/runs")
