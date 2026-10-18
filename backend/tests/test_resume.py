@@ -84,3 +84,14 @@ def test_shot_changes_after_a_cut_off_are_shifted_by_where_the_pass_began(tmp_pa
     monkeypatch.setattr(cuts, "_pass", one_pass)
     found, why = asyncio.run(cuts.detect(STREAM, tmp_path, 60))
     assert why == "" and found == [30.5, 193.0]
+
+
+def test_a_throttled_source_keeps_the_frames_read_in_time(tmp_path, monkeypatch):
+    async def frames_from(stream, folder, offset, timeout, *rest):
+        for i in range(1, 91):  # 1:30 read, then the time limit
+            (folder / f"{i:05d}.jpg").write_bytes(b"jpg")
+        return None, ""
+
+    monkeypatch.setattr(screen, "_frames_from", frames_from)
+    result = asyncio.run(screen.read_frames(STREAM, tmp_path / "f", 60))
+    assert result.ok and result.kind == "partial" and "01:30" in result.detail
