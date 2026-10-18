@@ -17,6 +17,7 @@ dependencies = [
   "pyobjc-framework-quartz>=10 ; sys_platform == 'darwin'",
   "opencv-python-headless>=5.0.0.93",
   "numpy>=2.4.6",
+  "markdown-it-py>=4,<5",
 ]
 
 [dependency-groups]

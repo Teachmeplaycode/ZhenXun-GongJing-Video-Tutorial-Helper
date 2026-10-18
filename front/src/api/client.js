@@ -60,7 +60,7 @@ export async function streamAgentRun(request, onEvent, signal) {
   await readEventStream(response, onEvent)
 }
 
-async function readEventStream(response, onEvent) {
+export async function readEventStream(response, onEvent) {
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
   let buffer = ''
   for (;;) {
@@ -128,6 +128,9 @@ export function retryLinkJob(jobId, { signal } = {}) {
 /** The video's shot changes for the timeline: { status: running | done | failed | unavailable, cuts: [seconds] }. */
 export const fetchCuts = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/cuts`, { signal })
 
+/** The video's chapter list: { status, chapters: [{ start, end, title, summary }], message }. */
+export const fetchChapters = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/chapters`, { signal })
+
 /** Replay a stretch framed on the timeline, without the model. Returns { manual: 'replay', events } (saved in the session). */
 export const manualReplay = (jobId, start, end) => linkRequest(`/api/link-jobs/${jobId}/replay`, {
   method: 'POST',
@@ -160,6 +163,17 @@ export const getSession = (id, { signal } = {}) => linkRequest(`/api/sessions/${
 
 export const deleteSession = (id) => linkRequest(`/api/sessions/${id}`, { method: 'DELETE' })
 
+/** The session-note export as a URL: format=md downloads a zip (笔记.md + images/),
+ * format=pdf opens a print-styled page (the browser's Print → PDF). `ids` limits the export
+ * to those saved message ids; null means the whole conversation, empty is rejected. */
+export function exportSessionUrl(id, { format = 'md', ids = null } = {}) {
+  const params = new URLSearchParams()
+  if (format !== 'md') params.set('format', format)
+  if (ids !== null) params.set('ids', ids.join(','))
+  const query = params.toString()
+  return `${LINK_BASE}/api/sessions/${id}/export${query ? `?${query}` : ''}`
+}
+
 // ---- Platform logins (cookies stay in the backend; only status comes back) -------------
 
 /** [{ id, label, purpose, app, configured, source, user, expires, valid }] */
@@ -180,3 +194,26 @@ export const pasteCookie = (platform, cookie) => linkRequest(`/api/accounts/${pl
 })
 
 export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform}`, { method: 'DELETE' })
+
+// ---- Anti-fraud analysis ----------------------------------------------------------------
+
+/**
+ * Anti-fraud report for a link job: rule matching, drainage extraction, QR decoding.
+ * Returns a report aligned with the #2 fact-check schema (version=1, module=antifraud,
+ * claims[].verdict in {safe|suspicious|fraud}, claims[].risk in {high|medium|low}).
+ */
+export const fetchAntifraudReport = (jobId, { signal } = {}) =>
+  linkRequest(`/api/link-jobs/${jobId}/antifraud`, { signal })
+
+// ---- lecture notes (backend modules/notes) -------------------------------------------------------
+/** { status: none | running | done | failed, message, progress: { done, total }, note } */
+export const getNotes = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, { signal })
+/** Start (or redo) generating the note; resolves to the same shape as getNotes, status running. */
+export const generateNotes = (jobId, { kind = 'lecture' } = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }),
+})
+/** Save the editor's board (blocks and their places); returns { saved: seconds }. */
+export const saveNoteBoard = (jobId, board) => linkRequest(`/api/link-jobs/${jobId}/notes/board`, {
+  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board),
+})
+export const notesExportUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/notes/export`

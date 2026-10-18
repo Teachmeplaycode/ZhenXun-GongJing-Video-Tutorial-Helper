@@ -24,6 +24,7 @@
   --mark-view: #1E9C8A;
   --mark-cite: #D9822B;   /* times the answers point at */
   --mark-cut: #8A857D;    /* shot changes */
+  --mark-chapter: #9DB07F; /* chapter bands on the timeline: a faint background tint, not a mark colour */
 
   --border-default: #E0DDD8;
   --border-strong: #C8C4BD;
@@ -118,6 +119,7 @@
   --mark-view: #3CC4B0;
   --mark-cite: #F0A04B;
   --mark-cut: #8F8A82;
+  --mark-chapter: #6E8266;
 
   --border-default: #34332F;
   --border-strong: #4C4A45;

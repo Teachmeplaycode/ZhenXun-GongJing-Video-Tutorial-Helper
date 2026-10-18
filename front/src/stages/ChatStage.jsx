@@ -1,7 +1,8 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
 import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
+import ChaptersPanel from '../components/ChaptersPanel'
 import { IconArrowDown, IconArrowRight } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
 import SpotlightCard from '../components/react-bits/SpotlightCard'
@@ -11,6 +12,10 @@ import { prefersReducedMotion } from '../lib/motion'
 import { screenStep, speechStep } from './AnalyzeHud'
 import Avatar from '../components/Avatar'
 import { collectCited, collectExtras } from '../lib/extraFrames'
+import Workbench from '../components/Workbench'
+import AntifraudTab from '../components/bench/AntifraudTab'
+import NotesTab from '../components/bench/NotesTab'
+import FactCheckReport from '../components/FactCheckReport'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 // 114.25 → "01:54.3" (the agent reads tenths; whole seconds stay "01:54")
@@ -26,8 +31,26 @@ const fineClock = (t) => {
 // onCited the times the answers point at; onBusy whether an answer (or a replay) is in progress.
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
-export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
   const { messages, send, regenerate, stop, running, replay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
+  // The workbench sidebar: open or not and which tab, remembered across visits.
+  const [bench, setBench] = useState(() => {
+    try {
+      return { open: localStorage.getItem('bench.open') === '1', tab: localStorage.getItem('bench.tab') || 'chapters' }
+    } catch {
+      return { open: false, tab: 'chapters' }
+    }
+  })
+  const setBenchOpen = useCallback((open) => setBench((b) => ({ ...b, open })), [])
+  const setBenchTab = useCallback((tab) => setBench((b) => ({ ...b, tab, open: true })), [])
+  useEffect(() => {
+    try {
+      localStorage.setItem('bench.open', bench.open ? '1' : '0')
+      localStorage.setItem('bench.tab', bench.tab)
+    } catch {
+      // private mode: the sidebar still works for this visit
+    }
+  }, [bench])
   const extras = useMemo(() => collectExtras(messages), [messages])
   const extrasKey = extras.map((g) => `${g.id}:${g.frames.length}`).join('|')
   useEffect(() => {
@@ -103,7 +126,20 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
 
   const scopeNote = `范围：${clip ? `先慢放 ${fineClock(clip.start)}–${fineClock(clip.end)}` : selected.length ? `已选 ${selected.length} 帧` : '整段视频'}${transcript ? ` · 语音 ${speechStep(transcript).value || '等待'}` : ''}${screentext ? ` · 字幕 ${screenStep(screentext).value || '等待'}` : ''}`
 
+  const chapterList = chapters?.status === 'done' ? chapters.chapters || [] : []
+  const panels = {
+    chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
+      onSelect={onChapterSelect} onHover={onChapterHover} />,
+    antifraud: <AntifraudTab video={video} transcript={transcript} screentext={screentext}
+      frameRevision={`${coverage?.ok ?? 0}:${coverage?.missing ?? 0}:${coverage?.pending ?? frames.length}`} />,
+    factcheck: video?.jobId ? <FactCheckReport jobId={video.jobId} video={video} onSeek={onSeek} embedded
+      open={bench.open && bench.tab === 'factcheck'} />
+      : <p className="bench__note muted">导入视频后可以核查。</p>,
+    notes: <NotesTab video={video} messages={messages} />,
+  }
+
   return (
+    <div className="chat-shell" data-bench={bench.open || undefined}>
     <div className="chat">
       <div ref={scrollRef} className="chat__scroll" onScroll={onScroll}>
         <div className="chat__thread">
@@ -160,6 +196,9 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         onClearClip={onClearClip}
         scopeNote={scopeNote}
       />
+    </div>
+    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels}
+      badges={{ chapters: chapterList.length || null }} />
     </div>
   )
 }

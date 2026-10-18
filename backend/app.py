@@ -16,15 +16,20 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from modules import accounts, log
+from modules.chapters.router import ChapterService
+from modules.notes.router import NotesService
 from modules.agent import browser, run_agent
 from modules.agent.tools import AgentTools, TRACE_NAMES
+from modules.export.api import create_router as create_export_router
 from modules.frames import FrameJob, cuts
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
 from modules.store import SessionStore
 from modules.screentext import ScreenText, run_screentext
+from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
+from modules.antifraud.router import create_router as antifraud_router
 from modules.video_source import ResolveError, Stream, default_registry
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
@@ -263,6 +268,13 @@ async def resolve_link(body: LinkRequest):
     return video.public()
 
 
+chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(), cutting, lambda job: find_cuts(job))
+app.include_router(chapter_service.router)
+notes_service = NotesService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(),
+                             chapters_busy=lambda job_id: job_id in chapter_service.running)
+app.include_router(notes_service.router)
+
+
 @app.post("/api/link-jobs")
 async def create_link_job(body: LinkRequest):
     """Resolve the link and start sampling frames in the background."""
@@ -285,6 +297,7 @@ async def create_link_job(body: LinkRequest):
     spawn(transcribe(job))
     spawn(read_screen(job))
     spawn(find_cuts(job))
+    chapter_service.start(job)
     warm_decider()
     return snapshot(job)
 
@@ -321,6 +334,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
     async def process() -> None:
         try:
             await asyncio.gather(sample(job), transcribe(job), read_screen(job), find_cuts(job))
+            chapter_service.start(job)
         finally:
             if not KEEP_UPLOADS:
                 path.unlink(missing_ok=True)
@@ -388,6 +402,8 @@ async def retry_missing(job_id: str):
     if indexes:
         job.running = True
         spawn(sample(job, indexes))
+    if redo_transcript or redo_screen:
+        chapter_service.invalidate(job)
     if redo_transcript:
         spawn(transcribe(job))
     if redo_screen:
@@ -487,6 +503,9 @@ async def job_transcript(job_id: str):
     return get_job(job_id).transcript.as_dict()
 
 
+app.include_router(antifraud_router(lambda job_id: get_job(job_id), lambda: get_llm()))
+
+
 @app.post("/api/agent/runs")
 async def agent_run(body: AgentRequest):
     """SSE stream of one answer: progress / tool_call.* / assistant.message.delta / run.completed | run.error."""
@@ -566,6 +585,11 @@ def track(calls: dict[str, dict], event: dict) -> None:
     elif kind == "tool_call.completed" and cid in calls:
         calls[cid].update(ms=round((event["t"] - calls[cid]["start"]) * 1000), count=event.get("result_count"))
         calls[cid].setdefault("ok", True)
+
+
+app.include_router(create_factcheck_router(
+    find_job=lambda job_id: find_job(job_id), get_llm=lambda: get_llm(), store=store,
+))
 
 
 # ---- platform logins ------------------------------------------------------------------------------
@@ -657,6 +681,9 @@ async def get_session(session_id: str):
     return {**snapshot(job), "task": store.get(session_id)["task"], "messages": store.messages(session_id)}
 
 
+app.include_router(create_export_router(store=store, get_job=get_job, data_dir=DATA_DIR))
+
+
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(session_id: str):
     job = find_job(session_id)
@@ -664,6 +691,7 @@ async def delete_session(session_id: str):
         raise HTTPException(404, "会话不存在")
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再删除")
+    chapter_service.remove(session_id)
     jobs.pop(session_id, None)
     store.delete(session_id)
     shutil.rmtree(DATA_DIR / session_id, ignore_errors=True)
