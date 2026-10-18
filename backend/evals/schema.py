@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 CATEGORIES = {
     "lecture": "课程讲座",
@@ -38,6 +40,32 @@ TARGET_PER_CATEGORY = 5
 CASE_FIELDS = frozenset({"id", "video", "question", "rubric", "qtype", "checks", "frames", "web", "papers"})
 
 
+def normalize_video_url(url: str) -> str:
+    """Conservative duplicate identity, without guessing away video/part/signed query IDs.
+
+    Only scheme/host casing, default ports, an empty root path and the known Bilibili video
+    route's optional trailing slash are equivalent. Preserve query strings and hash routes.
+    """
+    url = url.strip()
+    try:
+        parsed = urlsplit(url)
+        scheme, host, port = parsed.scheme.lower(), parsed.hostname, parsed.port
+    except ValueError:
+        return url
+    if scheme not in ("http", "https") or host is None:
+        return url
+    host = host.lower()
+    authority = f"[{host}]" if ":" in host else host
+    if port is not None and (scheme, port) not in (("http", 80), ("https", 443)):
+        authority += f":{port}"
+    if "@" in parsed.netloc:
+        authority = parsed.netloc.rpartition("@")[0] + "@" + authority
+    path = parsed.path or "/"
+    if host in ("bilibili.com", "www.bilibili.com", "m.bilibili.com") and re.fullmatch(r"/video/(?:BV[0-9A-Za-z]{10}|av[0-9]+)/?", path):
+        path = path.rstrip("/")
+    return urlunsplit((scheme, authority, path, parsed.query, parsed.fragment))
+
+
 def validate(spec: dict) -> list[str]:
     """返回错误列表，空表示合法。只检查结构，不检查内容真假。"""
     errors: list[str] = []
@@ -52,6 +80,7 @@ def validate(spec: dict) -> list[str]:
         errors.append("缺少 cases 数组")
         cases = []
 
+    seen_urls: dict[str, str] = {}
     for key, v in videos.items():
         if not isinstance(key, str) or not key.strip():
             errors.append("videos 的编号应为非空字符串")
@@ -62,6 +91,13 @@ def validate(spec: dict) -> list[str]:
             value = v.get(field)
             if not isinstance(value, str) or not value.strip():
                 errors.append(f"videos.{key} 的 {field} 应为非空字符串")
+        url = v.get("url")
+        if isinstance(url, str) and url.strip():
+            normalized = normalize_video_url(url)
+            if normalized in seen_urls:
+                errors.append(f"videos.{key} 的 URL 与 videos.{seen_urls[normalized]} 重复，不能重复计入视频覆盖率")
+            else:
+                seen_urls[normalized] = key
         cat = v.get("category")
         if cat is None:
             errors.append(f"videos.{key} 缺少 category（Issue #7 要求按类别统计）")

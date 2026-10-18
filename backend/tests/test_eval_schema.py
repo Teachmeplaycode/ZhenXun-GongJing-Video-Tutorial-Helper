@@ -227,3 +227,31 @@ def test_unknown_case_fields_cannot_silently_change_permissions_or_scope(field):
     spec = load(CASES)
     spec["cases"][0][field] = False
     assert any(f"case 不支持字段 {field}" in error for error in validate(spec))
+
+
+@pytest.mark.parametrize("first,alias", [
+    ("https://example.com/watch?v=A", "https://example.com/watch?v=A"),
+    ("https://example.com/watch?v=A", " HTTPS://EXAMPLE.COM:443/watch?v=A "),
+    ("http://example.com/watch?v=A", "http://EXAMPLE.COM:80/watch?v=A"),
+    ("https://example.com", "https://example.com/"),
+    ("https://www.bilibili.com/video/BV1pEa66NEGA/?p=2", "https://www.bilibili.com/video/BV1pEa66NEGA?p=2"),
+])
+def test_video_url_aliases_cannot_inflate_multiple_categories(first, alias):
+    spec = {"videos": {"first": {"url": first, "note": "confirmed", "category": "lecture"},
+                       "alias": {"url": alias, "note": "same source", "category": "sports"}}, "cases": []}
+    errors = validate(spec)
+    assert any("videos.alias" in error and "videos.first" in error and "重复" in error for error in errors)
+
+
+@pytest.mark.parametrize("first,second", [
+    ("https://www.youtube.com/watch?v=A", "https://www.youtube.com/watch?v=B"),
+    ("https://www.bilibili.com/video/BV1pEa66NEGA?p=1", "https://www.bilibili.com/video/BV1pEa66NEGA?p=2"),
+    ("https://example.com/#/video/A", "https://example.com/#/video/B"),
+    ("https://example.com/video/A", "https://example.com/video/a"),
+    ("https://example.com/watch?v=A&signature=x", "https://example.com/watch?v=A&signature=y"),
+    ("https://example.com:8443/watch?v=A", "https://example.com/watch?v=A"),
+])
+def test_distinct_video_identifiers_parts_hash_routes_and_ports_remain_valid(first, second):
+    spec = {"videos": {"first": {"url": first, "note": "confirmed", "category": "lecture"},
+                       "second": {"url": second, "note": "confirmed", "category": "sports"}}, "cases": []}
+    assert validate(spec) == []

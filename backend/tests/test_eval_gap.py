@@ -1,6 +1,7 @@
 """scripts/eval_gap.py 的缺口清单（Issue #7）。"""
 import json
 from pathlib import Path
+import pytest
 
 from scripts.eval_gap import gap_report, TENTATIVE_VIDEOS, TENTATIVE_QTYPES
 
@@ -65,3 +66,39 @@ def test_gap_cli_rejects_invalid_dataset_before_printing(tmp_path, monkeypatch, 
     with pytest.raises(ValueError, match="qtype"):
         eval_gap.main()
     assert not capsys.readouterr().out
+
+
+def full_valid_spec():
+    from evals.schema import CATEGORIES
+    categories = list(CATEGORIES)
+    return {"videos": {f"v{i}": {"url": f"https://example.com/watch?v={i}", "note": "test fixture",
+                                 "category": categories[i // 5]} for i in range(30)},
+            "cases": [{"id": f"c{i}", "video": f"v{i % 30}", "question": "question", "rubric": "confirmed test answer",
+                       "qtype": "summary"} for i in range(150)]}
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_gap_cli_cannot_claim_target_from_a_duplicate_url_in_another_category(tmp_path, monkeypatch, capsys, json_mode):
+    from scripts import eval_gap
+    spec = full_valid_spec()
+    # Nominally 30 rows and 5 per category, but this replaces one sports/tutorial source with an alias.
+    spec["videos"]["v5"]["url"] = " HTTPS://EXAMPLE.COM:443/watch?v=0 "
+    path = tmp_path / "duplicates.json"
+    path.write_text(json.dumps(spec))
+    monkeypatch.setattr(eval_gap, "CASES", path)
+    monkeypatch.setattr("sys.argv", ["eval_gap.py"] + (["--json"] if json_mode else []))
+    with pytest.raises(ValueError, match="重复"):
+        eval_gap.main()
+    assert capsys.readouterr().out == ""
+
+
+def test_gap_cli_counts_distinct_query_video_ids_without_merging_them(tmp_path, monkeypatch, capsys):
+    from scripts import eval_gap
+    path = tmp_path / "distinct.json"
+    path.write_text(json.dumps(full_valid_spec()))
+    monkeypatch.setattr(eval_gap, "CASES", path)
+    monkeypatch.setattr("sys.argv", ["eval_gap.py", "--json"])
+    eval_gap.main()
+    report = json.loads(capsys.readouterr().out)
+    assert report["videos"] == 30 and report["meets_target"] is True
+    assert all(count == 5 for count in report["videos_per_category"].values())
