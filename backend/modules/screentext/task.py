@@ -79,9 +79,13 @@ async def read_frames(stream: Stream, folder: Path, timeout: float) -> GrabResul
         code, text = await _frames_from(stream, folder, 0.0, timeout)
     except FileNotFoundError:
         return GrabResult(False, "error", "未安装 ffmpeg")
-    if code is None:
-        return GrabResult(False, "timeout", f"超过 {timeout:.0f}s")
     count = lambda: len(list(folder.glob("*.jpg")))  # noqa: E731
+    if code is None:
+        # Some sources (YouTube) are throttled to about playback speed: keep what was read in time.
+        if count():
+            got = max(int(f.stem) for f in folder.glob("*.jpg")) / FPS
+            return GrabResult(True, "partial", f"读取较慢，在时限内读到 {resume.clock(got)}")
+        return GrabResult(False, "timeout", f"超过 {timeout:.0f}s")
     if code != 0 or not count():
         return GrabResult(False, classify(text), resume.error_text(text) or f"ffmpeg 退出码 {code}")
     duration = resume.input_duration(text)
@@ -124,7 +128,8 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
     state.status, state.segments = "running", []
     job.emit({"type": "screentext", **state.summary(), "message": "正在读取画面"})
     folder = job.root / "screentext"
-    timeout = max(120.0, job.video.duration / 2)
+    # about playback time: a throttled source (YouTube) streams no faster than it plays
+    timeout = max(120.0, job.video.duration * 1.2)
     try:
         result = None
         for attempt in range(2):
