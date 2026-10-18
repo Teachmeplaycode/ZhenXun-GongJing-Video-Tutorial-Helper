@@ -12,6 +12,8 @@ import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
+from markdown_it import MarkdownIt
+
 # A time stamp in an answer, e.g. [00:30] or 01:55 — kept as [mm:ss] in the note.
 STAMP_RE = re.compile(r"(?<![\d:])\[(\d+:\d{2}(?::\d{2})?)\](?![\d:])")
 URL_RE = re.compile(r"https?://[^\s<>（）[\]，。；、\"“”]+")
@@ -262,9 +264,8 @@ def _label_for(tool: str, data: dict) -> str:
 
 
 def _inline_delimiters_before(before: str) -> list[str]:
-    """Open wrappers in this paragraph, including soft line breaks."""
-    line = re.split(r"(?:\r?\n[ \t]*\r?\n|^ {0,3}(?:`{3,}|~{3,})[^\r\n]*(?:\r?\n|\Z))",
-                    before, flags=re.MULTILINE)[-1]
+    """Open wrappers inside one parser-identified Markdown inline block."""
+    line = before
     opened, code = [], None
     for token in re.finditer(r"(?<!\\)(`+|\*{1,3}|_{1,3}|~~)", line):
         marker = token[0]
@@ -281,6 +282,14 @@ def _inline_delimiters_before(before: str) -> list[str]:
 
 
 def _cited_urls(text: str, known: dict[str, dict]):
+    # Use CommonMark block maps: inline wrappers may cross soft line breaks, but
+    # cannot cross headings, list items, quotes, HTML/code blocks or paragraphs.
+    offsets = [0] + [newline.end() for newline in re.finditer(r"\r\n?|\n", text)]
+    if offsets[-1] < len(text):
+        offsets.append(len(text))
+    inline_blocks = [(offsets[token.map[0]], offsets[token.map[1]])
+                     for token in MarkdownIt("commonmark").parse(text)
+                     if token.type == "inline" and token.map]
     for match in URL_RE.finditer(text):
         raw = match.group(0)
         before = text[:match.start()]
@@ -301,7 +310,8 @@ def _cited_urls(text: str, known: dict[str, dict]):
                 end = len(raw)
             yield raw[:end]
             continue
-        delimiters = _inline_delimiters_before(before)
+        block_start = next((start for start, end in inline_blocks if start <= match.start() < end), None)
+        delimiters = _inline_delimiters_before(text[block_start:match.start()]) if block_start is not None else []
         if delimiters:
             # Tool metadata disambiguates literal URI punctuation from wrapper closers.
             exact = next((url for url in sorted(known, key=len, reverse=True)

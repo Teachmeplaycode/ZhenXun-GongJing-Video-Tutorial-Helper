@@ -435,6 +435,34 @@ def test_markdown_source_wrapper_context_does_not_cross_block_boundary(prefix):
     assert [s['url'] for s in collect_sources([], prefix + url)] == [url]
 
 
+@pytest.mark.parametrize('prefix', [
+    '# **heading\n', '### **heading\n', '**heading\n---\n',
+    '**paragraph\n***\n', '> **quote\n', '- **item\n\n',
+    '- **first\n- ', '> **quote\n\n', '<div>**html</div>\n\n',
+    '~~~\n**code\n~~~\n', '    **indented code\n',
+])
+@pytest.mark.parametrize('known', [False, True])
+def test_source_wrappers_reset_at_commonmark_block_boundaries(tmp_path, prefix, known):
+    import html
+    url = 'https://example.org/path**'
+    # Quote/list transitions must be explicit; a lazy continuation is one block.
+    if prefix == '> **quote\n':
+        prefix += '# next\n'
+    events = [{'type': 'tool_call.output', 'data': {'url': url, 'title': '来源'}}] if known else []
+    text = prefix + url
+    assert [s['url'] for s in collect_sources(events, text)] == [url]
+    messages = [{'role': 'assistant', 'content': text, 'events': events}]
+    page = build_print_html(video(), '', messages, [], JOB, 'http://localhost')
+    assert f'href="{html.escape(url)}"' in page
+
+
+@pytest.mark.parametrize('separator', ['\n', '\r\n', '\r'])
+def test_block_mapping_preserves_soft_breaks_and_resets_headings(separator):
+    url = 'https://example.org/path'
+    assert [s['url'] for s in collect_sources([], f'**来源{separator}{url}**')] == [url]
+    assert [s['url'] for s in collect_sources([], f'# **heading{separator}{url}**')] == [url + '**']
+
+
 def test_missing_attached_frames_never_produce_broken_zip_references(tmp_path):
     jobs = tmp_path / 'jobs'
     (jobs / JOB).mkdir(parents=True)
