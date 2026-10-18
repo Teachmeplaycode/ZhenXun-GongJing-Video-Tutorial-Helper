@@ -13,7 +13,8 @@ import json
 import re
 from pathlib import Path
 
-from .grabber import classify, input_args
+from . import resume
+from .grabber import classify
 from ..video_source import Stream
 
 SAMPLE_FPS = 4       # scene scores between frames 0.25 s apart: a cut lands within a quarter second
@@ -42,31 +43,52 @@ def pick_streams(streams: list[Stream]) -> list[Stream]:
     return sorted(usable, key=lambda s: abs((s.height or TARGET_HEIGHT) - TARGET_HEIGHT))
 
 
-async def detect(stream: Stream, folder: Path, timeout: float) -> tuple[list[float] | None, str]:
-    """(cuts, "") or (None, why). ffmpeg writes the scene scores to a file in `folder`."""
-    folder.mkdir(parents=True, exist_ok=True)
+async def _pass(stream: Stream, folder: Path, offset: float, timeout: float) -> tuple[int | None, str, str]:
+    """(exit code, stderr, scene lines) of one pass from `offset`; exit code None on timeout."""
     out = folder / "scenes.txt"
     out.unlink(missing_ok=True)
     graph = f"fps={SAMPLE_FPS},scale=-2:120,select='gt(scene,{THRESHOLD})',metadata=print:file={out.name}"
-    args = ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", *input_args(stream), "-an", "-sn",
+    args = ["ffmpeg", "-nostdin", "-hide_banner", *resume.LOG_ARGS, *resume.seek_args(stream, offset), "-an", "-sn",
             "-vf", graph, "-f", "null", "-"]
-    try:
-        proc = await asyncio.create_subprocess_exec(*args, cwd=folder, stdout=asyncio.subprocess.DEVNULL,
-                                                    stderr=asyncio.subprocess.PIPE)
-    except FileNotFoundError:
-        return None, "未安装 ffmpeg"
+    proc = await asyncio.create_subprocess_exec(*args, cwd=folder, stdout=asyncio.subprocess.DEVNULL,
+                                                stderr=asyncio.subprocess.PIPE)
     try:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
-        return None, "timeout"
+        return None, "", ""
     try:
-        if proc.returncode != 0:
-            return None, classify(stderr.decode(errors="replace"))
-        return parse(out.read_text() if out.is_file() else ""), ""
+        return proc.returncode, stderr.decode(errors="replace"), out.read_text() if out.is_file() else ""
     finally:
         out.unlink(missing_ok=True)
+
+
+async def detect(stream: Stream, folder: Path, timeout: float) -> tuple[list[float] | None, str]:
+    """(cuts, "") or (None, why). A pass the server cut off part-way is carried on from where it
+    stopped (modules/frames/resume.py); scene times of later passes are shifted by their start."""
+    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        code, text, scenes = await _pass(stream, folder, 0.0, timeout)
+    except FileNotFoundError:
+        return None, "未安装 ffmpeg"
+    if code is None:
+        return None, "timeout"
+    if code != 0:
+        return None, classify(text)
+    duration = resume.input_duration(text)
+    times = [float(t) for t in PTS_RE.findall(scenes)]
+    covered = resume.reached(text) or 0.0
+    for _ in range(resume.MAX_RESUMES):
+        if not resume.short(covered, duration):
+            break
+        code, more, scenes = await _pass(stream, folder, covered, timeout)
+        got = (resume.reached(more) or 0.0) if code == 0 else 0.0
+        if got < 1:
+            break
+        times += [covered + float(t) for t in PTS_RE.findall(scenes) if float(t) >= 0.5]  # its first frame is no cut
+        covered += got
+    return parse("\n".join(f"pts_time:{t}" for t in times)), ""
 
 
 def load(root: Path) -> dict | None:
