@@ -429,6 +429,31 @@ def test_known_url_punctuation_inside_markdown_is_preserved():
     assert [s['url'] for s in collect_sources(events, f'*{url}*')] == [url]
 
 
+@pytest.mark.parametrize('wrapper', ['**see ({url})**', '*see ({url}).*',
+                                    '`see ({url})`', '**see\n({url}).**'])
+@pytest.mark.parametrize('url', ['https://example.org/article', 'https://example.org/Foo_(bar)'])
+@pytest.mark.parametrize('known', [False, True])
+def test_wrapped_parenthesized_citations_drop_only_enclosing_punctuation(tmp_path, wrapper, url, known):
+    import html
+    from modules.export.markdown import markdown_link
+    events = [{'type': 'tool_call.output', 'data': {'url': url, 'title': '来源'}}] if known else []
+    text = wrapper.format(url=url)
+    sources = collect_sources(events, text)
+    assert [source['url'] for source in sources] == [url]
+    messages = [{'role': 'assistant', 'content': text, 'events': events}]
+    md, _ = build_markdown(video(), '', messages, [], JOB, tmp_path)
+    page = build_print_html(video(), '', messages, [], JOB, 'http://localhost')
+    assert markdown_link(sources[0]['title'], url) in md
+    assert f'href="{html.escape(url)}"' in page
+
+
+@pytest.mark.parametrize('wrapper', ['**see ({url})**', '`see ({url}).`'])
+def test_wrapped_known_url_preserves_literal_unbalanced_query_parenthesis(wrapper):
+    url = 'https://example.org/search?q=value)'
+    events = [{'type': 'tool_call.output', 'data': {'url': url}}]
+    assert [source['url'] for source in collect_sources(events, wrapper.format(url=url))] == [url]
+
+
 @pytest.mark.parametrize('prefix', ['**unclosed\n\n', '```\n**literal\n```\n'])
 def test_markdown_source_wrapper_context_does_not_cross_block_boundary(prefix):
     url = 'https://example.org/literal**'
