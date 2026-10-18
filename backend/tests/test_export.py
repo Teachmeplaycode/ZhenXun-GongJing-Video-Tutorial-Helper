@@ -164,11 +164,14 @@ def test_build_zip_skips_missing_images(tmp_path):
 
 def test_build_print_html_has_cjk_and_images(tmp_path):
     jobs = tmp_path / "jobs"
+    (jobs / JOB / "replay" / "0006000-0006100-030").mkdir(parents=True)
+    (jobs / JOB / "000.jpg").write_bytes(b"frame")
+    (jobs / JOB / "replay" / "0006000-0006100-030" / "00.jpg").write_bytes(b"replay")
     msgs = [
         {"id": 1, "role": "user", "content": "柚子会影响药物吗？", "status": "done", "frames": [0]},
         {"id": 2, "role": "assistant", "content": "在 [00:30] 提到 CYP3A4", "status": "done", "events": replay_events()},
     ]
-    page = build_print_html(video(), "讲了什么", msgs, slots(), JOB, "http://localhost:8000")
+    page = build_print_html(video(), "讲了什么", msgs, slots(), JOB, "http://localhost:8000", data_dir=jobs)
     assert "<!DOCTYPE html>" in page and 'lang="zh-CN"' in page
     assert "柚子与药物" in page and "柚子会影响药物吗？" in page
     assert "CYP3A4" in page  # CJK + ascii preserved, no mojibake
@@ -282,6 +285,8 @@ def test_printed_timestamp_is_real_html_link_and_prose_is_escaped():
     '```text\n[00:30]\n```', '~~~\n[00:30]\n~~~',
     '![00:30](https://example.com/p.png)', '[00:30][reference]',
     r'\[00:30]', '[00:30]\n\n[00:30]: https://example.com',
+    '    [00:30]', '\t[00:30]', '  \t[00:30]',
+    '    code [00:30]\n\n    code [00:31]',
 ])
 def test_timestamp_linkification_preserves_markdown_constructs(protected):
     output = linkify_stamps(protected + '\n普通时间 [00:45]', video()['canonical_url'], 'bilibili')
@@ -314,3 +319,32 @@ def test_missing_attached_frames_never_produce_broken_zip_references(tmp_path):
         assert 'images/frame_000.jpg' not in bundle.namelist()
         assert 'images/frame_001.jpg' in bundle.namelist()
     assert len(collect_image_refs(messages, slots(), jobs, JOB)) == 1
+
+
+def test_print_omits_unavailable_attached_and_tool_images(tmp_path):
+    jobs = tmp_path / 'jobs'
+    (jobs / JOB).mkdir(parents=True)
+    for i in (0, 1, 3):
+        (jobs / JOB / f'{i:03d}.jpg').write_bytes(b'frame')
+    states = slots()
+    states[0]['status'] = 'missing'  # stale file must not override an unavailable slot
+    states[3]['status'] = 'pending'
+    (jobs / JOB / 'replay' / '0006000-0006100-030').mkdir(parents=True)
+    (jobs / JOB / 'replay' / '0006000-0006100-030' / '00.jpg').write_bytes(b'replay')
+    messages = [
+        {'role': 'user', 'frames': [0, 1, 2, 3, 9, -1, True]},
+        {'role': 'assistant', 'events': replay_events()},
+        {'role': 'assistant', 'manual': 'replay', 'events': replay_events()},
+    ]
+    page = build_print_html(video(), '', messages, states, JOB, 'http://localhost', data_dir=jobs)
+    assert '/frames/1.jpg' in page
+    for i in (0, 2, 3, 9, -1):
+        assert f'/frames/{i}.jpg' not in page
+    assert page.count('/replay/0006000-0006100-030/00.jpg') == 2
+    for name in ('01', '02', '03'):
+        assert f'/replay/0006000-0006100-030/{name}.jpg' not in page
+
+
+def test_print_without_image_storage_does_not_guess_availability():
+    page = build_print_html(video(), '', make_messages(), slots(), JOB, 'http://localhost')
+    assert '<img ' not in page

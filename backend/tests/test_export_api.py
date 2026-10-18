@@ -54,3 +54,25 @@ def test_omitted_selection_exports_all_and_pdf_is_explicitly_print_html(api):
     assert 'href="https://www.bilibili.com/video/BV1?t=30"' in response.text
     assert client.get(f"/api/sessions/{job.id}/export", params={"format": "doc"}).status_code == 422
     assert client.get("/api/sessions/missing/export").status_code == 404
+
+
+@pytest.mark.parametrize('restored', [False, True])
+def test_print_export_uses_current_slot_and_disk_availability(api, restored):
+    client, job, _ = api
+    import app
+    for i, status in enumerate(('ok', 'missing', 'ok', 'ok')):
+        job.slots[i].status = status
+        if i != 2:
+            job.frame_path(i).write_bytes(b'present')
+    app.store.add_message(job.id, 'user', '检查图片', data={'frames': [0, 1, 2, 3]})
+    app.store.save_slots(job)
+    if restored:
+        del app.jobs[job.id]
+    else:
+        job.slots[3].status = 'pending'  # persisted status is stale; route uses live job
+    response = client.get(f'/api/sessions/{job.id}/export', params={'format': 'pdf'})
+    assert response.status_code == 200
+    assert f'/api/link-jobs/{job.id}/frames/0.jpg' in response.text
+    assert f'/api/link-jobs/{job.id}/frames/1.jpg' not in response.text
+    assert f'/api/link-jobs/{job.id}/frames/2.jpg' not in response.text
+    assert (f'/api/link-jobs/{job.id}/frames/3.jpg' in response.text) is restored

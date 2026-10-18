@@ -17,7 +17,7 @@ def create_router(*, store, get_job, data_dir):
 
     @router.get("/api/sessions/{session_id}/export")
     async def export_session(session_id: str, request: Request, format: Literal["md", "pdf"] = "md", ids: str | None = None):
-        get_job(session_id)
+        job = get_job(session_id)
         record = store.get(session_id)
         if record is None:
             raise HTTPException(404, "会话不存在")
@@ -34,8 +34,8 @@ def create_router(*, store, get_job, data_dir):
                 raise HTTPException(400, "所选消息不属于此会话，请重新打开导出")
         video, slots = json.loads(record["video"]), json.loads(record["slots"])
         if format == "pdf":
-            page = build_print_html(video, record["task"], messages, slots, session_id,
-                                    str(request.base_url).rstrip("/"), selected)
+            page = build_print_html(video, record["task"], messages, job.snapshot()["slots"], session_id,
+                                    str(request.base_url).rstrip("/"), selected, data_dir=data_dir)
             return HTMLResponse(page)
         markdown, refs = build_markdown(video, record["task"], messages, slots, session_id, data_dir, selected)
         return Response(build_zip(markdown, refs), media_type="application/zip", headers={
