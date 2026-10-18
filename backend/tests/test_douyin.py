@@ -128,7 +128,10 @@ def test_invalid_or_unrelated_render_script_is_retryable(html):
 
 @pytest.mark.parametrize("status,code,retryable", [(401, "login_required", False),
                                                 (403, "forbidden", False),
-                                                (429, "rate_limited", True)])
+                                                (429, "rate_limited", True),
+                                                (500, "upstream", True),
+                                                (502, "upstream", True),
+                                                (503, "upstream", True)])
 @pytest.mark.parametrize("stage", ["direct", "shortlink", "redirected"])
 def test_http_restrictions_are_mapped_before_body_parsing(status, code, retryable, stage):
     requests = []
