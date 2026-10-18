@@ -19,6 +19,7 @@ from modules.decide import questions as dq
 
 from . import experience
 
+from ..frames import images as picture_sets
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
 
 HISTORY_MESSAGES = 8      # earlier turns sent back as plain text (frames only go with the current turn)
@@ -217,16 +218,31 @@ def max_screen_chars() -> int:
     return max(1000, int(os.environ.get("LLM_MAX_SCREEN_CHARS", "20000")))
 
 
+VIDEO_ONLY_TOOLS = {"view_frames", "replay", "read_transcript", "read_chapters", "measure_motion"}
+IMAGES_NOTE = ("这是一组图片（图集或截图），不是视频：没有时间轴，也没有语音。每张图前标了「第 n 张」，"
+               "「图片文字」是从每张图里识别出的文字。回答里提到某张图时写「第 n 张」，不要写 mm:ss 时间点。")
+
+
+def allowed_tools(job: FrameJob, web: bool, papers: bool, audience: tuple) -> list[dict]:
+    """The tools for this request; pictures have no time to look closer at, replay or measure."""
+    found = definitions(web, papers, audience)
+    if picture_sets.is_images(job.video):
+        found = [d for d in found if d["function"]["name"] not in VIDEO_ONLY_TOOLS]
+    return found
+
+
 def pick_screentext(job: FrameJob, frames: list | None) -> tuple[list[str], str]:
     """Timed on-screen text lines for the request (`frames`: the selected slots, or None), and a note."""
     screen = job.screentext
+    pictures = picture_sets.is_images(job.video)
     if screen is None or not screen.segments:
         status = screen.status if screen else "none"
         reasons = {"running": "画面文字仍在识别中", "pending": "画面文字尚未开始识别"}
         return [], reasons.get(status) or (screen.message if screen and screen.message else "")
     captions = screen.segments
     if frames is not None:
-        captions = [c for c in captions if any(c.end >= f.time - FRAME_WINDOW and c.start <= f.time + FRAME_WINDOW for f in frames)]
+        window = 0 if pictures else FRAME_WINDOW  # a picture's text is its own, not its neighbours'
+        captions = [c for c in captions if any(c.end >= f.time - window and c.start <= f.time + window for f in frames)]
     total = len(captions)
     repeats = 0
     if not speech_warning(job):
@@ -239,7 +255,8 @@ def pick_screentext(job: FrameJob, frames: list | None) -> tuple[list[str], str]
         note += f"；另有 {repeats} 段字幕和语音转写重复，已省略（用 search_transcript 能搜到）"
     lines, budget = [], max_screen_chars()
     for c in captions:
-        line = f"[{clock(c.start)}] {'' if c.pos == 'bottom' else '（画面中的字）'}{c.text}"
+        line = (f"[{picture_sets.image_label(int(c.start))}] {c.text}" if pictures
+                else f"[{clock(c.start)}] {'' if c.pos == 'bottom' else '（画面中的字）'}{c.text}")
         budget -= len(line) + 1
         if budget < 0:
             note += f"，过长只保留到 {clock(c.start)} 之前"
@@ -282,17 +299,22 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
                    transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], "")) -> list[dict]:
     video = job.video
     coverage = job.coverage()
-    context = [f"视频标题：{video.title}", f"时长：{clock(video.duration)}"]
+    pictures = picture_sets.is_images(video)
+    context = ([f"图集标题：{video.title}", f"共 {len(job.slots)} 张图片", IMAGES_NOTE] if pictures
+               else [f"视频标题：{video.title}", f"时长：{clock(video.duration)}"])
     if video.description:
         context.append(f"简介：{video.description[:800]}")
-    context.append(f"范围：{'整段视频' if scope_all else '用户选中的帧'}，共提供 {len(frames)} 帧画面")
+    if pictures:
+        context.append(f"范围：{'全部图片' if scope_all else '用户选中的图片'}，共提供 {len(frames)} 张")
+    else:
+        context.append(f"范围：{'整段视频' if scope_all else '用户选中的帧'}，共提供 {len(frames)} 帧画面")
     stats = video.extra.get("stats") or {}
     names = {"views": "播放", "likes": "点赞", "comments": "评论", "danmaku": "弹幕", "favorites": "收藏", "shares": "转发"}
     if stats:
         context.append("互动：" + " · ".join(f"{names[k]} {v}" for k, v in stats.items() if k in names and v not in (None, "")))
     if video.platform == "wechat_channels" and stats.get("comments"):
         context.append("视频号的评论只能在微信 App 里看，这里读不到评论内容")
-    if coverage["missing_ranges"]:
+    if coverage["missing_ranges"] and not pictures:
         gaps = "、".join(f"{clock(a)}–{clock(b)}" for a, b in coverage["missing_ranges"])
         context.append(f"没有取到画面的时段：{gaps}")
     if coverage["pending"]:
@@ -311,11 +333,11 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     if lines:
         content.append({"type": "text", "text": f"语音转写（{note}）：\n" + "\n".join(lines)})
     if screen_lines:
-        content.append({"type": "text", "text": f"画面文字（每秒识别一次的字幕、花字和画面上的字，可能有个别错字；{screen_note}）：\n"
-                                                + "\n".join(screen_lines)})
+        title = "图片文字（每张图里识别出的文字，可能有个别错字" if pictures else "画面文字（每秒识别一次的字幕、花字和画面上的字，可能有个别错字"
+        content.append({"type": "text", "text": f"{title}；{screen_note}）：\n" + "\n".join(screen_lines)})
     for slot in frames:
         data = base64.b64encode(job.frame_path(slot.index).read_bytes()).decode()
-        content.append({"type": "text", "text": f"帧 {frame_no(slot.index)} · {clock(slot.time)}"})
+        content.append({"type": "text", "text": picture_sets.image_label(slot.index) if pictures else f"帧 {frame_no(slot.index)} · {clock(slot.time)}"})
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}})
     content.append({"type": "text", "text": f"问题：{question}"})
 
@@ -392,12 +414,13 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.
     zoomed = []
-    slow = slowmo_ranges(question)
-    asked = [] if slow else asked_ranges(question)
+    pictures = picture_sets.is_images(job.video)  # no stretch of a picture set to look closer at
+    slow = [] if pictures else slowmo_ranges(question)
+    asked = [] if slow or pictures else asked_ranges(question)
     # Replayed by hand just before asking ("这段慢放的部分做了什么"): the model never saw that replay,
     # so it gets the same frames (cached on disk) unless the question names its own stretch.
     # Several replays in a row: "这段" is the last one.
-    by_hand = [] if slow or asked else [(str(a), str(b)) for a, b in (framed or [])[-1:]]
+    by_hand = [] if slow or asked or pictures else [(str(a), str(b)) for a, b in (framed or [])[-1:]]
     reason = "你刚在时间轴上手动慢放了这一段" if by_hand else "问题要求慢放这一段" if slow else "问题指定了时间段"
     slow = slow or by_hand
     for i, (a, b) in enumerate(slow or asked):
@@ -419,7 +442,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                 else "问题所问时间段的加密画面：")
         messages[-1]["content"] += [{"type": "text", "text": lead}] + image_message(zoomed)["content"] + [question_part]
     if rounds:
-        allowed = definitions(web, papers, audience)
+        allowed = allowed_tools(job, web, papers, audience)
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
         viewers = AUDIENCE_GUIDE if any(d["function"]["name"] in AUDIENCE_TOOLS for d in allowed) else ""
         lessons = ""
@@ -441,7 +464,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     usage = Usage()
     answered = False  # any answer text streamed so far
     must_research, researched = False, False
-    if rounds and any(d["function"]["name"] in WEB_TOOLS for d in definitions(web, papers, audience)):
+    if rounds and any(d["function"]["name"] in WEB_TOOLS for d in allowed_tools(job, web, papers, audience)):
         steps += 1
         yield tool("intent", "started", tool_name="decision.research_intent")
         yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})
@@ -467,7 +490,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
             async for delta in client.stream(messages, usage, max_tokens=max_output(),
-                                             tools=None if last else definitions(web, papers, audience)):
+                                             tools=None if last else allowed_tools(job, web, papers, audience)):
                 text.append(delta)
                 if not streaming:
                     held += delta

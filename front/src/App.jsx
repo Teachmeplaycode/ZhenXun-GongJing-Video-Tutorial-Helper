@@ -16,7 +16,8 @@ import ImportPanel from './stages/ImportPanel'
 import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
-import { createLinkJob, deleteSession, fetchChapters, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadVideo } from './api/client'
+import PictureStage from './stages/PictureStage'
+import { createLinkJob, deleteSession, fetchChapters, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
 import { mockUpload } from './api/mock'
 import { restoreMessages } from './api/useAgentChat'
 import { pickFrameCount, syntheticFrames } from './lib/video'
@@ -29,7 +30,7 @@ import { BRAND } from './config/workspace'
 const STEPS = [
   { n: '01', label: '导入视频', stages: ['idle'] },
   { n: '02', label: '解析时间轴', stages: ['uploading', 'analyzing', 'ready'] },
-  { n: '03', label: '对话分析', stages: ['chat'] },
+  { n: '03', label: '对话分析', stages: ['chat', 'pictures'] }, // pictures: an image post's page, straight from import
 ]
 const SAMPLE_META = { name: '示例素材.mp4', size: 0, type: 'video/mp4', duration: 192, width: 1920, height: 1080, sample: true }
 const EMPTY_ANALYSIS = { meta: false, frames: 0, total: 0, missing: 0, index: false, transcript: null, screentext: null }
@@ -90,6 +91,7 @@ export default function App() {
   const [theme, themeChoice, cycleTheme] = useTheme()
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
+  const [pictureFocus, setPictureFocus] = useState(null) // { index, key }: an answer's 「第 n 张」 shows that picture
   const [extraFrames, setExtraFrames] = useState([]) // replayed / closer-look frames from the chat, shown on the timeline
   const [cited, setCited] = useState([]) // times the answers point at, marked on the timeline
   const [cuts, setCuts] = useState([]) // the video's shot changes, marked on the timeline
@@ -299,10 +301,12 @@ export default function App() {
 
   // Backend job flow, for links and uploaded files alike: create the job under the upload screen
   // (resolving the link, or uploading with progress), then follow its frames and transcript.
-  const runJob = async ({ link, file, task, sampling }, signal) => {
+  const runJob = async ({ link, file, images = null, task, sampling }, signal) => {
     const baseMeta = link
       ? { name: link, size: 0, type: 'link', duration: NaN, width: 0, height: 0, link: true, backend: true, sample: false }
-      : { name: file.name, size: file.size, type: file.type, duration: NaN, width: 0, height: 0, link: false, backend: true, sample: false }
+      : images
+        ? { name: `${images.length} 张图片`, size: images.reduce((n, f) => n + f.size, 0), type: 'images', kind: 'images', duration: NaN, width: 0, height: 0, link: false, backend: true, sample: false }
+        : { name: file.name, size: file.size, type: file.type, duration: NaN, width: 0, height: 0, link: false, backend: true, sample: false }
     setMeta(baseMeta)
     setMaskMounted(true)
     setStage('uploading')
@@ -311,19 +315,36 @@ export default function App() {
     try {
       // Long enough for the window to open and the terrain to draw before switching scenes.
       const minimum = new Promise((r) => setTimeout(r, 2400))
+      const onProgress = (p) => { if (!signal.aborted) setUploadProgress(p) }
       job = link
         ? await createLinkJob(link, { task, sampling, signal })
-        : await uploadVideo(file, { task, sampling, signal, onProgress: (p) => { if (!signal.aborted) setUploadProgress(p) } })
+        : images
+          ? await uploadImages(images, { task, signal, onProgress })
+          : await uploadVideo(file, { task, sampling, signal, onProgress })
       signal.throwIfAborted()
       setUploadProgress(1)
       await minimum
       signal.throwIfAborted()
       const v = job.video
-      setMeta({ ...baseMeta, name: link ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length })
+      setMeta({ ...baseMeta, name: link || images ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video' })
       setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description })
       setFrames(byTime(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))))
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
       if (v.notes?.length) setNotice(v.notes.join('；'))
+      if (v.kind === 'images') {
+        // A picture set skips the analysis screen: its page shows the pictures as they arrive.
+        setAnalysis((a) => ({ ...a, index: true }))
+        await waitMaskEnter()
+        signal.throwIfAborted()
+        setStage('pictures')
+        // Follow the pictures while the curtain lifts: they show up as soon as they arrive.
+        const following = followLinkJob(job.job_id, 0, signal, v.notes || [])
+        await exitMask(signal)
+        signal.throwIfAborted()
+        setMaskMounted(false)
+        await following
+        return
+      }
       await waitMaskEnter()
       signal.throwIfAborted()
       setStage('analyzing')
@@ -376,7 +397,7 @@ export default function App() {
     }
   }
 
-  const start = useCallback(async ({ file, task, link, sampling = null }) => {
+  const start = useCallback(async ({ file, task, link, images = null, sampling = null }) => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -385,15 +406,15 @@ export default function App() {
     setAnalysis(EMPTY_ANALYSIS)
     setFrames([])
     setNotice('')
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null)
+    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
     setUploadProgress(0)
     setVideo(null)
     setImportError('')
     setCoverage(null)
     setRetrying(false)
     setInitialMessages([])
-    if (link || file) {
-      await runJob({ link, file, task, sampling }, signal)
+    if (link || file || images?.length) {
+      await runJob({ link, file, images, task, sampling }, signal)
       return
     }
 
@@ -519,17 +540,17 @@ export default function App() {
     const apply = () => {
       setRunId(makeRunId())
       setMaskMounted(false)
-      setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length })
+      setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video' })
       setVideo({ videoId: id, jobId: id, task: saved.task, title: v.title, description: v.description })
       setFrames(nextFrames)
       setCoverage(saved.coverage)
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript, screentext: saved.screentext || null })
       setNotice(saved.running ? '' : [...(v.notes || []), coverageNotice(saved.coverage)].filter(Boolean).join('；'))
       setInitialMessages(restoreMessages(saved.messages, nextFrames))
-      setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null)
+      setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
       setImportError('')
       setRetrying(false)
-      setStage('chat')
+      setStage(v.kind === 'images' ? 'pictures' : 'chat')
     }
     wipeThrough(apply)
     // Sampling still running (e.g. reopened right after parsing): keep the timeline filling in.
@@ -569,7 +590,7 @@ export default function App() {
     setStage('idle')
     setMaskMounted(false)
     setFrames([])
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null)
+    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
     setMeta(null)
     setVideo(null)
     setAnalysis(EMPTY_ANALYSIS)
@@ -594,7 +615,7 @@ export default function App() {
 
   // Uploads are deleted once processed, so only link jobs can re-sample.
   const canRetry = Boolean(video?.jobId) && meta?.platform !== 'local'
-  const showSculpture = stage !== 'chat'
+  const showSculpture = stage !== 'chat' && stage !== 'pictures'
   const sculptureMode = stage === 'analyzing' || stage === 'ready' ? 'analyzing' : 'idle'
   const settledFrames = analysis.frames + (analysis.missing || 0)
   const isVerifying = stage === 'analyzing' && Boolean(analysis.total) && settledFrames >= analysis.total && !analysis.index
@@ -606,9 +627,42 @@ export default function App() {
         ? (isVerifying ? 'verifying' : 'analyzing')
         : stage === 'ready'
           ? 'confirmed'
-          : stage === 'chat'
+          : stage === 'chat' || stage === 'pictures'
             ? 'chat'
             : 'idle'
+
+  const pictures = meta?.kind === 'images' // an image post or uploaded pictures (stage 'pictures')
+  const chatStage = video ? (
+    <ChatStage
+      key={video.jobId || video.videoId}
+      pictures={pictures}
+      initialMessages={initialMessages}
+      active={stage === 'chat' || stage === 'pictures'}
+      video={video}
+      frames={frames}
+      coverage={coverage}
+      transcript={analysis.transcript}
+      screentext={analysis.screentext}
+      duration={meta?.duration}
+      onSeek={pictures
+        ? (time) => setPictureFocus({ index: Math.floor(time), key: Date.now() })
+        : (time) => { setTimelineOpen(true); setSeek({ time, key: Date.now() }) }}
+      onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
+      selected={selected}
+      onClearSelection={() => setSelected([])}
+      onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
+      onExtras={setExtraFrames}
+      onCited={setCited}
+      onBusy={setChatBusy}
+      chapters={chaptersData}
+      activeChapter={activeChapter}
+      onChapterSelect={setActiveChapter}
+      onChapterHover={setHoverChapter}
+      replayRequest={replayRequest}
+      clip={clip}
+      onClearClip={() => setClip(null)}
+    />
+  ) : null
 
   return (
     // Uploading keeps the homepage layout underneath, so the slide opens from where it sits.
@@ -617,7 +671,7 @@ export default function App() {
         <div className="brand">
           <SnakeMark className="brand__mark" state={brandMarkState} />
           {/* Once the timeline is built the question is answered: "?" becomes "!". */}
-          <Wordmark className="brand__name" confirmed={stage === 'ready' || stage === 'chat'} />
+          <Wordmark className="brand__name" confirmed={stage === 'ready' || stage === 'chat' || stage === 'pictures'} />
           <span className="brand__sub">{BRAND.product}</span>
         </div>
         <ol className="stepper">
@@ -645,7 +699,7 @@ export default function App() {
           <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
             <IconUser size={14} /> 账号
           </button>
-          {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入视频'} /> : null}
+          {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入'} /> : null}
         </DockNav>
       </header>
 
@@ -696,34 +750,17 @@ export default function App() {
           </div>
         ) : null}
 
-        {video && analysis.index ? (
+        {video && analysis.index && !pictures ? (
           <div className="layer layer--chat" hidden={stage !== 'chat'}>
-            <ChatStage
-              key={video.jobId || video.videoId}
-              initialMessages={initialMessages}
-              active={stage === 'chat'}
-              video={video}
-              frames={frames}
-              coverage={coverage}
-              transcript={analysis.transcript}
-              screentext={analysis.screentext}
-              duration={meta?.duration}
-              onSeek={(time) => { setTimelineOpen(true); setSeek({ time, key: Date.now() }) }}
-              onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
-              selected={selected}
-              onClearSelection={() => setSelected([])}
-              onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
-              onExtras={setExtraFrames}
-              onCited={setCited}
-              onBusy={setChatBusy}
-              chapters={chaptersData}
-              activeChapter={activeChapter}
-              onChapterSelect={setActiveChapter}
-              onChapterHover={setHoverChapter}
-              replayRequest={replayRequest}
-              clip={clip}
-              onClearClip={() => setClip(null)}
-            />
+            {chatStage}
+          </div>
+        ) : null}
+        {video && pictures ? (
+          <div className="layer layer--pictures" hidden={stage !== 'pictures'}>
+            <PictureStage meta={meta} jobId={video.jobId} frames={frames} selected={selected} onToggle={toggleFrame}
+              screentext={analysis.screentext} focus={pictureFocus}>
+              {chatStage}
+            </PictureStage>
           </div>
         ) : null}
 
@@ -756,7 +793,8 @@ export default function App() {
           chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
           activeChapter={hoverChapter ?? activeChapter}
           busy={chatBusy}
-          onRange={(start, end, action) => {
+          pictures={meta?.kind === 'images'}
+          onRange={meta?.kind === 'images' ? null : (start, end, action) => {
             if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
             else setClip({ start, end })
           }}

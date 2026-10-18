@@ -133,7 +133,7 @@ function ManualReplay({ message, onTime }) {
 
 // onTime(seconds): a time in the answer was clicked; duration bounds which times count.
 // onRegenerate: ask the same question again (null while another answer is running).
-export default function MessageBubble({ message, onStop, onTime = null, duration = null, onRegenerate = null }) {
+export default function MessageBubble({ message, onStop, onTime = null, duration = null, onRegenerate = null, pictures = false }) {
   if (message.role === 'user') {
     return (
       <div className="msg msg--user">
@@ -164,7 +164,7 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
             progress={message.progress?.step} onSeek={onTime} />
         ) : (
           <StreamingText key={`t${i}`} text={part.text} streaming={streaming && i === lastText && i === parts.length - 1}
-            onTime={onTime} duration={duration} />
+            onTime={onTime} duration={duration} pictures={pictures} />
         )))}
         {streaming && !parts.length ? (
           <StepGroup part={{ id: 'pending', calls: [], from: null, to: null }} working progress={message.progress?.step} />

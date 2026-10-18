@@ -134,13 +134,19 @@ def to_video(data: dict, url: str) -> ResolvedVideo:
     if not streams and data.get("video_url"):
         streams.append(stream(data["video_url"], "alcedo"))
         audio.append(stream(data["video_url"], "alcedo"))
-    if not streams:
-        if data.get("images"):
-            raise ResolveError("images_only", f"这是图集（{len(data['images'])} 张图），目前只支持视频；图集支持在开发中")
-        raise ResolveError("no_stream", "没有取到可播放的视频")
     page = data.get("page_url") or url
     source = data.get("source") or "web"
     author = data.get("author") or {}
+    if not streams and data.get("images"):  # an image post (图集): pictures instead of a video
+        pictures = [{"url": i["url"], "headers": headers} for i in data["images"] if i.get("url")][:60]
+        return ResolvedVideo(
+            platform=source, video_id=f"{source}-{hashlib.sha1(page.encode()).hexdigest()[:12]}", canonical_url=page,
+            title=(data.get("title") or "").strip() or page, duration=float(len(pictures)), streams=[],
+            cover=data.get("cover_url") or "", author=author.get("name") or "",
+            notes=[f"经 alcedo 解析（{source}），图集 {len(pictures)} 张"],
+            extra={"resolver": PLATFORM, "kind": "images", "images": pictures})
+    if not streams:
+        raise ResolveError("no_stream", "没有取到可播放的视频")
     return ResolvedVideo(
         platform=source,
         video_id=f"{source}-{hashlib.sha1(page.encode()).hexdigest()[:12]}",
@@ -186,7 +192,7 @@ class AlcedoResolver(Resolver):
     async def resolve(self, url: str, part: int | None = None) -> ResolvedVideo:
         data = await (self._serve(url) if settings().get("ALCEDO_URL", "").strip() else self._run(url))
         video = to_video(data, url)
-        if not video.duration:  # some platforms (微博, 梨视频, Vimeo) give an address but no duration
+        if not video.duration and video.streams:  # some platforms (微博, 梨视频, Vimeo) give an address but no duration
             video.duration = await probe_duration(video.streams[0])
             if not video.duration:
                 raise ResolveError("no_stream", "读不到这个视频的时长，无法抽帧")
