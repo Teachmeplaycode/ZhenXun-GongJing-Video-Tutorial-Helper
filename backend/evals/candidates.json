@@ -1,0 +1,57 @@
+{
+  "comment": "候选视频/题目占位（Issue #7）。这些不是已确认用例，视频需人工挑选（版权和内容把关），每道题的标准答案需人工确认。确认后移入 cases.json。本文件不提供具体视频 URL 或答案，只描述缺口和内容方向。",
+  "status": "pending_human_review",
+  "targets": {
+    "videos": 30,
+    "cases": 150,
+    "videos_per_category": 5
+  },
+  "current": {
+    "videos": 11,
+    "cases": 47
+  },
+  "shortfall": {
+    "videos": 19,
+    "cases": 103
+  },
+  "videos_needed_per_category": {
+    "lecture": {
+      "have": 2,
+      "short": 3,
+      "content_direction": "大学公开课、MOOC 片段、知识讲解（现有 grapefruit/water 是视频号科普，可再补讲座类）"
+    },
+    "tutorial": {
+      "have": 2,
+      "short": 3,
+      "content_direction": "软件/工具操作演示、开发实战（现有 design/tech 偏展示，可补操作步骤类）"
+    },
+    "news_review": {
+      "have": 2,
+      "short": 3,
+      "content_direction": "新闻事件、产品评测、资讯盘点（现有 digital 是数码评测，long-fashion 勉强）"
+    },
+    "sports": {
+      "have": 1,
+      "short": 4,
+      "content_direction": "体育赛事、户外运动、健身（现有 long-new 是徒步穿越）"
+    },
+    "vlog": {
+      "have": 4,
+      "short": 1,
+      "content_direction": "日常记录、美食、旅行、宠物（现有 long-food/short/av2/long-ev）"
+    },
+    "ad_shopping": {
+      "have": 0,
+      "short": 5,
+      "content_direction": "直播带货、广告片、商品种草（当前为空，需全新补充）"
+    }
+  },
+  "suggested_qtype_spread_per_new_video": {
+    "locate": "1-2 题（引用时间点）",
+    "visual_detail": "1-2 题（画面/字幕细节）",
+    "action_count": "0-1 题（动作或计数）",
+    "summary": "1 题（整体内容）",
+    "verify": "0-1 题（核实说法，需联网）"
+  },
+  "note": "每补一个视频后跑 scripts/eval.py --prepare 解析；agent 出题、写 rubric 草稿，人工逐题确认标准答案后再移入 cases.json。"
+}
