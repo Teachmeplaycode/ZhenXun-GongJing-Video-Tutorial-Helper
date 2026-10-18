@@ -128,6 +128,9 @@ export function retryLinkJob(jobId, { signal } = {}) {
 /** The video's shot changes for the timeline: { status: running | done | failed | unavailable, cuts: [seconds] }. */
 export const fetchCuts = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/cuts`, { signal })
 
+/** The video's chapter list: { status, chapters: [{ start, end, title, summary }], message }. */
+export const fetchChapters = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/chapters`, { signal })
+
 /** Replay a stretch framed on the timeline, without the model. Returns { manual: 'replay', events } (saved in the session). */
 export const manualReplay = (jobId, start, end) => linkRequest(`/api/link-jobs/${jobId}/replay`, {
   method: 'POST',
