@@ -138,7 +138,9 @@ def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[di
         return None
     if not math.isfinite(start) or not math.isfinite(end) or start < 0 or end < start:
         return None
-    return {**claim, "source": source, "segment_index": index,
+    # The generated normalization may invent or invert a proposition even when its quote is real.
+    # Use the actual cited segment as the proposition as well as the displayed original evidence.
+    return {**claim, "source": source, "segment_index": index, "claim": text.strip(),
             "original_text": text, "start": start, "end": end}
 
 
