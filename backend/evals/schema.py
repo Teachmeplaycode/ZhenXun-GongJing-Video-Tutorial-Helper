@@ -78,8 +78,10 @@ def validate(spec: dict) -> list[str]:
             errors.append(f"{cid or '?'} 的 video 应为非空字符串")
         elif vid not in videos:
             errors.append(f"{cid or '?'} 引用了不存在的视频 {vid}")
-        if not c.get("question"):
-            errors.append(f"{cid or '?'} 缺少 question")
+        for field in ("question", "rubric"):
+            value = c.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{cid or '?'} 的 {field} 应为非空字符串")
         qt = c.get("qtype")
         if qt is None:
             errors.append(f"{cid or '?'} 缺少 qtype（Issue #7 要求按题型统计）")
@@ -94,8 +96,9 @@ def _validate_checks(cid: str, c: dict) -> list[str]:
         return [f"{cid}.checks 应为对象"]
     errors: list[str] = []
     for key in ("tools_any", "tools_all", "tools_none"):
-        if key in c and not isinstance(c[key], list):
-            errors.append(f"{cid}.checks.{key} 不是数组")
+        if key in c and (not isinstance(c[key], list)
+                         or not all(isinstance(item, str) for item in c[key])):
+            errors.append(f"{cid}.checks.{key} 应为字符串数组")
     if "contains_any" in c:
         if not isinstance(c["contains_any"], list):
             errors.append(f"{cid}.checks.contains_any 不是数组")

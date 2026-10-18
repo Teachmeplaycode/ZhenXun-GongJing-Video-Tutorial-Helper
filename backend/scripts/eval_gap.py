@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from evals.schema import (  # noqa: E402
-    CATEGORIES, QTYPES, TARGET_VIDEOS, TARGET_CASES, TARGET_PER_CATEGORY,
+    CATEGORIES, QTYPES, TARGET_VIDEOS, TARGET_CASES, TARGET_PER_CATEGORY, load,
 )
 
 CASES = ROOT / "evals" / "cases.json"
@@ -112,7 +112,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="评测集缺口清单")
     parser.add_argument("--json", action="store_true", help="输出结构化 JSON")
     args = parser.parse_args()
-    spec = json.loads(CASES.read_text())
+    spec = load(CASES)
     if args.json:
         print(json.dumps(gap_report(spec), ensure_ascii=False, indent=2))
     else:
