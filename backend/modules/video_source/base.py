@@ -121,6 +121,10 @@ class Resolver:
     def matches(self, url: str) -> bool:
         raise NotImplementedError
 
+    def serves(self, platform: str) -> bool:
+        """Whether a saved session of this platform is refreshed by this resolver."""
+        return platform == self.platform
+
     async def resolve(self, url: str, part: int | None = None) -> ResolvedVideo:
         raise NotImplementedError
 

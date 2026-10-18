@@ -206,7 +206,7 @@ def find_job(job_id: str) -> FrameJob | None:
         if record is None:
             return None
         platform = json.loads(record["video"])["platform"]
-        resolver = next((r for r in registry.resolvers if r.platform == platform), None)
+        resolver = next((r for r in registry.resolvers if r.serves(platform)), None)
         job = store.restore(job_id, resolver, DATA_DIR / job_id)
         kept = next((DATA_DIR / job_id).glob(f"{SOURCE}.*"), None) if KEEP_UPLOADS else None
         if job.video.platform == LOCAL and kept is not None:  # a kept upload can be read again
