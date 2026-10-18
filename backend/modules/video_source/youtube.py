@@ -40,7 +40,7 @@ def parse_target(url: str) -> str:
     """Return the 11-char video id from a YouTube URL (watch/shorts/embed/youtu.be)."""
     parts = urllib.parse.urlsplit(url)
     host = (parts.hostname or "").lower()
-    path = parts.path or ""
+    path = (parts.path or "").rstrip("/")
     query = urllib.parse.parse_qs(parts.query)
     if host == "youtu.be":
         vid = path.strip("/")
@@ -128,7 +128,7 @@ def parse_player_response(payload: dict, video_id: str, headers: dict[str, str])
         mime = (fmt.get("mimeType") or "").lower()
         if "audio" in mime:
             audio.append(s)
-        elif "video" in mime and not streams:
+        elif "video" in mime:
             streams.append(s)
     if not streams:
         raise ResolveError("no_stream", "没有拿到可直接读取的播放地址（地址可能需要签名或 n 变换解码）", retryable=True)

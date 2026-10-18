@@ -167,3 +167,16 @@ def test_not_found_and_server_error():
     with pytest.raises(ResolveError) as e:
         run(resolver(lambda r: httpx.Response(500)).resolve("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
     assert e.value.code == "upstream"
+
+
+@pytest.mark.parametrize("kind", ["shorts", "embed"])
+def test_trailing_slash_in_youtube_paths(kind):
+    assert parse_target(f"https://www.youtube.com/{kind}/dQw4w9WgXcQ/") == "dQw4w9WgXcQ"
+
+
+def test_all_readable_adaptive_video_fallbacks_are_retained():
+    from modules.video_source.youtube import parse_player_response
+    formats = [{"itag": 1, "mimeType": "video/mp4", "url": "https://cdn/a.mp4"},
+               {"itag": 2, "mimeType": "video/webm", "url": "https://cdn/b.webm"}]
+    result = parse_player_response(player_response(formats=[], adaptive=formats), "dQw4w9WgXcQ", {})
+    assert [stream.url for stream in result.streams] == ["https://cdn/a.mp4", "https://cdn/b.webm"]
