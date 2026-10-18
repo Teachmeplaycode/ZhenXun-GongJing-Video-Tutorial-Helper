@@ -32,6 +32,22 @@ def extract_url(text: str) -> str:
 FALLBACK_ON = {"risk_control", "upstream", "no_stream", "network", "timeout", "login_expired"}
 
 
+def fallback_preserves_target(resolver: Resolver, url: str, part: int | None) -> bool:
+    if part is not None:
+        return False
+    if resolver.platform != "bilibili":
+        return True
+    # alcedo 0.2.0 selects the first P. A short link can hide ?p=N in its
+    # redirect, so only a full Bilibili video URL known to select P1 is safe.
+    from .bilibili import parse_target
+
+    try:
+        _, _, url_part = parse_target(url)
+    except ResolveError:
+        return False
+    return url_part in (None, 1)
+
+
 class Registry:
     def __init__(self, resolvers: list[Resolver] | None = None) -> None:
         self.resolvers: list[Resolver] = list(resolvers or [])
@@ -57,7 +73,8 @@ class Registry:
         try:
             return resolver, await resolver.resolve(url, part)
         except ResolveError as err:
-            other = self.fallback(resolver, url) if err.code in FALLBACK_ON and not part else None
+            safe = err.code in FALLBACK_ON and fallback_preserves_target(resolver, url, part)
+            other = self.fallback(resolver, url) if safe else None
             if other is None:
                 raise
             try:

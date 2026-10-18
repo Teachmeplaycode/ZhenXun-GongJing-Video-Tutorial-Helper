@@ -153,6 +153,34 @@ def test_a_bilibili_failure_gets_a_second_try_through_alcedo():
         asyncio.run(Registry([Flaky("part_not_found"), Backup()]).resolve(url))
 
 
+@pytest.mark.parametrize("url,part", [
+    ("https://www.bilibili.com/video/BV1GY4y1V7P8/?p=13", None),
+    ("https://m.bilibili.com/video/BV1GY4y1V7P8/?%70=13", None),
+    ("https://www.bilibili.com/video/BV1GY4y1V7P8/", 13),
+    ("https://www.bilibili.com/video/BV1GY4y1V7P8/", 1),
+    ("https://b23.tv/example", None),
+    ("https://bili2233.cn/example", None),
+])
+def test_bilibili_fallback_never_changes_a_part_or_guesses_a_short_link(url, part):
+    class Native(Flaky):
+        def matches(self, url):
+            return True
+
+    class MustNotRun(Backup):
+        async def resolve(self, url, part=None):
+            pytest.fail("a first-P-only fallback must not receive this target")
+
+    with pytest.raises(ResolveError) as exc:
+        asyncio.run(Registry([Native("risk_control"), MustNotRun()]).resolve(url, part))
+    assert exc.value.code == "risk_control" and exc.value.message == "B 站风控"
+
+
+def test_bilibili_fallback_accepts_an_explicit_first_p_in_the_url():
+    url = "https://www.bilibili.com/video/BV1GY4y1V7P8/?p=1"
+    resolver, _ = asyncio.run(Registry([Flaky("risk_control"), Backup()]).resolve(url))
+    assert isinstance(resolver, Backup)
+
+
 def test_saved_sessions_find_their_resolver():
     assert AlcedoResolver().serves("douyin") and AlcedoResolver().serves("youtube")
     assert not AlcedoResolver().serves("bilibili") and not AlcedoResolver().serves("local")
