@@ -12,6 +12,8 @@ import { prefersReducedMotion } from '../lib/motion'
 import { screenStep, speechStep } from './AnalyzeHud'
 import Avatar from '../components/Avatar'
 import { collectCited, collectExtras } from '../lib/extraFrames'
+import AntifraudPanel from '../components/AntifraudPanel'
+import { IconShield } from '../components/antifraud-icons'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 // 114.25 → "01:54.3" (the agent reads tenths; whole seconds stay "01:54")
@@ -53,6 +55,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   }, [replayRequest?.key])
   const [draft, setDraft] = useState('')
   const [following, setFollowing] = useState(true)
+  const [antifraudOpen, setAntifraudOpen] = useState(false)
   const scrollRef = useRef(null)
   const followRef = useRef(true)
   const jumpRef = useRef(null)
@@ -147,6 +150,27 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         <button ref={jumpRef} type="button" className="chat__jump" onClick={jumpToEnd} aria-label="回到底部">
           <IconArrowDown size={14} /> {running ? '回到最新' : '回到底部'}
         </button>
+      ) : null}
+      {video?.jobId && <div className="chat__toolbar">
+        <button
+          type="button"
+          className="btn btn--ghost btn--antifraud"
+          onClick={() => setAntifraudOpen(!antifraudOpen)}
+          aria-pressed={antifraudOpen}
+          aria-label="反诈识别"
+        >
+          <IconShield size={14} /> 反诈识别
+        </button>
+      </div>}
+      {antifraudOpen && video?.jobId ? (
+        <AntifraudPanel
+          jobId={video.jobId}
+          transcript={transcript}
+          screentext={screentext}
+          frameRevision={`${coverage?.ok ?? 0}:${coverage?.missing ?? 0}:${coverage?.pending ?? frames.length}`}
+          videoTitle={video.title}
+          onClose={() => setAntifraudOpen(false)}
+        />
       ) : null}
       <Composer
         draft={draft}

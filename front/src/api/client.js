@@ -183,3 +183,13 @@ export const pasteCookie = (platform, cookie) => linkRequest(`/api/accounts/${pl
 })
 
 export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform}`, { method: 'DELETE' })
+
+// ---- Anti-fraud analysis ----------------------------------------------------------------
+
+/**
+ * Anti-fraud report for a link job: rule matching, drainage extraction, QR decoding.
+ * Returns a report aligned with the #2 fact-check schema (version=1, module=antifraud,
+ * claims[].verdict in {safe|suspicious|fraud}, claims[].risk in {high|medium|low}).
+ */
+export const fetchAntifraudReport = (jobId, { signal } = {}) =>
+  linkRequest(`/api/link-jobs/${jobId}/antifraud`, { signal })
