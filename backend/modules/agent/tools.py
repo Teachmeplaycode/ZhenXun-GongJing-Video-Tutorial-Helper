@@ -664,7 +664,7 @@ class AgentTools:
         note = ""
         if not images:
             # The source is gone (an upload already deleted) or unreachable: use the sampled frames in range.
-            nearby = [s for s in self.job.slots if s.status == "ok" and a - 1 <= s.time <= b + 1
+            nearby = [s for s in self.job.in_time_order() if s.status == "ok" and a - 1 <= s.time <= b + 1
                       and self.job.frame_path(s.index).is_file()][:MAX_VIEW]
             images = [(f"画面 · {clock(s.time)}", self.job.frame_path(s.index)) for s in nearby]
             note = "无法重新读取视频，以下是这一段已有的关键帧" if images else "无法读取这一段的画面"

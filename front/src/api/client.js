@@ -7,7 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE
  * Upload a local video to the backend, which then samples frames and transcribes it like a link.
  * Resolves to the same job snapshot as createLinkJob. XHR, for upload progress.
  */
-export function uploadVideo(file, { task = '', onProgress, signal } = {}) {
+export function uploadVideo(file, { task = '', sampling = null, onProgress, signal } = {}) {
   return new Promise((resolve, reject) => {
     signal?.throwIfAborted()
     const xhr = new XMLHttpRequest()
@@ -33,6 +33,7 @@ export function uploadVideo(file, { task = '', onProgress, signal } = {}) {
     const form = new FormData()
     form.append('file', file)
     form.append('task', task)
+    if (sampling) form.append('sampling', JSON.stringify(sampling))
     xhr.send(form)
   })
 }
@@ -111,11 +112,11 @@ async function linkRequest(path, init = {}) {
 }
 
 /** Resolve a link and start remote frame sampling. Returns { job_id, video, slots, coverage }. */
-export function createLinkJob(url, { task = '', signal } = {}) {
+export function createLinkJob(url, { task = '', sampling = null, signal } = {}) {
   return linkRequest('/api/link-jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, task }),
+    body: JSON.stringify({ url, task, ...(sampling ? { sampling } : {}) }),
     signal,
   })
 }
