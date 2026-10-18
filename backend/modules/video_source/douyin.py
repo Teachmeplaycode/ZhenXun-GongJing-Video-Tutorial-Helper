@@ -94,7 +94,7 @@ def _extract_share_data(html: str) -> dict:
     raise ResolveError("upstream", "抖音页面里没有找到视频信息，可能结构已变化", retryable=True)
 
 
-def _find_aweme(blob: dict) -> dict | None:
+def _find_aweme(blob: dict, video_id: str) -> dict | None:
     """Walk the parsed share data looking for the aweme block that carries a video play_addr."""
     stack = [blob]
     while stack:
@@ -102,7 +102,7 @@ def _find_aweme(blob: dict) -> dict | None:
         if isinstance(cur, dict):
             video = cur.get("video")
             if isinstance(video, dict) and ("play_addr" in video or "bit_rate" in video):
-                if "aweme_id" in cur or "desc" in cur or "author" in cur:
+                if str(cur.get("aweme_id", "")) == video_id:
                     return cur
             for v in cur.values():
                 if isinstance(v, (dict, list)):
@@ -163,7 +163,7 @@ def _urls_from_play_addr(play: dict) -> list[str]:
 def parse_share_data(raw: str, video_id: str, headers: dict[str, str]) -> ResolvedVideo:
     """Pure parse of a Douyin share page → ResolvedVideo (no network)."""
     blob = _extract_share_data(raw)
-    aweme = _find_aweme(blob)
+    aweme = _find_aweme(blob, video_id)
     if not aweme:
         _raise_missing(blob)
     video = aweme.get("video") or {}

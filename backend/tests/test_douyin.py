@@ -188,3 +188,23 @@ def test_short_link_to_note_matches_direct_note_error_without_video_request():
     assert short_error.value.code == direct_error.value.code == "unsupported_content"
     assert short_error.value.retryable is direct_error.value.retryable is False
     assert len(requests) == 2
+
+
+@pytest.mark.parametrize("position", [0, 1])
+def test_aweme_node_must_match_requested_video_id(position):
+    from modules.video_source.douyin import parse_share_data
+    wanted = aweme()['loaderData']['video_(id)/page']['videoInfoRes']['item_list'][0]
+    other = {**wanted, 'aweme_id': '99887766', 'desc': '别的视频',
+             'video': {**wanted['video'], 'play_addr': {'url_list': ['https://cdn/wrong.mp4']}}}
+    nodes = [other]
+    nodes.insert(position, wanted)
+    parsed = parse_share_data(share_html({'preloaded': nodes}), '7123456789', {})
+    assert parsed.title == '测试抖音视频'
+    assert all('wrong' not in stream.url for stream in parsed.streams)
+
+
+def test_unrelated_aweme_is_not_used_when_requested_node_missing():
+    from modules.video_source.douyin import parse_share_data
+    with pytest.raises(ResolveError) as exc:
+        parse_share_data(share_html(aweme(video_id='99887766')), '7123456789', {})
+    assert exc.value.code == 'upstream'
