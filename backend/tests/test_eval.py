@@ -45,6 +45,10 @@ def test_text_checks_ignore_spaces():
     ("checks", {"contains_any": [[]]}, r"contains_any\[0\]"),
     ("checks", {"contains_any": [[""]]}, r"contains_any\[0\]"),
     ("checks", {"contains_none": [" \t\n"]}, "contains_none 应为字符串数组"),
+    ("web", [], "web 应为布尔值"),
+    ("papers", {}, "papers 应为布尔值"),
+    ("webb", False, "case 不支持字段 webb"),
+    ("frame", [1], "case 不支持字段 frame"),
 ])
 def test_main_rejects_invalid_dataset_before_starting_backend(tmp_path, monkeypatch, field, value, error):
     spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}},
@@ -67,3 +71,32 @@ def test_main_rejects_invalid_dataset_before_starting_backend(tmp_path, monkeypa
     monkeypatch.setattr(evaluator, "Backend", unexpected_side_effect)
     with pytest.raises(ValueError, match=error):
         asyncio.run(evaluator.main())
+
+
+@pytest.mark.parametrize("controls,expected", [
+    ({}, {"web": True, "papers": True, "scope": {"type": "all"}}),
+    ({"web": False, "papers": False, "frames": []}, {"web": False, "papers": False, "scope": {"type": "all"}}),
+    ({"web": False, "papers": True, "frames": [0, 2]}, {"web": False, "papers": True, "scope": {"type": "frames", "frames": [0, 2]}}),
+])
+def test_validated_case_controls_preserve_the_actual_request_permissions_and_scope(tmp_path, controls, expected):
+    import httpx
+    from evals.schema import load
+
+    case = {"id": "c", "video": "v", "question": "question", "rubric": "answer", "qtype": "summary", **controls}
+    spec = {"videos": {"v": {"url": "https://example.com/video", "note": "confirmed", "category": "vlog"}}, "cases": [case]}
+    path = tmp_path / "cases.json"
+    path.write_text(json.dumps(spec))
+    validated = load(path)["cases"][0]
+    requests = []
+
+    def handle(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, text='data: {"type":"run.completed"}\n\n')
+
+    async def run_case():
+        async with httpx.AsyncClient(base_url="https://backend.test", transport=httpx.MockTransport(handle)) as client:
+            result = await evaluator.ask(client, "job", validated)
+            assert result["status"] == "done"
+
+    asyncio.run(run_case())
+    assert requests == [{"video_id": "job", "question": "question", "history": False, **expected}]

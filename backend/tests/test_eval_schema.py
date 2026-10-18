@@ -212,3 +212,18 @@ def test_optional_frame_scopes_allow_integer_indices(frames):
     spec = load(CASES)
     spec["cases"][0]["frames"] = frames
     assert validate(spec) == []
+
+
+@pytest.mark.parametrize("flag", ["web", "papers"])
+@pytest.mark.parametrize("value", [None, [], {}, 0, 1, "false"])
+def test_execution_permissions_require_real_booleans(flag, value):
+    spec = load(CASES)
+    spec["cases"][0][flag] = value
+    assert any(f"{flag} 应为布尔值" in error for error in validate(spec))
+
+
+@pytest.mark.parametrize("field", ["webb", "paper", "frame", "frame_indices", "scope", "history", "custom"])
+def test_unknown_case_fields_cannot_silently_change_permissions_or_scope(field):
+    spec = load(CASES)
+    spec["cases"][0][field] = False
+    assert any(f"case 不支持字段 {field}" in error for error in validate(spec))
