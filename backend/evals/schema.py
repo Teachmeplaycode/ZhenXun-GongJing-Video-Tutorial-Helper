@@ -53,8 +53,9 @@ def validate(spec: dict) -> list[str]:
             errors.append(f"videos.{key} 不是对象")
             continue
         for field in ("url", "note"):
-            if not v.get(field):
-                errors.append(f"videos.{key} 缺少 {field}")
+            value = v.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"videos.{key} 的 {field} 应为非空字符串")
         cat = v.get("category")
         if cat is None:
             errors.append(f"videos.{key} 缺少 category（Issue #7 要求按类别统计）")
@@ -104,11 +105,12 @@ def _validate_checks(cid: str, c: dict) -> list[str]:
             errors.append(f"{cid}.checks.contains_any 不是数组")
         else:
             for i, group in enumerate(c["contains_any"]):
-                if not isinstance(group, list) or not all(isinstance(s, str) for s in group):
-                    errors.append(f"{cid}.checks.contains_any[{i}] 应为字符串数组")
+                if (not isinstance(group, list) or not group
+                        or not all(isinstance(s, str) and s.strip() for s in group)):
+                    errors.append(f"{cid}.checks.contains_any[{i}] 应为非空数组，元素应为非空字符串")
     if "contains_none" in c and (not isinstance(c["contains_none"], list)
-                                or not all(isinstance(item, str) for item in c["contains_none"])):
-        errors.append(f"{cid}.checks.contains_none 应为字符串数组")
+                                or not all(isinstance(item, str) and item.strip() for item in c["contains_none"])):
+        errors.append(f"{cid}.checks.contains_none 应为字符串数组，元素应为非空字符串")
     if "timestamps" in c and not isinstance(c["timestamps"], bool):
         errors.append(f"{cid}.checks.timestamps 不是布尔值")
     return errors

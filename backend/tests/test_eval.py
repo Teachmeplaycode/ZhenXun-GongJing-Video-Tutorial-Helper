@@ -40,11 +40,16 @@ def test_text_checks_ignore_spaces():
     ("question", 123, "question 应为非空字符串"),
     ("checks", {"tools_any": [[]]}, "tools_any 应为字符串数组"),
     ("checks", {"contains_none": [1]}, "contains_none 应为字符串数组"),
+    ("url", {"value": "https://example.com/video"}, "url 应为非空字符串"),
+    ("note", True, "note 应为非空字符串"),
+    ("checks", {"contains_any": [[]]}, r"contains_any\[0\]"),
+    ("checks", {"contains_any": [[""]]}, r"contains_any\[0\]"),
+    ("checks", {"contains_none": [" \t\n"]}, "contains_none 应为字符串数组"),
 ])
 def test_main_rejects_invalid_dataset_before_starting_backend(tmp_path, monkeypatch, field, value, error):
     spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}},
             "cases": [{"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary"}]}
-    target = spec["videos"]["v"] if field == "category" else spec["cases"][0]
+    target = spec["videos"]["v"] if field in {"category", "url", "note"} else spec["cases"][0]
     if value is None:
         target.pop(field)
     else:

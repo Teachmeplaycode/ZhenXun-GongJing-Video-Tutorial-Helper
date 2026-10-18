@@ -138,3 +138,43 @@ def test_contains_none_strings_can_be_loaded_and_evaluated(tmp_path, forbidden):
     path.write_text(json.dumps(spec))
     loaded = load(path)
     assert check(loaded["cases"][0], {"status": "done", "answer": "safe", "tools": []}) == []
+
+
+@pytest.mark.parametrize("field", ["url", "note"])
+@pytest.mark.parametrize("value", [None, "", " \t\n", True, 123, ["text"], {"value": "text"}])
+def test_video_metadata_requires_nonblank_text(field, value):
+    video = {"url": "https://example.com/video", "note": "human confirmed", "category": "vlog"}
+    video[field] = value
+    assert any(f"videos.v 的 {field} 应为非空字符串" in error
+               for error in validate({"videos": {"v": video}, "cases": []}))
+
+
+@pytest.mark.parametrize("checks,error", [
+    ({"contains_any": [[]]}, "contains_any[0]"),
+    ({"contains_any": [[""]]}, "contains_any[0]"),
+    ({"contains_any": [[" \t\n"]]}, "contains_any[0]"),
+    ({"contains_any": [["valid", ""]]}, "contains_any[0]"),
+    ({"contains_any": [["valid"], []]}, "contains_any[1]"),
+    ({"contains_none": [""]}, "contains_none"),
+    ({"contains_none": [" \t\n"]}, "contains_none"),
+    ({"contains_none": ["valid", ""]}, "contains_none"),
+])
+def test_empty_content_checks_are_rejected(checks, error):
+    case = {"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary",
+            "checks": checks}
+    spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}}, "cases": [case]}
+    assert any(error in message for message in validate(spec))
+
+
+@pytest.mark.parametrize("checks", [{"contains_any": [], "contains_none": []},
+                                   {"contains_any": [[" 正确 ", "correct"], ["答案"]],
+                                    "contains_none": [" 错误 "]}])
+def test_optional_empty_lists_and_nonblank_checks_can_be_evaluated(checks):
+    from scripts.eval import check
+
+    case = {"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary",
+            "checks": checks}
+    spec = {"videos": {"v": {"url": "https://example.com/video", "note": "n", "category": "vlog"}},
+            "cases": [case]}
+    assert validate(spec) == []
+    assert check(case, {"status": "done", "answer": "正确答案", "tools": []}) == []
