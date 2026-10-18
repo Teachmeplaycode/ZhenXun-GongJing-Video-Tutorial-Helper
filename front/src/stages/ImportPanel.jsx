@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { IconArrowRight, IconClose, IconFilm, IconLink, IconUpload } from '../components/Icons'
-import { looksLikeLink } from '../api/client'
+import { looksLikeLink, platformOf, PLATFORM_NAMES } from '../api/client'
 import { fmtBytes } from '../lib/format'
 import { BRAND, WORKSPACE_CONTENT } from '../config/workspace'
 import Wordmark from '../components/Wordmark'
@@ -34,9 +34,10 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
 
   const isLink = !file && looksLikeLink(link)
   const mode = file ? 'file' : isLink ? 'link' : 'empty'
+  const platform = isLink ? platformOf(link) : ''
   const hint = mode === 'link'
-    ? '已识别链接 · 直接读取画面，不下载视频'
-    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接' : '支持 B 站、视频号分享链接，或本地视频文件'
+    ? `${platform ? `已识别 ${PLATFORM_NAMES[platform]} 链接` : '已识别链接'} · 直接读取画面，不下载视频`
+    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接' : '支持 B 站、视频号、YouTube、抖音分享链接，或本地视频文件'
   const submit = () => {
     if (mode === 'file') onStart({ file, task })
     else if (mode === 'link') onStart({ link: link.trim(), task })
@@ -110,7 +111,7 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
           </p>
         ) : null}
         <div className="import-entry__footer" data-exit>
-          <span>B 站 · 视频号 · MP4 · MOV · WEBM</span>
+          <span>B 站 · 视频号 · YouTube · 抖音 · MP4 · MOV · WEBM</span>
           <button type="button" onClick={() => setShowTask((value) => !value)} aria-expanded={showTask} aria-controls="import-task">{task ? '编辑分析任务' : '添加分析任务'}</button>
           <button type="button" className="import-entry__sample" onClick={() => onStart({ file: null, task })}>使用示例素材 <i aria-hidden="true" /><IconArrowRight size={14} /></button>
         </div>

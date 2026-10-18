@@ -169,6 +169,20 @@ def test_not_found_and_server_error():
     assert e.value.code == "upstream"
 
 
+@pytest.mark.parametrize("body", ["<html>Too many requests</html>", watch_html(player_response())])
+def test_rate_limit_is_reported_before_parsing_response_body(monkeypatch, body):
+    from modules.video_source import youtube
+
+    def unexpected_parser(*args):
+        pytest.fail("HTTP 429 must be mapped before attempting to parse the watch page")
+
+    monkeypatch.setattr(youtube, "_extract_player_response", unexpected_parser)
+    with pytest.raises(ResolveError) as error:
+        run(resolver(lambda r: httpx.Response(429, text=body)).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert error.value.code == "rate_limited" and error.value.retryable is True
+    assert "稍后重试" in error.value.message
+
+
 @pytest.mark.parametrize("kind", ["shorts", "embed"])
 def test_trailing_slash_in_youtube_paths(kind):
     assert parse_target(f"https://www.youtube.com/{kind}/dQw4w9WgXcQ/") == "dQw4w9WgXcQ"

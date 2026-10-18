@@ -189,6 +189,8 @@ class YouTubeResolver(Resolver):
             raise ResolveError("timeout", "连接 YouTube 超时，请检查网络后重试", retryable=True) from None
         except httpx.HTTPError:
             raise ResolveError("network", "无法连接 YouTube，请检查网络（可能需要代理）后重试", retryable=True) from None
+        if response.status_code == 429:
+            raise ResolveError("rate_limited", "YouTube 请求过于频繁，请稍后重试", retryable=True)
         if response.status_code == 404:
             raise ResolveError("not_found", "视频不存在或已被删除")
         if response.status_code >= 500:
