@@ -60,7 +60,7 @@ export async function streamAgentRun(request, onEvent, signal) {
   await readEventStream(response, onEvent)
 }
 
-async function readEventStream(response, onEvent) {
+export async function readEventStream(response, onEvent) {
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
   let buffer = ''
   for (;;) {
