@@ -333,8 +333,9 @@ def _cited_urls(text: str, known: dict[str, dict]):
                 if candidates:
                     ends.append(candidates[-1] if delimiter.startswith("_") else candidates[0])
             if ends:
-                yield raw[:min(ends)]
-                continue
+                # Wrapper removal does not remove prose surrounding the URL.
+                # Continue through exact-URL recovery and punctuation trimming.
+                raw = raw[:min(ends)]
         # Prefer an exact cited tool URL when the remaining text is only punctuation.
         exact = next((url for url in sorted(known, key=len, reverse=True)
                       if raw.startswith(url) and not raw[len(url):].strip(".,;:!)")), None)
