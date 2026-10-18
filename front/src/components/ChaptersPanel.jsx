@@ -4,8 +4,10 @@ import { fmtClock } from '../lib/format'
 // The video's table of contents (backend modules/chapters): titles with time ranges and a one-line
 // summary each. data is the polled /chapters answer; onSeek(start) points the timeline at a chapter.
 // It folds away (remembered like the timeline) and shows why the build failed or is still running.
-export default function ChaptersPanel({ data = null, onSeek = null }) {
-  const [open, setOpen] = useState(() => {
+// embedded: inside the workbench sidebar — always open, no fold. active: index of the chapter picked
+// (highlighted here and on the timeline); onSelect(i) picks one, onHover(i | null) previews it.
+export default function ChaptersPanel({ data = null, onSeek = null, embedded = false, active = null, onSelect = null, onHover = null }) {
+  const [folded, setOpen] = useState(() => {
     try {
       return localStorage.getItem('chapters.open') !== '0'
     } catch {
@@ -20,10 +22,11 @@ export default function ChaptersPanel({ data = null, onSeek = null }) {
     }
     return !v
   })
-  if (!data) return null
+  const open = embedded || folded
+  if (!data) return embedded ? <p className="bench__note muted">章节会在导入完成后自动生成。</p> : null
   const list = data.status === 'done' ? data.chapters || [] : []
   return (
-    <section className="chapters" data-open={open || undefined} aria-label="视频章节目录">
+    <section className="chapters" data-open={open || undefined} data-embedded={embedded || undefined} aria-label="视频章节目录">
       <header className="chapters__head">
         <span className="eyebrow">章节目录</span>
         {data.status === 'running' ? <span className="mono-sm chapters__note">生成中…</span> : null}
@@ -31,16 +34,22 @@ export default function ChaptersPanel({ data = null, onSeek = null }) {
         {!['done', 'running', 'failed'].includes(data.status) ? <span className="mono-sm chapters__note">{data.message || '暂时无法生成章节'}</span> : null}
         {data.status === 'done' && !list.length ? <span className="mono-sm chapters__note">{data.message || '没有生成章节'}</span> : null}
         {list.length ? <span className="mono-sm muted">{list.length} 章</span> : null}
-        <button type="button" className="link-btn chapters__fold" onClick={toggle} aria-expanded={open}>
-          {open ? '收起' : '展开'}
-        </button>
+        {embedded ? null : (
+          <button type="button" className="link-btn chapters__fold" onClick={toggle} aria-expanded={open}>
+            {open ? '收起' : '展开'}
+          </button>
+        )}
       </header>
       {open && data.summary ? <p className="chapters__overview body-sm">{data.summary}</p> : null}
       {open && list.length ? (
         <ol className="chapters__list">
           {list.map((c, i) => (
             <li key={`${c.start}-${c.title}`}>
-              <button type="button" className="chapters__item" onClick={() => onSeek?.(c.start)}
+              <button type="button" className="chapters__item" data-active={active === i || undefined}
+                aria-current={active === i ? 'true' : undefined}
+                onClick={() => { onSelect?.(i); onSeek?.(c.start) }}
+                onPointerEnter={() => onHover?.(i)} onPointerLeave={() => onHover?.(null)}
+                onFocus={() => onHover?.(i)} onBlur={() => onHover?.(null)}
                 title={`${c.title} ${fmtClock(c.start)}–${fmtClock(c.end)}`}>
                 <span className="chapters__no mono-sm">{String(i + 1).padStart(2, '0')}</span>
                 <span className="chapters__body">

@@ -92,6 +92,8 @@ export default function App() {
   const [cuts, setCuts] = useState([]) // the video's shot changes, marked on the timeline
   const [chapterRevision, setChapterRevision] = useState(0)
   const [chaptersData, setChaptersData] = useState(null) // the video's chapter list (modules/chapters)
+  const [activeChapter, setActiveChapter] = useState(null) // index picked in the workbench, lit on the timeline
+  const [hoverChapter, setHoverChapter] = useState(null) // index pointed at in the workbench
   const [chatBusy, setChatBusy] = useState(false) // an answer or a replay in progress: no new replay meanwhile
   const [clip, setClip] = useState(null) // { start, end } framed on the timeline to ask about
   const [replayRequest, setReplayRequest] = useState(null) // { start, end, key } framed to replay now
@@ -377,7 +379,7 @@ export default function App() {
     setAnalysis(EMPTY_ANALYSIS)
     setFrames([])
     setNotice('')
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null)
+    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null)
     setUploadProgress(0)
     setVideo(null)
     setImportError('')
@@ -518,7 +520,7 @@ export default function App() {
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript, screentext: saved.screentext || null })
       setNotice(saved.running ? '' : [...(v.notes || []), coverageNotice(saved.coverage)].filter(Boolean).join('；'))
       setInitialMessages(restoreMessages(saved.messages, nextFrames))
-      setSelected([]); setExtraFrames([]); setCited([]); setClip(null)
+      setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null)
       setImportError('')
       setRetrying(false)
       setStage('chat')
@@ -561,7 +563,7 @@ export default function App() {
     setStage('idle')
     setMaskMounted(false)
     setFrames([])
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null)
+    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null)
     setMeta(null)
     setVideo(null)
     setAnalysis(EMPTY_ANALYSIS)
@@ -709,6 +711,9 @@ export default function App() {
               onCited={setCited}
               onBusy={setChatBusy}
               chapters={chaptersData}
+              activeChapter={activeChapter}
+              onChapterSelect={setActiveChapter}
+              onChapterHover={setHoverChapter}
               replayRequest={replayRequest}
               clip={clip}
               onClearClip={() => setClip(null)}
@@ -743,6 +748,7 @@ export default function App() {
           cuts={cuts}
           cited={cited}
           chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
+          activeChapter={hoverChapter ?? activeChapter}
           busy={chatBusy}
           onRange={(start, end, action) => {
             if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
