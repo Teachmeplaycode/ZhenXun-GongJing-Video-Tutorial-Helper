@@ -178,3 +178,17 @@ def test_optional_empty_lists_and_nonblank_checks_can_be_evaluated(checks):
             "cases": [case]}
     assert validate(spec) == []
     assert check(case, {"status": "done", "answer": "正确答案", "tools": []}) == []
+
+
+@pytest.mark.parametrize("key", ["tools_any", "tools_all", "tools_none"])
+@pytest.mark.parametrize("value", ["", " ", "\t\n"])
+def test_tool_checks_reject_blank_names(key, value):
+    from evals.schema import _validate_checks
+    assert _validate_checks("case", {key: [value]})
+
+
+@pytest.mark.parametrize("key", ["contains_non", "tools_an", "time_stamps", "custom"])
+def test_unknown_check_keys_are_rejected(key):
+    from evals.schema import _validate_checks
+    errors = _validate_checks("case", {key: []})
+    assert any(key in error and "不支持" in error for error in errors)

@@ -95,10 +95,11 @@ def validate(spec: dict) -> list[str]:
 def _validate_checks(cid: str, c: dict) -> list[str]:
     if not isinstance(c, dict):
         return [f"{cid}.checks 应为对象"]
-    errors: list[str] = []
+    supported = {"tools_any", "tools_all", "tools_none", "contains_any", "contains_none", "timestamps"}
+    errors: list[str] = [f"{cid}.checks 不支持字段 {key}" for key in c if key not in supported]
     for key in ("tools_any", "tools_all", "tools_none"):
         if key in c and (not isinstance(c[key], list)
-                         or not all(isinstance(item, str) for item in c[key])):
+                         or not all(isinstance(item, str) and item.strip() for item in c[key])):
             errors.append(f"{cid}.checks.{key} 应为字符串数组")
     if "contains_any" in c:
         if not isinstance(c["contains_any"], list):
