@@ -38,6 +38,30 @@ def append_wav(into: Path, part: Path) -> None:
     os.replace(joined, into)
 
 
+def truncate_wav(path: Path, seconds: float) -> None:
+    """Keep only the first `seconds` (drops silence padded for jumps that led nowhere)."""
+    with wave.open(str(path)) as a:
+        params = a.getparams()
+        head = a.readframes(int(seconds * params.framerate))
+    cut = path.with_suffix(".cut.wav")
+    with wave.open(str(cut), "wb") as w:
+        w.setparams(params)
+        w.writeframes(head)
+    os.replace(cut, path)
+
+
+def pad_silence(into: Path, seconds: float) -> None:
+    """Append `seconds` of silence (a stretch that couldn't be read), so later speech keeps its times."""
+    with wave.open(str(into)) as a:
+        params = a.getparams()
+        head = a.readframes(a.getnframes())
+    joined = into.with_suffix(".join.wav")
+    with wave.open(str(joined), "wb") as w:
+        w.setparams(params)
+        w.writeframes(head + b"\x00\x00" * int(seconds * params.framerate))
+    os.replace(joined, into)
+
+
 async def _ffmpeg(stream: Stream, offset: float, out: Path, timeout: float) -> tuple[int | None, str]:
     """(exit code, stderr) of one read from `offset`; exit code None on timeout."""
     args = ["ffmpeg", "-nostdin", "-hide_banner", *resume.LOG_ARGS, "-y", *resume.seek_args(stream, offset),
@@ -66,18 +90,32 @@ async def read_audio(stream: Stream, out: Path, timeout: float) -> GrabResult:
             return GrabResult(False, classify(text), resume.error_text(text) or f"ffmpeg 退出码 {code}")
         duration = resume.input_duration(text)
         covered = wav_seconds(tmp)
+        stalls = resume.Stalls()
         for _ in range(resume.MAX_RESUMES):
             if not resume.short(covered, duration):
                 break
             code, _ = await _ffmpeg(stream, covered, piece, timeout)
             got = wav_seconds(piece) if code == 0 and piece.is_file() else 0.0
             if got < 1:
-                break  # no progress: keep what there is rather than loop
+                jump = await stalls.next(covered)
+                if jump is None:  # nothing after waiting and jumping ahead: keep what was really read
+                    back = stalls.gave_up()
+                    if back:
+                        covered -= back
+                        truncate_wav(tmp, covered)
+                    break
+                if jump:
+                    pad_silence(tmp, jump)
+                    covered += jump
+                continue
+            stalls.progressed()
             append_wav(tmp, piece)
             covered += got
         os.replace(tmp, out)
         if resume.short(covered, duration):
             return GrabResult(True, "partial", f"只读到 {resume.clock(covered)}（共 {resume.clock(duration)}）")
+        if stalls.skipped:
+            return GrabResult(True, "gaps", stalls.note())
         return GrabResult(True)
     finally:
         tmp.unlink(missing_ok=True)

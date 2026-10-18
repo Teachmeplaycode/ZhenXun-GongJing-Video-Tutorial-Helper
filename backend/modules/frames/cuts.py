@@ -79,13 +79,20 @@ async def detect(stream: Stream, folder: Path, timeout: float) -> tuple[list[flo
     duration = resume.input_duration(text)
     times = [float(t) for t in PTS_RE.findall(scenes)]
     covered = resume.reached(text) or 0.0
+    stalls = resume.Stalls()
     for _ in range(resume.MAX_RESUMES):
         if not resume.short(covered, duration):
             break
         code, more, scenes = await _pass(stream, folder, covered, timeout)
         got = (resume.reached(more) or 0.0) if code == 0 else 0.0
         if got < 1:
-            break
+            jump = await stalls.next(covered)
+            if jump is None:
+                covered -= stalls.gave_up()
+                break
+            covered += jump
+            continue
+        stalls.progressed()
         times += [covered + float(t) for t in PTS_RE.findall(scenes) if float(t) >= 0.5]  # its first frame is no cut
         covered += got
     return parse("\n".join(f"pts_time:{t}" for t in times)), ""
