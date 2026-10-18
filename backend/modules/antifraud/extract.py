@@ -100,12 +100,15 @@ def extract_urls(text: str) -> list[tuple[str, str]]:
     """Full http(s) URLs and short-link domains. Returns (kind, url) pairs."""
     out: list[tuple[str, str]] = []
     seen: set[str] = set()
-    for m in URL.finditer(text):
+    full_urls = list(URL.finditer(text))
+    for m in full_urls:
         u = m.group(0).rstrip(".,;:)")
         if u not in seen:
             seen.add(u)
             out.append(("url", u))
     for m in SHORT_URL.finditer(text):
+        if any(full.start() <= m.start() and m.end() <= full.end() for full in full_urls):
+            continue
         u = m.group(0)
         if u not in seen:
             seen.add(u)
