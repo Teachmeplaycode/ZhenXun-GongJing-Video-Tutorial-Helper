@@ -75,3 +75,17 @@ test('chapter polling recovers after a transient server failure', async ({ page 
   await enterChat(page)
   await expect(page.locator('.chapters__item')).toHaveCount(5, { timeout: 15000 })
 })
+
+
+for (const status of ['empty', 'unavailable']) {
+  test(`chapter terminal ${status} displays the reason`, async ({ page }) => {
+    const mock = new MockApi(page)
+    mock.chaptersStatus = status
+    mock.chaptersMessage = '视频时长未知，无法切分章节'
+    await mock.install()
+    await page.goto('/')
+    await enterChat(page)
+    await expect(page.locator('.chapters')).toContainText('视频时长未知，无法切分章节')
+    await expect(page.locator('.chapters__item')).toHaveCount(0)
+  })
+}

@@ -28,6 +28,7 @@ export default function ChaptersPanel({ data = null, onSeek = null }) {
         <span className="eyebrow">章节目录</span>
         {data.status === 'running' ? <span className="mono-sm chapters__note">生成中…</span> : null}
         {data.status === 'failed' ? <span className="mono-sm chapters__error">{data.message || '章节生成失败'}</span> : null}
+        {!['done', 'running', 'failed'].includes(data.status) ? <span className="mono-sm chapters__note">{data.message || '暂时无法生成章节'}</span> : null}
         {data.status === 'done' && !list.length ? <span className="mono-sm chapters__note">{data.message || '没有生成章节'}</span> : null}
         {list.length ? <span className="mono-sm muted">{list.length} 章</span> : null}
         <button type="button" className="link-btn chapters__fold" onClick={toggle} aria-expanded={open}>
