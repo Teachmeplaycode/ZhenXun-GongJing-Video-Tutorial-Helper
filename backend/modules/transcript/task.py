@@ -89,7 +89,7 @@ async def run_transcript(job: FrameJob, *, read: ReadAudio = read_audio, transcr
             state.segments = await transcribe(wav)
         except Exception as exc:  # model load / decode failures are reported, not raised
             return finish("failed", f"语音识别失败：{type(exc).__name__}")
-        partial = f"；{result.detail}，后面没能读取" if result.kind == "partial" else ""
+        partial = {"partial": f"；{result.detail}，后面没能读取", "gaps": f"；{result.detail}"}.get(result.kind, "")
         if state.segments:
             finish("done", f"已转写 {len(state.segments)} 句{partial}")
         else:

@@ -65,6 +65,9 @@ function coverageNotice(coverage) {
   return `已获取 ${coverage.ok}/${coverage.total} 帧，${ranges}${more} 未取得画面；可以直接对话，也可以补抓`
 }
 
+// Frames in time order: shot-fill keyframes arrive later with higher indexes (backend modules/frames/job.py).
+const byTime = (list) => [...list].sort((a, b) => a.time - b.time)
+
 export default function App() {
   const [stage, setStage] = useState('idle')
   const [runId, setRunId] = useState(() => makeRunId())
@@ -272,6 +275,9 @@ export default function App() {
           ? { ...f, src: ok ? linkFrameUrl(jobId, ev.index) : null, status: ok ? 'ok' : 'missing', reason: ok ? '' : ev.message, reasonCode: ok ? '' : ev.reason }
           : f)))
         setAnalysis((a) => ({ ...a, frames: a.frames + (ok ? 1 : 0), missing: a.missing + (ok ? 0 : 1) }))
+      } else if (ev.type === 'slots') {
+        // Keyframes for shots the first pass missed (backend shot fill): they arrive pending, in time order.
+        setFrames((list) => byTime([...list, ...ev.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))]))
       } else if (ev.type === 'status') {
         setAnalysis((a) => ({ ...a, status: ev.message }))
       } else if (ev.type === 'transcript') {
@@ -293,7 +299,7 @@ export default function App() {
 
   // Backend job flow, for links and uploaded files alike: create the job under the upload screen
   // (resolving the link, or uploading with progress), then follow its frames and transcript.
-  const runJob = async ({ link, file, task }, signal) => {
+  const runJob = async ({ link, file, task, sampling }, signal) => {
     const baseMeta = link
       ? { name: link, size: 0, type: 'link', duration: NaN, width: 0, height: 0, link: true, backend: true, sample: false }
       : { name: file.name, size: file.size, type: file.type, duration: NaN, width: 0, height: 0, link: false, backend: true, sample: false }
@@ -306,8 +312,8 @@ export default function App() {
       // Long enough for the window to open and the terrain to draw before switching scenes.
       const minimum = new Promise((r) => setTimeout(r, 2400))
       job = link
-        ? await createLinkJob(link, { task, signal })
-        : await uploadVideo(file, { task, signal, onProgress: (p) => { if (!signal.aborted) setUploadProgress(p) } })
+        ? await createLinkJob(link, { task, sampling, signal })
+        : await uploadVideo(file, { task, sampling, signal, onProgress: (p) => { if (!signal.aborted) setUploadProgress(p) } })
       signal.throwIfAborted()
       setUploadProgress(1)
       await minimum
@@ -315,7 +321,7 @@ export default function App() {
       const v = job.video
       setMeta({ ...baseMeta, name: link ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length })
       setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description })
-      setFrames(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' })))
+      setFrames(byTime(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))))
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
       if (v.notes?.length) setNotice(v.notes.join('；'))
       await waitMaskEnter()
@@ -370,7 +376,7 @@ export default function App() {
     }
   }
 
-  const start = useCallback(async ({ file, task, link }) => {
+  const start = useCallback(async ({ file, task, link, sampling = null }) => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -387,7 +393,7 @@ export default function App() {
     setRetrying(false)
     setInitialMessages([])
     if (link || file) {
-      await runJob({ link, file, task }, signal)
+      await runJob({ link, file, task, sampling }, signal)
       return
     }
 
@@ -502,14 +508,14 @@ export default function App() {
       return
     }
     const v = saved.video
-    const nextFrames = saved.slots.map((slot) => ({
+    const nextFrames = byTime(saved.slots.map((slot) => ({
       index: slot.index,
       time: slot.time,
       src: slot.status === 'ok' ? linkFrameUrl(id, slot.index) : null,
       status: slot.status,
       reason: slot.status === 'missing' ? MISSING_REASONS[slot.reason] || slot.reason : '',
       reasonCode: slot.reason,
-    }))
+    })))
     const apply = () => {
       setRunId(makeRunId())
       setMaskMounted(false)

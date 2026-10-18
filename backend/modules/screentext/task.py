@@ -14,10 +14,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..frames import FrameJob
-from ..frames import resume
+from ..frames import resume, sampling
 from ..frames.grabber import GrabResult, classify
 from ..video_source import ResolveError, Stream
-from . import ocr
+from . import change, ocr
 from .merge import Caption, build
 
 FPS = 1
@@ -34,6 +34,8 @@ class ScreenText:
     status: str = "pending"
     message: str = ""
     segments: list[Caption] = field(default_factory=list)
+
+    skipped: int = 0  # frames whose picture hadn't changed, so their text was not read again
 
     @property
     def running(self) -> bool:
@@ -56,11 +58,12 @@ class ScreenText:
         return cls(status, data.get("message", ""), segments)
 
 
-async def _frames_from(stream: Stream, folder: Path, offset: float, timeout: float) -> tuple[int | None, str]:
+async def _frames_from(stream: Stream, folder: Path, offset: float, timeout: float,
+                       fps: float = FPS) -> tuple[int | None, str]:
     """(exit code, stderr) of one pass from `offset` s; frames continue the numbering (None: timed out)."""
-    first = round(offset * FPS) + 1  # 00001.jpg is 0 s
+    first = round(offset * fps) + 1  # 00001.jpg is 0 s
     args = ["ffmpeg", "-nostdin", "-hide_banner", *resume.LOG_ARGS, "-y", *resume.seek_args(stream, offset), "-an",
-            "-vf", f"fps={FPS},scale=-2:{HEIGHT}", "-q:v", "5", "-start_number", str(first), str(folder / "%05d.jpg")]
+            "-vf", f"fps={fps},scale=-2:{HEIGHT}", "-q:v", "5", "-start_number", str(first), str(folder / "%05d.jpg")]
     proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
     try:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
@@ -71,31 +74,42 @@ async def _frames_from(stream: Stream, folder: Path, offset: float, timeout: flo
     return proc.returncode, stderr.decode(errors="replace")
 
 
-async def read_frames(stream: Stream, folder: Path, timeout: float) -> GrabResult:
+async def read_frames(stream: Stream, folder: Path, timeout: float, fps: float = FPS) -> GrabResult:
     """One pass over the stream, one JPEG per second into `folder` (00001.jpg = 0 s). A pass the server
     cut off part-way is carried on from where it stopped (modules/frames/resume.py)."""
     folder.mkdir(parents=True, exist_ok=True)
     try:
-        code, text = await _frames_from(stream, folder, 0.0, timeout)
+        code, text = await _frames_from(stream, folder, 0.0, timeout, fps)
     except FileNotFoundError:
         return GrabResult(False, "error", "未安装 ffmpeg")
     if code is None:
         return GrabResult(False, "timeout", f"超过 {timeout:.0f}s")
     count = lambda: len(list(folder.glob("*.jpg")))  # noqa: E731
+    # how far the frames reach: the last frame's number (a jump past a damaged stretch leaves a gap)
+    reach = lambda: max((int(f.stem) for f in folder.glob("*.jpg")), default=0) / fps  # noqa: E731
     if code != 0 or not count():
         return GrabResult(False, classify(text), resume.error_text(text) or f"ffmpeg 退出码 {code}")
     duration = resume.input_duration(text)
+    stalls = resume.Stalls()
+    covered = reach()
     for _ in range(resume.MAX_RESUMES):
-        covered = count() / FPS
         if not resume.short(covered, duration):
             break
         before = count()
-        await _frames_from(stream, folder, covered, timeout)
+        await _frames_from(stream, folder, covered, timeout, fps)
         if count() - before < 1:
-            break  # no progress: keep what there is
-    covered = count() / FPS
+            jump = await stalls.next(covered)
+            if jump is None:  # nothing after waiting and jumping ahead: keep what was really read
+                covered -= stalls.gave_up()
+                break
+            covered += jump
+            continue
+        stalls.progressed()
+        covered = reach()
     if resume.short(covered, duration):
         return GrabResult(True, "partial", f"只读到 {resume.clock(covered)}（共 {resume.clock(duration)}）")
+    if stalls.skipped:
+        return GrabResult(True, "gaps", stalls.note())
     return GrabResult(True)
 
 
@@ -117,6 +131,9 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
         state.status, state.message = status, message
         job.emit({"type": "screentext", **state.summary()})
 
+    fps = float(sampling.saved(job.video).get("ocr_fps", FPS))  # the rate chosen on import (modules/frames/sampling)
+    if fps <= 0:
+        return finish("unavailable", "导入时关闭了画面文字识别，只看抽样画面")
     recognize = recognize or (ocr.recognize if ocr.available() else None)
     if recognize is None:
         return finish("unavailable", "本机不支持画面文字识别（需要 macOS），只看抽样画面")
@@ -130,7 +147,7 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
         for attempt in range(2):
             for stream in pick_streams(job.video.streams):
                 shutil.rmtree(folder, ignore_errors=True)
-                result = await read(stream, folder, timeout)
+                result = await (read(stream, folder, timeout) if fps == FPS else read(stream, folder, timeout, fps=fps))
                 if result.ok or result.kind != "forbidden":
                     break
             if (result and result.ok) or (result and result.kind != "forbidden") or attempt:
@@ -145,13 +162,29 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
 
         files = sorted(folder.glob("*.jpg"))
         frames = []
+        last = {"sig": None, "lines": []}  # the last frame whose text was actually read
+        state.skipped = 0
+
+        def read_batch(batch):
+            out = []
+            for f in batch:
+                sig = change.signature(f)
+                if last["sig"] is not None and not change.changed(sig, last["sig"]):
+                    state.skipped += 1
+                    out.append(last["lines"])  # the same picture: the same text
+                    continue
+                found = recognize(str(f))
+                last.update(sig=sig, lines=found)
+                out.append(found)
+            return out
+
         for i in range(0, len(files), BATCH):
             batch = files[i:i + BATCH]
-            lines = await asyncio.to_thread(lambda b=batch: [recognize(str(f)) for f in b])
-            frames += [((int(f.stem) - 1) / FPS, found) for f, found in zip(batch, lines)]
+            lines = await asyncio.to_thread(read_batch, batch)
+            frames += [((int(f.stem) - 1) / fps, found) for f, found in zip(batch, lines)]
             job.emit({"type": "screentext", **state.summary(), "message": f"正在识别文字 {min(i + BATCH, len(files))}/{len(files)}"})
-        state.segments = build(frames, 1 / FPS)
-        partial = f"；{result.detail}，后面没能读取" if result.kind == "partial" else ""
+        state.segments = build(frames, 1 / fps)
+        partial = {"partial": f"；{result.detail}，后面没能读取", "gaps": f"；{result.detail}"}.get(result.kind, "")
         if state.segments:
             finish("done", f"识别到 {len(state.segments)} 段画面文字{partial}")
         else:

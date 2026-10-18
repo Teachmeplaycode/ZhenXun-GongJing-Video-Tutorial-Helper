@@ -91,7 +91,7 @@ def max_images() -> int:
 
 def pick_frames(job: FrameJob, requested: list[int] | None, limit: int) -> tuple[list, list[str]]:
     """Frames to send and notes about what was left out."""
-    available = [s for s in job.slots if s.status == "ok" and job.frame_path(s.index).is_file()]
+    available = [s for s in job.in_time_order() if s.status == "ok" and job.frame_path(s.index).is_file()]
     notes = []
     if requested:
         wanted = set(requested)
