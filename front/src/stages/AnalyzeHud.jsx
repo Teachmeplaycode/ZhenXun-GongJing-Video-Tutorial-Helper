@@ -50,7 +50,20 @@ export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNe
 
   const settled = analysis.frames + (analysis.missing || 0)
   const framesDone = Boolean(analysis.total) && settled >= analysis.total
-  const steps = [
+  const pictures = meta.kind === 'images' // an image post or uploaded pictures: no time axis, no speech
+  const steps = pictures ? [
+    meta.link
+      ? { key: 'upload', label: '解析链接', value: `${PLATFORM_NAMES[meta.platform] || meta.platform} · 图集`, state: 'done' }
+      : { key: 'upload', label: '上传图片', value: meta.size ? fmtBytes(meta.size) : '已上传', state: 'done' },
+    {
+      key: 'frames',
+      label: '读取图片',
+      value: analysis.total ? `${analysis.frames} / ${analysis.total} 张` : '',
+      state: framesDone ? 'done' : 'running',
+      progress: analysis.total ? settled / analysis.total : 0,
+    },
+    ...(analysis.screentext ? [{ key: 'screen', label: '图片文字', ...screenStep(analysis.screentext) }] : []),
+  ] : [
     meta.link
       ? { key: 'upload', label: '解析链接', value: `${PLATFORM_NAMES[meta.platform] || meta.platform} · ${meta.videoId}${meta.partCount > 1 ? ` · P${meta.part}` : ''}`, state: 'done' }
       : { key: 'upload', label: '上传视频', value: meta.sample ? '示例素材' : meta.size ? fmtBytes(meta.size) : '已上传', state: 'done' },
