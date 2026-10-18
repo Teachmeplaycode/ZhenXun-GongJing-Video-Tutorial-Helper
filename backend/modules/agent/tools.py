@@ -80,6 +80,10 @@ DEFINITIONS = [
             "start": {"type": "string", "description": "开始时间，秒数或 mm:ss"},
             "end": {"type": "string", "description": "结束时间，秒数或 mm:ss"}}, "required": ["start", "end"]}}},
     {"type": "function", "function": {
+        "name": "read_chapters",
+        "description": "读取视频的章节目录：每章的标题、起止时间和一句话摘要。用来回答\"第几分钟讲了什么\"、视频整体结构、某一章讲了什么等问题。",
+        "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {
         "name": "view_frames",
         "description": f"在某个时间段内均匀截取更多画面来看细节（最多 {MAX_VIEW} 张）。已有的关键帧间隔太大、看不清某段发生了什么时使用。",
         "parameters": {"type": "object", "properties": {
@@ -168,10 +172,12 @@ ARGS = {
     "web_search": ("query", "limit", "freshness"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
     "browse": ("task", "url"),
     "read_comments": ("sort", "page"), "read_danmaku": ("start", "end", "query"),
+    "read_chapters": (),
 }
 TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view", "replay": "frames.replay", "measure_motion": "frames.motion",
                "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search",
-               "browse": "browser.use", "read_comments": "audience.comments", "read_danmaku": "audience.danmaku"}
+               "browse": "browser.use", "read_comments": "audience.comments", "read_danmaku": "audience.danmaku",
+               "read_chapters": "chapters.read"}
 
 
 def web_enabled() -> bool:
@@ -245,7 +251,7 @@ class AgentTools:
         handler = {"search_transcript": self.search_transcript, "read_transcript": self.read_transcript,
                    "view_frames": self.view_frames, "replay": self.replay, "measure_motion": self.measure_motion, "web_search": self.web_search, "fetch_page": self.fetch_page,
                    "search_papers": self.search_papers, "read_comments": self.read_comments,
-                   "read_danmaku": self.read_danmaku}.get(name)
+                   "read_danmaku": self.read_danmaku, "read_chapters": self.read_chapters}.get(name)
         if handler is None or (name in ARGS and name in {d["function"]["name"] for d in WEB_DEFINITIONS} and not web_enabled()):
             return ToolResult(f"没有名为 {name} 的工具", "未知工具", error=True)
         try:
@@ -510,6 +516,21 @@ class AgentTools:
         legend = "\n（〔字幕〕表示画面上的字，其余是语音转写）" if any(x[3] == "screen" for x in picked) else ""
         return ToolResult(("\n".join(text) + legend) or f"{clock(a)}–{clock(b)} 之间没有语音，也没有画面文字。",
                           f"{clock(a)}–{clock(b)} · {len(picked)} 句", len(picked))
+
+    async def read_chapters(self) -> ToolResult:
+        """The video's chapter list: titles, time ranges and one-line summaries."""
+        from modules.chapters import load as load_chapters
+        record = load_chapters(self.job.root)
+        if record is None:
+            return ToolResult("章节还在生成中，稍后再问。", "章节生成中", error=True)
+        if record["status"] != "done":
+            return ToolResult(f"章节生成未完成：{record.get('message') or record['status']}。", record["status"], error=True)
+        chs = record["chapters"]
+        if not chs:
+            return ToolResult("这个视频没有生成章节。", "无章节")
+        lines = [f"{i + 1}. [{clock(c['start'])}–{clock(c['end'])}] {c['title']}（{c['summary']}）"
+                 for i, c in enumerate(chs)]
+        return ToolResult("\n".join(lines), f"{len(chs)} 章", len(chs), data={"chapters": chs})
 
     # ---- frames ---------------------------------------------------------------------------
     def _range(self, start, end) -> tuple[float, float]:

@@ -152,4 +152,4 @@ def test_definitions_follow_the_composer_switches(monkeypatch):
     assert "search_papers" in names(web=False) and "web_search" not in names(web=False)
     assert "search_papers" not in names(papers=False) and "web_search" in names(papers=False)
     monkeypatch.setattr(tools, "settings", lambda: {"LLM_WEB": "off"})
-    assert names() == {"search_transcript", "read_transcript", "view_frames", "replay", "measure_motion"}
+    assert names() == {"search_transcript", "read_transcript", "read_chapters", "view_frames", "replay", "measure_motion"}
