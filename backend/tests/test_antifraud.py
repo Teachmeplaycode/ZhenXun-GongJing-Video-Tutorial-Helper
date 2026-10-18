@@ -379,7 +379,12 @@ def _job(tmp_path, text='这是反诈教育，不要相信保本保息。'):
     from modules.frames import FrameJob
     from modules.video_source import ResolvedVideo
     v = ResolvedVideo('local', 'v', '', '反诈教学', 30, [], author='作者')
-    job = FrameJob('j1', v, None, tmp_path)
+    job = FrameJob('j1', v, None, tmp_path, count=1)
+    # A complete source fixture has one actual readable frame, not pending placeholders.
+    import cv2
+    import numpy as np
+    cv2.imwrite(str(job.frame_path(0)), np.full((120, 160, 3), 255, dtype=np.uint8))
+    job.slots[0].status = 'ok'
     job.transcript = SimpleNamespace(status='done', segments=[SimpleNamespace(start=10, end=20, text=text)])
     job.screentext = SimpleNamespace(status='empty', segments=[])
     return job

@@ -22,14 +22,13 @@ class QrcodeHit:
     frame_index: int
     time: float          # seconds
     content: str         # decoded text (often a URL)
-    source_path: str
+    source_path: str     # Internal decoding provenance; never part of the public report.
 
     def as_dict(self) -> dict:
         return {
             "frame_index": self.frame_index,
             "time": round(self.time, 2),
             "content": self.content,
-            "source_path": self.source_path,
         }
 
 
