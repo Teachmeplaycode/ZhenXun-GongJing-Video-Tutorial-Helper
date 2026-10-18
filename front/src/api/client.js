@@ -204,3 +204,16 @@ export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform
  */
 export const fetchAntifraudReport = (jobId, { signal } = {}) =>
   linkRequest(`/api/link-jobs/${jobId}/antifraud`, { signal })
+
+// ---- lecture notes (backend modules/notes) -------------------------------------------------------
+/** { status: none | running | done | failed, message, progress: { done, total }, note } */
+export const getNotes = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, { signal })
+/** Start (or redo) generating the note; resolves to the same shape as getNotes, status running. */
+export const generateNotes = (jobId, { kind = 'lecture' } = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }),
+})
+/** Save the editor's board (blocks and their places); returns { saved: seconds }. */
+export const saveNoteBoard = (jobId, board) => linkRequest(`/api/link-jobs/${jobId}/notes/board`, {
+  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board),
+})
+export const notesExportUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/notes/export`
