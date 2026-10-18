@@ -13,6 +13,7 @@ figure must fall inside its section.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import re
 from collections.abc import Awaitable, Callable, Iterable
@@ -28,8 +29,10 @@ MAX_FIGURES = 3           # per section
 PARALLEL = 4              # section calls at once
 
 # A model call: messages → the whole reply. FrameGrab: seconds → an image URL (or None).
+# Pictures: (start, end) → [(label, image file)] of the section's sampled frames, shown to the model.
 Completer = Callable[[list[dict]], Awaitable[str]]
 FrameGrab = Callable[[float], Awaitable[str | None]]
+Pictures = Callable[[float, float], list[tuple[str, Path]]]
 Progress = Callable[[int, int, str], None]
 
 
@@ -110,6 +113,7 @@ SECTION_PROMPT = """你是认真负责的课堂笔记整理者。根据视频中
 - 只写这段视频里真的讲到、写到的内容，不要用常识补充，不要编造例题和结论；转写有错字时按上下文和画面文字纠正。
 - 数学、物理等公式用 LaTeX 写在 formulas 里（不加 $ 符号），文字说明写在 points 里。
 - figures 选 1 到 3 个最值得配图的时刻：板书写满、推导完成、图表或示意图清楚的那一秒。time 用秒数，必须在本节时间范围内。
+- 附带的画面是本节抽样的几帧（标了时间）：板书、PPT 上的内容可以直接整理进笔记；语音转写缺失或很少时，以画面为主。
 只输出一个 JSON 对象，不要其他文字：
 {"title": "本节标题，不超过 20 字",
  "points": ["要点，一句话，不超过 60 字", "……3 到 8 条"],
@@ -151,17 +155,33 @@ def _strings(value, limit: int, length: int) -> list[str]:
     return out[:limit]
 
 
+def figure_time(value, start: float, end: float) -> float | None:
+    """A figure's moment in seconds into the video. Models also write "33:00" or "1:02:03", or count
+    from the section's start; a moment that still falls outside the section is a mistake, not a figure."""
+    if isinstance(value, str) and re.fullmatch(r"\d{1,2}(:\d{1,2}){1,2}(\.\d+)?", value.strip()):
+        t = 0.0
+        for part in value.strip().split(":"):
+            t = t * 60 + float(part)
+    else:
+        try:
+            t = float(value)
+        except (TypeError, ValueError):
+            return None
+    if start <= t <= end:
+        return t
+    if 0 <= t <= end - start:  # counted from the section's start
+        return start + t
+    return None
+
+
 def section_from(reply: dict | None, sid: str, start: float, end: float, fallback_title: str) -> Section:
     reply = reply or {}
     figures = []
     for f in reply.get("figures") or []:
         if not isinstance(f, dict):
             continue
-        try:
-            t = float(f.get("time"))
-        except (TypeError, ValueError):
-            continue
-        if not start <= t <= end:  # a moment outside the section is a model mistake, not a figure
+        t = figure_time(f.get("time"), start, end)
+        if t is None:
             continue
         figures.append(Figure(round(t, 2), str(f.get("caption") or "").strip()[:60]))
     title = str(reply.get("title") or "").strip()[:30] or fallback_title or f"第 {sid[1:]} 节"
@@ -192,8 +212,20 @@ def mindmap_from(reply: dict | None, title: str, sections: list[Section]) -> dic
         for s in sections]}
 
 
+def _image_parts(pictures: list[tuple[str, Path]]) -> list[dict]:
+    parts = []
+    for label, path in pictures:
+        try:
+            data = base64.b64encode(Path(path).read_bytes()).decode()
+        except OSError:
+            continue
+        parts += [{"type": "text", "text": label}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}}]
+    return parts
+
+
 async def build_note(*, title: str, duration: float, transcript, screen, chapters: list[dict] | None,
-                     complete: Completer, grab: FrameGrab, progress: Progress | None = None) -> dict:
+                     complete: Completer, grab: FrameGrab, progress: Progress | None = None,
+                     pictures: Pictures | None = None) -> dict:
     """The note as a dict (see Section); raises only if there is nothing to write about."""
     parts = spans(duration, chapters)
     if not parts:
@@ -211,16 +243,19 @@ async def build_note(*, title: str, duration: float, transcript, screen, chapter
 
     async def one(i: int, start: float, end: float, hint: str) -> Section:
         speech, shown = stretch_text(transcript, screen, start, end)
-        if not speech and not shown:
-            step(f"第 {i + 1} 节没有可整理的文字")
-            return Section(f"s{i + 1}", hint or f"第 {i + 1} 节", start, end)
+        images = _image_parts(pictures(start, end)) if pictures else []
+        if not speech and not shown and not images:
+            step(f"第 {i + 1} 节没有可整理的内容")
+            return Section(f"s{i + 1}", hint or f"第 {i + 1} 节", start, end,
+                           points=["这一段没有读到语音、画面文字和画面，无法整理。"])
         user = (f"本节时间：{start:.1f}–{end:.1f} 秒（{clock(start)}–{clock(end)}）。"
                 + (f"章节标题参考：{hint}\n" if hint else "\n")
                 + f"\n【语音转写】\n{speech or '（无）'}\n\n【画面文字】\n{shown or '（无）'}")
+        content = [{"type": "text", "text": user}, *images] if images else user
         async with gate:
             try:
                 reply = parse_json(await complete([{"role": "system", "content": SECTION_PROMPT},
-                                                   {"role": "user", "content": user}]))
+                                                   {"role": "user", "content": content}]))
             except Exception:  # noqa: BLE001 — one failed section keeps its time range and title
                 reply = None
         step(f"已整理第 {i + 1} 节")
@@ -229,6 +264,10 @@ async def build_note(*, title: str, duration: float, transcript, screen, chapter
     sections = list(await asyncio.gather(*(one(i, a, b, h) for i, (a, b, h) in enumerate(parts))))
 
     # Frames for the chosen moments, a few at a time (each is one seek into the stream).
+    # A section the model gave no usable moment still gets one picture: its middle.
+    for s in sections:
+        if not s.figures and (s.points or s.formulas):
+            s.figures = [Figure(round((s.start + s.end) / 2, 2), s.title)]
     figures = [f for s in sections for f in s.figures]
     frame_gate = asyncio.Semaphore(3)
 
