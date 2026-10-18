@@ -68,7 +68,7 @@ class NotesService:
 
     def _pictures(self, job, start: float, end: float, n: int = PICTURES) -> list[tuple[str, object]]:
         """Up to n sampled frames spread over [start, end), labelled with their time, for the model to read."""
-        inside = [s for s in job.slots if s.status == "ok" and start <= s.time < end and job.frame_path(s.index).is_file()]
+        inside = [s for s in job.in_time_order() if s.status == "ok" and start <= s.time < end and job.frame_path(s.index).is_file()]
         if len(inside) > n:
             step = (len(inside) - 1) / (n - 1)
             inside = [inside[round(i * step)] for i in range(n)]
