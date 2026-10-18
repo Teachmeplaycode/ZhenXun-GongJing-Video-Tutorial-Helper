@@ -25,13 +25,15 @@ PHONE = re.compile(r"(?<!\d)1[3-9]\d[\s-]?\d{4}[\s-]?\d{4}(?!\d)")
 # 400 / 固话也常见于引流，但风险低于手机号，单独标记
 PHONE_400 = re.compile(r"(?<!\d)400[\s-]?\d{3}[\s-]?\d{4}(?!\d)")
 
-# 网址：完整 http(s) 链接
-URL = re.compile(r"https?://[A-Za-z0-9.\-]+(/[^\s，。、；）)]*)?")
+# A suffix can start immediately after the host: :port, ?query, #fragment or /path.
+# Chinese sentence punctuation/quotation marks delimit the evidence, not URL content.
+URL_SUFFIX = r"(?::[0-9]+)?(?:[/?#][^\s，。、；：！？（）【】《》〈〉「」『』“”‘’<>\"')\]]*)?"
+URL = re.compile(rf"https?://[A-Za-z0-9.\-]+{URL_SUFFIX}", re.IGNORECASE)
 # 短链/裸域名（t.cn、bit.ly、dwz.cn、url.cn 等已知短链服务）
 SHORT_DOMAINS = r"(?:t\.cn|bit\.ly|dwz\.cn|url\.cn|tinyurl\.com|suo\.im|qr\.topscan\.com)"
-SHORT_URL = re.compile(rf"{SHORT_DOMAINS}/[A-Za-z0-9]+")
-# 中文"网址/链接"前缀后跟的域名
-URL_PREFIX = re.compile(r"(?:网址|链接|地址|点?击|访问)\s*[:：]?\s*([A-Za-z0-9.\-]+\.[A-Za-z]{2,}(/[^\s，。、；）)]*)?)")
+SHORT_URL = re.compile(rf"(?<![A-Za-z0-9_.\-]){SHORT_DOMAINS}(?![A-Za-z0-9_.\-]){URL_SUFFIX}", re.IGNORECASE)
+# 中文"网址/链接"前缀后跟的域名，使用相同后缀避免截断邀请参数。
+URL_PREFIX = re.compile(rf"(?:网址|链接|地址|点?击|访问)\s*[:：]?\s*([A-Za-z0-9.\-]+\.[A-Za-z]{{2,}}{URL_SUFFIX})", re.IGNORECASE)
 
 # 清洗手机号里的空格和横线
 def _clean_phone(s: str) -> str:

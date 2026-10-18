@@ -480,3 +480,48 @@ def test_plain_investment_narration_is_not_guided_trading():
     for text in ('在交易所买入基金', '记录这笔卖出交易和建仓成本', '昨天的价格拉升后又出货'):
         assert not any(hit.rule_id == 'follow_and_trade' for hit in lib.scan_text(text, 0, 4, 'transcript'))
     assert any(hit.rule_id == 'follow_and_trade' for hit in lib.scan_text('跟我买入，老师带单指导操作', 0, 4, 'transcript'))
+
+
+@pytest.mark.parametrize('text', [
+    '施工现场的安全风险管理', '消防安全风险评估', '食品安全风险监测', '交通安全风险提示',
+])
+def test_neutral_safety_risk_material_does_not_become_a_no_risk_promise(text):
+    result = analyze(transcript_segments=[(12, 18, text)])
+    assert result.score['base'] == 0
+    assert result.score['level'] == 'low'
+    assert not any(hit['rule_id'] == 'guaranteed_high_return' for hit in result.rule_hits)
+    assert not any(claim.risk == 'high' for claim in result.claims)
+
+
+@pytest.mark.parametrize('text', ['本产品承诺安全无风险', '投资无风险，保证收益'])
+def test_actual_no_risk_promises_remain_evidence(text):
+    hits = RuleLibrary.load().scan_text(text, 2, 5, 'transcript')
+    assert any(hit.rule_id == 'guaranteed_high_return' for hit in hits)
+
+
+@pytest.mark.parametrize(('text', 'expected'), [
+    ('https://example.com?invite=abc', 'https://example.com?invite=abc'),
+    ('https://example.com#join', 'https://example.com#join'),
+    ('https://example.com:8443', 'https://example.com:8443'),
+    ('https://example.com:443?invite=abc#join', 'https://example.com:443?invite=abc#join'),
+    ('https://example.com:8443/landing?invite=abc#join', 'https://example.com:8443/landing?invite=abc#join'),
+    ('详情（https://example.com?invite=abc#join），请核实。', 'https://example.com?invite=abc#join'),
+    ('“https://example.com?invite=abc”；不要转账！', 'https://example.com?invite=abc'),
+    ('HTTPS://EXAMPLE.COM:443#join。', 'HTTPS://EXAMPLE.COM:443#join'),
+])
+def test_complete_url_evidence_survives_query_fragment_port_and_chinese_punctuation(text, expected):
+    assert extract_urls(text) == [('url', expected)]
+    signals = extract_from_segment(text, 9, 12, 'screentext')
+    assert len(signals) == 1
+    assert signals[0].value == expected
+    assert signals[0].raw == expected
+    assert signals[0].start == 9 and signals[0].context == text
+
+
+@pytest.mark.parametrize(('text', 'expected'), [
+    ('链接 example.com:8443?invite=abc#join。', ('url', 'example.com:8443?invite=abc#join')),
+    ('t.cn/abc?invite=abc#join，后文', ('short_url', 't.cn/abc?invite=abc#join')),
+    ('https://t.cn/abc?invite=abc#join！', ('url', 'https://t.cn/abc?invite=abc#join')),
+])
+def test_bare_and_short_links_share_complete_suffix_without_double_counting(text, expected):
+    assert extract_urls(text) == [expected]
