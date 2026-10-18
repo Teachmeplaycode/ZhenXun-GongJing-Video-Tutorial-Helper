@@ -24,9 +24,10 @@ from modules.chapters import load as load_chapters
 from modules.llm import LLMError, Usage
 
 from . import export
-from .task import BOARD, FILE, build_note, load, write
+from .task import BOARD, FILE, build_note, clock, load, write
 
 MAX_BOARD_BYTES = 2_000_000
+PICTURES = 3  # sampled frames per section shown to the model
 CHAPTER_WAIT = 180.0  # seconds to wait for chapters still being built before using even stretches
 
 
@@ -65,6 +66,14 @@ class NotesService:
         nearest = min(ok, key=lambda s: abs(s.time - t))
         return f"/api/link-jobs/{job.id}/frames/{nearest.index}.jpg"
 
+    def _pictures(self, job, start: float, end: float, n: int = PICTURES) -> list[tuple[str, object]]:
+        """Up to n sampled frames spread over [start, end), labelled with their time, for the model to read."""
+        inside = [s for s in job.slots if s.status == "ok" and start <= s.time < end and job.frame_path(s.index).is_file()]
+        if len(inside) > n:
+            step = (len(inside) - 1) / (n - 1)
+            inside = [inside[round(i * step)] for i in range(n)]
+        return [(f"画面 · {clock(s.time)}", job.frame_path(s.index)) for s in inside]
+
     async def build(self, job) -> None:
         timer = log.Timer()
         state = {"status": "running", "message": "等待语音转写和画面文字…", "progress": {"done": 0, "total": 0}, "note": None}
@@ -91,7 +100,8 @@ class NotesService:
                                     transcript=job.transcript.segments if job.transcript else [],
                                     screen=job.screentext.segments if job.screentext else [],
                                     chapters=chapter_list, complete=complete,
-                                    grab=lambda t: self._frame(job, t), progress=progress)
+                                    grab=lambda t: self._frame(job, t), progress=progress,
+                                    pictures=lambda a, b: self._pictures(job, a, b))
             write(job.root, {"status": "done", "message": f"已整理 {len(note['sections'])} 节", "progress": {}, "note": note,
                              "made": time.time()})
             (job.root / BOARD).unlink(missing_ok=True)  # a new note starts from its own layout

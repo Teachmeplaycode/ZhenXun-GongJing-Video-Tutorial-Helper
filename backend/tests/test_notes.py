@@ -165,3 +165,55 @@ def test_a_note_cut_off_by_a_restart_reads_as_failed(tmp_path, monkeypatch):
     write(job.root, {"status": "running", "message": "", "progress": {}, "note": None})
     state = TestClient(app.app).get("/api/link-jobs/job1/notes").json()
     assert state["status"] == "failed" and "重新生成" in state["message"]
+
+
+def test_sections_without_speech_are_written_from_their_frames(tmp_path):
+    pic = tmp_path / "f.jpg"
+    pic.write_bytes(b"\xff\xd8board")
+    seen = []
+
+    async def complete(messages):
+        if "思维导图" in messages[0]["content"]:
+            return "{}"
+        seen.append(messages[1]["content"])
+        return json.dumps({"title": "板书整理", "points": ["从画面读到的定义"]})
+
+    async def grab(t):
+        return None
+
+    chapters = [{"start": 0, "end": 120, "title": "定义"}, {"start": 1000, "end": 1100, "title": "空"}]
+    note = asyncio.run(build_note(title="课", duration=1100, transcript=[], screen=[], chapters=chapters,
+                                  complete=complete, grab=grab,
+                                  pictures=lambda a, b: [("画面 · 00:30", pic)] if a < 120 else []))
+    first, empty = note["sections"]
+    assert first["points"] == ["从画面读到的定义"]
+    parts = seen[0]
+    assert [p["type"] for p in parts] == ["text", "text", "image_url"] and "（无）" in parts[0]["text"]
+    assert parts[2]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+    assert empty["title"] == "空" and "没有读到" in empty["points"][0] and len(seen) == 1  # nothing to read: no call
+
+
+def test_figure_moments_in_other_forms_are_understood():
+    from modules.notes.task import figure_time
+    assert figure_time("33:00", 1956, 2238) == 1980          # mm:ss
+    assert figure_time("0:33:00", 1956, 2238) == 1980        # h:mm:ss
+    assert figure_time(120, 1956, 2238) == 2076              # counted from the section start
+    assert figure_time(1990.5, 1956, 2238) == 1990.5
+    assert figure_time(3000, 1956, 2238) is None and figure_time("下一页", 1956, 2238) is None
+
+
+def test_a_section_without_a_usable_moment_gets_its_middle_frame():
+    grabbed = []
+
+    async def complete(messages):
+        if "思维导图" in messages[0]["content"]:
+            return "{}"
+        return json.dumps({"title": "节", "points": ["p"], "figures": [{"time": "下一页"}]})
+
+    async def grab(t):
+        grabbed.append(t)
+        return f"/api/link-jobs/j/extra/{int(t * 100):08d}.jpg"
+
+    note = asyncio.run(build_note(title="课", duration=600, transcript=TRANSCRIPT, screen=SCREEN, chapters=CHAPTERS,
+                                  complete=complete, grab=grab))
+    assert [s["figures"][0]["time"] for s in note["sections"]] == [60.0, 210.0, 450.0] and sorted(grabbed) == [60.0, 210.0, 450.0]
