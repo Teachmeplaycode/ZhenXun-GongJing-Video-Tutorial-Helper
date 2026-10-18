@@ -463,3 +463,20 @@ def test_empty_input_cannot_claim_low_risk_or_safety():
     result = analyze()
     assert result.claims == []
     assert result.score['level'] == 'unknown'
+
+
+def test_absolute_short_url_is_one_signal_and_one_weight():
+    assert extract_urls('访问 https://t.cn/abc123') == [('url', 'https://t.cn/abc123')]
+    result = analyze(transcript_segments=[(0, 4, '保本保息，访问 https://t.cn/abc123')])
+    assert len(result.drainage_signals) == 1
+    assert result.score['base'] == 8
+    assert result.score['drainage_bonus'] == 2
+    assert result.score['total'] == 10
+    assert result.score['level'] == 'medium'
+
+
+def test_plain_investment_narration_is_not_guided_trading():
+    lib = RuleLibrary.load()
+    for text in ('在交易所买入基金', '记录这笔卖出交易和建仓成本', '昨天的价格拉升后又出货'):
+        assert not any(hit.rule_id == 'follow_and_trade' for hit in lib.scan_text(text, 0, 4, 'transcript'))
+    assert any(hit.rule_id == 'follow_and_trade' for hit in lib.scan_text('跟我买入，老师带单指导操作', 0, 4, 'transcript'))
