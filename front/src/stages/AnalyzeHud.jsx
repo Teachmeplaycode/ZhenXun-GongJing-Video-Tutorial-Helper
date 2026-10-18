@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { IconAlert, IconArrowRight, IconCheck, IconRefresh } from '../components/Icons'
 import { fmtBytes, fmtTime } from '../lib/format'
 import { EASE } from '../lib/motion'
+import { PLATFORM_NAMES } from '../api/client'
 
 const StepState = ({ state }) =>
   state === 'done' ? <IconCheck size={14} /> : state === 'running' ? <span className="spinner-dot" />
@@ -36,8 +37,6 @@ export function screenStep(t) {
 }
 
 // One compact progress panel keeps the animated sculpture unobstructed.
-const PLATFORM_NAMES = { bilibili: 'B 站', wechat_channels: '视频号', local: '本地文件' }
-
 // canEnterEarly: enough link frames arrived to start chatting while the rest keep coming.
 // onRetry: re-sample missing link frames (null for local files).
 export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNext, canEnterEarly = false, onRetry = null, retrying = false }) {

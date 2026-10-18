@@ -88,6 +88,10 @@ const LINK_RE = /https?:\/\/\S+|\bBV[0-9A-Za-z]{10}\b|(?<![0-9A-Za-z])av\d+\b/i
 /** True when the pasted text contains something the backend can resolve. */
 export const looksLikeLink = (text) => LINK_RE.test(text || '')
 
+export const PLATFORM_NAMES = {
+  bilibili: 'B 站', wechat_channels: '视频号', youtube: 'YouTube', douyin: '抖音', local: '本地文件',
+}
+
 /** Best-effort platform name for a pasted link, for friendlier import hints (YouTube/抖音 now resolved by the backend). */
 export function platformOf(text) {
   const t = String(text || '')
