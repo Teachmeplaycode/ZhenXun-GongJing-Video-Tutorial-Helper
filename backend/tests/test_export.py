@@ -287,6 +287,15 @@ def test_printed_timestamp_is_real_html_link_and_prose_is_escaped():
     r'\[00:30]', '[00:30]\n\n[00:30]: https://example.com',
     '    [00:30]', '\t[00:30]', '  \t[00:30]',
     '    code [00:30]\n\n    code [00:31]',
+    '>     [00:30]', '-     [00:30]', '+     [00:30]', '*     [00:30]',
+    '1.     [00:30]', '2)     [00:30]', '> >     [00:30]',
+    '> -     [00:30]', '- >     [00:30]', '> \t[00:30]',
+    '>     code [00:30]\n>\n>     code [00:31]',
+    '> ~~~text\n> [00:30]\n> ~~~',
+    '- ~~~text\n  [00:30]\n  ~~~',
+    '~~~\n- ~~~\n[00:30]\n~~~',
+    '> ~~~\n> - ~~~\n> [00:30]\n> ~~~',
+    '- ~~~\n  > ~~~\n  [00:30]\n  ~~~',
 ])
 def test_timestamp_linkification_preserves_markdown_constructs(protected):
     output = linkify_stamps(protected + '\n普通时间 [00:45]', video()['canonical_url'], 'bilibili')
@@ -305,6 +314,54 @@ def test_export_sources_follow_only_answer_citations(tmp_path):
     printed = build_print_html(video(), '', [message], slots(), JOB, 'http://localhost:5194')
     assert '**来源：**' not in markdown
     assert '<h4>来源</h4>' not in printed
+
+
+@pytest.mark.parametrize('url', [
+    'https://en.wikipedia.org/wiki/Foo_(bar)',
+    'https://example.org/a_(b_(c))',
+    'https://example.org/search?q=(word)&lang=en#part(1)',
+])
+@pytest.mark.parametrize('wrapper', ['{url}', '({url}).', '[文章]({url})', '<{url}>', '来源：{url}。', '[文章]({url})显示结论'])
+def test_cited_source_urls_preserve_balanced_parentheses(tmp_path, url, wrapper):
+    import html
+    from modules.export.markdown import markdown_link
+    text = wrapper.format(url=url)
+    events = [{'type': 'tool_call.output', 'data': {'results': [{'url': url, 'title': '文章'}]}}]
+    assert collect_sources(events, text) == [{'url': url, 'title': '文章', 'kind': '网页'}]
+    messages = [{'role': 'assistant', 'content': text, 'events': events}]
+    markdown, _ = build_markdown(video(), '', messages, [], JOB, tmp_path)
+    page = build_print_html(video(), '', messages, [], JOB, 'http://localhost')
+    assert markdown_link('文章', url) in markdown
+    assert f'href="{html.escape(url)}"' in page
+
+
+def test_unknown_cited_source_preserves_parentheses_without_tool_metadata():
+    url = 'https://example.org/Foo_(bar)'
+    assert [s['url'] for s in collect_sources([], f'见 ({url})。')] == [url]
+
+
+@pytest.mark.parametrize('text', ['> 普通时间 [00:30]', '- 普通时间 [00:30]', '> - 普通时间 [00:30]',
+                                '>    普通说明 [00:30]', '> >    普通说明 [00:30]'])
+def test_container_prose_timestamps_still_link(text):
+    assert 't=30' in linkify_stamps(text, video()['canonical_url'], 'bilibili')
+
+
+@pytest.mark.parametrize('text', [
+    '[来源](https://example.org/article)显示结论',
+    '[来源](https://example.org/article)and-more',
+])
+def test_markdown_source_destination_ends_before_following_prose(text):
+    url = 'https://example.org/article'
+    assert [s['url'] for s in collect_sources([], text)] == [url]
+
+
+@pytest.mark.parametrize('wrapper', ['<{url}>', '{url}', '({url})。'])
+def test_known_or_explicit_url_preserves_unbalanced_query_parenthesis(wrapper):
+    url = 'https://example.org/search?q=value)'
+    events = [{'type': 'tool_call.output', 'data': {'url': url, 'title': '查询'}}]
+    assert [s['url'] for s in collect_sources(events, wrapper.format(url=url))] == [url]
+    if wrapper.startswith('<'):
+        assert [s['url'] for s in collect_sources([], wrapper.format(url=url))] == [url]
 
 
 def test_missing_attached_frames_never_produce_broken_zip_references(tmp_path):
