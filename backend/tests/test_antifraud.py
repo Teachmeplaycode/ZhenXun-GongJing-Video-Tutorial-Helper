@@ -348,6 +348,43 @@ def test_wechat_overlength_is_not_silently_truncated():
     assert extract_wechat_ids('微信 abcdefghijklmnopqrstuvwxyz') == []
 
 
+@pytest.mark.parametrize('text', [
+    '请相信 teacher123 的判断', '这封书信 teacher123 已经读过',
+    '请信任 teacher123 的判断', '信 teacher123',
+    'avxteacher123', 'envx: teacher123', 'index: teacher123',
+    'nav/x: teacher123', 'box/v: teacher123',
+])
+def test_wechat_requires_a_complete_prefix_outside_ascii_words(text):
+    assert extract_wechat_ids(text) == []
+
+
+@pytest.mark.parametrize('prefix', [
+    '微信', '微信号', '加微信', '加我微信', '加我微信号',
+    'VX', 'vx', 'Vx', '加VX', '加我VX', '加V', '加X', '加 v', '加 x',
+    'v:', 'x：', 'v/x', 'x/v', '威信', '薇信',
+])
+def test_explicit_wechat_prefixes_preserve_the_entire_id(prefix):
+    assert extract_wechat_ids(prefix + ' teacher123') == ['teacher123']
+
+
+@pytest.mark.parametrize('prefix', ['加VX', '加vx', '加Vx', '加v/x', '加x/v'])
+def test_overlapping_wechat_prefixes_do_not_duplicate_or_shift_the_id(prefix):
+    assert extract_wechat_ids(prefix + 'abc12345') == ['abc12345']
+    assert extract_wechat_ids(prefix + 'abc12') == []
+    assert extract_wechat_ids(prefix + 'abcdefghijklmnopqrstuvwxyz') == []
+
+
+@pytest.mark.parametrize('source', ['transcript', 'screentext'])
+@pytest.mark.parametrize('text', [
+    '请相信 teacher123 的判断', '这封书信 teacher123 已经读过', '请信任 teacher123 的判断',
+])
+def test_ordinary_trust_and_letter_text_does_not_create_drainage_claims(source, text):
+    result = analyze(**{source + '_segments': [(4, 9, text)]})
+    assert result.drainage_signals == []
+    assert result.score['drainage_bonus'] == 0
+    assert not any(c.id.startswith('drainage-') or c.risk == 'high' for c in result.claims)
+
+
 def test_dedupe_keeps_earliest_across_input_sources():
     from modules.antifraud.extract import dedupe
     late = DrainageSignal('phone', '13812345678', '', 40, 41, 'transcript', '')
@@ -388,6 +425,33 @@ def _job(tmp_path, text='这是反诈教育，不要相信保本保息。'):
     job.transcript = SimpleNamespace(status='done', segments=[SimpleNamespace(start=10, end=20, text=text)])
     job.screentext = SimpleNamespace(status='empty', segments=[])
     return job
+
+
+@pytest.mark.parametrize('text', [
+    '请相信 teacher123 的判断', '这封书信 teacher123 已经读过', '请信任 teacher123 的判断',
+])
+@pytest.mark.parametrize('partial', [False, True])
+def test_api_ordinary_trust_text_never_becomes_high_risk_drainage(tmp_path, monkeypatch, text, partial):
+    import asyncio
+    import httpx
+    import app as api
+    job = _job(tmp_path, text)
+    if partial:
+        job.screentext.status = 'running'
+    monkeypatch.setitem(api.jobs, 'trust-text', job)
+    monkeypatch.setattr(api, 'get_llm', lambda: None)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api.app), base_url='http://test') as client:
+            response = await client.get('/api/link-jobs/trust-text/antifraud')
+            assert response.status_code == 200
+            report = response.json()
+            assert report['drainage_signals'] == []
+            assert report['score']['drainage_bonus'] == 0
+            assert report['score']['level'] == ('unknown' if partial else 'low')
+            assert not any(c['id'].startswith('drainage-') or c['risk'] == 'high' for c in report['claims'])
+            assert report['assessment']['risk'] != 'high'
+    asyncio.run(run())
 
 
 class _Model:
