@@ -117,6 +117,7 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setattr(app, "DATA_DIR", tmp_path / "jobs")
     monkeypatch.setattr(app, "store", store)
     monkeypatch.setitem(app.jobs, "job1", job)
+    app.chapter_service.running.clear()
     return app, job, store
 
 
@@ -127,7 +128,7 @@ def test_chapters_endpoint_serves_cache_and_starts_generation_once(api, monkeypa
     async def fake(job):
         started.append(job.id)
 
-    monkeypatch.setattr(app, "find_chapters", fake)
+    monkeypatch.setattr(app.chapter_service, "build", fake)
     client = TestClient(app.app)
     assert client.get("/api/link-jobs/job1/chapters").json()["status"] == "running"
     assert started == ["job1"]
@@ -144,11 +145,11 @@ def test_app_generates_chapters_from_real_job_states(api, monkeypatch):
         raise LLMError("unavailable", "test has no model")
 
     monkeypatch.setattr(app, "get_llm", unavailable)
-    asyncio.run(app.find_chapters(job))
+    asyncio.run(app.chapter_service.build(job))
     record = load(job.root)
     assert record["status"] == "done"
     assert record["chapters"][0]["title"].startswith("开头")
-    assert job.id not in app.chaptering
+    assert job.id not in app.chapter_service.running
 
 
 def test_chapters_wait_for_pending_inputs_and_cuts(api, monkeypatch):
@@ -165,7 +166,7 @@ def test_chapters_wait_for_pending_inputs_and_cuts(api, monkeypatch):
         await real_sleep(0)
 
     monkeypatch.setattr(app.asyncio, "sleep", finish_inputs)
-    asyncio.run(app._await_chapter_inputs(job))
+    asyncio.run(app.chapter_service.wait_inputs(job))
     assert waits == [True]
 
 
@@ -173,7 +174,7 @@ def test_chapter_input_timeout_does_not_generate_incomplete_cache(api):
     app, job, _ = api
     job.transcript.status = "running"
     with pytest.raises(TimeoutError):
-        asyncio.run(app._await_chapter_inputs(job, timeout=0))
+        asyncio.run(app.chapter_service.wait_inputs(job, timeout=0))
     assert load(job.root) is None
 
 
@@ -185,3 +186,14 @@ def test_overview_is_cached_separately_from_chapter_titles(tmp_path):
     assert record["summary"] == "整段视频介绍科学原理及应用。"
     assert record["chapters"][0]["title"] == "章节标题"
     assert load(tmp_path)["summary"] == record["summary"]
+
+
+def test_duplicate_chapter_requests_only_schedule_one_build(api, monkeypatch):
+    app, job, _ = api
+    pending = []
+    monkeypatch.setattr(app.chapter_service, "spawn", pending.append)
+    app.chapter_service.start(job)
+    app.chapter_service.start(job)
+    assert len(pending) == 1
+    pending[0].close()
+    app.chapter_service.running.clear()
