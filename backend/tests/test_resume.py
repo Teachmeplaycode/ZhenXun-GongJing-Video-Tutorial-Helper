@@ -7,6 +7,8 @@ for ffmpeg: the first pass stops early, the next ones (an input seek to where it
 import asyncio
 import wave
 
+import pytest
+
 from modules.frames import cuts, resume
 from modules.screentext import task as screen
 from modules.transcript import audio
@@ -48,19 +50,66 @@ def test_audio_cut_off_is_read_on_and_joined(tmp_path, monkeypatch):
 
 
 def test_audio_that_stops_making_progress_is_kept_and_marked_partial(tmp_path, monkeypatch):
+    calls, waits = [], []
+
     async def ffmpeg(stream, offset, out, timeout):
+        calls.append(offset)
         write_wav(out, 504 if offset == 0 else 0)
         return 0, HEADER
 
+    async def sleep(seconds):
+        waits.append(seconds)
+
     monkeypatch.setattr(audio, "_ffmpeg", ffmpeg)
+    monkeypatch.setattr("asyncio.sleep", sleep)
     result = asyncio.run(audio.read_audio(STREAM, tmp_path / "audio.wav", 60))
     assert result.ok and result.kind == "partial" and "08:24" in result.detail and "10:00" in result.detail
+    # waited twice, then jumped ahead 2, 10 and 60 s before giving up; the padding is taken back
+    assert waits == [3, 10, 10] and calls == [0.0, 504.0, 504.0, 504.0, 506.0, 516.0, 576.0]
+    assert audio.wav_seconds(tmp_path / "audio.wav") == 504
+
+
+def test_a_damaged_stretch_is_jumped_over_and_padded_with_silence(tmp_path, monkeypatch):
+    calls = []
+
+    async def ffmpeg(stream, offset, out, timeout):
+        calls.append(offset)
+        # the stream can't be decoded from 147 s to 152 s; elsewhere a read goes to the end
+        write_wav(out, 147 if offset == 0 else 0 if 147 <= offset < 152 else 600 - offset)
+        return 0, HEADER if offset == 0 else ""
+
+    async def sleep(seconds):
+        pass
+
+    monkeypatch.setattr(audio, "_ffmpeg", ffmpeg)
+    monkeypatch.setattr("asyncio.sleep", sleep)
+    out = tmp_path / "audio.wav"
+    result = asyncio.run(audio.read_audio(STREAM, out, 60))
+    assert calls == [0.0, 147.0, 147.0, 147.0, 149.0, 159.0] and audio.wav_seconds(out) == 600  # times kept by the silence
+    assert result.ok and result.kind == "gaps" and "02:27" in result.detail and "12 秒" in result.detail
+
+
+def test_a_server_that_refuses_for_a_while_is_waited_out(tmp_path, monkeypatch):
+    replies = iter([504, 0, 0, 96])  # cut at 8:24, refused twice, then the rest
+
+    async def ffmpeg(stream, offset, out, timeout):
+        write_wav(out, next(replies))
+        return 0, HEADER if offset == 0 else ""
+
+    async def sleep(seconds):
+        pass
+
+    monkeypatch.setattr(audio, "_ffmpeg", ffmpeg)
+    monkeypatch.setattr("asyncio.sleep", sleep)
+    out = tmp_path / "audio.wav"
+    result = asyncio.run(audio.read_audio(STREAM, out, 60))
+    assert result.ok and result.kind == "" and audio.wav_seconds(out) == 600
 
 
 def test_screen_frames_cut_off_continue_their_numbering(tmp_path, monkeypatch):
     calls = []
 
-    async def frames_from(stream, folder, offset, timeout):
+    async def frames_from(stream, folder, offset, timeout, fps=1):
         calls.append(offset)
         first = round(offset) + 1
         n = 93 if offset == 0 else 600 - round(offset)
@@ -86,12 +135,13 @@ def test_shot_changes_after_a_cut_off_are_shifted_by_where_the_pass_began(tmp_pa
     assert why == "" and found == [30.5, 193.0]
 
 
-def test_a_throttled_source_keeps_the_frames_read_in_time(tmp_path, monkeypatch):
+@pytest.mark.parametrize("fps,covered", [(0.5, "03:00"), (1, "01:30"), (2, "00:45")])
+def test_a_throttled_source_keeps_the_frames_read_in_time(tmp_path, monkeypatch, fps, covered):
     async def frames_from(stream, folder, offset, timeout, *rest):
         for i in range(1, 91):  # 1:30 read, then the time limit
             (folder / f"{i:05d}.jpg").write_bytes(b"jpg")
         return None, ""
 
     monkeypatch.setattr(screen, "_frames_from", frames_from)
-    result = asyncio.run(screen.read_frames(STREAM, tmp_path / "f", 60))
-    assert result.ok and result.kind == "partial" and "01:30" in result.detail
+    result = asyncio.run(screen.read_frames(STREAM, tmp_path / "f", 60, fps=fps))
+    assert result.ok and result.kind == "partial" and covered in result.detail

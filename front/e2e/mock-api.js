@@ -133,6 +133,7 @@ export class MockApi {
     this.frames = 8
     this.cuts = [30, 75] // shot changes the mock reports
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
+    this.shotTimes = [] // moments of shot-fill keyframes the job adds after its uniform pass
     this.noteBoard = null // the editor's saved board (PUT /notes/board)
     this.chaptersStatus = 'done' // what /chapters answers; 'running' | 'done' | 'failed' in tests
     this.chaptersMessage = '' // a custom message, e.g. the reason for a failed build
@@ -176,6 +177,14 @@ export class MockApi {
     for (const s of slots(this.frames, v.duration, 'ok')) events.push({ seq: events.length, type: 'frame', index: s.index, time: s.time })
     events.push({ seq: events.length, type: 'transcript', status: 'done', message: '已转写 12 句', count: 12 })
     events.push({ seq: events.length, type: 'done', coverage: { ok: this.frames, missing: 0, total: this.frames, pending: 0, missing_ranges: [], reasons: {} } })
+    // Shot fill (backend sample_with_shots): extra keyframes announced after the uniform pass, then taken.
+    if (this.shotTimes.length) {
+      const added = this.shotTimes.map((time, k) => ({ index: this.frames + k, time, status: 'pending', reason: '' }))
+      events.push({ seq: events.length, type: 'slots', slots: added })
+      for (const s of added) events.push({ seq: events.length, type: 'frame', index: s.index, time: s.time })
+      const total = this.frames + added.length
+      events.push({ seq: events.length, type: 'done', coverage: { ok: total, missing: 0, total, pending: 0, missing_ranges: [], reasons: {} } })
+    }
     return events
   }
 
