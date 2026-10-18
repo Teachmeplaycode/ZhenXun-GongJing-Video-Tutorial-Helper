@@ -192,3 +192,23 @@ def test_unknown_check_keys_are_rejected(key):
     from evals.schema import _validate_checks
     errors = _validate_checks("case", {key: []})
     assert any(key in error and "不支持" in error for error in errors)
+
+
+@pytest.mark.parametrize("key", ["", " ", "\t", 1, None])
+def test_video_keys_are_nonblank_referenceable_strings(key):
+    spec = {"videos": {key: {"url": "https://example.com/v", "note": "ok", "category": next(iter(CATEGORIES))}}, "cases": []}
+    assert any("编号" in e for e in validate(spec))
+
+
+@pytest.mark.parametrize("frames", ["9", [{}], [True], [1.5], [-1], None, {"index": 9}])
+def test_optional_frame_scopes_reject_malformed_indices(frames):
+    spec = load(CASES)
+    spec["cases"][0]["frames"] = frames
+    assert any("frames" in e for e in validate(spec))
+
+
+@pytest.mark.parametrize("frames", [[], [0], [1, 2, 3]])
+def test_optional_frame_scopes_allow_integer_indices(frames):
+    spec = load(CASES)
+    spec["cases"][0]["frames"] = frames
+    assert validate(spec) == []
