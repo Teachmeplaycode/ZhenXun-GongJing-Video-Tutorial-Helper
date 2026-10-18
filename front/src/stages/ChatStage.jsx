@@ -163,6 +163,9 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
       {antifraudOpen && video?.jobId ? (
         <AntifraudPanel
           jobId={video.jobId}
+          transcript={transcript}
+          screentext={screentext}
+          framesComplete={coverage?.pending === 0}
           videoTitle={video.title}
           onClose={() => setAntifraudOpen(false)}
         />

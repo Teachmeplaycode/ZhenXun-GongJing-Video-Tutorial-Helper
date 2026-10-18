@@ -63,3 +63,40 @@ test('antifraud failures are explained and can be closed', async ({ page }) => {
   await page.locator('.antifraud--error').getByRole('button', { name: '关闭', exact: true }).click()
   await expect(page.locator('.antifraud')).toHaveCount(0)
 })
+
+test('an open report refreshes when background transcription and OCR finish', async ({ page }) => {
+  const initial = new MockApi(page).jobEvents().filter((event) => event.type !== 'transcript')
+  await page.addInitScript(({ initial }) => {
+    const nativeFetch = window.fetch.bind(window)
+    window.fetch = async (input, options) => {
+      if (String(input).includes('/api/link-jobs/job1/events')) {
+        const encoder = new TextEncoder()
+        let controller
+        const body = new ReadableStream({ start(c) { controller = c } })
+        const emit = (event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+        initial.forEach(emit)
+        window.finishBackgroundAnalysis = () => {
+          emit({ seq: 50, type: 'transcript', status: 'done', count: 12 })
+          emit({ seq: 51, type: 'screentext', status: 'done', count: 8 })
+          controller.close()
+        }
+        return new Response(body, { headers: { 'Content-Type': 'text/event-stream' } })
+      }
+      return nativeFetch(input, options)
+    }
+  }, { initial })
+  await enter(page)
+  let requests = 0
+  let completed = false
+  await page.route('**/api/link-jobs/job1/antifraud', (r) => {
+    requests++
+    return r.fulfill({ json: { ...report, summary: completed ? '已纳入完成后的转写和画面文字' : '当前只有抽帧，转写尚未完成' } })
+  })
+  await page.getByRole('button', { name: '反诈识别', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '反诈分析报告' })
+  await expect(dialog).toContainText('转写尚未完成')
+  completed = true
+  await page.evaluate(() => window.finishBackgroundAnalysis())
+  await expect(dialog).toContainText('已纳入完成后的转写和画面文字')
+  expect(requests).toBeGreaterThanOrEqual(2)
+})

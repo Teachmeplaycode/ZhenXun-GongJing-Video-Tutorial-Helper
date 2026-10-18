@@ -104,7 +104,12 @@ function Institutions({ result }) {
   </section>
 }
 
-export default function AntifraudPanel({ jobId, videoTitle, onClose }) {
+export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript, screentext, framesComplete }) {
+  // Refresh once each background source reaches a final state; progress-only updates
+  // do not repeatedly start paid model calls or external institution queries.
+  const revision = [transcript, screentext].map((stage) =>
+    ['done', 'empty', 'none', 'unavailable', 'failed'].includes(stage?.status)
+      ? `${stage.status}:${stage.count || 0}` : 'waiting').join('|') + `|${Boolean(framesComplete)}`
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -120,7 +125,7 @@ export default function AntifraudPanel({ jobId, videoTitle, onClose }) {
       .catch((err) => { if (!stopped) setError(err.message) })
       .finally(() => { if (!stopped) setLoading(false) })
     return () => { stopped = true; controller.abort() }
-  }, [jobId])
+  }, [jobId, revision])
 
   if (loading) {
     return (
