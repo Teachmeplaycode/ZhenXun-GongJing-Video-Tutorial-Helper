@@ -261,6 +261,25 @@ def _label_for(tool: str, data: dict) -> str:
     return "画面"
 
 
+def _inline_delimiters_before(before: str) -> list[str]:
+    """Open wrappers in this paragraph, including soft line breaks."""
+    line = re.split(r"(?:\r?\n[ \t]*\r?\n|^ {0,3}(?:`{3,}|~{3,})[^\r\n]*(?:\r?\n|\Z))",
+                    before, flags=re.MULTILINE)[-1]
+    opened, code = [], None
+    for token in re.finditer(r"(?<!\\)(`+|\*{1,3}|_{1,3}|~~)", line):
+        marker = token[0]
+        left = line[token.start() - 1:token.start()] if token.start() else ""
+        right = line[token.end():token.end() + 1]
+        if marker.startswith("`"):
+            code = None if code == marker else marker if code is None else code
+        elif code is None:
+            if marker in opened and left and not left.isspace():
+                opened.remove(marker)
+            elif (not right or not right.isspace()) and not (marker.startswith("_") and left.isalnum()):
+                opened.append(marker)
+    return [code] if code else opened
+
+
 def _cited_urls(text: str, known: dict[str, dict]):
     for match in URL_RE.finditer(text):
         raw = match.group(0)
@@ -282,6 +301,30 @@ def _cited_urls(text: str, known: dict[str, dict]):
                 end = len(raw)
             yield raw[:end]
             continue
+        delimiters = _inline_delimiters_before(before)
+        if delimiters:
+            # Tool metadata disambiguates literal URI punctuation from wrapper closers.
+            exact = next((url for url in sorted(known, key=len, reverse=True)
+                          if raw.startswith(url) and any(raw[len(url):].startswith(d) for d in delimiters)), None)
+            if exact:
+                yield exact
+                continue
+            ends = []
+            for delimiter in delimiters:
+                candidates = []
+                for closing in re.finditer(re.escape(delimiter), raw):
+                    end = closing.start()
+                    left, right = raw[end - 1:end], raw[closing.end():closing.end() + 1]
+                    if delimiter.startswith("_") and left.isalnum() and right.isalnum():
+                        continue
+                    if delimiter.startswith("`") and (left == "`" or right == "`"):
+                        continue
+                    candidates.append(end)
+                if candidates:
+                    ends.append(candidates[-1] if delimiter.startswith("_") else candidates[0])
+            if ends:
+                yield raw[:min(ends)]
+                continue
         # Prefer an exact cited tool URL when the remaining text is only punctuation.
         exact = next((url for url in sorted(known, key=len, reverse=True)
                       if raw.startswith(url) and not raw[len(url):].strip(".,;:!)")), None)
