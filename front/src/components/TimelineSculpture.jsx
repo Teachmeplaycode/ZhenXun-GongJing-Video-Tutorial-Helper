@@ -41,7 +41,7 @@ const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).t
 // replays it now or attaches it to the next question; busy disables 'play' while an answer runs.
 // open / onOpenChange: the track can fold away to give the chat more height; `pulse` (a changing
 // number) flashes the head to show where frames are picked.
-export default function TimelineSculpture({ frames, extras = [], cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
+export default function TimelineSculpture({ frames, pictures = false, extras = [], cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
   const trackRef = useRef(null)
   const sectionRef = useRef(null)
   const deckRef = useRef(null)
@@ -208,7 +208,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
     const at = shown.findIndex(({ k }) => k === i)
     if (at < 0) return
     hover(null)
-    setZoom({ at, items: shown.map(({ f }) => ({ src: f.src, time: f.time, kind: f.kind, tag: f.kind ? EXTRA[f.kind] : frameNo(f.index) })) })
+    setZoom({ at, items: shown.map(({ f }) => ({ src: f.src, time: f.time, kind: f.kind, tag: f.kind ? EXTRA[f.kind] : pictures ? undefined : frameNo(f.index), label: pictures ? `第 ${f.index + 1} 张` : undefined })) })
   }
   const cancelLongPress = () => clearTimeout(longPress.current)
   const onPointerDown = (e) => {
@@ -296,7 +296,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
     <section ref={sectionRef} className="timeline" data-open={open || undefined} aria-label="视频时间轴">
       <header className="timeline__head">
         <span className="eyebrow">TIMELINE</span>
-        <span className="mono-sm muted">{frames.length} 帧 · 00:00.0 – {fmtTime(duration)}</span>
+        <span className="mono-sm muted">{pictures ? `${frames.length} 张图片` : `${frames.length} 帧 · 00:00.0 – ${fmtTime(duration)}`}</span>
         {['replay', 'view'].map((kind) => (extraCount(kind) ? (
           <span key={kind} className="mono-sm timeline__legend" data-kind={kind}><i aria-hidden="true" />{EXTRA[kind]} {extraCount(kind)} 帧</span>
         ) : null))}
@@ -326,7 +326,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
             <button type="button" className="link-btn" onClick={onClear}>清除</button>
           </>
         ) : (
-          <span className="caption muted">{open ? `点击薄片选择关键帧作为提问附件${onRange ? '；拖动框选一段可以慢放；长按薄片放大' : ''}` : '已收起'}</span>
+          <span className="caption muted">{open ? (pictures ? '点击图片选作提问附件；长按放大查看' : `点击薄片选择关键帧作为提问附件${onRange ? '；拖动框选一段可以慢放；长按薄片放大' : ''}`) : '已收起'}</span>
         )}
         {onOpenChange ? (
           <button type="button" className="timeline__fold" onClick={() => onOpenChange(!open)} aria-expanded={open}
@@ -391,7 +391,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
                 onClick={() => { if (available && !swallowClick.current) onToggle(f) }}
                 aria-pressed={isSel}
                 aria-disabled={!available}
-                aria-label={`${frameNo(f.index)} ${fmtTime(f.time)}${f.status === 'missing' ? ' 未取得画面' : f.status === 'pending' ? ' 抓取中' : ''}`}
+                aria-label={`${pictures ? `第 ${f.index + 1} 张` : `${frameNo(f.index)} ${fmtTime(f.time)}`}${f.status === 'missing' ? ' 未取得画面' : f.status === 'pending' ? ' 抓取中' : ''}`}
               >
                 <span ref={(el) => { bodies.current[i] = el }} className="tl-sheet__body">
                   <span ref={(el) => { cards.current[i] = el }} className="tl-card">
@@ -442,8 +442,8 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
               <div className="sheet-preview__empty">{previewFrame.status === 'missing' ? previewFrame.reason || '未取得画面' : '正在抓取…'}</div>
             )}
             <div className="sheet-preview__meta">
-              <span className="mono-sm">{fmtTime(previewFrame.time)}</span>
-              {preview.seek != null && Math.abs(preview.seek - previewFrame.time) >= 1 ? (
+              <span className="mono-sm">{pictures ? `第 ${previewFrame.index + 1} 张` : fmtTime(previewFrame.time)}</span>
+              {!pictures && preview.seek != null && Math.abs(preview.seek - previewFrame.time) >= 1 ? (
                 <span className="mono-sm muted">≈ {fmtClock(preview.seek)}</span>
               ) : null}
               {previewFrame.kind ? (

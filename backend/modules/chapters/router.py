@@ -102,6 +102,8 @@ class ChapterService:
 
     async def get(self, job_id: str):
         job = self.get_job(job_id)
+        if (job.video.extra or {}).get("kind") == "images":
+            return {"status": "unavailable", "chapters": [], "message": "图集没有章节", "summary": ""}
         record = load(job.root)
         if record is not None:
             return record

@@ -43,10 +43,13 @@ def test_a_combined_file_carries_its_sound_and_the_headers():
     assert v.streams[0].headers == {"Referer": "https://www.douyin.com/"}
 
 
-def test_an_image_post_is_explained():
-    with pytest.raises(ResolveError) as e:
-        to_video({"source": "redbook", "images": [{"url": "a"}, {"url": "b"}]}, "u")
-    assert e.value.code == "images_only" and "2 张图" in e.value.message
+def test_an_image_post_becomes_a_picture_set():
+    v = to_video({"source": "redbook", "title": "早餐", "page_url": "https://www.xiaohongshu.com/explore/1",
+                  "video_headers": {"Referer": "https://www.xiaohongshu.com/"},
+                  "images": [{"url": "https://i/1.webp"}, {"url": "https://i/2.webp", "live_photo_url": "https://v/2.mp4"}]}, "u")
+    assert v.extra["kind"] == "images" and v.streams == [] and v.duration == 2
+    assert v.extra["images"][1] == {"url": "https://i/2.webp", "headers": {"Referer": "https://www.xiaohongshu.com/"}}
+    assert v.public()["kind"] == "images" and v.public()["image_count"] == 2
 
 
 def fake_binary(tmp_path, stdout="", stderr="", code=0):

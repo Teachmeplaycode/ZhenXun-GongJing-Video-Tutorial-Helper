@@ -8,6 +8,7 @@ import { SessionItem } from '../components/SessionList'
 import SamplingOptions, { DEFAULT_SAMPLING, customized, presetLabel, samplingSpec } from '../components/SamplingOptions'
 
 const RECENT_COUNT = 3
+const MAX_PICTURES = 60
 const SAMPLING_KEY = 'import.sampling'
 const loadSampling = () => {
   try {
@@ -39,25 +40,43 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
   const [error, setError] = useState('')
   const inputRef = useRef(null)
 
-  const accept = (nextFile) => {
-    if (!nextFile) return
-    if (!nextFile.type.startsWith('video/') && !/\.(mp4|mov|webm|mkv|m4v)$/i.test(nextFile.name)) {
-      setError('请选择 MP4、MOV、WEBM 等视频文件')
+  const [pics, setPics] = useState([]) // pictures picked or dropped: analysed as a picture set, not a video
+  const isImage = (f) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp|gif)$/i.test(f.name)
+  const accept = (picked) => {
+    const files = [...(picked || [])]
+    if (!files.length) return
+    if (files.every(isImage)) {
+      if (files.length > MAX_PICTURES) {
+        setError(`一次最多 ${MAX_PICTURES} 张图片`)
+        return
+      }
+      setError('')
+      onClearError?.()
+      setLink('')
+      setFile(null)
+      setPics(files)
       return
     }
+    const nextFile = files.find((f) => !isImage(f))
+    if (!nextFile.type.startsWith('video/') && !/\.(mp4|mov|webm|mkv|m4v)$/i.test(nextFile.name)) {
+      setError('请选择 MP4、MOV、WEBM 等视频文件，或者几张图片')
+      return
+    }
+    setPics([])
     setError('')
     onClearError?.()
     setLink('')
     setFile(nextFile)
   }
 
-  const isLink = !file && looksLikeLink(link)
-  const mode = file ? 'file' : isLink ? 'link' : 'empty'
+  const isLink = !file && !pics.length && looksLikeLink(link)
+  const mode = pics.length ? 'images' : file ? 'file' : isLink ? 'link' : 'empty'
   const hint = mode === 'link'
     ? '已识别链接 · 直接读取画面，不下载视频'
-    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接' : '支持 B 站、视频号分享链接，或本地视频文件'
+    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接' : '支持 B 站、视频号、抖音、小红书、YouTube 等分享链接，本地视频，或几张图片'
   const submit = () => {
-    if (mode === 'file') onStart({ file, task, sampling: samplingSpec(sampling) })
+    if (mode === 'images') onStart({ images: pics, task })
+    else if (mode === 'file') onStart({ file, task, sampling: samplingSpec(sampling) })
     else if (mode === 'link') onStart({ link: link.trim(), task, sampling: samplingSpec(sampling) })
     else inputRef.current?.click()
   }
@@ -81,15 +100,23 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
           className={`import-slide ${dragging ? 'is-dragging' : ''} ${mode !== 'empty' ? 'has-file' : ''}`}
           onDragOver={(event) => { event.preventDefault(); setDragging(true) }}
           onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false) }}
-          onDrop={(event) => { event.preventDefault(); setDragging(false); accept(event.dataTransfer.files?.[0]) }}
+          onDrop={(event) => { event.preventDefault(); setDragging(false); accept(event.dataTransfer.files) }}
         >
           <i className="import-slide__tick import-slide__tick--tl" aria-hidden="true" />
           <i className="import-slide__tick import-slide__tick--tr" aria-hidden="true" />
           <i className="import-slide__tick import-slide__tick--bl" aria-hidden="true" />
           <i className="import-slide__tick import-slide__tick--br" aria-hidden="true" />
           <div className="import-slide__body">
-            <input ref={inputRef} type="file" accept="video/*,.mkv,.m4v" hidden onChange={(event) => accept(event.target.files?.[0])} />
-            {file ? (
+            <input ref={inputRef} type="file" accept="video/*,.mkv,.m4v,image/*" multiple hidden onChange={(event) => { accept(event.target.files); event.target.value = '' }} />
+            {pics.length ? (
+              <>
+                <button type="button" className="import-control__file" onClick={() => inputRef.current?.click()} aria-label={`更换图片：${pics.length} 张`}>
+                  <IconUpload size={22} />
+                  <span><strong>{pics.length === 1 ? pics[0].name : `${pics.length} 张图片`}</strong><small>{`${fmtBytes(pics.reduce((n, f) => n + f.size, 0))} · 按图集分析：读图里的文字，不走视频流程`}</small></span>
+                </button>
+                <button type="button" className="import-control__clear" onClick={() => setPics([])} aria-label="移除图片，改用链接"><IconClose size={14} /></button>
+              </>
+            ) : file ? (
               <>
                 <button type="button" className="import-control__file" onClick={() => inputRef.current?.click()} aria-label={`更换视频：${file.name}`}>
                   <IconFilm size={22} />
@@ -116,7 +143,7 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
               </div>
             )}
             <button type="button" className="import-control__submit" onClick={submit}>
-              {mode === 'file' ? '开始解析' : mode === 'link' ? '解析链接' : '选择文件'} <IconArrowRight size={16} />
+              {mode === 'images' ? '开始分析' : mode === 'file' ? '开始解析' : mode === 'link' ? '解析链接' : '选择文件'} <IconArrowRight size={16} />
             </button>
           </div>
         </div>
@@ -129,7 +156,7 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
           </p>
         ) : null}
         <div className="import-entry__footer" data-exit>
-          <span>B 站 · 视频号 · MP4 · MOV · WEBM</span>
+          <span>B 站 · 视频号 · 抖音 · YouTube … · 视频 · 图片</span>
           <button type="button" onClick={() => setShowTask((value) => !value)} aria-expanded={showTask} aria-controls="import-task">{task ? '编辑分析任务' : '添加分析任务'}</button>
           <button type="button" className="import-entry__sampling" onClick={() => setShowSampling((value) => !value)} aria-expanded={showSampling} aria-controls="import-sampling">
             采样：{presetLabel(sampling)}{customized(sampling) ? '（自定义）' : ''}
