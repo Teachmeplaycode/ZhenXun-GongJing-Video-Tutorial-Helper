@@ -130,3 +130,58 @@ def test_narration_uses_exact_configured_name_instead_of_inventing_institution(t
         config={'ANTIFRAUD_INSTITUTION_SOURCES': str(path)}, searcher=no_search, fetcher=record))
     assert result['items'][0]['status'] == 'record_found'
     assert result['items'][0]['name'] == NAME
+
+
+
+def test_target_without_fields_cannot_borrow_another_alias_entity_registration():
+    for alias in ('公司名称', '机构名称', '主体名称', '名称', '公司全称'):
+        other = f'{alias}：另一科技有限公司\n统一社会信用代码：91110000987654321X\n登记状态：存续'
+        for separator in ('\n', '\n\n'):
+            text = f'企业名称：{NAME}{separator}{other}'
+            assert inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME) is None
+
+
+def test_target_fields_must_belong_to_one_record_block():
+    text = f'企业名称：{NAME}\n统一社会信用代码：91110000123456789X\n\n登记状态：存续'
+    assert inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME) is None
+    text = f'统一社会信用代码：91110000123456789X\n登记状态：存续\n\n企业名称：{NAME}'
+    assert inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME) is None
+
+
+def test_mixed_entity_aliases_in_one_block_never_form_a_registration_record():
+    text = RECORD + '公司名称：另一科技有限公司\n统一社会信用代码：91110000987654321X\n登记状态：注销'
+    assert inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME) is None
+    # Unknown name-like fields cannot be ignored when deciding whether a block is safe.
+    text = f'企业名称：{NAME}\n经营者名称：其他主体\n统一社会信用代码：91110000987654321X\n登记状态：存续'
+    assert inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME) is None
+
+
+def test_separate_complete_records_bind_only_the_targets_own_fields():
+    other = '公司名称：另一科技有限公司\n统一社会信用代码：91110000987654321X\n登记状态：注销'
+    for text in (RECORD + '\n' + other, other + '\n\n' + RECORD):
+        result = inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME)
+        assert result['registration_code'] == '91110000123456789X'
+        assert result['registration_state'] == '存续'
+
+
+def test_conflicting_target_record_blocks_remain_unconfirmed():
+    conflicting = RECORD.replace('91110000123456789X', '91110000987654321X')
+    assert inst.registry_record('https://www.gsxt.gov.cn/record', RECORD + '\n' + conflicting, NAME) is None
+
+
+def test_partial_target_and_other_entity_page_stays_an_official_reference():
+    async def mixed_page(url):
+        text = f'企业名称：{NAME}\n公司名称：另一科技有限公司\n统一社会信用代码：91110000987654321X\n登记状态：存续'
+        return Page(url, '企业信息', text)
+    result = run(config={}, searcher=results, fetcher=mixed_page)
+    assert result['items'][0]['status'] == 'official_reference'
+    assert 'record' not in result['items'][0]
+
+
+
+def test_explicit_name_aliases_and_ordinary_registry_fields_stay_in_one_record():
+    for label in ('企业名称', '公司名称', '机构名称', '单位名称', '主体名称', '公司全称'):
+        text = RECORD.replace('企业名称', label) + '法定代表人：张三\n成立日期：2020-01-01\n'
+        result = inst.registry_record('https://www.gsxt.gov.cn/record', text, NAME)
+        assert result['registration_code'] == '91110000123456789X'
+        assert result['registration_state'] == '存续'
