@@ -50,3 +50,18 @@ def test_meets_target_when_full():
             "cases": [{"id": f"c{i}", "video": "v0", "qtype": "summary"} for i in range(150)]}
     g = gap_report(spec)
     assert g["meets_target"] is True
+
+
+
+def test_gap_cli_rejects_invalid_dataset_before_printing(tmp_path, monkeypatch, capsys):
+    import pytest
+    from scripts import eval_gap
+    spec = json.loads(CASES.read_text())
+    spec["cases"][0]["qtype"] = "unknown"
+    path = tmp_path / "invalid.json"
+    path.write_text(json.dumps(spec))
+    monkeypatch.setattr(eval_gap, "CASES", path)
+    monkeypatch.setattr("sys.argv", ["eval_gap.py", "--json"])
+    with pytest.raises(ValueError, match="qtype"):
+        eval_gap.main()
+    assert not capsys.readouterr().out

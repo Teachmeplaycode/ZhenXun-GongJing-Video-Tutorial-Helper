@@ -94,3 +94,20 @@ def test_malformed_case_fields_return_validation_errors(field, value):
 def test_malformed_categories_return_validation_errors(category):
     spec = {"videos": {"v": {"url": "x", "note": "n", "category": category}}, "cases": []}
     assert validate(spec)
+
+
+@pytest.mark.parametrize("field", ["question", "rubric"])
+@pytest.mark.parametrize("value", [None, "", "  ", 1, [], {}])
+def test_question_and_rubric_require_nonblank_text(field, value):
+    case = {"id": "c1", "video": "v", "question": "q", "rubric": "confirmed answer", "qtype": "summary"}
+    case[field] = value
+    spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}}, "cases": [case]}
+    assert any(field in error for error in validate(spec))
+
+
+@pytest.mark.parametrize("key", ["tools_any", "tools_all", "tools_none"])
+@pytest.mark.parametrize("value", [[[]], [{}], [1], [None]])
+def test_tool_checks_reject_non_string_entries(key, value):
+    case = {"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary", "checks": {key: value}}
+    spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}}, "cases": [case]}
+    assert any(key in error for error in validate(spec))
