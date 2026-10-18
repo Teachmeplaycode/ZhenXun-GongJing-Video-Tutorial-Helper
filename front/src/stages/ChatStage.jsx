@@ -2,7 +2,8 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import gsap from 'gsap'
 import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
-import { IconArrowDown, IconArrowRight } from '../components/Icons'
+import ExportDialog from '../components/ExportDialog'
+import { IconArrowDown, IconArrowRight, IconBook } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
 import SpotlightCard from '../components/react-bits/SpotlightCard'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
@@ -52,6 +53,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   }, [replayRequest?.key])
   const [draft, setDraft] = useState('')
   const [following, setFollowing] = useState(true)
+  const [exportOpen, setExportOpen] = useState(false)
   const scrollRef = useRef(null)
   const followRef = useRef(true)
   const jumpRef = useRef(null)
@@ -145,6 +147,14 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         <button ref={jumpRef} type="button" className="chat__jump" onClick={jumpToEnd} aria-label="回到底部">
           <IconArrowDown size={14} /> {running ? '回到最新' : '回到底部'}
         </button>
+      ) : null}
+      {video?.jobId && messages.length ? (
+        <button type="button" className="chat__export" onClick={() => setExportOpen(true)}>
+          <IconBook size={14} /> 导出笔记
+        </button>
+      ) : null}
+      {exportOpen && video?.jobId ? (
+        <ExportDialog sessionId={video.jobId} messages={messages} onClose={() => setExportOpen(false)} />
       ) : null}
       <Composer
         draft={draft}

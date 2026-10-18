@@ -6,6 +6,32 @@ import { fileURLToPath } from 'node:url'
 const FRAME = readFileSync(fileURLToPath(new URL('./fixtures/frame.jpg', import.meta.url)))
 const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
 
+// Valid uncompressed ZIPs keep the offline download tests honest without another dependency.
+function zipFiles(files) {
+  const chunks = [], directory = []
+  let offset = 0
+  for (const [name, bytes] of files) {
+    const filename = Buffer.from(name), body = Buffer.from(bytes)
+    let crc = 0xffffffff
+    for (const byte of body) {
+      crc ^= byte
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0)
+    }
+    crc = (crc ^ 0xffffffff) >>> 0
+    const local = Buffer.alloc(30), central = Buffer.alloc(46)
+    local.writeUInt32LE(0x04034b50); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x800, 6)
+    local.writeUInt32LE(crc, 14); local.writeUInt32LE(body.length, 18); local.writeUInt32LE(body.length, 22); local.writeUInt16LE(filename.length, 26)
+    central.writeUInt32LE(0x02014b50); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6); central.writeUInt16LE(0x800, 8)
+    central.writeUInt32LE(crc, 16); central.writeUInt32LE(body.length, 20); central.writeUInt32LE(body.length, 24); central.writeUInt16LE(filename.length, 28); central.writeUInt32LE(offset, 42)
+    chunks.push(local, filename, body); directory.push(central, filename)
+    offset += local.length + filename.length + body.length
+  }
+  const central = Buffer.concat(directory), end = Buffer.alloc(22)
+  end.writeUInt32LE(0x06054b50); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10)
+  end.writeUInt32LE(central.length, 12); end.writeUInt32LE(offset, 16)
+  return Buffer.concat([...chunks, central, end])
+}
+
 export function video(overrides = {}) {
   return {
     platform: 'bilibili', video_id: 'BV1TEST00001', canonical_url: 'https://www.bilibili.com/video/BV1TEST00001',
@@ -123,7 +149,8 @@ export class MockApi {
   }
 
   async install() {
-    await this.page.route((url) => url.pathname.startsWith('/api/'), (route) => this.handle(route))
+    // Context-level, so the PDF export's popup (a new page) is answered too.
+    await this.page.context().route((url) => url.pathname.startsWith('/api/'), (route) => this.handle(route))
   }
 
   async handle(route) {
@@ -136,13 +163,33 @@ export class MockApi {
     } catch {
       body = req.postData()
     }
-    this.requests.push({ method: req.method(), path, body })
+    this.requests.push({ method: req.method(), path, query: url.searchParams.toString(), body })
     const json = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) })
     const stream = (events) => route.fulfill({ status: 200, contentType: 'text/event-stream', body: sse(events) })
 
     if (path === '/api/health') return json({ ok: true, platforms: ['bilibili', 'wechat_channels', 'local'], ffmpeg: true, model: 'deepseek-flash' })
     if (path === '/api/sessions' && req.method() === 'GET') return json({ sessions: this.sessions.map((s) => s.summary) })
-    let m = path.match(/^\/api\/sessions\/(\w+)$/)
+    let m = path.match(/^\/api\/sessions\/(\w+)\/export$/)
+    if (m) {
+      const session = this.sessions.find((session) => session.summary.id === m[1])
+      const ids = url.searchParams.has('ids') ? url.searchParams.get('ids').split(',').map(Number) : null
+      if (ids && (!ids.length || ids.some((id) => !id))) return json({ detail: '请先选择问答' }, 400)
+      const messages = (session?.detail.messages || []).filter((message) => ids === null || ids.includes(message.id))
+      // The note export: md answers with a zip download, pdf with the print-styled page.
+      const format = url.searchParams.get('format') || 'md'
+      if (format === 'pdf') {
+        return route.fulfill({
+          status: 200, contentType: 'text/html; charset=utf-8',
+          body: `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>测试视频：柚子与药物 · 笔记</title></head><body><h1>测试视频：柚子与药物</h1><p>打印页：在浏览器中另存为 PDF</p></body></html>`,
+        })
+      }
+      return route.fulfill({
+        status: 200, contentType: 'application/zip',
+        headers: { 'Content-Disposition': 'attachment; filename="note.zip"; filename*=UTF-8\'\'%E7%AC%94%E8%AE%B0.zip' },
+        body: zipFiles([['笔记.md', `# 视频笔记\n${messages.map((message) => `## ${message.role === 'user' ? '问' : '答'}\n${message.content}\n`).join('\n')}`], ['images/frame_000.jpg', FRAME]]),
+      })
+    }
+    m = path.match(/^\/api\/sessions\/(\w+)$/)
     if (m && req.method() === 'GET') return json(this.sessions.find((s) => s.summary.id === m[1]).detail)
     if (m && req.method() === 'DELETE') {
       this.sessions = this.sessions.filter((s) => s.summary.id !== m[1])
@@ -150,6 +197,7 @@ export class MockApi {
     }
     if (path === '/api/link-jobs' && req.method() === 'POST') {
       if (this.linkError) return json(this.linkError, 422)
+      this.addSession('job1', { title: video().title })
       return json(this.snapshot('job1'))
     }
     if (path === '/api/videos') return json(this.snapshot('upload1', { v: video({ platform: 'local', video_id: 'clip.mp4', title: 'clip' }) }))
@@ -188,10 +236,13 @@ export class MockApi {
     }
     if (m && req.method() === 'DELETE') return json({ ok: true })
     if (path === '/api/agent/runs') {
+      const session = this.sessions.find((session) => session.summary.id === body.video_id)
+      if (session) session.detail.messages.push({ id: session.detail.messages.length + 1, role: 'user', content: body.question, status: 'done', frames: body.scope?.frames || [] })
       const gate = this.gate
       this.gate = null
       if (gate) await gate.promise
       const events = (this.runs.shift() || researchAnswer()).map((e) => ({ run_id: 'r1', ...e }))
+      if (session) session.detail.messages.push({ id: session.detail.messages.length + 1, role: 'assistant', content: events.filter((e) => e.type === 'assistant.message.delta').map((e) => e.delta).join(''), status: 'done', events })
       try {
         return await stream(events)
       } catch {
@@ -201,7 +252,8 @@ export class MockApi {
     return json({ detail: `mock has no route for ${req.method()} ${path}` }, 404)
   }
 
-  /** A saved session as /api/sessions and /api/sessions/{id} return it. */
+  /** A saved session as /api/sessions and /api/sessions/{id} return it. Message ids are assigned
+   * like the backend's rows (from 1), so the export can name the turns to include. */
   addSession(id, { title = '历史会话', messages = [] } = {}) {
     const v = video({ title, video_id: `BV1${id}` })
     this.sessions.push({
@@ -211,7 +263,7 @@ export class MockApi {
         cover_index: 0, transcript: 'done', questions: messages.filter((x) => x.role === 'user').length,
         last_question: [...messages].reverse().find((x) => x.role === 'user')?.content || '',
       },
-      detail: { ...this.snapshot(id, { done: true, v }), task: '', messages },
+      detail: { ...this.snapshot(id, { done: true, v }), task: '', messages: messages.map((m, i) => ({ id: i + 1, ...m })) },
     })
   }
 }

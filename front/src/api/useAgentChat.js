@@ -81,13 +81,14 @@ export function applyEvent(msg, ev) {
 
 const emptyAnswer = () => ({ id: nextId(), role: 'assistant', status: 'running', text: '', parts: [], progress: null, browser: null, completed: null })
 
-/** Saved messages from the backend → UI messages; answers replay their stored events in order. */
+/** Saved messages from the backend → UI messages; answers replay their stored events in order.
+ * `savedId` keeps the backend row id, so the note export can name the turns to include. */
 export function restoreMessages(saved, frames) {
   const out = []
   for (const m of saved) {
     if (m.role === 'user') {
       const attachments = (m.frames || []).map((i) => frames.find((f) => f.index === i)).filter(Boolean)
-      out.push({ id: nextId(), role: 'user', text: m.content, attachments })
+      out.push({ id: nextId(), role: 'user', text: m.content, attachments, savedId: m.id })
       continue
     }
     const events = m.events || []
@@ -97,7 +98,7 @@ export function restoreMessages(saved, frames) {
       msg = applyEvent(msg, { type: 'assistant.message.delta', delta: m.content })
     }
     // manual: a replay framed by hand on the timeline (no model, no question): shown as its own card.
-    out.push({ ...msg, text: m.content, progress: null, status: m.status === 'done' ? 'done' : 'error', manual: m.manual || null })
+    out.push({ ...msg, text: m.content, progress: null, status: m.status === 'done' ? 'done' : 'error', manual: m.manual || null, savedId: m.id })
   }
   return out
 }
