@@ -88,6 +88,16 @@ const LINK_RE = /https?:\/\/\S+|\bBV[0-9A-Za-z]{10}\b|(?<![0-9A-Za-z])av\d+\b/i
 /** True when the pasted text contains something the backend can resolve. */
 export const looksLikeLink = (text) => LINK_RE.test(text || '')
 
+/** Best-effort platform name for a pasted link, for friendlier import hints (YouTube/抖音 now resolved by the backend). */
+export function platformOf(text) {
+  const t = String(text || '')
+  if (/\bBV[0-9A-Za-z]{10}\b/.test(t) || /(^|\s)av\d+\b/i.test(t) || /bilibili\.com|b23\.tv/i.test(t)) return 'bilibili'
+  if (/youtube\.com|youtu\.be/i.test(t)) return 'youtube'
+  if (/douyin\.com|iesdouyin\.com/i.test(t)) return 'douyin'
+  if (/weixin\.qq\.com|channels\.weixin\.qq\.com/i.test(t)) return 'wechat_channels'
+  return ''
+}
+
 async function linkRequest(path, init = {}) {
   let response
   try {
