@@ -58,6 +58,25 @@ def test_missing_transcript_is_reported_without_persisting_empty_success(api):
     assert client.get(f'/api/link-jobs/{job.id}/factcheck').status_code == 404
 
 
+@pytest.mark.parametrize('channel', ['transcript', 'screentext'])
+@pytest.mark.parametrize('status', ['pending', 'running'])
+def test_incomplete_channel_does_not_persist_a_partial_report(api, channel, status):
+    from modules.transcript import Transcript
+    from modules.transcript.asr import Segment
+    from modules.screentext import ScreenText
+    from modules.screentext.merge import Caption
+
+    client, job = api
+    job.transcript = Transcript('done', '', [Segment(1, 2, '苹果含维生素C')])
+    job.screentext = ScreenText('done', '', [Caption(3, 4, '苹果能治癌', 'bottom')])
+    getattr(job, channel).status = status
+    result = events(client.post(f'/api/link-jobs/{job.id}/factcheck', json={}))
+    assert result[-1]['type'] == 'factcheck.error'
+    assert result[-1]['code'] == 'content_not_ready' and result[-1]['retryable'] is True
+    assert not any(event['type'] == 'factcheck.completed' for event in result)
+    assert client.get(f'/api/link-jobs/{job.id}/factcheck').status_code == 404
+
+
 def test_report_is_saved_before_completed_is_delivered_even_when_stream_closes(monkeypatch):
     saved = []
     report = {'version': 1, 'module': 'factcheck', 'summary': {'total': 0}, 'claims': []}

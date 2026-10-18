@@ -38,14 +38,14 @@ def test_malformed_items_do_not_discard_the_following_valid_claim(invalid):
 
 def test_evidence_is_derived_from_the_cited_real_segment():
     result = extracted([claim(original_text="千万别和降压药", start=0, end=999)])[0]
-    assert result["original_text"] == TRANSCRIPT[0]["text"]
+    assert result["original_text"] == result["claim"] == "千万别和降压药"
     assert (result["start"], result["end"]) == (12.5, 15)
     assert result["source"] == "transcript" and result["segment_index"] == 0
 
 
 def test_screentext_evidence_uses_its_own_index_and_times():
     result = extracted([claim(source="screentext", original_text="每天喝水", start=0, end=1)])[0]
-    assert result["original_text"] == SCREENTEXT[0]["text"]
+    assert result["original_text"] == result["claim"] == "每天喝水"
     assert (result["start"], result["end"]) == (20, 23)
 
 
