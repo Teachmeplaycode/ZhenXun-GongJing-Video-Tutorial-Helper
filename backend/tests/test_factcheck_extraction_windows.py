@@ -47,6 +47,7 @@ def test_distinct_statements_in_one_segment_receive_distinct_queries_and_verdict
     assert searched == statements
     assert [claim["claim"] for claim in result["claims"]] == statements
     assert [claim["verdict"] for claim in result["claims"]] == ["correct", "wrong"]
+    assert [claim["risk"] for claim in result["claims"]] == ["low", "high"]
     assert result["summary"]["correct"] == result["summary"]["wrong"] == 1
     assert [claim["original_text"] for claim in result["claims"]] == statements
     assert all(claim["evidence"] == {"source": "transcript", "segment_index": 0} for claim in result["claims"])
