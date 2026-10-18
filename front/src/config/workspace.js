@@ -24,6 +24,12 @@ export const WORKSPACE_CONTENT = {
     { title: '查找信息', description: '核实画面中出现的产品信息', question: '搜索视频里提到的产品信息' },
     { title: '生成报告', description: '按时间顺序整理关键片段', question: '整理关键片段并写成分析报告' },
   ],
+  // The same three for a picture set (stages/PictureStage.jsx).
+  pictureSuggestions: [
+    { title: '读懂这组图', description: '逐张说清每张图讲了什么', question: '逐张总结这组图片的内容' },
+    { title: '核查说法', description: '图里的说法有没有依据、是否夸大', question: '核查图片里的说法是否属实' },
+    { title: '整理要点', description: '提炼成可以直接保存的清单', question: '把这组图片的要点整理成清单' },
+  ],
 }
 
 export const SCULPTURE_SETTINGS = {

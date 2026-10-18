@@ -137,9 +137,11 @@ export default function Composer({ draft, setDraft, running, onSend, onStop, sel
           onKeyDown={onKeyDown}
         />
         <div className="composer__bar">
-          <button type="button" className="chip-btn" onClick={onPickFrames} title="在时间轴上点选关键帧作为附件">
-            <IconPlus size={13} /> 选帧
-          </button>
+          {onPickFrames ? (
+            <button type="button" className="chip-btn" onClick={onPickFrames} title="在时间轴上点选关键帧作为附件">
+              <IconPlus size={13} /> 选帧
+            </button>
+          ) : null}
           {SWITCHES.map(({ key, label, Icon, title }) => (
             <button key={key} type="button" className="chip-btn" data-on={switches[key] || undefined} aria-pressed={switches[key]}
               onClick={() => toggle(key)} title={`${title}（${switches[key] ? '已开启' : '已关闭'}）`}>
