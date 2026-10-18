@@ -37,6 +37,9 @@ PLATFORMS = {
                  "purpose": "读更多评论（未登录只能读前 3 条热门）", "needs": ("SESSDATA=",)},
     "yuanbao": {"key": "YUANBAO_COOKIE", "label": "腾讯元宝", "app": "微信",
                 "purpose": "解析视频号链接", "needs": ("hy_user=", "hy_token=")},
+    # No QR here: 小红书 doesn't draw its login code in a headless browser. Paste the cookie instead.
+    "xiaohongshu": {"key": "XHS_COOKIE", "label": "小红书", "app": "小红书 App", "qr": False,
+                    "purpose": "读小红书笔记的评论区（也让解析更稳）", "needs": ("a1=", "web_session=")},
 }
 
 
@@ -101,7 +104,7 @@ async def status(platform: str) -> dict:
     key = info["key"]
     env = settings()
     value = env.get(key, "").strip()
-    out = {"id": platform, "label": info["label"], "purpose": info["purpose"], "app": info["app"],
+    out = {"id": platform, "label": info["label"], "purpose": info["purpose"], "app": info["app"], "qr": info.get("qr", True),
            "configured": bool(value), "source": source(key) if value else None,
            "user": env.get(f"{key}_USER", ""), "expires": None, "valid": None}
     try:
@@ -160,6 +163,8 @@ logins: dict[str, Login] = {}
 async def start(platform: str) -> Login:
     for old in [x for x in logins.values() if x.platform == platform or time.time() - x.created > LOGIN_TTL * 2]:
         await cancel(old.id)
+    if not PLATFORMS[platform].get("qr", True):
+        raise AccountError(f"{PLATFORMS[platform]['label']} 不支持在这里扫码，请手动粘贴 Cookie")
     login = await (_bilibili_start() if platform == "bilibili" else _yuanbao_start())
     logins[login.id] = login
     return login

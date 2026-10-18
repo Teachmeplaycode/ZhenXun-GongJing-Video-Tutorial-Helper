@@ -114,7 +114,7 @@ function Paste({ account, onDone }) {
       setBusy(false)
     }
   }
-  const example = account.id === 'yuanbao' ? 'hy_user=…; hy_token=…' : 'SESSDATA=…; bili_jct=…'
+  const example = { yuanbao: 'hy_user=…; hy_token=…', xiaohongshu: '在已登录的小红书网页按 F12 → 网络 → 任一请求的 Cookie 整行（含 a1=…; web_session=…）' }[account.id] || 'SESSDATA=…; bili_jct=…'
   return (
     <form className="paste-cookie" onSubmit={save}>
       <textarea value={value} onChange={(e) => setValue(e.target.value)} placeholder={example} rows={2} spellCheck={false} autoComplete="off" />
@@ -156,7 +156,7 @@ function AccountCard({ account, onChange }) {
       {mode === 'paste' ? <Paste account={account} onDone={done} /> : null}
       {error ? <p className="field-error" role="alert">{error}</p> : null}
       <div className="account-card__actions">
-        {mode === 'qr' ? (
+        {account.qr === false ? null : mode === 'qr' ? (
           <button type="button" className="btn btn--ghost" onClick={() => setMode(null)}>取消</button>
         ) : (
           <button type="button" className="btn btn--dark account-card__go" onClick={() => setMode('qr')}>

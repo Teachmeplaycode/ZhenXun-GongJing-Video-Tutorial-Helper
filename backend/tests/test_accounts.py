@@ -116,4 +116,13 @@ def test_endpoints_refuse_other_sites(files, monkeypatch):
     assert client.delete("/api/accounts/yuanbao", headers={"Sec-Fetch-Site": "cross-site"}).status_code == 403
     assert client.post("/api/accounts/nothing/login").status_code == 404
     body = client.get("/api/accounts").json()["accounts"]
-    assert [a["id"] for a in body] == ["bilibili", "yuanbao"] and all("cookie" not in a for a in body)
+    assert [a["id"] for a in body] == ["bilibili", "yuanbao", "xiaohongshu"] and all("cookie" not in a for a in body)
+
+
+def test_xiaohongshu_is_pasted_not_scanned(files):
+    with pytest.raises(accounts.AccountError, match="粘贴"):
+        asyncio.run(accounts.start("xiaohongshu"))
+    with pytest.raises(accounts.AccountError, match="web_session"):
+        asyncio.run(accounts.set_cookie("xiaohongshu", "a1=x"))
+    status = asyncio.run(accounts.set_cookie("xiaohongshu", "a1=x; web_session=y"))
+    assert status["configured"] and status["qr"] is False
