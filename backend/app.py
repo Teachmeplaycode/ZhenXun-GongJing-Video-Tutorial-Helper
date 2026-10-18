@@ -360,6 +360,15 @@ async def process_images(job: FrameJob) -> None:
         log.event("images", job_id=job.id, ok=c["ok"], missing=c["missing"], text=len(job.screentext.segments), ms=timer.ms)
 
 
+@app.get("/api/link-jobs/{job_id}/texts")
+async def picture_texts(job_id: str):
+    """A picture set's text, picture by picture, for the picture page."""
+    job = get_job(job_id)
+    if not images.is_images(job.video):
+        raise HTTPException(404, "只有图集有逐张的文字")
+    return {"status": job.screentext.status if job.screentext else "none", "items": images.texts_by_picture(job)}
+
+
 MAX_IMAGE_BYTES = 25 << 20
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
 
