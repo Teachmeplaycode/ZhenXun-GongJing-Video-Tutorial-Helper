@@ -326,7 +326,7 @@ export default function App() {
       await minimum
       signal.throwIfAborted()
       const v = job.video
-      setMeta({ ...baseMeta, name: link || images ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video' })
+      setMeta({ ...baseMeta, name: link || images ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video', description: v.description || '', tags: v.tags || [], stats: v.stats || {} })
       setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description })
       setFrames(byTime(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))))
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
@@ -540,7 +540,7 @@ export default function App() {
     const apply = () => {
       setRunId(makeRunId())
       setMaskMounted(false)
-      setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video' })
+      setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video', description: v.description || '', tags: v.tags || [], stats: v.stats || {} })
       setVideo({ videoId: id, jobId: id, task: saved.task, title: v.title, description: v.description })
       setFrames(nextFrames)
       setCoverage(saved.coverage)

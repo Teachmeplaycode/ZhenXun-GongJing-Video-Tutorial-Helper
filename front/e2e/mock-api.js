@@ -173,7 +173,8 @@ export class MockApi {
   }
 
   pictureVideo() {
-    return video({ platform: 'local', video_id: 'job1', title: `早餐.png 等 ${this.frames} 张图片`, duration: this.frames, kind: 'images', image_count: this.frames })
+    return video({ platform: 'local', video_id: 'job1', title: `早餐.png 等 ${this.frames} 张图片`, duration: this.frames, kind: 'images', image_count: this.frames,
+      description: '燕麦加牛奶，早上十分钟搞定。', tags: ['早餐'], stats: { likes: 174 } })
   }
 
   jobEvents(v = this.pictures ? this.pictureVideo() : video()) {
