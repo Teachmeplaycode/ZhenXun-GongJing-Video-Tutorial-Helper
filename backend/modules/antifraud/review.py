@@ -37,6 +37,10 @@ async def analyze_reviewed(job, *, client=None, job_id: str = "", timeout: float
     report.message = "；".join(filter(None, [report.message, *report.limitations]))
     report.assessment = {"status": "unavailable", "risk": None, "reason": "模型综合判断未执行；下方仅为规则线索。"}
     evidence = [c for c in report.claims if c.id != "no-signal"]
+    if report.score.get("level") == "unknown":
+        report.status = "partial"
+        report.assessment["reason"] = "缺少可分析的文字或二维码证据，无法判断风险。"
+        return report
     if client is None:
         report.status = "partial"
         return report
