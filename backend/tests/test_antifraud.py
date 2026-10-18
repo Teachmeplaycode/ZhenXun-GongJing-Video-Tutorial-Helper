@@ -401,7 +401,7 @@ def test_model_review_uses_context_and_observed_evidence(tmp_path):
     model = _Model('{"risk":"low","reason":"这是引用骗局话术的反诈教育，请勿转账。","evidence_ids":["segment-transcript-0"]}')
     result = asyncio.run(analyze_reviewed(_job(tmp_path), client=model, job_id='j1'))
     assert result.assessment['risk'] == 'low'
-    assert result.status == 'partial'
+    assert result.status == 'done'
     assert result.video.title == '反诈教学'
     assert result.claims[0].timestamp.start == 10
     assert result.claims[0].status == 'unverified'

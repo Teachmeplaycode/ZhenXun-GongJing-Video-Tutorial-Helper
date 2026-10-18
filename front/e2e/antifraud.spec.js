@@ -19,6 +19,10 @@ const report = {
   claims: [{ id: 'first-low', verdict: 'safe', risk: 'low', claim: '反诈教育引用', original_text: '不要相信保本保息',
     timestamp: { start: 13, end: 20 }, reason: '这是反诈提醒', status: 'unverified', sources: [{ title: '模型', kind: 'model' }] }],
   disclaimer: '不构成权威机构认定', drainage_signals: [],
+  institutions: { status: 'partial', message: '登记记录不证明视频主体关联或持牌资质。', items: [
+    { name: '示例科技有限公司', status: 'official_reference', reason: '官方提及，登记仍待确认。', timestamp: { start: 16 },
+      sources: [{ official: true, url: 'https://www.samr.gov.cn/reference', title: '公开通告', snippet: '页面中提及示例科技有限公司' }] },
+  ] },
 }
 
 test('antifraud report shows model context, timestamp and verification limits, then closes', async ({ page }) => {
@@ -30,6 +34,8 @@ test('antifraud report shows model context, timestamp and verification limits, t
   await expect(dialog).toContainText('尚未核查机构登记')
   await expect(dialog).toContainText('00:13')
   await expect(dialog).toContainText('待人工核实')
+  await expect(dialog.getByRole('region', { name: '机构公开证据核查' })).toContainText('官方提及 · 登记未确认')
+  await expect(dialog.getByRole('link', { name: '公开通告' })).toHaveAttribute('href', 'https://www.samr.gov.cn/reference')
   await expect(dialog.locator('.antifraud__score-level')).toContainText('风险 低')
   await dialog.getByRole('button', { name: '关闭', exact: true }).click()
   await expect(dialog).toBeHidden()

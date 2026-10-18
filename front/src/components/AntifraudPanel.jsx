@@ -76,6 +76,34 @@ function DrainageBadge({ signals }) {
   )
 }
 
+const INSTITUTION_STATUS = {
+  record_found: '找到官方登记记录', official_reference: '官方提及 · 登记未确认',
+  unverified: '未核实', error: '核查失败 · 未核实',
+}
+
+function Institutions({ result }) {
+  if (!result) return null
+  return <section className="antifraud__institutions" aria-label="机构公开证据核查">
+    <h3>机构公开证据核查</h3>
+    <p className="caption muted">{result.message}</p>
+    {result.omitted > 0 && <p role="status">另有 {result.omitted} 个机构超出本轮核查上限，尚未核实。</p>}
+    {result.configuration_error && <p role="status">{result.configuration_error}</p>}
+    {result.items?.map((item) => <article key={item.name} className="antifraud__claim">
+      <header className="antifraud__claim-head"><strong>{item.name}</strong>
+        <span>{INSTITUTION_STATUS[item.status] || '未核实'}</span>
+        <time className="antifraud__time">{fmtTime(item.timestamp?.start)}</time>
+      </header>
+      <p>{item.reason}</p>
+      {item.record && <p>记录状态：{item.record.registration_state} · 统一社会信用代码/注册号：{item.record.registration_code}</p>}
+      <ul>{item.sources?.map((source, i) => <li key={i}>
+        <span>{source.official ? '官方来源' : '第三方线索（未核实）'} · </span>
+        {/^https?:\/\//i.test(source.url || '') ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.title || source.url}</a> : <span>{source.title}</span>}
+        <blockquote>{source.snippet}</blockquote>
+      </li>)}</ul>
+    </article>)}
+  </section>
+}
+
 export default function AntifraudPanel({ jobId, videoTitle, onClose }) {
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -160,6 +188,7 @@ export default function AntifraudPanel({ jobId, videoTitle, onClose }) {
       </section>
 
       <DrainageBadge signals={report.drainage_signals} />
+      <Institutions result={report.institutions} />
 
       {report.disclaimer && (
         <p className="antifraud__disclaimer">{report.disclaimer}</p>

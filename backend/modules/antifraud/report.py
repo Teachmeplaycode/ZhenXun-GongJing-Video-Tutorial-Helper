@@ -173,6 +173,7 @@ class AntifraudReport:
         "本报告仅提供风险线索与可用时的模型辅助判断，不构成权威机构认定。"
         "如需确认，请向公安机关、市场监管部门或相关机构核实。"
     )
+    institutions: dict = field(default_factory=dict)
     limitations: list[str] = field(default_factory=list)
     assessment: dict = field(default_factory=dict)
     score: dict = field(default_factory=dict)       # 内部评分详情
@@ -195,6 +196,7 @@ class AntifraudReport:
             "score": self.score,
             "assessment": self.assessment,
             "limitations": self.limitations,
+            "institutions": self.institutions,
             "drainage_signals": self.drainage_signals,
             "rule_hits": self.rule_hits,
             "qrcodes": self.qrcodes,
