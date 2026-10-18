@@ -22,7 +22,7 @@ from modules.agent import browser, run_agent
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.export.api import create_router as create_export_router
 from modules.frames import FrameJob, cuts
-from modules.frames import sampling
+from modules.frames import images, sampling
 from modules.frames.job import MAX_FRAMES, shot_fill
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
@@ -32,7 +32,7 @@ from modules.screentext import ScreenText, run_screentext
 from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
 from modules.antifraud.router import create_router as antifraud_router
-from modules.video_source import ResolveError, Stream, default_registry
+from modules.video_source import ResolveError, ResolvedVideo, Stream, default_registry
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
 # GONGJING_DATA_DIR lets a second server (e.g. for testing) keep its own frames and sessions:
@@ -322,6 +322,13 @@ async def create_link_job(body: LinkRequest):
     job_id = uuid.uuid4().hex[:12]
     log.event("link.resolve", ok=True, job_id=job_id, platform=video.platform, video_id=video.video_id,
               duration=video.duration, ms=timer.ms)
+    if images.is_images(video):  # an image post: pictures, their text; no sampling, speech or shots
+        job = FrameJob(job_id, video, resolver, DATA_DIR / job_id, count=len(video.extra["images"]))
+        job.transcript, job.screentext = Transcript(), ScreenText()
+        jobs[job_id] = job
+        store.create(job, body.url, body.task)
+        spawn(process_images(job))
+        return snapshot(job)
     job = FrameJob(job_id, video, resolver, DATA_DIR / job_id, count=sampling.plan(body.sampling, video.duration or 0).frames)
     job.transcript = Transcript()
     job.screentext = ScreenText()
@@ -334,6 +341,66 @@ async def create_link_job(body: LinkRequest):
     spawn(find_cuts(job))
     chapter_service.start(job)
     warm_decider()
+    return snapshot(job)
+
+
+async def process_images(job: FrameJob) -> None:
+    """An image post's import (modules/frames/images.py), saved like a video's."""
+    timer = log.Timer()
+    try:
+        await images.process(job)
+    except Exception as exc:
+        log.error("images", exc, job_id=job.id)
+        raise
+    finally:
+        store.save_slots(job)
+        store.save_transcript(job)
+        store.save_screentext(job)
+        c = job.coverage()
+        log.event("images", job_id=job.id, ok=c["ok"], missing=c["missing"], text=len(job.screentext.segments), ms=timer.ms)
+
+
+MAX_IMAGE_BYTES = 25 << 20
+IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
+
+
+@app.post("/api/images")
+async def upload_images(files: list[UploadFile] = File(...), task: str = Form("")):
+    """Upload pictures (screenshots, a saved image post): they become an image job, kept on disk."""
+    prune()
+    if not files or len(files) > images.MAX_IMAGES:
+        raise HTTPException(422, f"一次上传 1 到 {images.MAX_IMAGES} 张图片")
+    job_id = uuid.uuid4().hex[:12]
+    root = DATA_DIR / job_id
+    folder = root / "uploads"
+    folder.mkdir(parents=True, exist_ok=True)
+    saved = []
+    try:
+        for i, f in enumerate(files):
+            name = Path(f.filename or "").name
+            suffix = Path(name).suffix.lower()
+            if suffix not in IMAGE_SUFFIXES and not (f.content_type or "").startswith("image/"):
+                raise HTTPException(422, f"不是图片：{name}")
+            data = await f.read(MAX_IMAGE_BYTES + 1)
+            if len(data) > MAX_IMAGE_BYTES:
+                raise HTTPException(413, f"图片超过 {MAX_IMAGE_BYTES >> 20} MB：{name}")
+            path = folder / f"{i:03d}{suffix or '.img'}"
+            path.write_bytes(data)
+            saved.append({"path": str(path), "name": name})
+    except BaseException:
+        shutil.rmtree(root, ignore_errors=True)
+        raise
+    first = saved[0]["name"] or "上传的图片"
+    title = first if len(saved) == 1 else f"{first} 等 {len(saved)} 张图片"
+    video = ResolvedVideo(LOCAL, job_id, f"local://{job_id}", title, float(len(saved)), [],
+                          notes=[f"上传的图片 {len(saved)} 张"], extra={"kind": images.KIND, "images": saved})
+    resolver = next(r for r in registry.resolvers if r.platform == LOCAL)
+    job = FrameJob(job_id, video, resolver, root, count=len(saved))
+    job.transcript, job.screentext = Transcript(), ScreenText()
+    jobs[job_id] = job
+    store.create(job, f"上传：{title}", task)
+    log.event("upload.images", job_id=job_id, count=len(saved))
+    spawn(process_images(job))
     return snapshot(job)
 
 
@@ -424,6 +491,20 @@ async def retry_missing(job_id: str):
     job = get_job(job_id)
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再试")
+    if images.is_images(job.video):  # pictures: fetch the missing ones again, then read their text
+        since = len(job.events)
+        indexes = await job.retry_missing()
+
+        async def again():
+            if indexes:
+                await images.fetch(job, indexes)
+            await images.read_text(job)
+            store.save_slots(job)
+            store.save_screentext(job)
+
+        job.screentext.status = "running"
+        spawn(again())
+        return {"retrying": len(indexes), "transcript": False, "screentext": True, "since": since}
     if job.video.platform == LOCAL:
         raise HTTPException(409, "本地上传的视频处理完已删除，不能补抓，请重新上传")
     redo_transcript = job.transcript.status == "failed"
