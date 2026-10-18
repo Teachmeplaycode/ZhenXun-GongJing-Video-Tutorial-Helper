@@ -50,6 +50,14 @@ check_tools() {
   if command -v uv >/dev/null 2>&1; then ok "uv $(uv --version 2>/dev/null | awk '{print $2}')"; else fail "没有 uv：brew install uv"; fi
   if command -v node >/dev/null 2>&1; then ok "node $(node -v)"; else fail "没有 Node.js：brew install node"; fi
   if command -v ffmpeg >/dev/null 2>&1; then ok "ffmpeg"; else fail "没有 ffmpeg（抽帧和转写都要用）：brew install ffmpeg"; fi
+  # Optional: other platforms' links (抖音、YouTube、小红书 …) through alcedo (backend/modules/video_source/alcedo.py).
+  local alcedo
+  alcedo="$(setting ALCEDO_BIN)"
+  [ -z "$alcedo" ] && alcedo="$(command -v alcedo 2>/dev/null || true)"
+  [ -z "$alcedo" ] && alcedo="$(ls "$(dirname "$ROOT")"/tools/alcedo-*/alcedo-cli-*/bin/alcedo 2>/dev/null | tail -1)"
+  if [ -n "$(setting ALCEDO_URL)" ]; then ok "alcedo 服务 $(setting ALCEDO_URL)"
+  elif [ -n "$alcedo" ] && [ -x "$alcedo" ]; then ok "$("$alcedo" --version 2>/dev/null)（抖音、YouTube 等链接）"
+  else warn "没有 alcedo：只能解析 B 站和视频号链接（./scripts/install-alcedo.sh 可装上抖音、YouTube 等 35 个平台）"; fi
 }
 
 check_env() {
