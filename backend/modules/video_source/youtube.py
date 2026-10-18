@@ -1,10 +1,11 @@
 """YouTube resolver: parses the watch page's ytInitialPlayerResponse (address-only, never downloads).
 
 YouTube has no anonymous play-url API like Bilibili; the watch page embeds the player response with
-streamingData. Addresses may carry a signatureCipher that needs client-side n-parameter decoding to
-be readable; when present we keep the address and note it. Login-gated / region-restricted / private
-videos are mapped from playabilityStatus to a clear ResolveError. An optional yt-dlp path is left as a
-future fallback (see notes), not enabled by default to avoid the LGPL/size cost.
+streamingData. Addresses that carry a signatureCipher (the `s` signature) or an untransformed `n`
+throttling parameter are NOT readable as-is and are skipped — we do not implement the player's
+changing client-side decipher, so a video whose only addresses need it reports no_stream.
+Login-gated / region-restricted / private videos are mapped
+from playabilityStatus to a clear ResolveError.
 """
 from __future__ import annotations
 
@@ -74,12 +75,22 @@ def _extract_player_response(html: str) -> dict:
     return obj
 
 
+def _has_n(fmt: dict) -> bool:
+    """True when the address still carries the `n` throttling parameter (needs a transform to read)."""
+    url = fmt.get("url") or ""
+    return "n" in urllib.parse.parse_qs(urllib.parse.urlsplit(url).query, keep_blank_values=True)
+
+
+def _needs_decipher(fmt: dict) -> bool:
+    """True when the address is signed (`s`) or carries an untransformed `n`: not readable as-is."""
+    return bool(fmt.get("signatureCipher") or fmt.get("cipher")) or _has_n(fmt)
+
+
 def _stream_from_format(fmt: dict, headers: dict[str, str], kind: str) -> Stream | None:
+    # Never hand out an address that is guaranteed to be refused: skip signed / n-throttled formats.
+    if _needs_decipher(fmt):
+        return None
     url = fmt.get("url")
-    if not url:
-        # signatureCipher / cipher: needs client-side decipher; keep the raw url if parseable.
-        cipher = fmt.get("signatureCipher") or fmt.get("cipher") or ""
-        url = urllib.parse.parse_qs(cipher).get("url", [""])[0]
     if not url:
         return None
     label = f"{kind}-{fmt.get('itag', '?')}-{fmt.get('qualityLabel') or fmt.get('quality', '')}"
@@ -103,10 +114,12 @@ def parse_player_response(payload: dict, video_id: str, headers: dict[str, str])
     if duration <= 0:
         raise ResolveError("upstream", "无法确定视频时长", retryable=True)
     streams: list[Stream] = []
+    muxed: list[Stream] = []
     for fmt in (streaming.get("formats") or []):
         s = _stream_from_format(fmt, headers, "muxed")
         if s:
             streams.append(s)
+            muxed.append(s)
     audio: list[Stream] = []
     for fmt in (streaming.get("adaptiveFormats") or []):
         s = _stream_from_format(fmt, headers, "adaptive")
@@ -118,11 +131,16 @@ def parse_player_response(payload: dict, video_id: str, headers: dict[str, str])
         elif "video" in mime and not streams:
             streams.append(s)
     if not streams:
-        raise ResolveError("no_stream", "没有拿到可读取的播放地址（可能需要登录或地址已签名）", retryable=True)
+        raise ResolveError("no_stream", "没有拿到可直接读取的播放地址（地址可能需要签名或 n 变换解码）", retryable=True)
+    # Muxed formats already contain the audio: fall back to them when the video has no adaptive audio
+    # track so transcription has something to read. A video-only adaptive stream is never used as audio.
+    if not audio:
+        audio = list(muxed)
     notes: list[str] = []
     all_fmts = (streaming.get("formats") or []) + (streaming.get("adaptiveFormats") or [])
-    if any(fmt.get("signatureCipher") or fmt.get("cipher") for fmt in all_fmts):
-        notes.append("部分地址带签名，若读取失败可改用 yt-dlp 后端")
+    skipped = sum(1 for fmt in all_fmts if _needs_decipher(fmt))
+    if skipped:
+        notes.append(f"{skipped} 个地址需要签名或 n 变换解码，已跳过")
     canonical = f"https://www.youtube.com/watch?v={video_id}"
     thumbs = (details.get("thumbnail") or {}).get("thumbnails") or [{}]
     return ResolvedVideo(

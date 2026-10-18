@@ -1,5 +1,6 @@
 import asyncio
 import json
+from urllib.parse import urlencode
 
 import httpx
 import pytest
@@ -97,11 +98,66 @@ def test_missing_player_response():
     assert e.value.code == "upstream"
 
 
-def test_signed_formats_produce_note():
-    payload = player_response(signed=True)
-    v = run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
-    assert v.streams[0].url == "https://cdn/muxed.mp4"
-    assert v.notes and "yt-dlp" in v.notes[0]
+@pytest.mark.parametrize("formats", [
+    [{"itag": 18, "signatureCipher": urlencode({"s": "AAA", "sp": "sig", "url": "https://cdn/signed.mp4"})}],
+    [{"itag": 18, "cipher": urlencode({"s": "AAA", "url": "https://cdn/signed.mp4"})}],
+    [{"itag": 18, "url": "https://cdn/throttled.mp4?n=untransformed"}],
+    [{"itag": 18, "url": "https://cdn/throttled.mp4?n="}],
+    [],
+])
+def test_unreadable_only_formats_report_no_stream(formats):
+    payload = player_response(formats=formats)
+    with pytest.raises(ResolveError) as error:
+        run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert error.value.code == "no_stream"
+    assert error.value.retryable is True
+
+
+def test_signed_and_n_formats_are_skipped_when_readable_fallback_exists():
+    payload = player_response(formats=[
+        {"itag": 22, "signatureCipher": urlencode({"s": "AAA", "url": "https://cdn/signed.mp4"})},
+        {"itag": 18, "url": "https://cdn/readable.mp4?expire=123", "mimeType": "video/mp4", "height": 360},
+    ], adaptive=[
+        {"itag": 137, "url": "https://cdn/throttled.mp4?n=untransformed", "mimeType": "video/mp4"},
+        {"itag": 251, "cipher": urlencode({"s": "AAA", "url": "https://cdn/signed-audio.webm"}), "mimeType": "audio/webm"},
+    ])
+    v = run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert [s.url for s in v.streams] == ["https://cdn/readable.mp4?expire=123"]
+    assert [s.url for s in v.audio_streams] == ["https://cdn/readable.mp4?expire=123"]
+    assert v.notes and "3 个地址" in v.notes[0] and "已跳过" in v.notes[0]
+
+
+def test_muxed_only_video_can_supply_audio_for_transcription():
+    payload = player_response()
+    v = run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert [s.url for s in v.audio_streams] == ["https://cdn/muxed.mp4"]
+    assert v.public()["has_audio"] is True
+    assert v.audio_streams[0].headers["Referer"] == "https://www.youtube.com/"
+
+
+def test_video_only_adaptive_format_is_never_an_audio_track():
+    payload = player_response(formats=[], adaptive=[
+        {"itag": 137, "url": "https://cdn/video-only.mp4", "mimeType": "video/mp4; codecs=avc1", "height": 1080},
+    ])
+    v = run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert [s.url for s in v.streams] == ["https://cdn/video-only.mp4"]
+    assert v.audio_streams == []
+    assert v.public()["has_audio"] is False
+
+
+def test_readable_adaptive_audio_is_preferred_over_muxed_fallback():
+    payload = player_response(adaptive=[{"itag": 251, "url": "https://cdn/audio.webm", "mimeType": "audio/webm"}])
+    v = run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert [s.url for s in v.audio_streams] == ["https://cdn/audio.webm"]
+
+
+def test_readable_audio_alone_does_not_hide_unusable_video():
+    payload = player_response(signed=True, adaptive=[
+        {"itag": 251, "url": "https://cdn/audio.webm", "mimeType": "audio/webm"},
+    ])
+    with pytest.raises(ResolveError) as error:
+        run(resolver(lambda r: httpx.Response(200, text=watch_html(payload))).resolve("https://youtu.be/dQw4w9WgXcQ"))
+    assert error.value.code == "no_stream"
 
 
 def test_not_found_and_server_error():
