@@ -1,0 +1,103 @@
+"""A note as Markdown with its pictures, zipped: from the editor's board when it was arranged, else as written.
+
+Board blocks are read in reading order (top to bottom, then left to right), so moving a picture in the
+editor moves it in the export too. Pictures are copied from the job folder into images/.
+"""
+from __future__ import annotations
+
+import io
+import re
+import zipfile
+from collections.abc import Callable
+from pathlib import Path
+
+from .task import clock
+
+# Picture addresses the note uses → (folder under the job, file name)
+SRC_RE = re.compile(r"/api/link-jobs/[\w-]+/(extra/\d{8}\.jpg|frames/\d+\.jpg|replay/[\d-]+/\d{2}\.jpg)$")
+
+
+def _section_md(b: dict) -> list[str]:
+    head = f"## {b.get('title') or '小节'}"
+    if isinstance(b.get("start"), (int, float)) and isinstance(b.get("end"), (int, float)):
+        head += f"（{clock(b['start'])}–{clock(b['end'])}）"
+    out = [head, ""]
+    out += [f"- {p}" for p in b.get("points") or []]
+    if b.get("formulas"):
+        out += ["", "**公式**", ""] + [f"$$\n{f}\n$$" for f in b["formulas"]]
+    if b.get("examples"):
+        out += ["", "**例题**", ""] + [f"{i + 1}. {e}" for i, e in enumerate(b["examples"])]
+    return out + [""]
+
+
+def _mindmap_md(node: dict, depth: int = 0) -> list[str]:
+    if not isinstance(node, dict) or not node.get("label"):
+        return []
+    lines = [f"{'  ' * depth}- {node['label']}"]
+    for child in node.get("children") or []:
+        lines += _mindmap_md(child, depth + 1)
+    return lines
+
+
+def _figure_md(b: dict, name: str) -> list[str]:
+    caption = b.get("caption") or "画面"
+    when = f" · {clock(b['time'])}" if isinstance(b.get("time"), (int, float)) else ""
+    return [f"![{caption}](images/{name})", f"*{caption}{when}*", ""]
+
+
+def note_blocks(note: dict) -> list[dict]:
+    """The note in its written order, as board-like blocks (no positions)."""
+    blocks = [{"type": "title", "text": note.get("title"), "summary": note.get("summary")}]
+    for s in note.get("sections") or []:
+        blocks.append({"type": "section", **{k: s.get(k) for k in ("title", "start", "end", "points", "formulas", "examples")}})
+        blocks += [{"type": "figure", **f} for f in s.get("figures") or []]
+    if note.get("mindmap"):
+        blocks.append({"type": "mindmap", "tree": note["mindmap"]})
+    return blocks
+
+
+def reading_order(blocks: list[dict]) -> list[dict]:
+    """Top to bottom; blocks whose tops are within 40 px count as one row, read left to right."""
+    rows: list[list[dict]] = []
+    for b in sorted(blocks, key=lambda b: (float(b.get("y", 0)), float(b.get("x", 0)))):
+        if rows and abs(float(b.get("y", 0)) - float(rows[-1][0].get("y", 0))) < 40:
+            rows[-1].append(b)
+        else:
+            rows.append([b])
+    return [b for row in rows for b in sorted(row, key=lambda b: float(b.get("x", 0)))]
+
+
+def to_zip(note: dict, board: dict | None, picture: Callable[[str], Path | None]) -> tuple[bytes, str]:
+    """(zip bytes, title). `picture(src)` gives the file behind a picture address, or None."""
+    blocks = reading_order(board["blocks"]) if board and board.get("blocks") else note_blocks(note)
+    lines: list[str] = []
+    files: dict[str, Path] = {}
+    for b in blocks:
+        kind = b.get("type")
+        if kind == "title":
+            lines += [f"# {b.get('text') or note.get('title') or '视频笔记'}", ""]
+            if b.get("summary"):
+                lines += [f"> {b['summary']}", ""]
+        elif kind == "section":
+            lines += _section_md(b)
+        elif kind == "figure":
+            src = str(b.get("src") or "")
+            path = picture(src) if SRC_RE.search(src) else None
+            if path is None:
+                continue
+            name = f"{len(files) + 1:02d}-{path.parent.name}-{path.name}" if path.parent.name != "frames" else f"{len(files) + 1:02d}-frame-{path.name}"
+            files[name] = path
+            lines += _figure_md(b, name)
+        elif kind == "mindmap":
+            lines += ["## 思维导图", ""] + _mindmap_md(b.get("tree") or {}) + [""]
+        elif kind == "text" and str(b.get("text") or "").strip():
+            lines += [str(b["text"]).strip(), ""]
+    video = note.get("video") or {}
+    if video.get("title"):
+        lines += ["---", f"来源视频：{video['title']}", ""]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("笔记.md", "\n".join(lines).rstrip() + "\n")
+        for name, path in files.items():
+            z.write(path, f"images/{name}")
+    return buf.getvalue(), note.get("title") or "视频笔记"
