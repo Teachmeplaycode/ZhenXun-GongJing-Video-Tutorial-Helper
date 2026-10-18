@@ -587,6 +587,44 @@ img { display: block; }
 .timeline__legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--mark); }
 .timeline__legend[data-kind='cut'] i { width: 2px; height: 12px; border-radius: 1px; background: var(--mark-cut); }
 .timeline__legend[data-kind='cite'] i { border-radius: 50%; background: var(--mark-cite); }
+.timeline__legend[data-kind='chapter'] i { background: color-mix(in srgb, var(--mark-chapter) 45%, transparent); }
+
+/* chapter bands (backend modules/chapters): a faint tint under the sheets, alternating so
+   neighbouring chapters stay apart — deliberately quieter than the four mark colours */
+.tl-chapterband {
+  position: absolute; top: 0; bottom: 0; pointer-events: none;
+  background: color-mix(in srgb, var(--mark-chapter) 9%, transparent);
+}
+.tl-chapterband[data-alt] { background: color-mix(in srgb, var(--mark-chapter) 22%, transparent); }
+
+/* the chapters panel at the top of the chat thread */
+.chapters {
+  margin: 0 0 var(--sp-16); border: var(--border-hairline); border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+.chapters__head {
+  display: flex; align-items: center; gap: var(--sp-12); min-height: 40px;
+  padding: var(--sp-8) var(--sp-16);
+}
+.chapters__note { color: var(--text-tertiary); }
+.chapters__error { color: var(--accent-error); }
+.chapters__fold { margin-left: auto; }
+.chapters[data-open] .chapters__list { border-top: var(--border-hairline); }
+.chapters__list { margin: 0; padding: var(--sp-4) 0; list-style: none; }
+.chapters__list li + li { border-top: 1px solid var(--grid-line); }
+.chapters__item {
+  display: flex; align-items: center; gap: var(--sp-12); width: 100%; padding: var(--sp-8) var(--sp-16);
+  border: 0; background: none; font: inherit; color: var(--text-primary); text-align: left; cursor: pointer;
+}
+.chapters__item:hover, .chapters__item:focus-visible { background: var(--bg-surface-alt); outline: none; }
+.chapters__no { color: var(--text-tertiary); }
+.chapters__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.chapters__body strong { font-size: var(--fs-body-sm); font-weight: 600; }
+.chapters__summary {
+  overflow: hidden; font-size: var(--fs-caption); color: var(--text-secondary);
+  white-space: nowrap; text-overflow: ellipsis;
+}
+.chapters__time { flex: none; }
 
 /* marks above the sheets: shot changes (ticks) and times the answers point at (dots) */
 .tl-cut {
@@ -941,3 +979,5 @@ img { display: block; }
 .viz-motion__images { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
 .viz-motion__images figure { margin: 0; width: min(300px, 100%); }
 .viz-motion__images img { display: block; width: 100%; border-radius: var(--radius-sm); }
+
+.chapters__overview { margin: 0; padding: 0 16px 12px; color: var(--text-secondary); }

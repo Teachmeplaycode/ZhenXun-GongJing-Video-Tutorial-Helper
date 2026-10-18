@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from modules import accounts, log
+from modules.chapters.router import ChapterService
 from modules.agent import browser, run_agent
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.frames import FrameJob, cuts
@@ -263,6 +264,10 @@ async def resolve_link(body: LinkRequest):
     return video.public()
 
 
+chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(), cutting, lambda job: find_cuts(job))
+app.include_router(chapter_service.router)
+
+
 @app.post("/api/link-jobs")
 async def create_link_job(body: LinkRequest):
     """Resolve the link and start sampling frames in the background."""
@@ -285,6 +290,7 @@ async def create_link_job(body: LinkRequest):
     spawn(transcribe(job))
     spawn(read_screen(job))
     spawn(find_cuts(job))
+    chapter_service.start(job)
     warm_decider()
     return snapshot(job)
 
@@ -321,6 +327,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
     async def process() -> None:
         try:
             await asyncio.gather(sample(job), transcribe(job), read_screen(job), find_cuts(job))
+            chapter_service.start(job)
         finally:
             if not KEEP_UPLOADS:
                 path.unlink(missing_ok=True)
@@ -388,6 +395,8 @@ async def retry_missing(job_id: str):
     if indexes:
         job.running = True
         spawn(sample(job, indexes))
+    if redo_transcript or redo_screen:
+        chapter_service.invalidate(job)
     if redo_transcript:
         spawn(transcribe(job))
     if redo_screen:
@@ -664,6 +673,7 @@ async def delete_session(session_id: str):
         raise HTTPException(404, "会话不存在")
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再删除")
+    chapter_service.remove(session_id)
     jobs.pop(session_id, None)
     store.delete(session_id)
     shutil.rmtree(DATA_DIR / session_id, ignore_errors=True)

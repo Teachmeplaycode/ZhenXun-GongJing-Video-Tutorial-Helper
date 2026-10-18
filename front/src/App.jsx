@@ -16,7 +16,7 @@ import ImportPanel from './stages/ImportPanel'
 import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
-import { createLinkJob, deleteSession, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, fetchChapters, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadVideo } from './api/client'
 import { mockUpload } from './api/mock'
 import { restoreMessages } from './api/useAgentChat'
 import { pickFrameCount, syntheticFrames } from './lib/video'
@@ -90,6 +90,8 @@ export default function App() {
   const [extraFrames, setExtraFrames] = useState([]) // replayed / closer-look frames from the chat, shown on the timeline
   const [cited, setCited] = useState([]) // times the answers point at, marked on the timeline
   const [cuts, setCuts] = useState([]) // the video's shot changes, marked on the timeline
+  const [chapterRevision, setChapterRevision] = useState(0)
+  const [chaptersData, setChaptersData] = useState(null) // the video's chapter list (modules/chapters)
   const [chatBusy, setChatBusy] = useState(false) // an answer or a replay in progress: no new replay meanwhile
   const [clip, setClip] = useState(null) // { start, end } framed on the timeline to ask about
   const [replayRequest, setReplayRequest] = useState(null) // { start, end, key } framed to replay now
@@ -106,7 +108,7 @@ export default function App() {
         const r = await fetchCuts(jobId)
         if (stopped) return
         if (r.status === 'done') setCuts(r.cuts)
-        else if (r.status === 'running' && tries < 200) timer = setTimeout(() => poll(tries + 1), 3000)
+        else if (r.status === 'running') timer = setTimeout(() => poll(tries + 1), 3000)
       } catch {
         // no marks: the timeline works without them
       }
@@ -114,6 +116,26 @@ export default function App() {
     poll(0)
     return () => { stopped = true; clearTimeout(timer) }
   }, [video?.jobId, inChat])
+  // Chapters: built in the background after the transcript lands; poll until they settle.
+  useEffect(() => {
+    setChaptersData(null)
+    const jobId = video?.jobId
+    if (!jobId || !inChat) return undefined
+    let stopped = false
+    let timer = 0
+    const poll = async (tries) => {
+      try {
+        const r = await fetchChapters(jobId)
+        if (stopped) return
+        setChaptersData(r)
+        if (r.status === 'running') timer = setTimeout(() => poll(tries + 1), 3000)
+      } catch {
+        if (!stopped) timer = setTimeout(() => poll(tries + 1), 3000)
+      }
+    }
+    poll(0)
+    return () => { stopped = true; clearTimeout(timer) }
+  }, [video?.jobId, inChat, chapterRevision])
   // The chat's timeline can fold away for a taller chat; remembered across visits.
   const [timelineOpen, setTimelineOpenState] = useState(() => {
     try {
@@ -331,6 +353,7 @@ export default function App() {
         setFrames((list) => list.map((f) => (f.status === 'missing' && f.reasonCode !== 'trial' ? { ...f, status: 'pending', reason: '' } : f)))
         setAnalysis((a) => ({ ...a, missing: a.missing - count }))
       }
+      if (transcript || screentext) setChapterRevision((n) => n + 1)
       if (transcript) setAnalysis((a) => ({ ...a, transcript: { status: 'running', message: '正在重新转写', count: 0 } }))
       if (screentext) setAnalysis((a) => ({ ...a, screentext: { status: 'running', message: '正在重新识别', count: 0 } }))
       if (count || transcript || screentext) {
@@ -685,6 +708,7 @@ export default function App() {
               onExtras={setExtraFrames}
               onCited={setCited}
               onBusy={setChatBusy}
+              chapters={chaptersData}
               replayRequest={replayRequest}
               clip={clip}
               onClearClip={() => setClip(null)}
@@ -718,6 +742,7 @@ export default function App() {
           extras={extraFrames}
           cuts={cuts}
           cited={cited}
+          chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
           busy={chatBusy}
           onRange={(start, end, action) => {
             if (action === 'play') setReplayRequest({ start, end, key: Date.now() })

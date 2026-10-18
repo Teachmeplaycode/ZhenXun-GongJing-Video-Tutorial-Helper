@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import gsap from 'gsap'
 import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
+import ChaptersPanel from '../components/ChaptersPanel'
 import { IconArrowDown, IconArrowRight } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
 import SpotlightCard from '../components/react-bits/SpotlightCard'
@@ -26,7 +27,7 @@ const fineClock = (t) => {
 // onCited the times the answers point at; onBusy whether an answer (or a replay) is in progress.
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
-export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
   const { messages, send, regenerate, stop, running, replay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   const extras = useMemo(() => collectExtras(messages), [messages])
   const extrasKey = extras.map((g) => `${g.id}:${g.frames.length}`).join('|')
@@ -107,6 +108,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     <div className="chat">
       <div ref={scrollRef} className="chat__scroll" onScroll={onScroll}>
         <div className="chat__thread">
+          <ChaptersPanel data={chapters} onSeek={onSeek} />
           {!messages.length ? (
             <AnimatedContent className="chat__empty" distance={12} duration={0.5}>
               <div className="chat__agent">
