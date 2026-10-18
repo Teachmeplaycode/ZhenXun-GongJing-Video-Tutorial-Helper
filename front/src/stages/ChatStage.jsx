@@ -4,6 +4,7 @@ import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
 import ChaptersPanel from '../components/ChaptersPanel'
 import { IconArrowDown, IconArrowRight } from '../components/Icons'
+import { IconSearch } from '../components/FactCheckIcons'
 import { useAgentChat } from '../api/useAgentChat'
 import SpotlightCard from '../components/react-bits/SpotlightCard'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
@@ -14,6 +15,7 @@ import Avatar from '../components/Avatar'
 import { collectCited, collectExtras } from '../lib/extraFrames'
 import AntifraudPanel from '../components/AntifraudPanel'
 import { IconShield } from '../components/antifraud-icons'
+import FactCheckReport from '../components/FactCheckReport'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 // 114.25 → "01:54.3" (the agent reads tenths; whole seconds stay "01:54")
@@ -31,6 +33,7 @@ const fineClock = (t) => {
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
 export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
   const { messages, send, regenerate, stop, running, replay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
+  const [factcheckOpen, setFactcheckOpen] = useState(false)
   const extras = useMemo(() => collectExtras(messages), [messages])
   const extrasKey = extras.map((g) => `${g.id}:${g.frames.length}`).join('|')
   useEffect(() => {
@@ -172,6 +175,11 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
           onClose={() => setAntifraudOpen(false)}
         />
       ) : null}
+      <button type="button" className="chip-btn chat__factcheck" disabled={!video?.jobId} onClick={() => setFactcheckOpen(true)}
+              title="生成科普核查报告" aria-label="生成科普核查报告">
+        <IconSearch size={16} />
+        <span>科普核查</span>
+      </button>
       <Composer
         draft={draft}
         setDraft={setDraft}
@@ -185,6 +193,13 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         clip={clip}
         onClearClip={onClearClip}
         scopeNote={scopeNote}
+      />
+      <FactCheckReport
+        jobId={video?.jobId}
+        video={video}
+        open={factcheckOpen}
+        onSeek={onSeek}
+        onClose={() => setFactcheckOpen(false)}
       />
     </div>
   )

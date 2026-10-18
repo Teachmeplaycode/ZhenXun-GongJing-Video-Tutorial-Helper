@@ -25,6 +25,7 @@ from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
 from modules.store import SessionStore
 from modules.screentext import ScreenText, run_screentext
+from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
 from modules.antifraud.router import create_router as antifraud_router
 from modules.video_source import ResolveError, Stream, default_registry
@@ -579,6 +580,11 @@ def track(calls: dict[str, dict], event: dict) -> None:
     elif kind == "tool_call.completed" and cid in calls:
         calls[cid].update(ms=round((event["t"] - calls[cid]["start"]) * 1000), count=event.get("result_count"))
         calls[cid].setdefault("ok", True)
+
+
+app.include_router(create_factcheck_router(
+    find_job=lambda job_id: find_job(job_id), get_llm=lambda: get_llm(), store=store,
+))
 
 
 # ---- platform logins ------------------------------------------------------------------------------
