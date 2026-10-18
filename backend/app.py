@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from modules import accounts, log
 from modules.agent import browser, run_agent
 from modules.agent.tools import AgentTools, TRACE_NAMES
+from modules.export.api import create_router as create_export_router
 from modules.frames import FrameJob, cuts
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
@@ -655,6 +656,9 @@ async def get_session(session_id: str):
     """Everything needed to reopen a session: the job snapshot plus its conversation."""
     job = get_job(session_id)
     return {**snapshot(job), "task": store.get(session_id)["task"], "messages": store.messages(session_id)}
+
+
+app.include_router(create_export_router(store=store, get_job=get_job, data_dir=DATA_DIR))
 
 
 @app.delete("/api/sessions/{session_id}")
