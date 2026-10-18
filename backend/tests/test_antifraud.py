@@ -459,10 +459,14 @@ def test_api_real_frame_job_metadata_and_no_missing_model_500(tmp_path, monkeypa
     asyncio.run(run())
 
 
-def test_empty_input_cannot_claim_low_risk_or_safety():
-    result = analyze()
+@pytest.mark.parametrize("segments", [[], [(0, 1, "   ")]])
+def test_empty_input_cannot_claim_low_risk_or_safety(segments):
+    result = analyze(transcript_segments=segments)
     assert result.claims == []
     assert result.score['level'] == 'unknown'
+    assert result.score['level_label'] == '无法判断'
+    assert '无法判断' in result.summary
+    assert '风险等级：低' not in result.summary
 
 
 def test_absolute_short_url_is_one_signal_and_one_weight():
@@ -540,3 +544,68 @@ def test_neutral_analysis_recommendations_are_not_analyst_endorsements(text):
 def test_complete_analyst_or_expert_endorsement_remains_a_reviewable_signal(text):
     hits = RuleLibrary.load().scan_text(text, 3, 7, 'transcript')
     assert any(hit.rule_id == 'expert_endorsement' for hit in hits)
+
+
+@pytest.mark.parametrize('text', ['请主动向老师反馈', '在平台内推荐热门文章', '项目内代码审核流程'])
+def test_neutral_words_do_not_form_truncated_insider_phrases(text):
+    result = analyze(transcript_segments=[(4, 9, text)])
+    assert result.score['base'] == 0
+    assert not any(hit['rule_id'] == 'insider_info' for hit in result.rule_hits)
+
+
+@pytest.mark.parametrize('text', ['内部推荐', '内部代码', '提前布局', '主力动向', '庄家洗盘'])
+def test_complete_insider_phrases_remain_reviewable(text):
+    assert any(hit.rule_id == 'insider_info' for hit in RuleLibrary.load().scan_text(text, 4, 9, 'transcript'))
+
+
+@pytest.mark.parametrize(('rid', 'neutral', 'positive'), [
+    ('guaranteed_high_return', '社保高收益测算只用于解释计算方法', ['保本高收益', '稳赚不亏']),
+    ('exaggerated_return', '基金今天收高2%，记录真实行情', ['收益高达30%', '年收益30%', '年化收益30%', '年化100%']),
+    ('limited_urgency', '系统出错一年后才修复', ['即将截止', '最后3个名额', '错过再等一年', '今日特惠']),
+    ('expert_endorsement', '报名推荐系统课程，融资推荐算法服务', ['名师推荐', '资深推荐', '专家背书', '首席分析师']),
+    ('add_wechat_for_benefit', '有人私领包裹，保安正在登记', ['加微信领资料', '进群领资料', '加好友领资料', '私聊领资料', '免费领资料加微信']),
+    ('false_authority', '设计总监认可这份草图', ['政府背景', '国企背景', '银行合作', '监管认可', '权威机构认证']),
+    ('health_therapy', '故宫秘方是本次历史展览的主题', ['彻底治愈', '神奇疗效', '百病不生', '提高免疫力防癌', '祖传秘方', '宫廷秘方']),
+    ('target_elderly', '我爸爸买了电影票，准备周末看电影', ['中老年专享', '退休人士专享', '养老理财', '给爸妈买', '中老年必备', '老年特惠', '孝敬父母']),
+])
+def test_other_rules_require_complete_words_while_preserving_real_phrases(rid, neutral, positive):
+    lib = RuleLibrary.load()
+    assert not any(hit.rule_id == rid for hit in lib.scan_text(neutral, 0, 2, 'transcript'))
+    for text in positive:
+        assert any(hit.rule_id == rid for hit in lib.scan_text(text, 0, 2, 'transcript')), text
+
+
+@pytest.mark.parametrize('text', ['', '   '])
+def test_empty_api_report_is_consistently_unassessable_and_never_asks_model(tmp_path, monkeypatch, text):
+    import asyncio
+    import httpx
+    import app as api
+    class MustNotCall:
+        called = False
+        async def stream(self, *args, **kwargs):
+            self.called = True
+            yield '{"risk":"low","reason":"不应执行","evidence_ids":["invented"]}'
+    model = MustNotCall()
+    monkeypatch.setitem(api.jobs, 'empty-evidence', _job(tmp_path, text))
+    monkeypatch.setattr(api, 'get_llm', lambda: model)
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api.app), base_url='http://test') as client:
+            response = await client.get('/api/link-jobs/empty-evidence/antifraud')
+            assert response.status_code == 200
+            report = response.json()
+            assert report['status'] == 'partial'
+            assert report['score']['level'] == 'unknown'
+            assert report['score']['level_label'] == '无法判断'
+            assert report['claims'] == []
+            assert report['assessment']['risk'] is None
+            for value in (report['summary'], report['message'], report['assessment']['reason']):
+                assert '无法判断' in value
+                assert '风险等级：低' not in value
+    asyncio.run(run())
+    assert not model.called
+
+
+
+def test_classical_filial_phrase_is_not_automatically_elderly_marketing():
+    hits = RuleLibrary.load().scan_text('本节古文课程解释“孝父母”一语的含义', 0, 2, 'transcript')
+    assert not any(hit.rule_id == 'target_elderly' for hit in hits)

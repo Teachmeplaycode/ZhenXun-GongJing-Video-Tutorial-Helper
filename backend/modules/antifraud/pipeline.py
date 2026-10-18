@@ -202,16 +202,16 @@ def analyze(
     # 5. claims (per #2 report schema)
     claims = _build_claims(hits, signals, qrcode_hits, sc, lib)
 
-    # 6. summary
-    summary = _build_summary(sc, claims)
-
+    # 6. No evidence cannot be summarized as low risk.
     if not has_text and not qrcode_hits:
         status = "partial"
         message = "没有可分析的转写或画面文字，且未检测到二维码；无法判断风险。"
         claims = []
+        summary = "缺少可分析的转写、画面文字或二维码证据，无法判断风险。"
     else:
         status = "done"
         message = ""
+        summary = _build_summary(sc, claims)
 
     return AntifraudReport(
         job_id=job_id,
@@ -220,7 +220,7 @@ def analyze(
         message=message,
         summary=summary,
         claims=claims,
-        score={**sc.as_dict(), **({"level": "unknown", "level_label": "待定"} if not has_text and not qrcode_hits else {})},
+        score={**sc.as_dict(), **({"level": "unknown", "level_label": "无法判断"} if not has_text and not qrcode_hits else {})},
         drainage_signals=[s.as_dict() for s in signals],
         rule_hits=[h.as_dict() for h in hits],
         qrcodes=[q.as_dict() for q in qrcode_hits],
