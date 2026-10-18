@@ -37,11 +37,12 @@ def pauses(transcript: Iterable | None = (), screen: Iterable | None = ()) -> li
     for i in range(1, len(rows)):
         if rows[i][0] - rows[i - 1][1] >= SILENCE_GAP:
             bounds.append(rows[i - 1][1])
-    had_text = False
-    for start, _end, text in _rows(screen):
-        if text and not had_text:
+    previous_end = None
+    for start, end, text in sorted(_rows(screen)):
+        if text and (previous_end is None or start - previous_end >= SILENCE_GAP):
             bounds.append(start)
-        had_text = bool(text)
+        if text:
+            previous_end = max(previous_end or end, end)
     return bounds
 
 
@@ -94,7 +95,7 @@ def segment(duration: float, cuts: Iterable | None = (), transcript: Iterable | 
     splits = sorted({_align(t, candidates, window) for t in raw})
     kept: list[float] = []
     for t in splits:
-        if not kept or t - kept[-1] >= MIN_SPAN:
+        if t - (kept[-1] if kept else 0.0) >= MIN_SPAN:
             kept.append(t)
     bounds = [0.0, *kept, duration]
     chapters = [(round(bounds[i], 2), round(bounds[i + 1], 2)) for i in range(len(bounds) - 1)]

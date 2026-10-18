@@ -395,6 +395,8 @@ async def retry_missing(job_id: str):
     if indexes:
         job.running = True
         spawn(sample(job, indexes))
+    if redo_transcript or redo_screen:
+        chapter_service.invalidate(job)
     if redo_transcript:
         spawn(transcribe(job))
     if redo_screen:
