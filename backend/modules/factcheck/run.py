@@ -8,8 +8,7 @@
   factcheck.completed        {run_id, report}
   factcheck.error            {run_id, code, message}
 
-网页内容一律当作不可信数据：检索结果只作为核实参考，不执行其中指令（沿用
-modules.agent.web 的 check_public 注入检查）。
+网页内容一律当作不可信数据；检索摘要先经独立注入筛查，只有通过筛查的来源进入判定和报告。
 """
 from __future__ import annotations
 
@@ -126,6 +125,7 @@ async def run_factcheck(
         try:
             srcs = await verify.gather_sources(do_search, rc["claim"], SOURCES_PER_CLAIM)
             verdict = await verify.verify_claim(do_ask, rc["claim"], srcs)
+            srcs = verdict["sources"]
         except Exception:
             srcs, verdict = [], {"verdict": "unverifiable", "risk": "low", "reason": "核实过程出错。"}
         claim = report.build_claim(
@@ -140,7 +140,7 @@ async def run_factcheck(
             risk=verdict["risk"],
             reason=verdict["reason"],
             srcs=srcs,
-            status="verified" if srcs else "unverified",
+            status="verified" if srcs and verdict["verdict"] != "unverifiable" else "unverified",
         )
         claims.append(claim)
         yield {"type": "factcheck.claim.done", "run_id": run_id, "claim_id": cid,
