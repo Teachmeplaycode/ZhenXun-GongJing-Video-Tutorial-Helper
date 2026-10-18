@@ -22,6 +22,8 @@ from modules.agent import browser, run_agent
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.export.api import create_router as create_export_router
 from modules.frames import FrameJob, cuts
+from modules.frames import sampling
+from modules.frames.job import MAX_FRAMES, shot_fill
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
@@ -77,6 +79,7 @@ class LinkRequest(BaseModel):
     url: str
     part: int | None = None
     task: str = ""  # question typed on the import screen, kept with the session
+    sampling: dict | None = None  # preset and overrides chosen on the import screen (modules/frames/sampling)
 
 
 class AgentRequest(BaseModel):
@@ -137,6 +140,30 @@ async def sample(job: FrameJob, indexes: list[int] | None = None) -> None:
                   retry=indexes is not None)
 
 
+CUTS_WAIT = 600.0  # seconds the shot fill waits for shot changes after the uniform pass
+
+
+async def sample_with_shots(job: FrameJob, cap: int = MAX_FRAMES) -> None:
+    """The uniform pass first (chat can start after it), then a keyframe for every shot it missed,
+    once the shot changes are known (modules/frames/cuts.py), up to `cap` frames in all."""
+    job.filling = True
+    try:
+        await sample(job)
+        deadline = time.monotonic() + CUTS_WAIT
+        while job.id in cutting and time.monotonic() < deadline:
+            await asyncio.sleep(1)
+        record = cuts.load(job.root) or {}
+        if record.get("status") != "done":
+            return
+        times = shot_fill(record["cuts"], job.video.duration or 0, [s.time for s in job.slots], cap)
+        log.event("link.shots", job_id=job.id, cuts=len(record["cuts"]), added=len(times))
+        if times:
+            await sample(job, job.add_slots(times))
+    finally:
+        job.filling = False
+        job.emit({"type": "status", "message": ""})  # wakes the event stream so it can close
+
+
 async def transcribe(job: FrameJob) -> None:
     timer = log.Timer()
     try:
@@ -161,7 +188,7 @@ async def read_screen(job: FrameJob) -> None:
     finally:
         store.save_screentext(job)
         t = job.screentext
-        log.event("screentext", job_id=job.id, status=t.status, segments=len(t.segments),
+        log.event("screentext", job_id=job.id, status=t.status, segments=len(t.segments), skipped=t.skipped,
                   message=(t.message if t.status != "done" else ""), ms=timer.ms)
 
 
@@ -190,9 +217,16 @@ async def find_cuts(job: FrameJob) -> None:
     log.event("cuts", job_id=job.id, status=record["status"], count=len(record["cuts"]), ms=timer.ms)
 
 
+def start_sampling(job: FrameJob, spec: dict | None) -> tuple:
+    """The import's sampling plan, saved with the video; returns the frame-sampling coroutine to run."""
+    p = sampling.plan(spec, job.video.duration or 0)
+    job.video.extra["sampling"] = p.as_dict()
+    return sample_with_shots(job, p.cap) if p.shots else sample(job)
+
+
 def busy(job: FrameJob) -> bool:
     """Frames, transcript or on-screen text still in progress."""
-    return job.running or job.transcript.running or job.screentext.running
+    return job.running or job.filling or job.transcript.running or job.screentext.running
 
 
 def snapshot(job: FrameJob) -> dict:
@@ -288,12 +322,13 @@ async def create_link_job(body: LinkRequest):
     job_id = uuid.uuid4().hex[:12]
     log.event("link.resolve", ok=True, job_id=job_id, platform=video.platform, video_id=video.video_id,
               duration=video.duration, ms=timer.ms)
-    job = FrameJob(job_id, video, resolver, DATA_DIR / job_id)
+    job = FrameJob(job_id, video, resolver, DATA_DIR / job_id, count=sampling.plan(body.sampling, video.duration or 0).frames)
     job.transcript = Transcript()
     job.screentext = ScreenText()
+    frames_run = start_sampling(job, body.sampling)
     jobs[job_id] = job
     store.create(job, body.url, body.task)
-    spawn(sample(job))
+    spawn(frames_run)
     spawn(transcribe(job))
     spawn(read_screen(job))
     spawn(find_cuts(job))
@@ -303,7 +338,7 @@ async def create_link_job(body: LinkRequest):
 
 
 @app.post("/api/videos")
-async def upload_video(file: UploadFile = File(...), task: str = Form("")):
+async def upload_video(file: UploadFile = File(...), task: str = Form(""), sampling_spec: str = Form("", alias="sampling")):
     """Upload a local video: it then runs exactly like a link job (frames + transcript, then deleted)."""
     prune()
     name = Path(file.filename or "").name or "上传的视频"
@@ -325,15 +360,20 @@ async def upload_video(file: UploadFile = File(...), task: str = Form("")):
         shutil.rmtree(root, ignore_errors=True)
         raise
     resolver = next(r for r in registry.resolvers if r.platform == LOCAL)
-    job = FrameJob(job_id, video, resolver, root)
+    try:
+        spec = json.loads(sampling_spec) if sampling_spec else None
+    except ValueError:
+        spec = None
+    job = FrameJob(job_id, video, resolver, root, count=sampling.plan(spec, video.duration or 0).frames)
     job.transcript = Transcript()
     job.screentext = ScreenText()
+    frames_run = start_sampling(job, spec)
     jobs[job_id] = job
     store.create(job, f"上传：{name}", task)
 
     async def process() -> None:
         try:
-            await asyncio.gather(sample(job), transcribe(job), read_screen(job), find_cuts(job))
+            await asyncio.gather(frames_run, transcribe(job), read_screen(job), find_cuts(job))
             chapter_service.start(job)
         finally:
             if not KEEP_UPLOADS:

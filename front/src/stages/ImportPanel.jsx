@@ -5,8 +5,17 @@ import { fmtBytes } from '../lib/format'
 import { BRAND, WORKSPACE_CONTENT } from '../config/workspace'
 import Wordmark from '../components/Wordmark'
 import { SessionItem } from '../components/SessionList'
+import SamplingOptions, { DEFAULT_SAMPLING, customized, presetLabel, samplingSpec } from '../components/SamplingOptions'
 
 const RECENT_COUNT = 3
+const SAMPLING_KEY = 'import.sampling'
+const loadSampling = () => {
+  try {
+    return { ...DEFAULT_SAMPLING, ...JSON.parse(localStorage.getItem(SAMPLING_KEY) || '{}') }
+  } catch {
+    return DEFAULT_SAMPLING
+  }
+}
 
 // slideRef: the glass slide; the sculpture refracts through it and the upload screen grows out of it.
 // externalError: a failure reported by App after the import screen was left (e.g. link resolution).
@@ -16,6 +25,16 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
   const [link, setLink] = useState('')
   const [task, setTask] = useState('')
   const [showTask, setShowTask] = useState(false)
+  const [sampling, setSamplingState] = useState(loadSampling) // preset + overrides, remembered for next time
+  const [showSampling, setShowSampling] = useState(false)
+  const setSampling = (next) => {
+    setSamplingState(next)
+    try {
+      localStorage.setItem(SAMPLING_KEY, JSON.stringify(next))
+    } catch {
+      // private mode: the choice holds for this import
+    }
+  }
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef(null)
@@ -38,8 +57,8 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
     ? '已识别链接 · 直接读取画面，不下载视频'
     : link.trim() ? '没有识别到链接，请粘贴完整的分享链接' : '支持 B 站、视频号分享链接，或本地视频文件'
   const submit = () => {
-    if (mode === 'file') onStart({ file, task })
-    else if (mode === 'link') onStart({ link: link.trim(), task })
+    if (mode === 'file') onStart({ file, task, sampling: samplingSpec(sampling) })
+    else if (mode === 'link') onStart({ link: link.trim(), task, sampling: samplingSpec(sampling) })
     else inputRef.current?.click()
   }
   const shownError = error || externalError
@@ -112,6 +131,9 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
         <div className="import-entry__footer" data-exit>
           <span>B 站 · 视频号 · MP4 · MOV · WEBM</span>
           <button type="button" onClick={() => setShowTask((value) => !value)} aria-expanded={showTask} aria-controls="import-task">{task ? '编辑分析任务' : '添加分析任务'}</button>
+          <button type="button" className="import-entry__sampling" onClick={() => setShowSampling((value) => !value)} aria-expanded={showSampling} aria-controls="import-sampling">
+            采样：{presetLabel(sampling)}{customized(sampling) ? '（自定义）' : ''}
+          </button>
           <button type="button" className="import-entry__sample" onClick={() => onStart({ file: null, task })}>使用示例素材 <i aria-hidden="true" /><IconArrowRight size={14} /></button>
         </div>
         {showTask ? (
@@ -125,6 +147,7 @@ export default function ImportPanel({ onStart, slideRef, externalError = '', onC
             </div>
           </div>
         ) : null}
+        {showSampling ? <SamplingOptions value={sampling} onChange={setSampling} /> : null}
         {sessions.length ? (
           <div className="recent" data-exit>
             <div className="recent__head">

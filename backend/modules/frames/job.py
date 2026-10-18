@@ -6,6 +6,7 @@ and the job reports coverage plus the missing time ranges instead of failing as 
 from __future__ import annotations
 
 import asyncio
+import bisect
 import math
 import time
 from dataclasses import dataclass
@@ -35,6 +36,31 @@ REASONS = {
 def frame_count(duration: float) -> int:
     """Same density as the in-browser sampler: one frame per ~2 s, 48–64 frames."""
     return min(64, max(48, round(duration / 2))) if duration > 0 else 48
+
+
+MAX_FRAMES = 128   # keyframes a video may have once shots are filled in (the uniform pass stays 48–64)
+MIN_SHOT = 1.5     # seconds; a shorter "shot" is a flash or a fast cut and gets no frame of its own
+
+
+def shot_fill(cuts: list[float], duration: float, times: list[float], cap: int = MAX_FRAMES,
+              min_shot: float = MIN_SHOT) -> list[float]:
+    """Moments to add so that every shot has a keyframe: the middle of each shot (between two shot
+    changes) that no existing frame falls in. With more such shots than room under `cap`, the longest
+    ones get frames first. Returned in time order."""
+    if duration <= 0:
+        return []
+    bounds = [0.0, *sorted(c for c in cuts if 0 < c < duration), duration]
+    taken = sorted(times)
+    empty = []
+    for a, b in zip(bounds, bounds[1:]):
+        if b - a < min_shot:
+            continue
+        lo = bisect.bisect_left(taken, a)
+        if lo < len(taken) and taken[lo] < b:
+            continue  # this shot already has a frame
+        empty.append((b - a, round((a + b) / 2, 3)))
+    room = max(0, cap - len(times))
+    return sorted(t for _, t in sorted(empty, reverse=True)[:room])
 
 
 def coarse_first(n: int, first: int = 16) -> list[int]:
@@ -81,6 +107,7 @@ class FrameJob:
         self._generation = 0  # bumps whenever the address list changes
         self._refused: set[str] = set()  # addresses the CDN refused; skipped by every slot
         self.running = False
+        self.filling = False  # keyframes for shots the uniform pass missed are still to come
         self.restored = False  # rebuilt from a saved session: no stream addresses yet
         self.audience: dict = {}  # comments and danmaku read for this video, kept while the job is in memory
         self.transcript = None  # modules.transcript.Transcript, attached by the app
@@ -112,15 +139,31 @@ class FrameJob:
     def frame_path(self, index: int) -> Path:
         return self.root / f"{index:03d}.jpg"
 
+    def add_slots(self, times: list[float]) -> list[int]:
+        """New pending slots at these moments (indexes continue after the existing ones, so frames
+        already taken keep their index); announced with a `slots` event."""
+        start = len(self.slots)
+        self.slots += [Slot(start + k, round(t, 3)) for k, t in enumerate(times)]
+        added = self.slots[start:]
+        if added:
+            self.emit({"type": "slots", "slots": [{"index": s.index, "time": s.time, "status": s.status, "reason": s.reason}
+                                                  for s in added]})
+        return [s.index for s in added]
+
+    def in_time_order(self) -> list[Slot]:
+        return sorted(self.slots, key=lambda s: s.time)
+
     def coverage(self) -> dict:
         ok = [s for s in self.slots if s.status == "ok"]
         missing = [s for s in self.slots if s.status == "missing"]
-        half = self.video.duration / len(self.slots) / 2
+        ordered = self.in_time_order()
         ranges: list[list[float]] = []
-        for s in self.slots:
+        for k, s in enumerate(ordered):
             if s.status != "missing":
                 continue
-            start, end = max(0.0, s.time - half), min(self.video.duration, s.time + half)
+            # the stretch this frame stands for: halfway to its neighbours in time
+            start = (ordered[k - 1].time + s.time) / 2 if k else 0.0
+            end = (s.time + ordered[k + 1].time) / 2 if k + 1 < len(ordered) else self.video.duration
             if ranges and abs(ranges[-1][1] - start) < 1e-6:
                 ranges[-1][1] = end
             else:
