@@ -395,6 +395,46 @@ def test_known_or_explicit_url_preserves_unbalanced_query_parenthesis(wrapper):
         assert [s['url'] for s in collect_sources([], wrapper.format(url=url))] == [url]
 
 
+@pytest.mark.parametrize('wrapper', [
+    '**{url}**', '*{url}*', '***{url}***', '__{url}__', '_{url}_', '~~{url}~~',
+    '`{url}`', '``{url}``', '**`{url}`**', '**来源：{url}**', '`引用 {url}`',
+    '**{url}**随后正文',
+    '**来源：\n{url}**', '`来源\n{url}`', '~~来源\n{url}~~',
+])
+@pytest.mark.parametrize('known', [False, True])
+def test_markdown_source_wrappers_are_not_part_of_href(tmp_path, wrapper, known):
+    import html
+    from modules.export.markdown import markdown_link
+    url = 'https://example.org/foo_bar_(baz)?q=1#part'
+    events = [{'type': 'tool_call.output', 'data': {'url': url, 'title': '来源'}}] if known else []
+    text = wrapper.format(url=url)
+    sources = collect_sources(events, text)
+    assert [source['url'] for source in sources] == [url]
+    messages = [{'role': 'assistant', 'content': text, 'events': events}]
+    md, _ = build_markdown(video(), '', messages, [], JOB, tmp_path)
+    page = build_print_html(video(), '', messages, [], JOB, 'http://localhost')
+    assert markdown_link(sources[0]['title'], url) in md
+    assert f'href="{html.escape(url)}"' in page
+
+
+@pytest.mark.parametrize('url', ['https://example.org/a_b_', 'https://example.org/a~b~',
+                                'https://example.org/search?q=*'])
+def test_literal_url_punctuation_without_markdown_opener_is_preserved(url):
+    assert [s['url'] for s in collect_sources([], f'来源 {url}')] == [url]
+
+
+def test_known_url_punctuation_inside_markdown_is_preserved():
+    url = 'https://example.org/search?q=a*b*'
+    events = [{'type': 'tool_call.output', 'data': {'url': url}}]
+    assert [s['url'] for s in collect_sources(events, f'*{url}*')] == [url]
+
+
+@pytest.mark.parametrize('prefix', ['**unclosed\n\n', '```\n**literal\n```\n'])
+def test_markdown_source_wrapper_context_does_not_cross_block_boundary(prefix):
+    url = 'https://example.org/literal**'
+    assert [s['url'] for s in collect_sources([], prefix + url)] == [url]
+
+
 def test_missing_attached_frames_never_produce_broken_zip_references(tmp_path):
     jobs = tmp_path / 'jobs'
     (jobs / JOB).mkdir(parents=True)
