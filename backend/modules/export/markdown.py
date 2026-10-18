@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # A time stamp in an answer, e.g. [00:30] or 01:55 — kept as [mm:ss] in the note.
-STAMP_RE = re.compile(r"(?<![\d:])\[(\d{1,2}:\d{2}(?::\d{2})?)\](?![\d:])")
+STAMP_RE = re.compile(r"(?<![\d:])\[(\d+:\d{2}(?::\d{2})?)\](?![\d:])")
 URL_RE = re.compile(r"https?://[^\s<>（）[\]，。；、\"“”]+")
 
 
@@ -64,42 +64,55 @@ MARKDOWN_PROTECTED = re.compile(
 
 
 def _block_code_ranges(text: str) -> list[tuple[int, int]]:
-    """Inspect indentation after consuming quote/list markers without regex backtracking."""
-    ranges, offset, fence = [], 0, None
+    """Track quote/list indentation so literal code survives timestamp linkification."""
+    def consume(content, expected):
+        kept = []
+        for kind, width in expected:
+            if kind == "quote":
+                prefix = re.match(r" {0,3}>[ \t]?", content)
+                if not prefix:
+                    break
+                content = content[prefix.end():]
+            else:
+                expanded = content.expandtabs(4)
+                if expanded.startswith(" " * width):
+                    content = expanded[width:]
+                elif content.strip():
+                    break
+            kept.append((kind, width))
+        return content, kept
+
+    ranges, offset, fence, active = [], 0, None, []
     for line in text.splitlines(keepends=True):
-        content = line
         if fence:
-            # A code line cannot introduce new Markdown containers. Consume only
-            # the quote markers/list indentation present when this fence opened.
-            for kind, width in fence[2]:
-                if kind == "quote":
-                    prefix = re.match(r" {0,3}>[ \t]?", content)
-                    if not prefix:
-                        fence = None
-                        break
-                    content = content[prefix.end():]
-                else:
-                    expanded = content.expandtabs(4)
-                    if expanded.startswith(" " * width):
-                        content = expanded[width:]
-                    elif content.strip():
-                        fence = None
-                        break
-            if fence:
+            # Code cannot introduce new containers: only consume those that opened it.
+            content, kept = consume(line, fence[2])
+            if len(kept) == len(fence[2]):
                 ranges.append((offset, offset + len(line)))
+                active = kept
                 if re.fullmatch(r" {0,3}" + re.escape(fence[0]) + "{" + str(fence[1]) + r",}[ \t\r\n]*", content):
                     fence = None
                 offset += len(line)
                 continue
-        content, containers = line, []
+            fence = None
+        content, containers = consume(line, active)
         while True:
             quote = re.match(r" {0,3}>[ \t]?", content)
-            item = re.match(r" {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]", content)
-            prefix = quote or item
-            if not prefix:
+            if quote:
+                containers.append(("quote", 0))
+                content = content[quote.end():]
+                continue
+            expanded = content.expandtabs(4)
+            item = re.match(r" {0,3}(?:[-+*]|\d{1,9}[.)])( +)", expanded)
+            if not item:
                 break
-            containers.append(("quote" if quote else "list", len(prefix[0].expandtabs(4))))
-            content = content[prefix.end():]
+            # CommonMark list padding is 1–4 columns; 5+ means one column
+            # of padding followed by indented code. Save the whole content width.
+            padding = len(item[1]) if len(item[1]) <= 4 else 1
+            width = item.start(1) + padding
+            containers.append(("list", width))
+            content = expanded[width:]
+        active = containers
         if content.expandtabs(4).startswith("    "):
             ranges.append((offset, offset + len(line)))
         else:

@@ -280,6 +280,37 @@ def test_printed_timestamp_is_real_html_link_and_prose_is_escaped():
     assert "&lt;script&gt;" in page and "<script>" not in page
 
 
+@pytest.mark.parametrize('stamp,seconds', [('99:59', 5999), ('100:00', 6000),
+                                         ('1234:56', 74096), ('100:00:00', 360000)])
+def test_long_video_timestamps_link_in_markdown_and_print(stamp, seconds):
+    text = f'视频时间 [{stamp}]'
+    assert f't={seconds}' in linkify_stamps(text, video()['canonical_url'], 'bilibili')
+    page = build_print_html(video(), '', [{'role': 'assistant', 'content': text}], [], JOB, 'http://localhost')
+    assert f'href="https://www.bilibili.com/video/BV1?t={seconds}"' in page
+    assert f'>[{stamp}]</a>' in page
+
+
+@pytest.mark.parametrize('marker', ['-', '+', '*', '1.', '10)'])
+@pytest.mark.parametrize('padding', [1, 2, 3, 4])
+@pytest.mark.parametrize('quote', ['', '> '])
+def test_list_fence_padding_and_following_prose(marker, padding, quote):
+    width = len(marker) + padding
+    text = (f'{quote}{marker}' + ' ' * padding + '~~~\n'
+            + quote + ' ' * width + '[00:30]\n'
+            + quote + ' ' * (width + 3) + '~~~\n'
+            + quote + ' ' * width + 'ordinary [00:45]')
+    output = linkify_stamps(text, video()['canonical_url'], 'bilibili')
+    assert '[00:30]' in output and 't=30' not in output
+    assert 't=45' in output
+
+
+def test_nested_list_fence_tracks_each_full_padding():
+    text = '-   1.  ~~~\n        [00:30]\n           ~~~\n        ordinary [00:45]'
+    output = linkify_stamps(text, video()['canonical_url'], 'bilibili')
+    assert 't=30' not in output
+    assert 't=45' in output
+
+
 @pytest.mark.parametrize('protected', [
     '[00:30](https://example.com)', '`[00:30]`', '``[00:30]``',
     '```text\n[00:30]\n```', '~~~\n[00:30]\n~~~',
