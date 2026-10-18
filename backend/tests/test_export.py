@@ -191,7 +191,7 @@ def test_collect_sources_web_and_papers():
         {"type": "tool_call.output", "call_id": "p", "data": {"papers": [
             {"title": "论文A", "url": "https://arxiv.org/1", "year": 2024, "venue": "Nature"}]}},
     ]
-    sources = collect_sources(events)
+    sources = collect_sources(events, "参见 https://fda.gov 和 https://arxiv.org/1")
     urls = {s["url"] for s in sources}
     assert "https://fda.gov" in urls and "https://arxiv.org/1" in urls
     assert "https://farm.cn" not in urls  # irrelevant dropped
@@ -275,3 +275,42 @@ def test_printed_timestamp_is_real_html_link_and_prose_is_escaped():
         {"role": "assistant", "content": '<script>bad()</script> [00:30]'}], [], JOB, "http://localhost")
     assert '<a href="https://www.bilibili.com/video/BV1?foo=1&amp;t=30#part">[00:30]</a>' in page
     assert "&lt;script&gt;" in page and "<script>" not in page
+
+
+@pytest.mark.parametrize('protected', [
+    '[00:30](https://example.com)', '`[00:30]`', '``[00:30]``',
+    '```text\n[00:30]\n```', '~~~\n[00:30]\n~~~',
+    '![00:30](https://example.com/p.png)', '[00:30][reference]',
+    r'\[00:30]', '[00:30]\n\n[00:30]: https://example.com',
+])
+def test_timestamp_linkification_preserves_markdown_constructs(protected):
+    output = linkify_stamps(protected + '\n普通时间 [00:45]', video()['canonical_url'], 'bilibili')
+    assert output.startswith(protected)
+    assert 't=30' not in output
+    assert 't=45' in output
+
+
+def test_export_sources_follow_only_answer_citations(tmp_path):
+    events = web_answer_events()
+    assert collect_sources(events, '没有引用来源') == []
+    sources = collect_sources(events, '来源 https://www.fda.gov/grapefruit')
+    assert [source['url'] for source in sources] == ['https://www.fda.gov/grapefruit']
+    message = {'id': 1, 'role': 'assistant', 'content': '没有引用来源', 'events': events}
+    markdown, _ = build_markdown(video(), '', [message], slots(), JOB, tmp_path)
+    printed = build_print_html(video(), '', [message], slots(), JOB, 'http://localhost:5194')
+    assert '**来源：**' not in markdown
+    assert '<h4>来源</h4>' not in printed
+
+
+def test_missing_attached_frames_never_produce_broken_zip_references(tmp_path):
+    jobs = tmp_path / 'jobs'
+    (jobs / JOB).mkdir(parents=True)
+    (jobs / JOB / '001.jpg').write_bytes(b'present image')
+    messages = [{'id': 1, 'role': 'user', 'content': '看这两帧', 'frames': [0, 1]}]
+    markdown, refs = build_markdown(video(), '', messages, slots(), JOB, jobs)
+    assert 'images/frame_000.jpg' not in markdown
+    assert 'images/frame_001.jpg' in markdown
+    with zipfile.ZipFile(io.BytesIO(build_zip(markdown, refs))) as bundle:
+        assert 'images/frame_000.jpg' not in bundle.namelist()
+        assert 'images/frame_001.jpg' in bundle.namelist()
+    assert len(collect_image_refs(messages, slots(), jobs, JOB)) == 1

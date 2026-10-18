@@ -173,3 +173,31 @@ test('export: a failed bundle request remains visible instead of downloading an 
   await expect(dialog.getByRole('button', { name: '重新读取保存状态' })).toBeVisible()
   expect(downloads).toHaveLength(0)
 })
+
+
+test('export: print HTTP failure keeps the selection for retry', async ({ page }) => {
+  const { dialog } = await openExportDialog(page)
+  await dialog.locator('.export-item:not(.export-item--all) input').first().uncheck()
+  await page.route('**/api/sessions/s1/export?**', (route) => route.fulfill({ status: 503, body: 'unavailable' }))
+  await dialog.getByRole('button', { name: '导出 PDF（打印页）' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('HTTP 503')
+  await expect(dialog.locator('.export-item:not(.export-item--all) input').first()).not.toBeChecked()
+})
+
+
+test('export: blocked print popup keeps the dialog open', async ({ page }) => {
+  await page.addInitScript(() => { window.open = () => null })
+  const { dialog } = await openExportDialog(page)
+  await dialog.getByRole('button', { name: '导出 PDF（打印页）' }).click()
+  await expect(dialog.getByRole('alert')).toContainText('被浏览器阻止')
+  await expect(dialog).toBeVisible()
+})
+
+
+test('export: print network error keeps the dialog open', async ({ page }) => {
+  const { dialog } = await openExportDialog(page)
+  await page.route('**/api/sessions/s1/export?**', (route) => route.abort('connectionfailed'))
+  await dialog.getByRole('button', { name: '导出 PDF（打印页）' }).click()
+  await expect(dialog.getByRole('alert')).toBeVisible()
+  await expect(dialog).toBeVisible()
+})

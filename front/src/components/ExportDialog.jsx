@@ -112,10 +112,30 @@ export default function ExportDialog({ sessionId, messages, onClose }) {
     }
   }
 
-  const openPrintPage = () => {
+  const openPrintPage = async () => {
     if (!canExport) return
-    window.open(exportUrl('pdf'), '_blank', 'noopener')
-    onClose()
+    let popup = null
+    setExporting(true)
+    try {
+      // Open during the click gesture so async loading cannot trigger a popup blocker.
+      popup = window.open('about:blank', '_blank')
+      if (!popup) throw new Error('打印页被浏览器阻止，请允许弹出窗口后重试')
+      popup.opener = null
+      popup.document.title = '正在准备打印页'
+      popup.document.body.textContent = '正在准备笔记打印页…'
+      const response = await fetch(exportUrl('pdf'))
+      if (!response.ok) throw new Error(`打印页生成失败（HTTP ${response.status}），请稍后重试`)
+      if (!response.headers.get('content-type')?.includes('text/html')) throw new Error('打印页格式异常，请稍后重试')
+      const url = URL.createObjectURL(new Blob([await response.text()], { type: 'text/html' }))
+      popup.location.replace(url)
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+      onClose()
+    } catch (err) {
+      popup?.close()
+      setError(err.message || '打印页生成失败，请稍后重试')
+    } finally {
+      setExporting(false)
+    }
   }
 
   return createPortal(

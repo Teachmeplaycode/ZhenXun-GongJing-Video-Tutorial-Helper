@@ -56,6 +56,14 @@ def markdown_link(label: str, url: str) -> str:
     return f"[{label}]({url})"
 
 
+MARKDOWN_PROTECTED = re.compile(
+    r"^ {0,3}(?P<fence>`{3,}|~{3,})[^\n]*\n.*?(?:^ {0,3}(?P=fence)[ \t]*$|\Z)"
+    r"|(?P<tick>`+).*?(?P=tick)"
+    r"|!?\[[^\n]*?\]\((?:\\.|[^()\n]|\([^()\n]*\))*\)"
+    r"|!?\[[^\n]*?\]\[[^\n]*?\]"
+    r"|^ {0,3}\[[^]\n]+\]:[^\n]*$", re.MULTILINE | re.DOTALL)
+
+
 def linkify_stamps(text: str, canonical_url: str, platform: str) -> str:
     """Keep ``[mm:ss]`` visible; on Bilibili make it a link to that moment."""
     if not safe_http_url(canonical_url) or platform != "bilibili":
@@ -65,7 +73,17 @@ def linkify_stamps(text: str, canonical_url: str, platform: str) -> str:
         url = time_link(canonical_url, platform, stamp_to_seconds(m.group(1)))
         return markdown_link(f"[{m.group(1)}]", url)
 
-    return STAMP_RE.sub(repl, text)
+    protected = [(m.start(), m.end()) for m in MARKDOWN_PROTECTED.finditer(text)]
+    reference_labels = set(re.findall(r"^ {0,3}\[([^]\n]+)\]:", text, re.MULTILINE))
+
+    def unprotected(match):
+        if match.start() and text[match.start() - 1] == "\\":
+            return match.group(0)
+        if match.group(1) in reference_labels or any(a <= match.start() < b for a, b in protected):
+            return match.group(0)
+        return repl(match)
+
+    return STAMP_RE.sub(unprotected, text)
 
 
 @dataclass
@@ -140,7 +158,7 @@ def _zip_name_for(api_path: str) -> str:
 def keyframe_ref(index: int, time: float, data_dir, job_id: str) -> ImageRef:
     api = f"/api/link-jobs/{job_id}/frames/{index}.jpg"
     disk = api_to_disk(api, data_dir, job_id)
-    return ImageRef(api, str(disk) if disk else "", _zip_name_for(api), f"关键帧 {clock(time)}")
+    return ImageRef(api, str(disk) if disk and disk.is_file() else "", _zip_name_for(api), f"关键帧 {clock(time)}")
 
 
 def _image_refs_from_events(events: list[dict], data_dir, job_id: str) -> list[ImageRef]:
@@ -157,7 +175,7 @@ def _image_refs_from_events(events: list[dict], data_dir, job_id: str) -> list[I
             if not isinstance(p, str) or not p.startswith("/api/") or p in seen:
                 continue
             disk = api_to_disk(p, data_dir, job_id)
-            if disk is None:
+            if disk is None or not disk.is_file():
                 continue
             seen.add(p)
             out.append(ImageRef(p, str(disk), _zip_name_for(p), _label_for(tool, data)))
@@ -183,7 +201,7 @@ def _label_for(tool: str, data: dict) -> str:
     return "画面"
 
 
-def collect_sources(events: list[dict]) -> list[dict]:
+def collect_sources(events: list[dict], text: str = "") -> list[dict]:
     """Source links an answer cites: web results, fetched pages and papers, matched to its text."""
     known: dict[str, dict] = {}
     for ev in events or []:
@@ -200,7 +218,17 @@ def collect_sources(events: list[dict]) -> list[dict]:
             if safe_http_url(p.get("url")):
                 meta = " · ".join(str(x) for x in (p.get("year"), p.get("venue")) if x)
                 known[p["url"]] = {"title": p.get("title") or "", "url": p["url"], "kind": "论文", "meta": meta}
-    return list(known.values())
+    cited, seen = [], set()
+    for raw in URL_RE.findall(text):
+        url = raw.rstrip(".,;:）)")
+        if url in seen or not safe_http_url(url):
+            continue
+        seen.add(url)
+        source = known.get(url)
+        if source is None:
+            source = next((item for item in known.values() if url.startswith(item['url']) or item['url'].startswith(url)), None)
+        cited.append({**source, 'url': url} if source else {'url': url, 'title': urllib.parse.urlsplit(url).hostname, 'kind': '链接'})
+    return cited
 
 
 def select_messages(messages: list[dict], selected_ids: set[int] | None) -> list[dict]:
@@ -257,6 +285,8 @@ def _answer_block(message: dict, video: dict, index: int, slots: list[dict], dat
                 slot = next((s for s in (slots or []) if s.get("index") == i), None)
                 t = slot.get("time", 0.0) if slot else 0.0
                 ref = keyframe_ref(i, t, data_dir, job_id)
+                if not ref.disk_path:
+                    continue
                 keyframes.append(ref)
                 out.append(f"![{ref.label}](images/{ref.zip_name})")
         out.append("")
@@ -270,7 +300,7 @@ def _answer_block(message: dict, video: dict, index: int, slots: list[dict], dat
             out.append(f"![{ref.label}](images/{ref.zip_name})")
         out.append("")
 
-    sources = collect_sources(events)
+    sources = collect_sources(events, text)
     if sources:
         out.append("**来源：**")
         out.append("")
@@ -306,7 +336,7 @@ def collect_image_refs(messages: list[dict], slots: list[dict], data_dir, job_id
     seen: set[str] = set()
 
     def add(ref: ImageRef) -> None:
-        if ref.api_path not in seen:
+        if ref.disk_path and ref.api_path not in seen:
             seen.add(ref.api_path)
             out.append(ref)
 
