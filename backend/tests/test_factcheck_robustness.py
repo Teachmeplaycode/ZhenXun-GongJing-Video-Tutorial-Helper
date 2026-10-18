@@ -213,3 +213,25 @@ def test_unsupported_or_malformed_citations_downgrade_the_verdict(source_ids):
     result = assessed("correct", source_ids)
     assert result["verdict"] == "unverifiable"
     assert result["sources"] == []
+
+
+@pytest.mark.parametrize("verdict,model_risk,expected", [
+    ("wrong", "low", "high"),
+    ("wrong", None, "high"),
+    ("partial", "high", "medium"),
+    ("partial", "invalid", "medium"),
+    ("correct", "high", "low"),
+    ("unverifiable", "high", "low"),
+])
+def test_evidence_backed_verdict_controls_risk_despite_conflicting_model_response(verdict, model_risk, expected):
+    async def ask(messages, max_tokens):
+        if messages[0]["content"] == verify.SCREEN_SYSTEM:
+            return '{"safe":true}'
+        result = {"verdict": verdict, "reason": "evidence-backed conclusion", "source_ids": ["s1"]}
+        if model_risk is not None:
+            result["risk"] = model_risk
+        return json.dumps(result)
+
+    result = asyncio.run(verify.verify_claim(ask, "claim", [report.build_source("study", "https://example.org", "evidence")]))
+    assert result["verdict"] == verdict and result["risk"] == expected
+    assert bool(result["sources"]) == (verdict != "unverifiable")

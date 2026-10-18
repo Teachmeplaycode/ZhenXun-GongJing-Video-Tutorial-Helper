@@ -107,10 +107,7 @@ def _parse_verdict(raw: str) -> dict:
     verdict = data.get("verdict", "unverifiable")
     if verdict not in report.VERDICTS:
         verdict = "unverifiable"
-    risk = data.get("risk", "low")
-    if risk not in report.RISKS:
-        risk = "low"
-    return {"verdict": verdict, "risk": risk, "reason": reason.strip()[:300],
+    return {"verdict": verdict, "risk": risk_for_verdict(verdict), "reason": reason.strip()[:300],
             "source_ids": data.get("source_ids", [])}
 
 
@@ -146,7 +143,7 @@ async def gather_sources(search: Search, claim_text: str, limit: int = 6) -> lis
 
 
 def risk_for_verdict(verdict: str) -> str:
-    """无 LLM 判定时的兜底风险等级。"""
+    """按判定固定风险等级，不接受模型返回的矛盾组合。"""
     if verdict == "wrong":
         return "high"
     if verdict == "partial":

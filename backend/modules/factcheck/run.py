@@ -80,6 +80,15 @@ def _segments(job: FrameJob) -> tuple[list[dict], list[dict]]:
     return t.get("segments") or [], s.get("segments") or []
 
 
+def pending_content_error(job: FrameJob) -> dict | None:
+    """Shared preflight: content readiness takes precedence over model initialization."""
+    if any(getattr(getattr(job, name, None), "status", None) in ("pending", "running")
+           for name in ("transcript", "screentext")):
+        return {"code": "content_not_ready", "message": "语音转写或画面文字识别尚未完成，请完成后重试核查。",
+                "retryable": True}
+    return None
+
+
 async def run_factcheck(
     job: FrameJob,
     client: ChatClient | OllamaClient,
@@ -93,10 +102,8 @@ async def run_factcheck(
     run_id = uuid.uuid4().hex[:12]
     yield {"type": "factcheck.started", "run_id": run_id, "job_id": job.id}
 
-    if any(getattr(channel, "status", None) in ("pending", "running")
-           for channel in (job.transcript, job.screentext)):
-        yield {"type": "factcheck.error", "run_id": run_id, "code": "content_not_ready",
-               "message": "语音转写或画面文字识别尚未完成，请完成后重试核查。", "retryable": True}
+    if error := pending_content_error(job):
+        yield {"type": "factcheck.error", "run_id": run_id, **error}
         return
 
     t_segs, s_segs = _segments(job)

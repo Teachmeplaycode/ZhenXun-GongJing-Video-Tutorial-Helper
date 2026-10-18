@@ -77,6 +77,50 @@ def test_incomplete_channel_does_not_persist_a_partial_report(api, channel, stat
     assert client.get(f'/api/link-jobs/{job.id}/factcheck').status_code == 404
 
 
+@pytest.mark.parametrize('channel', ['transcript', 'screentext'])
+@pytest.mark.parametrize('status', ['pending', 'running'])
+@pytest.mark.parametrize('model_code', ['no_api_key', 'initialization_failed'])
+def test_content_preflight_precedes_a_simultaneous_model_failure(api, monkeypatch, channel, status, model_code):
+    from modules.llm import LLMError
+    import app
+
+    client, job = api
+    ready = [{'start': 1, 'end': 2, 'text': '苹果含维生素C'}]
+    job.transcript = SimpleNamespace(status='done', as_dict=lambda: {'segments': ready})
+    job.screentext = SimpleNamespace(status='done', as_dict=lambda: {'segments': ready})
+    getattr(job, channel).status = status
+    initialized = []
+
+    def blocked_model():
+        initialized.append(True)
+        raise LLMError(model_code, 'model is unavailable')
+
+    monkeypatch.setattr(app, 'get_llm', blocked_model)
+    result = events(client.post(f'/api/link-jobs/{job.id}/factcheck', json={}))
+    assert initialized == []
+    assert len(result) == 1 and result[0]['type'] == 'factcheck.error'
+    assert result[0]['code'] == 'content_not_ready' and result[0]['retryable'] is True
+    assert client.get(f'/api/link-jobs/{job.id}/factcheck').status_code == 404
+
+
+@pytest.mark.parametrize('model_code', ['no_api_key', 'initialization_failed'])
+def test_ready_channels_still_report_the_model_failure(api, monkeypatch, model_code):
+    from modules.llm import LLMError
+    import app
+
+    client, job = api
+    job.transcript = SimpleNamespace(status='done')
+    job.screentext = SimpleNamespace(status='empty')
+
+    def blocked_model():
+        raise LLMError(model_code, 'model is unavailable')
+
+    monkeypatch.setattr(app, 'get_llm', blocked_model)
+    result = events(client.post(f'/api/link-jobs/{job.id}/factcheck', json={}))
+    assert len(result) == 1 and result[0]['code'] == model_code
+    assert client.get(f'/api/link-jobs/{job.id}/factcheck').status_code == 404
+
+
 def test_report_is_saved_before_completed_is_delivered_even_when_stream_closes(monkeypatch):
     saved = []
     report = {'version': 1, 'module': 'factcheck', 'summary': {'total': 0}, 'claims': []}

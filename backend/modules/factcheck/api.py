@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from modules import log
 from modules.llm import LLMError
-from .run import run_factcheck
+from .run import pending_content_error, run_factcheck
 
 
 def sse(event):
@@ -34,6 +34,9 @@ def create_router(*, find_job, get_llm, store):
             if job is None:
                 yield sse({"type": "factcheck.error", "run_id": run_id, "code": "job_not_found",
                            "message": "这个会话已被删除，请重新解析链接"})
+                return
+            if error := pending_content_error(job):
+                yield sse({"type": "factcheck.error", "run_id": run_id, **error})
                 return
             try:
                 client = get_llm()
