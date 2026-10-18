@@ -26,9 +26,18 @@ CLAUSE_BREAK = re.compile(
     r'(?:声称|宣称|据称)?来自|欢迎来到|所属(?:机构|公司)是|机构名称|公司名称)\s*[:：]?\s*'
 )
 REGISTRY_HOSTS = ('gsxt.gov.cn',)
-REGISTRY_LABEL = re.compile(r'(?:企业名称|机构名称|单位名称)\s*[:：]\s*([^\n，。；;]{2,60})')
-CODE = re.compile(r'(?:统一社会信用代码|注册号)\s*[:：]\s*([0-9A-Z]{18}|[0-9]{15})(?![A-Za-z0-9])')
-STATE = re.compile(r'登记状态\s*[:：]\s*(存续|在业|开业|正常|注销|吊销)')
+NAME_FIELDS = {"企业名称", "公司名称", "机构名称", "单位名称", "主体名称", "名称",
+               "企业全称", "公司全称", "机构全称", "单位全称", "主体全称"}
+CODE_FIELDS = {"统一社会信用代码", "注册号"}
+# Only explicit labelled record blocks can establish registration. Arbitrary prose,
+# headers, unknown fields and tables remain references rather than borrowing fields.
+RECORD_FIELDS = NAME_FIELDS | CODE_FIELDS | {
+    "登记状态", "法定代表人", "负责人", "成立日期", "注册资本", "登记机关", "住所", "地址",
+    "企业类型", "营业期限", "核准日期", "经营范围",
+}
+RECORD_FIELD = re.compile(r"^\s*([^:：\n]{1,24})\s*[:：]\s*(.*?)\s*$")
+CODE_VALUE = re.compile(r"(?:[0-9A-Z]{18}|[0-9]{15})")
+STATE_VALUES = {"存续", "在业", "开业", "正常", "注销", "吊销"}
 
 
 def official(url: str) -> bool:
@@ -41,12 +50,29 @@ def registry_record(url: str, text: str, name: str) -> dict | None:
     host = (urlsplit(url).hostname or '').lower().rstrip('.')
     if not any(host == h or host.endswith('.' + h) for h in REGISTRY_HOSTS):
         return None
-    names = [m.group(1).strip() for m in REGISTRY_LABEL.finditer(text)]
-    code, state = CODE.search(text), STATE.search(text)
-    # Reject search result lists with several records: fields might belong to another entity.
-    if names != [name] or not code or not state:
+    records = set()
+    for block in re.split(r"\n[ \t]*\n+", text):
+        rows = [RECORD_FIELD.fullmatch(line) for line in block.splitlines() if line.strip()]
+        if not rows or any(row is None or row.group(1).strip() not in RECORD_FIELDS for row in rows):
+            continue
+        fields = [(row.group(1).strip(), row.group(2).strip()) for row in rows]
+        names = {value for label, value in fields if label in NAME_FIELDS}
+        # Multiple aliases for different entities in one block are ambiguous even
+        # when only one uses the familiar 企业名称 label.
+        if names != {name}:
+            continue
+        codes = {value for label, value in fields if label in CODE_FIELDS}
+        states = {value for label, value in fields if label == "登记状态"}
+        if len(codes) != 1 or len(states) != 1:
+            continue
+        code, state = next(iter(codes)), next(iter(states))
+        if CODE_VALUE.fullmatch(code) and state in STATE_VALUES:
+            records.add((code, state))
+    # Conflicting records for the same name are not silently resolved by order.
+    if len(records) != 1:
         return None
-    return {'name': name, 'registration_code': code.group(1), 'registration_state': state.group(1)}
+    code, state = records.pop()
+    return {'name': name, 'registration_code': code, 'registration_state': state}
 
 
 def extract(segments) -> list[dict]:

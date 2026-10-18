@@ -525,3 +525,18 @@ def test_complete_url_evidence_survives_query_fragment_port_and_chinese_punctuat
 ])
 def test_bare_and_short_links_share_complete_suffix_without_double_counting(text, expected):
     assert extract_urls(text) == [expected]
+
+
+@pytest.mark.parametrize('text', [
+    '做数据分析推荐使用开源算法', '统计分析推荐使用 pandas', '性能分析推荐使用火焰图',
+])
+def test_neutral_analysis_recommendations_are_not_analyst_endorsements(text):
+    result = analyze(transcript_segments=[(3, 7, text)])
+    assert result.score['base'] == 0
+    assert not any(hit['rule_id'] == 'expert_endorsement' for hit in result.rule_hits)
+
+
+@pytest.mark.parametrize('text', ['证券分析师推荐这款理财产品', '专家推荐这款保健品', '资深分析师推荐投资该产品'])
+def test_complete_analyst_or_expert_endorsement_remains_a_reviewable_signal(text):
+    hits = RuleLibrary.load().scan_text(text, 3, 7, 'transcript')
+    assert any(hit.rule_id == 'expert_endorsement' for hit in hits)
