@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Awaitable, Callable
 
@@ -81,8 +82,13 @@ def _parse(raw: str) -> list[dict]:
 
 def _clean(item: dict) -> dict | None:
     """校验并清洗一条抽取结果，不合法返回 None。"""
-    claim = (item.get("claim") or "").strip()
-    original = (item.get("original_text") or item.get("original") or "").strip()
+    if not isinstance(item, dict):
+        return None
+    claim = item.get("claim") or ""
+    original = item.get("original_text") or item.get("original") or ""
+    if not isinstance(claim, str) or not isinstance(original, str):
+        return None
+    claim, original = claim.strip(), original.strip()
     if not claim and not original:
         return None
     if not claim:
@@ -93,8 +99,11 @@ def _clean(item: dict) -> dict | None:
     try:
         start = float(item.get("start", 0))
         end = float(item.get("end", start))
-    except (TypeError, ValueError):
-        start, end = 0.0, 0.0
+        index = int(item.get("segment_index", 0) or 0)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(start) or not math.isfinite(end) or index < 0:
+        return None
     if end < start:
         start, end = end, start
     return {
@@ -103,8 +112,34 @@ def _clean(item: dict) -> dict | None:
         "start": max(0.0, start),
         "end": max(0.0, end),
         "source": src,
-        "segment_index": int(item.get("segment_index", 0) or 0),
+        "segment_index": index,
     }
+
+
+def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[dict]) -> dict | None:
+    """Resolve the cited source/index against input, never trust generated quotes or timestamps."""
+    source, index = item.get("source"), item.get("segment_index")
+    if source not in ("transcript", "screentext") or type(index) is not int:
+        return None
+    segments = transcript if source == "transcript" else screentext
+    if not 0 <= index < len(segments):
+        return None
+    segment = segments[index]
+    text = segment.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return None
+    # A generated quote must occur in the cited input; reject an unrelated or invented quote.
+    quote = "".join(claim["original_text"].split())
+    if not quote or quote not in "".join(text.split()):
+        return None
+    try:
+        start, end = float(segment["start"]), float(segment["end"])
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(start) or not math.isfinite(end) or start < 0 or end < start:
+        return None
+    return {**claim, "source": source, "segment_index": index,
+            "original_text": text, "start": start, "end": end}
 
 
 async def extract_claims(
@@ -132,5 +167,7 @@ async def extract_claims(
     for item in items:
         c = _clean(item)
         if c is not None:
-            cleaned.append(c)
+            anchored = _anchor(item, c, transcript_segments, screentext_segments)
+            if anchored is not None:
+                cleaned.append(anchored)
     return cleaned

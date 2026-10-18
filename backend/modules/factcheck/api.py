@@ -41,22 +41,22 @@ def create_router(*, find_job, get_llm, store):
                 yield sse({"type": "factcheck.error", "run_id": run_id, **err.as_dict()})
                 return
             timer = log.Timer()
-            report = None
             try:
                 async for event in run_factcheck(job, client, web=body.web, papers=body.papers):
-                    yield sse(event)
                     if event.get("type") == "factcheck.completed":
                         report = event.get("report")
+                        if not isinstance(report, dict):
+                            raise ValueError("completed event has no report")
+                        store.add_message(job.id, "assistant", "科普核查报告已生成", status="done",
+                                          data={"events": [], "factcheck": report, "manual": "factcheck"})
+                        log.event("factcheck", run_id=run_id, job_id=job.id,
+                                  claims=report.get("summary", {}).get("total", 0), ms=timer.ms)
+                    yield sse(event)
             except Exception as exc:
                 log.error("factcheck", exc, run_id=run_id, job_id=job.id)
                 yield sse({"type": "factcheck.error", "run_id": run_id, "code": "internal",
                            "message": "后端出错了，详情见日志"})
                 return
-            if report is not None:
-                store.add_message(job.id, "assistant", "科普核查报告已生成", status="done",
-                                  data={"events": [], "factcheck": report, "manual": "factcheck"})
-                log.event("factcheck", run_id=run_id, job_id=job.id,
-                          claims=report.get("summary", {}).get("total", 0), ms=timer.ms)
 
         return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 

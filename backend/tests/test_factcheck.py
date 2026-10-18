@@ -309,13 +309,15 @@ t("risk_for_verdict 兜底", _v8)
 
 
 async def mock_ask(messages, max_tokens):
+    if messages[0]["content"] == verify.SCREEN_SYSTEM:
+        return '{"safe":true}'
     if "医学/科普事实核查员" in messages[0]["content"]:
         return json.dumps({"verdict": "partial", "risk": "medium", "reason": "需区分具体药物"})
     return json.dumps([{
         "claim": "西柚与降压药相互作用",
         "original_text": "柚子千万别和降压药一起吃",
         "start": 12, "end": 15,
-        "source": "transcript", "segment_index": 0
+        "source": "transcript", "segment_index": 1
     }], ensure_ascii=False)
 
 
