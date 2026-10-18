@@ -83,7 +83,7 @@ def test_alcedo_failures_become_ours(tmp_path, conf):
     conf.update(ALCEDO_BIN=str(fake_binary(tmp_path, stderr="解析失败 [login] 平台要求登录（需要 cookie https://x）", code=1)))
     with pytest.raises(ResolveError) as e:
         asyncio.run(AlcedoResolver().resolve("https://www.xiaohongshu.com/explore/1"))
-    assert e.value.code == "login_required" and "需要 cookie" in e.value.message and "https://" not in e.value.message
+    assert e.value.code == "login_required" and e.value.message.startswith("平台要求登录") and "https://" not in e.value.message
     conf.update(ALCEDO_BIN=str(fake_binary(tmp_path, stderr="解析失败 [blocked] 412", code=1)))
     with pytest.raises(ResolveError) as e:
         asyncio.run(AlcedoResolver().resolve("https://www.douyin.com/video/1"))

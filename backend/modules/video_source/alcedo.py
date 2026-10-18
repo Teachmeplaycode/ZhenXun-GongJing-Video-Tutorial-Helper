@@ -95,7 +95,8 @@ def child_env() -> dict[str, str]:
 def failure(reason: str, detail: str) -> ResolveError:
     code, text = REASONS.get(reason, ("upstream", "解析失败"))
     detail = re.sub(r"https?://\S+", "", detail or "").strip("（）() ")[:160]
-    return ResolveError(code, f"{text}（{detail}）" if detail else text, retryable=code in RETRYABLE)
+    # alcedo's own explanation is already user-facing Chinese ("这条内容已经被删除…"): show it as is.
+    return ResolveError(code, detail or text, retryable=code in RETRYABLE)
 
 
 def _rank(f: dict) -> tuple:
