@@ -130,7 +130,7 @@ export default function App() {
         setChaptersData(r)
         if (r.status === 'running') timer = setTimeout(() => poll(tries + 1), 3000)
       } catch {
-        // no chapters: the panel stays hidden
+        if (!stopped) timer = setTimeout(() => poll(tries + 1), 3000)
       }
     }
     poll(0)

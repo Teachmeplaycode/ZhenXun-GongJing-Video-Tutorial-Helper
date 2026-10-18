@@ -169,6 +169,10 @@ export class MockApi {
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)
+    if (m && this.chapterFailureCount > 0) {
+      this.chapterFailureCount -= 1
+      return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+    }
     if (m) return json({
       status: this.chaptersStatus, chapters: this.chapters, summary: "整段视频介绍柚子与药物相互作用的原理。",
       message: this.chaptersMessage || (this.chaptersStatus === 'done' ? `已生成 ${this.chapters.length} 个章节` : ''),

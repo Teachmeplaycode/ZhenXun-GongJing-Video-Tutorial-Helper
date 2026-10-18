@@ -264,7 +264,7 @@ async def resolve_link(body: LinkRequest):
     return video.public()
 
 
-chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(), cutting)
+chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(), cutting, lambda job: find_cuts(job))
 app.include_router(chapter_service.router)
 
 
@@ -673,6 +673,7 @@ async def delete_session(session_id: str):
         raise HTTPException(404, "会话不存在")
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再删除")
+    chapter_service.remove(session_id)
     jobs.pop(session_id, None)
     store.delete(session_id)
     shutil.rmtree(DATA_DIR / session_id, ignore_errors=True)
