@@ -124,6 +124,10 @@ class Resolver:
     def matches(self, url: str) -> bool:
         raise NotImplementedError
 
+    def audience_for(self, video: ResolvedVideo | None) -> tuple[str, ...]:
+        """What viewers left on this particular video that can be read (alcedo: only some sources)."""
+        return self.audience
+
     def serves(self, platform: str) -> bool:
         """Whether a saved session of this platform is refreshed by this resolver."""
         return platform == self.platform

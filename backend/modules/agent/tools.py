@@ -265,6 +265,8 @@ class AgentTools:
 
     def audience(self) -> tuple[str, ...]:
         resolver = self.job.resolver if self.job is not None else None
+        if resolver is not None and hasattr(resolver, "audience_for"):
+            return tuple(resolver.audience_for(self.job.video) or ())
         return tuple(getattr(resolver, "audience", ()) or ())
 
     # ---- viewers --------------------------------------------------------------------------
