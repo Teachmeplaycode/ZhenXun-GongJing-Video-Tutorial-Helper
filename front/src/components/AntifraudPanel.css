@@ -228,3 +228,9 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.antifraud__institutions { display: flex; flex-direction: column; gap: var(--sp-8); margin-bottom: var(--sp-16); }
+.antifraud__institutions h3, .antifraud__institutions p { margin: 0; }
+.antifraud__institutions .antifraud__claim-head { flex-wrap: wrap; }
+.antifraud__institutions blockquote { margin: var(--sp-6) 0; overflow-wrap: anywhere; }
+.antifraud__institutions a { color: var(--text-primary); text-decoration: underline; }
