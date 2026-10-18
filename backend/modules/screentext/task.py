@@ -83,7 +83,7 @@ async def read_frames(stream: Stream, folder: Path, timeout: float, fps: float =
     except FileNotFoundError:
         return GrabResult(False, "error", "未安装 ffmpeg")
     count = lambda: len(list(folder.glob("*.jpg")))  # noqa: E731
-    # how far the frames reach: the last frame's number (a jump past a damaged stretch leaves a gap)
+    # A non-default OCR rate and skipped damaged stretches both affect coverage.
     reach = lambda: max((int(f.stem) for f in folder.glob("*.jpg")), default=0) / fps  # noqa: E731
     if code is None:
         # Some sources (YouTube) are throttled to about playback speed: keep what was read in time.
