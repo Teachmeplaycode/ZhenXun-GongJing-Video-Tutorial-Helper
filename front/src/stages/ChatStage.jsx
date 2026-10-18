@@ -31,7 +31,7 @@ const fineClock = (t) => {
 // onCited the times the answers point at; onBusy whether an answer (or a replay) is in progress.
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
-export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
   const { messages, send, regenerate, stop, running, replay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   // The workbench sidebar: open or not and which tab, remembered across visits.
   const [bench, setBench] = useState(() => {
@@ -124,7 +124,9 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     onClearClip?.()
   }
 
-  const scopeNote = `范围：${clip ? `先慢放 ${fineClock(clip.start)}–${fineClock(clip.end)}` : selected.length ? `已选 ${selected.length} 帧` : '整段视频'}${transcript ? ` · 语音 ${speechStep(transcript).value || '等待'}` : ''}${screentext ? ` · 字幕 ${screenStep(screentext).value || '等待'}` : ''}`
+  const scopeNote = pictures
+    ? `范围：${selected.length ? `已选 ${selected.length} 张` : '全部图片'}${screentext ? ` · 图片文字 ${screenStep(screentext).value || '等待'}` : ''}`
+    : `范围：${clip ? `先慢放 ${fineClock(clip.start)}–${fineClock(clip.end)}` : selected.length ? `已选 ${selected.length} 帧` : '整段视频'}${transcript ? ` · 语音 ${speechStep(transcript).value || '等待'}` : ''}${screentext ? ` · 字幕 ${screenStep(screentext).value || '等待'}` : ''}`
 
   const chapterList = chapters?.status === 'done' ? chapters.chapters || [] : []
   const panels = {
@@ -153,9 +155,11 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
                 </span>
               </div>
               <div className="eyebrow">03 · 对话分析</div>
-              <h1 className="h1">关于这段视频，你想知道什么？</h1>
+              <h1 className="h1">{pictures ? '关于这组图片，你想知道什么？' : '关于这段视频，你想知道什么？'}</h1>
               <p className="body-sm muted">
-                在下方时间轴中点选薄片，可将对应关键帧作为附件带入提问；未选择时默认理解整段视频。输入 / 可以选择常用任务。
+                {pictures
+                  ? '在下方点选图片，可只针对这几张提问；未选择时默认理解全部图片。输入 / 可以选择常用任务。'
+                  : '在下方时间轴中点选薄片，可将对应关键帧作为附件带入提问；未选择时默认理解整段视频。输入 / 可以选择常用任务。'}
               </p>
               <div className="chat__suggest">
                 {WORKSPACE_CONTENT.suggestions.map((s) => (
@@ -170,7 +174,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
             </AnimatedContent>
           ) : (
             messages.map((m) => (
-              <MessageBubble key={m.id} message={m} onStop={stop} onTime={onSeek} duration={duration}
+              <MessageBubble key={m.id} message={m} onStop={stop} onTime={onSeek} duration={duration} pictures={pictures}
                 onRegenerate={m.role === 'assistant' && !running ? () => { followRef.current = true; regenerate(m.id) } : null} />
             ))
           )}
@@ -197,7 +201,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         scopeNote={scopeNote}
       />
     </div>
-    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels}
+    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={pictures ? ['chapters'] : []}
       badges={{ chapters: chapterList.length || null }} />
     </div>
   )

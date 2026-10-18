@@ -172,10 +172,17 @@ export class MockApi {
     }
   }
 
-  jobEvents(v = video()) {
+  pictureVideo() {
+    return video({ platform: 'local', video_id: 'job1', title: `早餐.png 等 ${this.frames} 张图片`, duration: this.frames, kind: 'images', image_count: this.frames })
+  }
+
+  jobEvents(v = this.pictures ? this.pictureVideo() : video()) {
     const events = [{ seq: 0, type: 'started', indexes: [] }]
     for (const s of slots(this.frames, v.duration, 'ok')) events.push({ seq: events.length, type: 'frame', index: s.index, time: s.time })
-    events.push({ seq: events.length, type: 'transcript', status: 'done', message: '已转写 12 句', count: 12 })
+    if (this.pictures) {
+      events.push({ seq: events.length, type: 'transcript', status: 'none', message: '图集没有语音', count: 0 })
+      events.push({ seq: events.length, type: 'screentext', status: 'done', message: '识别到 2 段图片文字', count: 2 })
+    } else events.push({ seq: events.length, type: 'transcript', status: 'done', message: '已转写 12 句', count: 12 })
     events.push({ seq: events.length, type: 'done', coverage: { ok: this.frames, missing: 0, total: this.frames, pending: 0, missing_ranges: [], reasons: {} } })
     // Shot fill (backend sample_with_shots): extra keyframes announced after the uniform pass, then taken.
     if (this.shotTimes.length) {
@@ -241,6 +248,12 @@ export class MockApi {
       return json(this.snapshot('job1'))
     }
     if (path === '/api/videos') return json(this.snapshot('upload1', { v: video({ platform: 'local', video_id: 'clip.mp4', title: 'clip' }) }))
+    if (path === '/api/images' && req.method() === 'POST') {
+      // Uploaded pictures (backend modules/frames/images.py): an image job, no speech, text per picture.
+      this.pictures = true
+      this.uploadedImages = (req.postDataBuffer()?.toString('latin1').match(/filename="/g) || []).length
+      return json({ ...this.snapshot('job1', { v: this.pictureVideo() }), transcript: { status: 'none', message: '图集没有语音', count: 0 } })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/events$/)
     if (m) return stream(this.jobEvents().filter((e) => e.seq >= Number(url.searchParams.get('since') || 0)))
     m = path.match(/^\/api\/link-jobs\/(\w+)\/(frames\/\d+|replay\/[\d-]+\/\d{2}|extra\/\d{8})\.jpg$/)

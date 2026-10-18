@@ -13,6 +13,7 @@ const INLINE = new RegExp(
     '(?<![*\\w])\\*([^*\\s][^*]*?)\\*(?![*\\w])', // 3 italic
     '(https?://[^\\s<>()（）\\[\\]，。；、"\'“”]+)', // 4 link — before times, which URLs can contain
     `(?<![\\d:])${TIME.source}(?![\\d:])`, // 5 time
+    '第\\s*(\\d{1,3})\\s*张', // 6 a picture of a picture set
   ].join('|'),
   'g',
 )
@@ -45,6 +46,12 @@ function inline(text, ctx, keyBase) {
       const url = m[4].replace(/[.,;:]+$/, '')
       out.push(<a key={key} className="md-link" href={url} target="_blank" rel="noreferrer" title={url}>{shortUrl(url)}</a>)
       if (url.length < m[4].length) out.push(m[4].slice(url.length))
+    } else if (m[6] != null) {
+      // "第 3 张": in a picture set (ctx.pictures) it points the timeline at that picture
+      const n = Number(m[6])
+      if (ctx.pictures && ctx.onTime && n >= 1) {
+        out.push(<button key={key} type="button" className="ts-chip" onClick={() => ctx.onTime(n - 0.5)} title="在时间轴上看这张图">{m[0]}</button>)
+      } else out.push(m[0])
     } else {
       const seconds = toSeconds(m[5])
       // Only moments inside the video; other clock-like numbers stay plain text.
@@ -91,8 +98,8 @@ function blocks(text) {
 }
 
 /** Render `text`; `tail` (e.g. a streaming cursor) is placed at the end of the last block. */
-export function renderMarkdown(text, { onTime = null, duration = null, tail = null } = {}) {
-  const ctx = { onTime, duration }
+export function renderMarkdown(text, { onTime = null, duration = null, tail = null, pictures = false } = {}) {
+  const ctx = { onTime, duration, pictures }
   const list = blocks(text || '')
   return list.map((b, i) => {
     const end = i === list.length - 1 ? tail : null

@@ -111,6 +111,36 @@ async function linkRequest(path, init = {}) {
   return body
 }
 
+/**
+ * Upload pictures (screenshots, a saved image post): the backend makes them an image job — no
+ * sampling or speech, the text on each picture read once. Same snapshot as createLinkJob.
+ */
+export function uploadImages(files, { task = '', onProgress, signal } = {}) {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted()
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_BASE || ''}/api/images`)
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total)
+    xhr.onload = () => {
+      let body = null
+      try {
+        body = JSON.parse(xhr.responseText)
+      } catch {
+        body = null
+      }
+      if (xhr.status < 300 && body) return resolve(body)
+      return reject(new Error(body?.message || body?.detail || `上传失败（HTTP ${xhr.status}）`))
+    }
+    xhr.onerror = () => reject(new Error('无法连接分析服务，请确认后端已启动'))
+    xhr.onabort = () => reject(new DOMException('aborted', 'AbortError'))
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true })
+    const form = new FormData()
+    for (const f of files) form.append('files', f)
+    form.append('task', task)
+    xhr.send(form)
+  })
+}
+
 /** Resolve a link and start remote frame sampling. Returns { job_id, video, slots, coverage }. */
 export function createLinkJob(url, { task = '', sampling = null, signal } = {}) {
   return linkRequest('/api/link-jobs', {
