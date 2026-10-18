@@ -111,3 +111,30 @@ def test_tool_checks_reject_non_string_entries(key, value):
     case = {"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary", "checks": {key: value}}
     spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}}, "cases": [case]}
     assert any(key in error for error in validate(spec))
+
+
+@pytest.mark.parametrize("value", ["forbidden", [[]], [{}], [1], [None], ["valid", 1]])
+def test_contains_none_rejects_non_string_entries_on_load(tmp_path, value):
+    import json
+
+    case = {"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary",
+            "checks": {"contains_none": value}}
+    spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}}, "cases": [case]}
+    path = tmp_path / "cases.json"
+    path.write_text(json.dumps(spec))
+    with pytest.raises(ValueError, match="contains_none 应为字符串数组"):
+        load(path)
+
+
+@pytest.mark.parametrize("forbidden", [[], ["李宗盛", "forbidden"]])
+def test_contains_none_strings_can_be_loaded_and_evaluated(tmp_path, forbidden):
+    import json
+    from scripts.eval import check
+
+    case = {"id": "c1", "video": "v", "question": "q", "rubric": "answer", "qtype": "summary",
+            "checks": {"contains_none": forbidden}}
+    spec = {"videos": {"v": {"url": "x", "note": "n", "category": "vlog"}}, "cases": [case]}
+    path = tmp_path / "cases.json"
+    path.write_text(json.dumps(spec))
+    loaded = load(path)
+    assert check(loaded["cases"][0], {"status": "done", "answer": "safe", "tools": []}) == []
