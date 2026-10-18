@@ -165,7 +165,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
           jobId={video.jobId}
           transcript={transcript}
           screentext={screentext}
-          framesComplete={coverage?.pending === 0}
+          frameRevision={`${coverage?.ok ?? 0}:${coverage?.missing ?? 0}:${coverage?.pending ?? frames.length}`}
           videoTitle={video.title}
           onClose={() => setAntifraudOpen(false)}
         />

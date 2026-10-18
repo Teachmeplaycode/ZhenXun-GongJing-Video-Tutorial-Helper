@@ -52,8 +52,8 @@ function ClaimCard({ claim }) {
   )
 }
 
-function DrainageBadge({ signals }) {
-  if (!signals?.length) return null
+function DrainageBadge({ signals = [], qrcodes = [] }) {
+  if (!signals.length && !qrcodes.length) return null
   const byKind = {}
   for (const s of signals) {
     byKind[s.kind] = (byKind[s.kind] || 0) + 1
@@ -63,7 +63,7 @@ function DrainageBadge({ signals }) {
   if (byKind.phone) items.push({ n: byKind.phone, label: '手机号', Icon: IconPhone })
   if (byKind.phone_400) items.push({ n: byKind.phone_400, label: '400电话', Icon: IconPhone })
   if (byKind.url || byKind.short_url) items.push({ n: (byKind.url || 0) + (byKind.short_url || 0), label: '网址', Icon: IconLink })
-  if (byKind.qrcode) items.push({ n: byKind.qrcode, label: '二维码', Icon: IconQrCode })
+  if (qrcodes.length) items.push({ n: qrcodes.length, label: '二维码', Icon: IconQrCode })
   if (!items.length) return null
   return (
     <div className="antifraud__badges">
@@ -104,12 +104,12 @@ function Institutions({ result }) {
   </section>
 }
 
-export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript, screentext, framesComplete }) {
+export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript, screentext, frameRevision }) {
   // Refresh once each background source reaches a final state; progress-only updates
   // do not repeatedly start paid model calls or external institution queries.
   const revision = [transcript, screentext].map((stage) =>
     ['done', 'empty', 'none', 'unavailable', 'failed'].includes(stage?.status)
-      ? `${stage.status}:${stage.count || 0}` : 'waiting').join('|') + `|${Boolean(framesComplete)}`
+      ? `${stage.status}:${stage.count || 0}` : 'waiting').join('|') + `|${frameRevision || 'waiting'}`
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -192,7 +192,7 @@ export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript,
         </div>
       </section>
 
-      <DrainageBadge signals={report.drainage_signals} />
+      <DrainageBadge signals={report.drainage_signals} qrcodes={report.qrcodes} />
       <Institutions result={report.institutions} />
 
       {report.disclaimer && (
