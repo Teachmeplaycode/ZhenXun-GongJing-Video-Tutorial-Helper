@@ -163,6 +163,17 @@ export const getSession = (id, { signal } = {}) => linkRequest(`/api/sessions/${
 
 export const deleteSession = (id) => linkRequest(`/api/sessions/${id}`, { method: 'DELETE' })
 
+/** The session-note export as a URL: format=md downloads a zip (笔记.md + images/),
+ * format=pdf opens a print-styled page (the browser's Print → PDF). `ids` limits the export
+ * to those saved message ids; null means the whole conversation, empty is rejected. */
+export function exportSessionUrl(id, { format = 'md', ids = null } = {}) {
+  const params = new URLSearchParams()
+  if (format !== 'md') params.set('format', format)
+  if (ids !== null) params.set('ids', ids.join(','))
+  const query = params.toString()
+  return `${LINK_BASE}/api/sessions/${id}/export${query ? `?${query}` : ''}`
+}
+
 // ---- Platform logins (cookies stay in the backend; only status comes back) -------------
 
 /** [{ id, label, purpose, app, configured, source, user, expires, valid }] */

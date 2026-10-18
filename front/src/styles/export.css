@@ -1,0 +1,34 @@
+/* ---------- note export (§ issue #4) ---------- */
+.chat__export {
+  align-self: flex-end; flex-shrink: 0;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  display: inline-flex; align-items: center; gap: var(--sp-6); height: 30px; padding: 0 var(--sp-12);
+  border: var(--border-hairline); border-radius: var(--radius-pill); background: var(--bg-surface); color: var(--text-primary);
+  font-size: var(--fs-caption); cursor: pointer;
+}
+.chat__export:hover { border-color: var(--border-strong); }
+.chat__export svg { color: var(--text-secondary); }
+
+.export-dialog {
+  width: min(480px, 100%); max-height: min(640px, 90vh); display: flex; flex-direction: column; gap: var(--sp-12);
+  background: var(--bg-surface); border: var(--border-hairline); border-radius: var(--radius-lg);
+  padding: var(--sp-16); box-shadow: 0 16px 48px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+.export-dialog__head { display: flex; align-items: center; justify-content: space-between; }
+.export-dialog__head strong { display: inline-flex; align-items: center; gap: var(--sp-6); font-size: var(--fs-body); }
+.export-dialog__head svg { color: var(--text-secondary); }
+.export-dialog__hint { margin: 0; color: var(--text-secondary); font-size: var(--fs-caption); line-height: 1.6; }
+.export-dialog__list { display: flex; flex-direction: column; gap: var(--sp-4); overflow-y: auto; min-height: 0; }
+.export-item {
+  display: flex; align-items: center; gap: var(--sp-8); padding: var(--sp-8);
+  border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-surface-alt);
+  font-size: var(--fs-body-sm); cursor: pointer;
+}
+.export-item:hover { border-color: var(--border-strong); }
+.export-item--all { background: none; border-color: transparent; color: var(--text-secondary); padding-inline: var(--sp-4); }
+.export-item input { flex: none; accent-color: var(--bg-inverse); }
+.export-item[data-pending] { opacity: 0.55; cursor: not-allowed; }
+.export-item__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.export-item__meta { flex: none; color: var(--text-tertiary); font-size: var(--fs-caption); }
+.export-dialog__empty { margin: 0; color: var(--text-tertiary); font-size: var(--fs-body-sm); }
+.export-dialog__actions { display: flex; justify-content: flex-end; gap: var(--sp-8); }

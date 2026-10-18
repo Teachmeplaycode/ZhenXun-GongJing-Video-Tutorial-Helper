@@ -3,8 +3,9 @@ import gsap from 'gsap'
 import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
 import ChaptersPanel from '../components/ChaptersPanel'
-import { IconArrowDown, IconArrowRight } from '../components/Icons'
 import { IconSearch } from '../components/FactCheckIcons'
+import ExportDialog from '../components/ExportDialog'
+import { IconArrowDown, IconArrowRight, IconBook } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
 import SpotlightCard from '../components/react-bits/SpotlightCard'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
@@ -59,6 +60,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   const [draft, setDraft] = useState('')
   const [following, setFollowing] = useState(true)
   const [antifraudOpen, setAntifraudOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const scrollRef = useRef(null)
   const followRef = useRef(true)
   const jumpRef = useRef(null)
@@ -180,6 +182,14 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         <IconSearch size={16} />
         <span>科普核查</span>
       </button>
+      {video?.jobId && messages.length ? (
+        <button type="button" className="chat__export" onClick={() => setExportOpen(true)}>
+          <IconBook size={14} /> 导出笔记
+        </button>
+      ) : null}
+      {exportOpen && video?.jobId ? (
+        <ExportDialog sessionId={video.jobId} messages={messages} onClose={() => setExportOpen(false)} />
+      ) : null}
       <Composer
         draft={draft}
         setDraft={setDraft}
