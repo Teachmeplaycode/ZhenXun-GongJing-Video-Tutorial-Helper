@@ -39,7 +39,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from evals.schema import CATEGORIES, QTYPES  # noqa: E402
+from evals.schema import CATEGORIES, QTYPES, load  # noqa: E402
 
 CASES = ROOT / "evals" / "cases.json"
 DATA = ROOT / "data" / "evals"
@@ -302,7 +302,7 @@ async def main() -> None:
     parser.add_argument("--prepare", action="store_true", help="only parse the videos")
     args = parser.parse_args()
 
-    spec = json.loads(CASES.read_text())
+    spec = load(CASES)
     wanted = [w.strip() for w in (args.only or "").split(",") if w.strip()]
     cases = [c for c in spec["cases"] if not wanted or any(w in c["id"] for w in wanted)]
     needed = {c["video"] for c in cases}

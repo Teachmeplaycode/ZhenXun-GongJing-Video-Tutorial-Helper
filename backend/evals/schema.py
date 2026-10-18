@@ -106,8 +106,9 @@ def _validate_checks(cid: str, c: dict) -> list[str]:
             for i, group in enumerate(c["contains_any"]):
                 if not isinstance(group, list) or not all(isinstance(s, str) for s in group):
                     errors.append(f"{cid}.checks.contains_any[{i}] 应为字符串数组")
-    if "contains_none" in c and not isinstance(c["contains_none"], list):
-        errors.append(f"{cid}.checks.contains_none 不是数组")
+    if "contains_none" in c and (not isinstance(c["contains_none"], list)
+                                or not all(isinstance(item, str) for item in c["contains_none"])):
+        errors.append(f"{cid}.checks.contains_none 应为字符串数组")
     if "timestamps" in c and not isinstance(c["timestamps"], bool):
         errors.append(f"{cid}.checks.timestamps 不是布尔值")
     return errors
