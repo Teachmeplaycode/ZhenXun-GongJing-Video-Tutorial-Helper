@@ -4,6 +4,7 @@ import { fmtClock, fmtTime, frameNo } from '../lib/format'
 import { IconChevron } from './Icons'
 import { prefersReducedMotion } from '../lib/motion'
 import FrameLightbox from './FrameLightbox'
+import IntervalForm from './IntervalForm'
 
 const NEIGHBOR_RADIUS = 3
 const PREVIEW_DELAY = 400 // ms
@@ -29,15 +30,18 @@ const EXTRA = { replay: '慢放', view: '补看' }
 const MAX_RANGE = 10 // s, the longest stretch one replay covers (backend modules/frames/replay.py)
 const MIN_RANGE = 0.5 // s, a shorter drag is widened around its middle
 const DRAG_START = 6 // px of movement before a press on the track becomes a drag
+const LONG_PRESS = 450 // ms a still press on a sheet takes to open the frame viewer
 const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`
 
 // seek: { time, key } from a time clicked in an answer — the nearest sheet rises and shows its preview.
 // cuts: shot changes (seconds) and cited: [{ time, n }] times the answers point at, both marked above
-// the sheets. Dragging across the track frames a stretch (≤ 10 s): onRange(start, end, 'play' | 'ask')
+// the sheets. chapters: [{ start, end, title, summary }] faint bands under the sheets (backend
+// modules/chapters), alternating two tints so neighbouring chapters stay apart.
+// Dragging across the track frames a stretch (≤ 10 s): onRange(start, end, 'play' | 'ask')
 // replays it now or attaches it to the next question; busy disables 'play' while an answer runs.
 // open / onOpenChange: the track can fold away to give the chat more height; `pulse` (a changing
 // number) flashes the head to show where frames are picked.
-export default function TimelineSculpture({ frames, extras = [], cuts = [], cited = [], busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
+export default function TimelineSculpture({ frames, extras = [], cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
   const trackRef = useRef(null)
   const sectionRef = useRef(null)
   const deckRef = useRef(null)
@@ -46,7 +50,9 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
   const timer = useRef(0)
   const [preview, setPreview] = useState(null)
   const [trackWidth, setTrackWidth] = useState(0)
-  const [zoom, setZoom] = useState(null) // { group, at } of an enlarged on-demand frame
+  const [zoom, setZoom] = useState(null) // { items: [{ src, time, tag, kind }], at } shown in the frame viewer
+  const longPress = useRef(0)
+  const [typing, setTyping] = useState(false) // the typed-interval form is open
   const [drag, setDrag] = useState(null) // { x0, x1 } px while framing a stretch
   const [range, setRange] = useState(null) // { start, end, left, right } framed, its menu open
   const press = useRef(null) // { x, id, dragging } of the pointer pressed on the track
@@ -128,7 +134,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
       timer.current = setTimeout(() => setPreview({ index }), PREVIEW_DELAY)
     }
   }
-  useEffect(() => () => clearTimeout(timer.current), [])
+  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(longPress.current) }, [])
 
   useLayoutEffect(() => {
     const head = sectionRef.current?.querySelector('.timeline__head')
@@ -196,9 +202,27 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
     const box = trackRef.current.getBoundingClientRect()
     return Math.min(Math.max(e.clientX - box.left, 0), box.width)
   }
+  // Long press on a sheet: every frame with a picture in the viewer, starting at that one.
+  const openViewer = (i) => {
+    const shown = items.map((f, k) => ({ f, k })).filter(({ f }) => f.src && isAvailable(f))
+    const at = shown.findIndex(({ k }) => k === i)
+    if (at < 0) return
+    hover(null)
+    setZoom({ at, items: shown.map(({ f }) => ({ src: f.src, time: f.time, kind: f.kind, tag: f.kind ? EXTRA[f.kind] : frameNo(f.index) })) })
+  }
+  const cancelLongPress = () => clearTimeout(longPress.current)
   const onPointerDown = (e) => {
-    if (!onRange || e.button !== 0 || !count || e.target.closest('.tl-range__menu, .tl-mark')) return
-    press.current = { x: localX(e), id: e.pointerId, dragging: false }
+    if (e.button !== 0 || !count || e.target.closest('.tl-range__menu, .tl-mark')) return
+    const sheet = e.target.closest('.tl-sheet')
+    cancelLongPress()
+    if (sheet) {
+      longPress.current = setTimeout(() => {
+        press.current = null // the press is a long press now, not a drag
+        swallowClick.current = true // nor a click on release
+        openViewer(Number(sheet.dataset.i))
+      }, LONG_PRESS)
+    }
+    if (onRange) press.current = { x: localX(e), id: e.pointerId, dragging: false }
   }
   const onPointerMove = (e) => {
     const p = press.current
@@ -206,6 +230,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
     const x = localX(e)
     if (!p.dragging) {
       if (Math.abs(x - p.x) < DRAG_START) return
+      cancelLongPress()
       p.dragging = true
       trackRef.current.setPointerCapture?.(e.pointerId)
       hover(null)
@@ -214,6 +239,8 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
     setDrag({ x0: p.x, x1: x })
   }
   const onPointerUp = (e) => {
+    cancelLongPress()
+    if (swallowClick.current) setTimeout(() => { swallowClick.current = false }, 0) // after a long press
     const p = press.current
     press.current = null
     if (!p || !p.dragging) return
@@ -273,6 +300,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
         {['replay', 'view'].map((kind) => (extraCount(kind) ? (
           <span key={kind} className="mono-sm timeline__legend" data-kind={kind}><i aria-hidden="true" />{EXTRA[kind]} {extraCount(kind)} 帧</span>
         ) : null))}
+        {chapters.length ? <span className="mono-sm timeline__legend" data-kind="chapter"><i aria-hidden="true" />章节 {chapters.length}</span> : null}
         {cuts.length ? <span className="mono-sm timeline__legend" data-kind="cut"><i aria-hidden="true" />镜头切换 {cuts.length}</span> : null}
         {cited.length ? <span className="mono-sm timeline__legend" data-kind="cite"><i aria-hidden="true" />回答提到 {cited.length}</span> : null}
         {pendingCount ? <span className="mono-sm timeline__pending">抓取中 {frames.length - pendingCount}/{frames.length}</span> : null}
@@ -284,6 +312,13 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
             ) : null}
           </span>
         ) : null}
+        {onRange ? (
+          <span className="timeline__interval">
+            <button type="button" className="link-btn timeline__interval-btn" onClick={() => setTyping((v) => !v)} aria-expanded={typing}
+              title="输入起止时间慢放，长视频比拖动更准">输入区间</button>
+            {typing ? <IntervalForm duration={duration} busy={busy} onRange={onRange} onClose={() => setTyping(false)} /> : null}
+          </span>
+        ) : null}
         <span className="timeline__spacer" />
         {selected.length ? (
           <>
@@ -291,7 +326,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
             <button type="button" className="link-btn" onClick={onClear}>清除</button>
           </>
         ) : (
-          <span className="caption muted">{open ? `点击薄片选择关键帧作为提问附件${onRange ? '；拖动框选一段可以慢放' : ''}` : '已收起'}</span>
+          <span className="caption muted">{open ? `点击薄片选择关键帧作为提问附件${onRange ? '；拖动框选一段可以慢放；长按薄片放大' : ''}` : '已收起'}</span>
         )}
         {onOpenChange ? (
           <button type="button" className="timeline__fold" onClick={() => onOpenChange(!open)} aria-expanded={open}
@@ -304,7 +339,13 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
       <div ref={trackRef} className="timeline__track" data-framing={drag ? '' : undefined}
         onPointerLeave={() => { if (!press.current?.dragging) hover(null) }}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
-        onPointerCancel={() => { press.current = null; setDrag(null) }}>
+        onPointerCancel={() => { cancelLongPress(); press.current = null; setDrag(null) }}
+        onContextMenu={(e) => { if (e.target.closest('.tl-sheet')) e.preventDefault() }}>
+        {chapters.map((c, i) => (
+          <span key={`ch${c.start}`} className="tl-chapterband" data-alt={i % 2 || undefined} data-active={activeChapter === i || undefined}
+            style={{ left: xOfTime(c.start), width: Math.max(0, xOfTime(c.end) - xOfTime(c.start)) }}
+            title={`${i + 1}. ${c.title}`} aria-hidden="true" />
+        ))}
         <div
           ref={deckRef}
           className="timeline__deck"
@@ -318,11 +359,11 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
                   type="button"
                   className={`tl-sheet is-extra ${seeking === i ? 'is-seeking' : ''}`}
                   data-kind={f.kind}
-                  style={{ left: `${(i / count) * 100}%`, width: `${100 / count}%` }}
+                  style={{ left: `${(i / count) * 100}%`, width: `${100 / count}%` }} data-i={i}
                   onPointerEnter={() => hover(i)}
                   onFocus={() => hover(i)}
                   onBlur={() => hover(null)}
-                  onClick={() => { if (!swallowClick.current) setZoom({ group: f.group, at: f.k }) }}
+                  onClick={() => { if (!swallowClick.current) setZoom({ items: f.group.frames.map((x) => ({ ...x, tag: EXTRA[x.kind] })), at: f.k }) }}
                   aria-label={`${EXTRA[f.kind]}帧 ${fmtTime(f.time)}，点击放大`}
                 >
                   <span ref={(el) => { bodies.current[i] = el }} className="tl-sheet__body">
@@ -343,7 +384,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
                 key={f.index}
                 type="button"
                 className={`tl-sheet ${isSel ? 'is-selected' : ''} ${seeking === i ? 'is-seeking' : ''} ${f.status === 'missing' ? 'is-missing' : ''} ${f.status === 'pending' ? 'is-pending' : ''}`}
-                style={{ left: `${(i / count) * 100}%`, width: `${100 / count}%` }}
+                style={{ left: `${(i / count) * 100}%`, width: `${100 / count}%` }} data-i={i}
                 onPointerEnter={() => hover(i)}
                 onFocus={() => hover(i)}
                 onBlur={() => hover(null)}
@@ -416,7 +457,7 @@ export default function TimelineSculpture({ frames, extras = [], cuts = [], cite
       </div></div>
       {zoom ? (
         <FrameLightbox
-          items={zoom.group.frames.map((f) => ({ ...f, tag: EXTRA[f.kind] }))}
+          items={zoom.items}
           at={zoom.at} onAt={(at) => setZoom((z) => ({ ...z, at }))} onClose={() => setZoom(null)}
         />
       ) : null}

@@ -10,5 +10,8 @@ import './styles/tokens.css'
 import './styles/app.css'
 import './styles/workspace.css'
 import App from './App'
+import NoteEditor from './notes/NoteEditor'
 
-createRoot(document.getElementById('root')).render(<App />)
+// #/notes/<jobId> opens the note editor in its own tab; everything else is the workbench.
+const note = /^#\/notes\/([\w-]+)/.exec(window.location.hash)
+createRoot(document.getElementById('root')).render(note ? <NoteEditor jobId={note[1]} /> : <App />)
