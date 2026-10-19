@@ -6,18 +6,18 @@ export const BRAND = {
   slug: 'gongjing',
   gloss: '真的吗？',
   tag: '方言',
-  product: '视频理解工作台',
+  product: '视频 · 图文理解工作台',
 }
 
 export const WORKSPACE_CONTENT = {
   title: ['画面之内。', '答案之间。'],
   subtitle: '从视频素材到有据可查的回答',
-  description: '展开时间，拆解画面。让关键帧、片段与细节，成为你下一次提问的依据。',
+  description: '视频拆成关键帧，图文读出每一张。画面、字幕与正文，都成为你提问和核查的依据。',
   issue: 'FIELD NOTES / 001',
   capabilities: [
-    { label: '关键片段', title: '定位画面变化', description: '找到人物、产品和场景出现的时间点。', task: '找出视频中人物、产品和场景变化的时间点', mark: '01' },
-    { label: '跨帧对照', title: '比较前后细节', description: '选择多张关键帧，追踪变化与事件顺序。', task: '比较视频前后关键画面的变化，按时间顺序说明', mark: '02' },
-    { label: '分析报告', title: '整理完整叙事', description: '串联片段、总结信息，生成可复用的报告。', task: '整理关键片段并写成包含时间点的分析报告', mark: '03' },
+    { label: '关键片段', title: '总结内容', description: '找到人物、产品和场景出现的时间点。', task: '总结这份内容的主题和主要观点', mark: '01' },
+    { label: '跨帧对照', title: '核查说法', description: '选择多张关键帧，追踪变化与事件顺序。', task: '核查这份内容中的主要说法，并给出依据', mark: '02' },
+    { label: '分析报告', title: '整理要点', description: '串联片段、总结信息，生成可复用的报告。', task: '把这份内容整理成清晰的要点清单', mark: '03' },
   ],
   suggestions: [
     { title: '快速理解', description: '梳理主题、人物和主要事件', question: '总结这段视频的主要内容' },

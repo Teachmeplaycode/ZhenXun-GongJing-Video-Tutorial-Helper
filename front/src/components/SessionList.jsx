@@ -4,6 +4,7 @@ import { IconClose } from './Icons'
 import { linkFrameUrl } from '../api/client'
 import { fmtAgo, fmtClock } from '../lib/format'
 import { prefersReducedMotion } from '../lib/motion'
+import { platformName } from '../lib/platforms'
 
 // One saved session: cover frame, title, and a mono line of identifiers and counts.
 // Deleting asks for a second click on the same button.
@@ -25,7 +26,8 @@ export function SessionItem({ session, current = false, compact = false, onOpen,
             <span className="session-item__ago">{fmtAgo(s.updated)}</span>
           </span>
           <span className="session-item__meta">
-            {s.video_id}{part} · {fmtClock(s.duration)} · {s.questions ? `${s.questions} 问` : '未提问'}
+            {[platformName(s.platform) || s.video_id, s.kind === 'images' ? `图文 · ${s.image_count || s.frames_total} 张` : `视频${part} · ${fmtClock(s.duration)}`,
+              s.questions ? `${s.questions} 问` : '未提问'].join(' · ')}
           </span>
           {!compact && s.last_question ? <span className="session-item__last">{s.last_question}</span> : null}
         </span>

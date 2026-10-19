@@ -192,9 +192,10 @@ test('history reopens saved sessions, old and new answer formats', async ({ page
       ],
     })
   })
-  await expect(page.locator('.recent .session-item')).toHaveCount(2)
+  await page.locator('.btn--history').click()
+  await expect(page.locator('.history .session-item')).toHaveCount(2)
 
-  await page.locator('.recent .session-item', { hasText: '旧格式会话' }).locator('.session-item__open').click()
+  await page.locator('.history .session-item', { hasText: '旧格式会话' }).locator('.session-item__open').click()
   await expect(lastAnswer(page).locator('.streaming-text')).toHaveText('旧格式的回答')
   await expect(lastAnswer(page).locator('.step-group')).toContainText('执行了 4 步')
 
@@ -352,7 +353,8 @@ test('a hand-framed replay comes back with its session', async ({ page }) => {
       { type: 'tool_call.completed', call_id: 'manual1', result_count: 3, t: 0.4 },
     ] }],
   }))
-  await page.locator('.recent .session-item', { hasText: '有手动慢放的会话' }).locator('.session-item__open').click()
+  await page.locator('.btn--history').click()
+  await page.locator('.history .session-item', { hasText: '有手动慢放的会话' }).locator('.session-item__open').click()
   await expect(page.locator('.msg--manual .manual-replay__head')).toContainText('01:00.0 – 01:01.0')
   await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(3)
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(3)
