@@ -57,7 +57,7 @@ function inline(text, ctx, keyBase) {
       // Only moments inside the video; other clock-like numbers stay plain text.
       if (ctx.onTime && seconds <= (ctx.duration ?? Infinity) + 1) {
         out.push(
-          <button key={key} type="button" className="ts-chip" onClick={() => ctx.onTime(seconds)} title="在时间轴上定位">
+          <button key={key} type="button" className="ts-chip" onClick={() => ctx.onTime(seconds)} title={ctx.seekTitle || '在时间轴上定位'}>
             {m[5]}
           </button>,
         )
@@ -98,8 +98,8 @@ function blocks(text) {
 }
 
 /** Render `text`; `tail` (e.g. a streaming cursor) is placed at the end of the last block. */
-export function renderMarkdown(text, { onTime = null, duration = null, tail = null, pictures = false } = {}) {
-  const ctx = { onTime, duration, pictures }
+export function renderMarkdown(text, { onTime = null, duration = null, tail = null, pictures = false, seekTitle = '' } = {}) {
+  const ctx = { onTime, duration, pictures, seekTitle }
   const list = blocks(text || '')
   return list.map((b, i) => {
     const end = i === list.length - 1 ? tail : null
