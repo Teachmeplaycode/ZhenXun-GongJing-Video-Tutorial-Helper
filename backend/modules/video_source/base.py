@@ -83,6 +83,7 @@ class ResolvedVideo:
             "stream_count": len(self.streams),
             "has_audio": bool(self.audio_streams),
             "stats": self.extra.get("stats") or {},
+            "tags": self.extra.get("tags") or [],
             "kind": self.extra.get("kind") or "video",  # "images": an image post or uploaded pictures
             "image_count": len(self.extra.get("images") or []),
         }
@@ -122,6 +123,10 @@ class Resolver:
 
     def matches(self, url: str) -> bool:
         raise NotImplementedError
+
+    def audience_for(self, video: ResolvedVideo | None) -> tuple[str, ...]:
+        """What viewers left on this particular video that can be read (alcedo: only some sources)."""
+        return self.audience
 
     def serves(self, platform: str) -> bool:
         """Whether a saved session of this platform is refreshed by this resolver."""

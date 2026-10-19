@@ -116,4 +116,34 @@ def test_endpoints_refuse_other_sites(files, monkeypatch):
     assert client.delete("/api/accounts/yuanbao", headers={"Sec-Fetch-Site": "cross-site"}).status_code == 403
     assert client.post("/api/accounts/nothing/login").status_code == 404
     body = client.get("/api/accounts").json()["accounts"]
-    assert [a["id"] for a in body] == ["bilibili", "yuanbao"] and all("cookie" not in a for a in body)
+    assert [a["id"] for a in body] == ["bilibili", "yuanbao", "xiaohongshu"] and all("cookie" not in a for a in body)
+
+
+def test_xiaohongshu_offers_a_scan_and_still_takes_a_pasted_cookie(files):
+    with pytest.raises(accounts.AccountError, match="web_session"):
+        asyncio.run(accounts.set_cookie("xiaohongshu", "a1=x"))
+    status = asyncio.run(accounts.set_cookie("xiaohongshu", "a1=x; web_session=y"))
+    assert status["configured"] and status["qr"] is True
+
+
+def test_xiaohongshu_scan_saves_the_logged_in_cookies(files):
+    class Context:
+        def __init__(self):
+            self.jar = [{"name": "a1", "value": "A"}, {"name": "web_session", "value": "guest"}]
+
+        async def cookies(self, url):
+            return self.jar
+
+    ctx, seen = Context(), {"status": None}
+    login = accounts.Login("id", "xiaohongshu", "data:image/png;base64,", handle={"context": ctx, "seen": seen})
+    asyncio.run(accounts._xhs_poll(login))
+    assert login.state == "waiting"  # a guest session is not a login
+    seen["status"] = 1
+    asyncio.run(accounts._xhs_poll(login))
+    assert login.state == "scanned"
+    ctx.jar = [{"name": "a1", "value": "A"}, {"name": "web_session", "value": "S", "expires": 1793000000},
+               {"name": "id_token", "value": "T"}]
+    asyncio.run(accounts._xhs_poll(login))
+    assert login.state == "done"
+    assert accounts.settings()["XHS_COOKIE"] == "a1=A; web_session=S; id_token=T"
+    assert asyncio.run(accounts.status("xiaohongshu"))["expires"] == 1793000000

@@ -220,7 +220,7 @@ def max_screen_chars() -> int:
 
 VIDEO_ONLY_TOOLS = {"view_frames", "replay", "read_transcript", "read_chapters", "measure_motion"}
 IMAGES_NOTE = ("这是一组图片（图集或截图），不是视频：没有时间轴，也没有语音。每张图前标了「第 n 张」，"
-               "「图片文字」是从每张图里识别出的文字。回答里提到某张图时写「第 n 张」，不要写 mm:ss 时间点。")
+               "「图片文字」是从每张图里识别出的文字；给了「正文」时，那是作者写在图集下的文字，和图片一样是帖子内容。回答里提到某张图时写「第 n 张」，不要写 mm:ss 时间点。")
 
 
 def allowed_tools(job: FrameJob, web: bool, papers: bool, audience: tuple) -> list[dict]:
@@ -302,8 +302,12 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     pictures = picture_sets.is_images(video)
     context = ([f"图集标题：{video.title}", f"共 {len(job.slots)} 张图片", IMAGES_NOTE] if pictures
                else [f"视频标题：{video.title}", f"时长：{clock(video.duration)}"])
-    if video.description:
+    if video.description and pictures:  # a post's body is half the post: give it whole
+        context.append(f"正文（作者写在图集下的文字）：\n{video.description[:4000]}")
+    elif video.description:
         context.append(f"简介：{video.description[:800]}")
+    if video.extra.get("tags"):
+        context.append("话题：" + "、".join(f"#{t}" for t in video.extra["tags"]))
     if pictures:
         context.append(f"范围：{'全部图片' if scope_all else '用户选中的图片'}，共提供 {len(frames)} 张")
     else:
