@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import shutil
+import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -122,6 +123,8 @@ def pick_streams(streams: list[Stream]) -> list[Stream]:
     return sorted(usable, key=lambda s: abs((s.height or TARGET_HEIGHT) - TARGET_HEIGHT))
 
 
+STALL_PAUSE = 3.0  # seconds before reading again after the CDN stalled
+_now = time.monotonic  # the clock for telling a stall from a slow read (tests swap it, not asyncio's)
 ReadFrames = Callable[[Stream, Path, float], Awaitable[GrabResult]]
 Recognize = Callable[[str], list]
 
@@ -149,13 +152,19 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
     try:
         result = None
         for attempt in range(2):
+            started = _now()
             for stream in pick_streams(job.video.streams):
                 shutil.rmtree(folder, ignore_errors=True)
                 result = await (read(stream, folder, timeout) if fps == FPS else read(stream, folder, timeout, fps=fps))
-                if result.ok or result.kind != "forbidden":
+                if result.ok or result.kind not in ("forbidden", "timeout"):  # refused or stalled: try the next address
                     break
-            if (result and result.ok) or (result and result.kind != "forbidden") or attempt:
+            if result is None or result.ok or result.kind not in ("forbidden", "timeout") or attempt:
                 break
+            if result.kind == "timeout":
+                if _now() - started > timeout / 2:  # really slow (throttled), not a stall: don't wait twice
+                    break
+                await asyncio.sleep(STALL_PAUSE)  # the CDN stopped sending for a while (-rw_timeout): once more
+                continue
             try:  # every address refused (expired): re-acquire them once
                 job.video = await job.resolver.refresh(job.video)
             except ResolveError as exc:

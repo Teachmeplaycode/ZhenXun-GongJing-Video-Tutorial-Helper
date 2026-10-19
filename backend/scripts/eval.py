@@ -72,7 +72,7 @@ class Backend:
         self.log = (data / "server.log").open("w")
         self.proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app:app", "--port", str(self.port)],
                                      cwd=ROOT, env=env, stdout=self.log, stderr=subprocess.STDOUT, start_new_session=True)
-        for _ in range(60):
+        for _ in range(120):  # a cold start (fresh checkout, model imports) can take 30 s
             try:
                 if httpx.get(f"{self.base}/api/health", timeout=1).status_code == 200:
                     return self
