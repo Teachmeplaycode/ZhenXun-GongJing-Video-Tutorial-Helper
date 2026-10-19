@@ -29,9 +29,18 @@ SYSTEM = """你是科普内容核查助手。从视频的语音转写和画面�
 - source：transcript（语音）或 screentext（画面文字）
 - segment_index：输入中展示的对应来源全局段序号，不要在批次内重新编号
 
+最多返回 12 条，优先选观众最可能照着做、或对健康影响最大的说法；同一件事只抽一次。
 只返回 JSON 数组，不要解释。没有可核实说法时返回 []。"""
 
 EXAMPLE = '[{"claim":"西柚会与某些降压药发生相互作用","original_text":"柚子千万别和降压药一起吃","start":12.5,"end":15.0,"source":"transcript","segment_index":3}]'
+
+
+def output_limit() -> int:
+    """Tokens for one extraction reply (LLM_MAX_OUTPUT, as for answers; it was 2048 and cut lists off)."""
+    try:
+        return max(1024, int(os.environ.get("LLM_MAX_OUTPUT", "8192")))
+    except ValueError:
+        return 8192
 
 
 def transcript_text(segments: list[dict]) -> str:
@@ -116,7 +125,26 @@ def _parse(raw: str) -> list[dict]:
                 return data
         except json.JSONDecodeError:
             pass
-    return []
+    return _salvage(text)
+
+
+def _salvage(text: str) -> list[dict]:
+    """The complete objects of an array the output limit cut off mid-way (the last, partial one is dropped).
+    Without this, a video with many claims lost every claim: the reply ended before its closing "]"."""
+    start = text.find("[")
+    if start < 0:
+        return []
+    decoder, items, i = json.JSONDecoder(), [], start + 1
+    while True:
+        i = text.find("{", i)
+        if i < 0:
+            return items
+        try:
+            obj, i = decoder.raw_decode(text, i)
+        except json.JSONDecodeError:
+            return items
+        if isinstance(obj, dict):
+            items.append(obj)
 
 
 def _clean(item: dict) -> dict | None:
@@ -155,41 +183,61 @@ def _clean(item: dict) -> dict | None:
     }
 
 
+# Punctuation and spaces don't take part in matching a quote: speech recognition writes "," where the
+# model writes "，", and adds none where the model adds some.
+IGNORED = re.compile(r"[\s\u3000，。！？；：、,.!?;:\"'“”‘’（）()《》<>【】\[\]…—~·-]")
+SPAN = 6  # segments a quote may run across: speech recognition cuts one sentence into short pieces
+
+
 def _anchor(item: dict, claim: dict, transcript: list[dict], screentext: list[dict], context: list[tuple]) -> dict | None:
-    """Resolve the cited source/index against input, never trust generated quotes or timestamps."""
+    """Resolve the cited source/index against input, never trust generated quotes or timestamps.
+
+    The generated quote must occur in the video's own text, starting in the cited segment and running
+    on through at most SPAN following ones, all of them in this request's window; only punctuation and
+    spaces may differ. The returned claim is that real text (not the model's paraphrase), timed from the
+    first to the last segment it covers.
+    """
     source, index = item.get("source"), item.get("segment_index")
     if source not in ("transcript", "screentext") or type(index) is not int:
         return None
     segments = transcript if source == "transcript" else screentext
     if not 0 <= index < len(segments):
         return None
-    segment = segments[index]
-    text = segment.get("text")
-    if not isinstance(text, str) or not text.strip():
+    # Only text from this request's window (pieces of an oversized segment as the window holds them).
+    shown: dict[int, str] = {}
+    for i, piece, _ in context:
+        shown[i] = shown.get(i, "") + piece
+    if index not in shown:
         return None
-    # A generated quote must occur in the cited input; reject an unrelated or invented quote.
-    # Validate the entire generated quote, before _clean's display truncation. A real prefix cannot
-    # legitimize an invented ending. Only accept quotes present in this request's input window.
     original = item.get("original_text") or item.get("original") or ""
-    quote = "".join(original.split())
-    if not quote or not any(i == index and quote in "".join(piece.split()) for i, piece, _ in context):
+    quote = IGNORED.sub("", original)
+    if not quote:
         return None
-    positions = [i for i, char in enumerate(text) if not char.isspace()]
-    compact = "".join(text[i] for i in positions)
-    match = compact.find(quote)
-    if match < 0:
-        return None
-    actual_quote = text[positions[match]:positions[match + len(quote) - 1] + 1]
-    try:
-        start, end = float(segment["start"]), float(segment["end"])
-    except (KeyError, TypeError, ValueError, OverflowError):
-        return None
-    if not math.isfinite(start) or not math.isfinite(end) or start < 0 or end < start:
-        return None
-    # The generated normalization may invent or invert a proposition even when its quote is real.
-    # Use the verified statement-level substring, so distinct claims in one segment stay distinct.
-    return {**claim, "source": source, "segment_index": index, "claim": actual_quote,
-            "original_text": actual_quote, "start": start, "end": end}
+    raw, owner = "", []  # the covered text, and for each character the segment it came from
+    for j in range(index, min(len(segments), index + SPAN)):
+        if j not in shown:
+            break
+        raw += shown[j]
+        owner += [j] * len(shown[j])
+        positions = [k for k, ch in enumerate(raw) if not IGNORED.match(ch)]
+        compact = "".join(raw[k] for k in positions)
+        match = compact.find(quote)
+        if match < 0:
+            continue
+        if owner[positions[match]] != index:  # it must begin in the segment it cites
+            return None
+        first, last = positions[match], positions[match + len(quote) - 1]
+        actual = raw[first:last + 1]
+        try:
+            start, end = float(segments[index]["start"]), float(segments[owner[last]]["end"])
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(start) or not math.isfinite(end) or start < 0 or end < start:
+            return None
+        # The generated normalization may invent or invert a proposition even when its quote is real.
+        return {**claim, "source": source, "segment_index": index, "claim": actual,
+                "original_text": actual, "start": start, "end": end}
+    return None
 
 
 async def extract_claims(
@@ -212,7 +260,7 @@ async def extract_claims(
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": "\n\n".join(parts) + f"\n\n示例输出：{EXAMPLE}"},
         ]
-        raw = await ask(messages, 2048)
+        raw = await ask(messages, output_limit())
         for item in _parse(raw):
             c = _clean(item)
             if c is not None:
