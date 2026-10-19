@@ -32,6 +32,11 @@ export function describeStep(call) {
       return { verb: '选取画面', target: p.scope || '', meta: done ? `${n} 帧` : '' }
     case 'transcript.read':
       return { verb: '读取语音转写', target: p.scope || '', meta: done ? (n ? `${n} 行` : '没有转写') : '' }
+    case 'decision.intent': // backend modules/agent/intent.py
+      return {
+        verb: '识别问题类型', target: '',
+        meta: done ? `${d.name || ''}${d.p != null ? ` · ${d.p.toFixed(2)}` : d.how ? ` · ${d.how}` : ''}${d.skill ? ' · 先运行技能' : ''}` : '',
+      }
     case 'decision.research_intent': {
       const needed = d.needed ?? /^需要/.test(call.stdout || '')
       return {
