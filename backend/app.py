@@ -21,6 +21,7 @@ from modules import accounts, log, playback
 from modules.chapters.router import ChapterService
 from modules.notes.router import NotesService
 from modules.agent import browser, run_agent
+from modules.agent.evidence import with_evidence
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.export.api import create_router as create_export_router
 from modules.frames import FrameJob, cuts
@@ -741,8 +742,8 @@ async def agent_run(body: AgentRequest):
         calls: dict[str, dict] = {}  # call_id → {name, start, ok, count, ms}
         final: dict = {}
         try:
-            async for event in run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
-                                         web=body.web, papers=body.papers, framed=framed):
+            async for event in with_evidence(run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
+                                         web=body.web, papers=body.papers, framed=framed), job, body.question):
                 event = {**event, "t": round(time.perf_counter() - started, 2)}
                 if event["type"] == "assistant.message.delta":
                     text.append(event["delta"])

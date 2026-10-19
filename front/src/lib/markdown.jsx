@@ -14,6 +14,9 @@ const INLINE = new RegExp(
     '(https?://[^\\s<>()（）\\[\\]，。；、"\'“”]+)', // 4 link — before times, which URLs can contain
     `(?<![\\d:])${TIME.source}(?![\\d:])`, // 5 time
     '第\\s*(\\d{1,3})\\s*张', // 6 a picture of a picture set
+    // 7, 8 a typed citation (backend modules/agent/evidence.py): [画面 01:19] [原声 01:13-01:24]
+    // [画面文字 01:26] [资料 https://…] [推断]. It starts at its "[", before any time or link inside it.
+    '\\[(画面文字|画面|原声|资料|推断)([^\\[\\]\\n]*)\\]',
   ].join('|'),
   'g',
 )
@@ -46,6 +49,8 @@ function inline(text, ctx, keyBase) {
       const url = m[4].replace(/[.,;:]+$/, '')
       out.push(<a key={key} className="md-link" href={url} target="_blank" rel="noreferrer" title={url}>{shortUrl(url)}</a>)
       if (url.length < m[4].length) out.push(m[4].slice(url.length))
+    } else if (m[7] != null) {
+      out.push(<Evidence key={key} kind={m[7]} rest={m[8].trim()} marker={m[0]} ctx={ctx} />)
     } else if (m[6] != null) {
       // "第 3 张": in a picture set (ctx.pictures) it points the timeline at that picture
       const n = Number(m[6])
@@ -54,8 +59,11 @@ function inline(text, ctx, keyBase) {
       } else out.push(m[0])
     } else {
       const seconds = toSeconds(m[5])
+      const check = ctx.checked?.[m[0]]
       // Only moments inside the video; other clock-like numbers stay plain text.
-      if (ctx.onTime && seconds <= (ctx.duration ?? Infinity) + 1) {
+      if (check && !check.ok) {
+        out.push(<span key={key} className="ts-chip is-missing" title={`该结论缺少可回看的证据：${check.reason}`}>{m[5]}</span>)
+      } else if (ctx.onTime && seconds <= (ctx.duration ?? Infinity) + 1) {
         out.push(
           <button key={key} type="button" className="ts-chip" onClick={() => ctx.onTime(seconds)} title={ctx.seekTitle || '在时间轴上定位'}>
             {m[5]}
@@ -68,6 +76,34 @@ function inline(text, ctx, keyBase) {
   if (last < text.length) out.push(text.slice(last))
   return out
 }
+
+const KIND = { 画面: 'frame', 原声: 'speech', 画面文字: 'screentext', 资料: 'source', 推断: 'inference' }
+const KIND_TITLE = { 画面: '原片画面', 原声: '视频原声（语音转写）', 画面文字: '画面里的文字（文字识别）' }
+
+// One typed citation: what kind of evidence, when, and whether it held up when the answer was checked.
+function Evidence({ kind, rest, marker, ctx }) {
+  const check = ctx.checked?.[marker]
+  const failed = check && !check.ok
+  const cls = `ev-chip ev-chip--${KIND[kind]}${failed ? ' is-missing' : ''}`
+  if (kind === '推断') return <span className={cls} title="没有直接证据，是根据视频内容推出的判断">推断</span>
+  if (kind === '资料') {
+    const url = (rest.match(/https?:\/\/\S+/) || [''])[0].replace(/[.,;:]+$/, '')
+    if (failed || !url) return <span className={cls} title={`该结论缺少可核对的资料：${check?.reason || '没有给出链接'}`}>资料{url ? ` · ${shortUrl(url)}` : ''}</span>
+    return <a className={cls} href={url} target="_blank" rel="noreferrer" title={`外部资料（不是视频内容）：${url}`}>资料 · {shortUrl(url)}</a>
+  }
+  const stamp = rest.match(TIME_IN)
+  const seconds = stamp ? toSeconds(stamp[1]) : null
+  const label = `${kind} ${rest}`.trim()
+  if (failed || seconds == null || !ctx.onTime || seconds > (ctx.duration ?? Infinity) + 1) {
+    return <span className={`${cls} is-missing`} title={`该结论缺少可回看的证据：${check?.reason || '没有可回看的时间点'}`}>{label}</span>
+  }
+  return (
+    <button type="button" className={cls} onClick={() => ctx.onTime(seconds)} title={`${KIND_TITLE[kind]} · ${ctx.seekTitle || '在时间轴上定位'}`}>
+      {label}
+    </button>
+  )
+}
+const TIME_IN = /(\d{1,2}:\d{2}(?::\d{2})?)/
 
 // Lines → blocks: { kind: 'p' | 'h' | 'li', ... }. Consecutive plain lines form one paragraph.
 function blocks(text) {
@@ -98,8 +134,8 @@ function blocks(text) {
 }
 
 /** Render `text`; `tail` (e.g. a streaming cursor) is placed at the end of the last block. */
-export function renderMarkdown(text, { onTime = null, duration = null, tail = null, pictures = false, seekTitle = '' } = {}) {
-  const ctx = { onTime, duration, pictures, seekTitle }
+export function renderMarkdown(text, { onTime = null, duration = null, tail = null, pictures = false, seekTitle = '', checked = null } = {}) {
+  const ctx = { onTime, duration, pictures, seekTitle, checked }
   const list = blocks(text || '')
   return list.map((b, i) => {
     const end = i === list.length - 1 ? tail : null

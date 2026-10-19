@@ -7,6 +7,7 @@ import { Replay } from './StepDetail'
 import { IconCheck, IconCopy, IconRefresh } from './Icons'
 import { fmtElapsed, fmtTime, frameNo } from '../lib/format'
 import { host, isVisibleStep } from '../lib/steps'
+import EvidenceSummary from './EvidenceSummary'
 
 const MAX_THUMBS = 5
 const URL_RE = /https?:\/\/[^\s<>()（）[\]，。；、"'“”]+/g
@@ -40,11 +41,13 @@ function collectSources(message) {
       for (const p of d.papers || []) known.set(p.url, { title: p.title, url: p.url, kind: '论文', meta: [p.year, p.venue].filter(Boolean).join(' · ') })
     }
   }
+  // A link the citation check found the run never opened (backend modules/agent/evidence.py) is not a source.
+  const refused = new Set((message.evidence?.items || []).filter((i) => i.kind === 'source' && !i.ok && i.url).map((i) => i.url))
   const cited = []
   const seen = new Set()
   for (const raw of message.text.match(URL_RE) || []) {
-    const url = raw.replace(/[.,;:）)]+$/, '')
-    if (seen.has(url)) continue
+    const url = raw.replace(/[.,;:）)\]]+$/, '')
+    if (seen.has(url) || refused.has(url)) continue
     seen.add(url)
     const match = known.get(url) || [...known.values()].find((k) => url.startsWith(k.url) || k.url.startsWith(url))
     cited.push(match ? { ...match, url } : { title: host(url), url, kind: '链接' })
@@ -164,13 +167,14 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
             progress={message.progress?.step} onSeek={onTime} />
         ) : (
           <StreamingText key={`t${i}`} text={part.text} streaming={streaming && i === lastText && i === parts.length - 1}
-            onTime={onTime} duration={duration} pictures={pictures} />
+            onTime={onTime} duration={duration} pictures={pictures} evidence={message.evidence} />
         )))}
         {streaming && !parts.length ? (
           <StepGroup part={{ id: 'pending', calls: [], from: null, to: null }} working progress={message.progress?.step} />
         ) : null}
         {message.browser ? <BrowserViewport session={message.browser} onStop={onStop} /> : null}
         {message.error ? <div className="bubble__error">{message.error}</div> : null}
+        {settled && message.evidence ? <EvidenceSummary evidence={message.evidence} /> : null}
         {settled ? <Sources sources={collectSources(message)} /> : null}
         {settled ? <Footer message={message} onRegenerate={onRegenerate} /> : null}
       </div>

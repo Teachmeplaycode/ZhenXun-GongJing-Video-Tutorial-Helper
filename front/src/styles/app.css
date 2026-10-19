@@ -1336,3 +1336,26 @@ img { display: block; }
 @media (min-width: 901px) {
   .layer--chat[data-player] { padding-right: calc(min(460px, 42vw) + var(--sp-48) + var(--sp-16)); }
 }
+
+/* ---------- typed citations (lib/markdown.jsx Evidence, components/EvidenceSummary.jsx) ---------- */
+/* One hue per kind of evidence; the chip is tinted, the text stays readable in both themes. */
+.ev-chip--frame { --ev: #2f7fd0; } .ev-chip--speech { --ev: #2f9e5b; } .ev-chip--screentext { --ev: #9b5bd6; }
+.ev-chip--source { --ev: #c07a12; } .ev-chip--inference { --ev: #7a8088; } .ev-chip--moment { --ev: #5f6b78; }
+.ev-chip {
+  display: inline; margin: 0 1px; padding: 0 var(--sp-4); border: 1px solid color-mix(in srgb, var(--ev) 45%, transparent);
+  border-radius: var(--radius-xs); background: color-mix(in srgb, var(--ev) 12%, transparent); color: var(--text-primary);
+  font: inherit; font-size: 0.84em; white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-enter);
+}
+button.ev-chip:hover, a.ev-chip:hover, .ev-chip:focus-visible { background: color-mix(in srgb, var(--ev) 26%, transparent); }
+.ev-chip:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 1px; }
+span.ev-chip { cursor: help; }
+.ev-chip.is-missing, .ts-chip.is-missing {
+  border-style: dashed; border-color: var(--border-default); background: none; color: var(--text-tertiary, var(--text-secondary));
+  text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text-secondary) 60%, transparent); cursor: help;
+}
+.ev-summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-6); margin-top: var(--sp-8); font-size: var(--fs-caption); color: var(--text-secondary); }
+.ev-summary__label { color: var(--text-primary); font-weight: 500; }
+.ev-summary__item { padding: 0 var(--sp-6); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--ev) 12%, transparent); }
+.ev-summary__failed { color: var(--accent-error, #c03a2b); cursor: help; }
+.ev-summary__ok { color: var(--text-tertiary, var(--text-secondary)); }
