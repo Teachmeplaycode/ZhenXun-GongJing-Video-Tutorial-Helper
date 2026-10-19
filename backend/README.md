@@ -99,8 +99,12 @@ tests/                       解析器与抽帧任务的单元测试
 | `fetch_page` | `web.fetch` | 打开网页提取正文（trafilatura），每次 5000 字，用 `offset` 接着读；同一回答里读过的网页会缓存 |
 | `search_papers` | `papers.search` | 论文检索：OpenAlex（默认，带摘要、被引次数、DOI、开放获取 PDF）或 arXiv，每次最多 10 篇 |
 
-- 搜索：按 `SEARCH_PROVIDERS` 的顺序尝试（默认 `searxng,tavily,bocha,ddgs`），没有配置的跳过，哪个先返回结果就用哪个。key 可写作 `TAVILY_API_KEY` / `Tavily_API_KEY`、`BOCHA_API_KEY` / `BOCHA_API`。2026-10-15 实测：Tavily 的结果最好（同一个问题返回 PubMed、FDA、GoodRx）；博查对中文查询会返回无关的内容农场页面，所以只作为备用；最后才用开源的 [ddgs](https://github.com/deedy5/ddgs) 元搜索库（Bing、Brave、Google、DuckDuckGo、Wikipedia 依次尝试，开发机上只有 Bing 能用；引擎顺序 `SEARCH_BACKENDS`，地区 `SEARCH_REGION`，默认 `us-en`）。`web_search` 可以用 `freshness`（oneDay/oneWeek/oneMonth/oneYear）限定时间范围。
-- 博查的语义重排序（`/v1/rerank`，`gte-rerank` 模型）已接入但默认关闭（`SEARCH_RERANK=on` 打开）：实测它把内容农场页面打 0.77 分、专业医学文章打 0.19 分（衡量的是文字相关度，不是可靠性），在 OpenAlex 的结果上排序也几乎没变，不值得多花一次调用。博查的 AI Search 接口（会额外返回百科、天气等结构化卡片）没有接入。
+- 搜索：按 `SEARCH_PROVIDERS` 的顺序尝试（默认 `deepseek,searxng,tavily,ddgs`），没有配置的跳过，哪个先返回结果就用哪个。
+  - DeepSeek 搜索（`POST https://api.deepseek.com/v1/tools/search`）用聊天模型同一个 `DEEPSEEK_API_KEY`（或 DeepSeek 的 `LLM_API_KEY`），每 1000 次 5 元，5 QPS。每条结果带站点名、发布日期、长摘要和权威度 `authority`（0–4，-1 未知）。2026-10-19 实测「空腹喝白醋 降血压」「柚子 降压药 相互作用」：返回央视网、科普中国、央广网、省药监局、卫健委的辟谣/科普文章，权威度 4；39 健康网这类商业健康站是 3，所以只把 4 当「权威」，3 是「较可信」。`freshness` 转成它的 `after:日期` 语法。
+  - agent 的 `web_search` 结果里每条标出「站点 · 权威度 n/4（权威/较可信/…）· 日期」；科普核验里权威度 4 的来源算作权威来源（和白名单域名一样），按权威度从高到低取来源，权威度 ≤1 的只在不够 3 条时补位，判定提示词要求只凭低权威来源时判「无法核实」。
+  - 科普核验的论文检索：中文说法先让模型转成 2–6 个英文医学检索词（「每天空腹喝一勺白醋能治好高血压」→ vinegar hypertension blood pressure），再查 PubMed，没有结果再查 OpenAlex；标题和摘要一个检索词都不沾的论文丢掉。转写失败时这条说法不查论文。之前直接拿中文句子查，OpenAlex 会返回日本纪实文学、客家话音系这类无关文献，还被标成「期刊」权威来源。
+  - 博查已去掉（2026-10-19）：中文结果里混有无关的内容农场页面，它的重排序衡量的是相关度而不是可靠性。
+  - Tavily 的英文结果很好（同一个问题返回 PubMed、FDA、GoodRx），作为备用。key 可写作 `TAVILY_API_KEY` / `Tavily_API_KEY`。最后才用开源的 [ddgs](https://github.com/deedy5/ddgs) 元搜索库（Bing、Brave、Google、DuckDuckGo、Wikipedia 依次尝试，开发机上只有 Bing 能用；引擎顺序 `SEARCH_BACKENDS`，地区 `SEARCH_REGION`，默认 `us-en`）。`web_search` 可以用 `freshness`（oneDay/oneWeek/oneMonth/oneYear）限定时间范围。
 - 论文：`search_papers` 的 `source` 可选 `openalex`（默认）、`pubmed`（医学/生物/药学，NCBI E-utilities，可选 `NCBI_API_KEY`）、`arxiv`。
 - 频率：两次搜索之间至少间隔 1 秒，arXiv 至少间隔 3 秒（它的官方要求）。OpenAlex 从 2026-02-13 起按用量计费：一次检索 0.001 美元，不带 key 每天 0.1 美元（约 100 次），在 openalex.org 免费注册 key 后每天 1 美元（约 1000 次），UTC 零点重置；key 写在 `OPENALEX_API_KEY`。Semantic Scholar 不带 key 会返回 429，所以没有接入。
 - 读网页前检查地址：只允许 http/https，拒绝本机、内网、链路本地和保留地址，每次跳转都会重新检查；代理软件 fake-ip 模式下的 `198.18.0.0/15` 和 `fdfe:dcba:9876::/48` 只对域名放行。限制：在 fake-ip 代理后面，指向 127.0.0.1 的公网域名在本机无法识别。
@@ -180,7 +184,7 @@ tests/                       解析器与抽帧任务的单元测试
   | Kev-0.8B（MLX） | 67% | 0.434 | 27 ms | 3.6 GB |
 
   qwen3.5:9b 和 Kev-4B 打平且错的是同样 3 道（标准答案本身有争议的题），qwen3.5:9b 不需要新装依赖，内存也更少，所以采用它。测试集很小，几个百分点的差异不显著。
-- 能力边界：它判断的是内容本身，不了解冷门网站的信誉。真实的博查结果里，标题拼凑的内容农场页面（巢内网）摘要讲的正是硝苯地平与西柚、而且内容准确，模型判为可靠（0.8）；测试集里同一条用的是手写的不相关摘要，因此高估了过滤效果。可靠来源主要靠 Tavily 优先，以及回答时必须注明来源链接。
+- 能力边界：它判断的是内容本身，不了解冷门网站的信誉。真实的博查结果里，标题拼凑的内容农场页面（巢内网）摘要讲的正是硝苯地平与西柚、而且内容准确，模型判为可靠（0.8）；测试集里同一条用的是手写的不相关摘要，因此高估了过滤效果。可靠来源现在主要靠 DeepSeek 搜索的权威度排序（见上文搜索一节），以及回答时必须注明来源链接。
 
 ## 本地上传
 

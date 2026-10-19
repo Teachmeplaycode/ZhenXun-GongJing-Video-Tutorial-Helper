@@ -35,8 +35,7 @@ brew install uv node ffmpeg
 | --- | --- | --- |
 | `DEEPSEEK_API_KEY` | 二选一 | 问答模型（默认 `deepseek-flash`，可用 `LLM_BASE_URL` / `LLM_MODEL` 换成其他 OpenAI 兼容服务） |
 | `LLM_PROVIDER=ollama` | 二选一 | 改用本机 Ollama 做问答（默认 `qwen3.5:9b`），不需要 key，但慢得多 |
-| `TAVILY_API_KEY` | 建议 | 联网搜索首选，每月 1000 次免费；没有时退到博查或免费的 ddgs |
-| `BOCHA_API_KEY` | 可选 | 博查搜索，作为联网搜索的备用 |
+| `TAVILY_API_KEY` | 可选 | 联网搜索备用（首选是 DeepSeek 搜索，用同一个 `DEEPSEEK_API_KEY`），每月 1000 次免费；都没有时退到免费的 ddgs |
 | `OPENALEX_API_KEY` | 建议 | 论文检索；不带 key 每天约 100 次，带免费 key 约 1000 次 |
 | `YUANBAO_COOKIE` | 视频号需要 | 腾讯元宝登录态 `hy_user=…; hy_token=…`，用来解析视频号链接；会过期。**可以直接在页面右上角「账号」里用微信扫码登录** |
 | `BILIBILI_COOKIE` | 可选 | B 站登录态（`SESSDATA=…`），用来读更多评论；不配置时 B 站只给前 3 条热门评论，弹幕不需要登录。**可以在「账号」里用 B 站 App 扫码登录** |

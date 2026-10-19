@@ -96,16 +96,18 @@ def clock(seconds: float) -> str:
     return f"{t // 60:02d}:{t % 60:02d}"
 
 
-def build_source(title: str, url: str, snippet: str = "") -> dict:
-    """构造一个出处条目，自动标注可信度。"""
+def build_source(title: str, url: str, snippet: str = "", authority: int | None = None, site: str = "") -> dict:
+    """构造一个出处条目，自动标注可信度：白名单域名，或搜索引擎评定权威度为 4（政府、官方媒体、期刊）。"""
     rule = sources.match(url)
+    authority = authority if isinstance(authority, int) and 0 <= authority <= 4 else None
     return {
         "title": title or url,
         "url": url,
         "snippet": snippet,
-        "trusted": rule is not None,
-        "kind": rule.kind if rule else "",
-        "name": rule.name if rule else "",
+        "trusted": rule is not None or authority == 4,
+        "kind": rule.kind if rule else ("高权威站点" if authority == 4 else ""),
+        "name": rule.name if rule else site,
+        "authority": authority,
     }
 
 
