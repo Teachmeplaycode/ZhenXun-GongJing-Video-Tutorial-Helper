@@ -1,0 +1,55 @@
+import { test, expect } from '@playwright/test'
+import { MockApi } from './mock-api.js'
+
+const KEY = 'gongjing.home-visual:v1'
+async function openHome(page) {
+  const mock = new MockApi(page)
+  await mock.install()
+  await page.goto('/')
+  await expect(page.locator('.import-slide')).toBeVisible()
+}
+
+test('desktop remembers the selected homepage visual across reloads', async ({ page }) => {
+  await openHome(page)
+  const full = page.getByRole('button', { name: '完整 3D', exact: true })
+  const snake = page.getByRole('button', { name: '只看小蛇', exact: true })
+  await expect(full).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(1)
+  await snake.click()
+  await expect(snake).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(0)
+  await expect(page.locator('.home-companion--hero')).toBeVisible()
+  await expect.poll(() => page.evaluate(key => localStorage.getItem(key), KEY)).toBe('snake')
+  await page.reload()
+  await expect(snake).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(0)
+  await full.click()
+  await page.reload()
+  await expect(full).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(1)
+  await expect(page.locator('.home-companion:not(.home-companion--hero)')).toBeVisible()
+})
+
+test('mobile centers the snake without replacing the saved desktop preference', async ({ page }) => {
+  await page.addInitScript(key => localStorage.setItem(key, '3d'), KEY)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await openHome(page)
+  await expect(page.getByRole('group', { name: '首页显示效果' })).toHaveCount(0)
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(0)
+  const hero = await page.locator('.home-companion--hero').boundingBox()
+  const intro = await page.locator('.home-intro').boundingBox()
+  const entry = await page.locator('.import-entry').boundingBox()
+  expect(Math.abs(hero.x + hero.width / 2 - 195)).toBeLessThan(2)
+  expect(hero.y).toBeGreaterThanOrEqual(intro.y + intro.height)
+  expect(hero.y + hero.height).toBeLessThanOrEqual(entry.y)
+  expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBe('3d')
+  await page.setViewportSize({ width: 1440, height: 960 })
+  await expect(page.getByRole('button', { name: '完整 3D', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(1)
+  await page.getByRole('button', { name: '只看小蛇', exact: true }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('.home-companion--hero')).toBeVisible()
+  await page.setViewportSize({ width: 1440, height: 960 })
+  await expect(page.getByRole('button', { name: '只看小蛇', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.layer--sculpture .sculpture')).toHaveCount(0)
+})
