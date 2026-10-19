@@ -157,7 +157,7 @@ def test_full_web_results_do_not_exclude_scholarly_sources(monkeypatch, web, pap
 
     async def paper_search(query, limit, source):
         assert papers
-        return [SimpleNamespace(title=f"paper {i}", url=f"https://pubmed.ncbi.nlm.nih.gov/{i}", abstract="text") for i in range(limit)]
+        return [SimpleNamespace(title=f"paper {i}", url=f"https://pubmed.ncbi.nlm.nih.gov/{i}", abstract="claim text") for i in range(limit)]
 
     monkeypatch.setattr(web_module, "search", web_search)
     monkeypatch.setattr(papers_module, "search_papers", paper_search)
@@ -173,7 +173,7 @@ def test_search_interleaves_before_deduplicating_and_keeps_papers_on_web_failure
         raise RuntimeError("web unavailable")
 
     async def paper_search(query, limit, source):
-        return [SimpleNamespace(title="paper", url="https://pubmed.ncbi.nlm.nih.gov/1", abstract="text")] * 6
+        return [SimpleNamespace(title="paper", url="https://pubmed.ncbi.nlm.nih.gov/1", abstract="claim text")] * 6
 
     monkeypatch.setattr(web_module, "search", failed_web)
     monkeypatch.setattr(papers_module, "search_papers", paper_search)
@@ -252,3 +252,37 @@ def test_web_sources_go_most_authoritative_first_and_farms_only_fill_gaps(monkey
     assert found[0]["trusted"] and found[0]["kind"] == "高权威站点" and found[0]["name"] == "cctv"
     assert not found[1]["trusted"] and found[1]["authority"] == 3
     assert _source_data(found[0])["authority"] == 4  # survives the screening payload
+
+
+def test_chinese_claims_search_papers_in_english_and_off_topic_papers_are_dropped(monkeypatch):
+    from modules.agent import papers as papers_module, web as web_module
+    from modules.factcheck import run as run_module
+
+    asked = []
+
+    async def ask(messages, n):
+        asked.append(messages[-1]["content"])
+        return "vinegar hypertension blood pressure"
+    assert asyncio.run(run_module.paper_terms(ask, "每天空腹喝一勺白醋能治好高血压")) == "vinegar hypertension blood pressure"
+    assert asyncio.run(run_module.paper_terms(ask, "Vinegar lowers blood pressure")) == "Vinegar lowers blood pressure"
+    assert len(asked) == 1  # English claims are used as they are
+
+    async def broken(messages, n):
+        raise RuntimeError("model down")
+    assert asyncio.run(run_module.paper_terms(broken, "白醋降压")) == ""
+
+    queries = []
+
+    async def paper_search(query, limit, source):
+        queries.append((source, query))
+        return [SimpleNamespace(title="Vinegar intake and blood pressure: a meta-analysis", url="https://pubmed.ncbi.nlm.nih.gov/1", abstract="..."),
+                SimpleNamespace(title="The Phonology of Shangyou Hakka", url="https://openalex.org/W2", abstract="tones")]
+
+    async def no_web(query, limit):
+        return []
+    monkeypatch.setattr(papers_module, "search_papers", paper_search)
+    monkeypatch.setattr(web_module, "search", no_web)
+    found = asyncio.run(run_module._search("白醋降压", 6, web=True, papers=True, terms="vinegar hypertension blood pressure"))
+    assert [s["title"] for s in found] == ["Vinegar intake and blood pressure: a meta-analysis"]
+    assert queries == [("pubmed", "vinegar hypertension blood pressure")]
+    assert asyncio.run(run_module._search("白醋降压", 6, web=True, papers=True, terms="")) == []  # no English terms: no papers

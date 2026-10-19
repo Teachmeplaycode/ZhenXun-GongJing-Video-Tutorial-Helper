@@ -102,6 +102,7 @@ tests/                       解析器与抽帧任务的单元测试
 - 搜索：按 `SEARCH_PROVIDERS` 的顺序尝试（默认 `deepseek,searxng,tavily,ddgs`），没有配置的跳过，哪个先返回结果就用哪个。
   - DeepSeek 搜索（`POST https://api.deepseek.com/v1/tools/search`）用聊天模型同一个 `DEEPSEEK_API_KEY`（或 DeepSeek 的 `LLM_API_KEY`），每 1000 次 5 元，5 QPS。每条结果带站点名、发布日期、长摘要和权威度 `authority`（0–4，-1 未知）。2026-10-19 实测「空腹喝白醋 降血压」「柚子 降压药 相互作用」：返回央视网、科普中国、央广网、省药监局、卫健委的辟谣/科普文章，权威度 4；39 健康网这类商业健康站是 3，所以只把 4 当「权威」，3 是「较可信」。`freshness` 转成它的 `after:日期` 语法。
   - agent 的 `web_search` 结果里每条标出「站点 · 权威度 n/4（权威/较可信/…）· 日期」；科普核验里权威度 4 的来源算作权威来源（和白名单域名一样），按权威度从高到低取来源，权威度 ≤1 的只在不够 3 条时补位，判定提示词要求只凭低权威来源时判「无法核实」。
+  - 科普核验的论文检索：中文说法先让模型转成 2–6 个英文医学检索词（「每天空腹喝一勺白醋能治好高血压」→ vinegar hypertension blood pressure），再查 PubMed，没有结果再查 OpenAlex；标题和摘要一个检索词都不沾的论文丢掉。转写失败时这条说法不查论文。之前直接拿中文句子查，OpenAlex 会返回日本纪实文学、客家话音系这类无关文献，还被标成「期刊」权威来源。
   - 博查已去掉（2026-10-19）：中文结果里混有无关的内容农场页面，它的重排序衡量的是相关度而不是可靠性。
   - Tavily 的英文结果很好（同一个问题返回 PubMed、FDA、GoodRx），作为备用。key 可写作 `TAVILY_API_KEY` / `Tavily_API_KEY`。最后才用开源的 [ddgs](https://github.com/deedy5/ddgs) 元搜索库（Bing、Brave、Google、DuckDuckGo、Wikipedia 依次尝试，开发机上只有 Bing 能用；引擎顺序 `SEARCH_BACKENDS`，地区 `SEARCH_REGION`，默认 `us-en`）。`web_search` 可以用 `freshness`（oneDay/oneWeek/oneMonth/oneYear）限定时间范围。
 - 论文：`search_papers` 的 `source` 可选 `openalex`（默认）、`pubmed`（医学/生物/药学，NCBI E-utilities，可选 `NCBI_API_KEY`）、`arxiv`。
