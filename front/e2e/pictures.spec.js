@@ -41,7 +41,7 @@ test('pictures: an upload goes straight to the picture page — no analysis scre
   await expect(page.locator('.pics-text li')).toHaveText(['热量 320 千卡'])
   await expect(page.locator('.chat__empty h1')).toHaveText('关于这组图片，你想知道什么？')
   await openBench(page, '笔记')
-  await expect(page.getByRole('tab')).toHaveText(['反诈', '科普', '笔记'])
+  await expect(page.getByRole('tab')).toHaveText(['笔记'])
 })
 
 test('pictures: pick a picture as an attachment; 第 n 张 in an answer shows that picture', async ({ page }) => {

@@ -151,8 +151,10 @@ function useEntrance(ref) {
 
 // embedded: rendered inside the workbench sidebar (no overlay, no close button); `open` then means the
 // tab is showing, and each time it shows the saved report is read again (unless a check is running).
-export default function FactCheckReport({ jobId, video, onSeek, onClose, open = false, embedded = false }) {
-  const [report, setReport] = useState(null)
+// report: a finished report to show as it is (the 科普核查 skill's result in an answer); readOnly
+// hides starting a new check.
+export default function FactCheckReport({ jobId, video, onSeek, onClose, open = false, embedded = false, report: given = null, readOnly = false }) {
+  const [report, setReport] = useState(given)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState({ count: 0, total: 0, verifying: '' })
@@ -169,8 +171,8 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
 
   const runningRef = useRef(false)
   useEffect(() => {
-    if (open && jobId && !runningRef.current) loadSaved()
-  }, [open, jobId, loadSaved])
+    if (open && jobId && !runningRef.current && !given) loadSaved()
+  }, [open, jobId, loadSaved, given])
 
   useEffect(() => () => ctrlRef.current?.abort(), [])
 
@@ -224,7 +226,7 @@ export default function FactCheckReport({ jobId, video, onSeek, onClose, open = 
             </div>
           </div>
           <div className="fc-head__actions">
-            {report ? (
+            {readOnly ? null : report ? (
               <button type="button" className="chip-btn" onClick={() => start({})} disabled={running}>
                 {running ? '核查中…' : '重新核查'}
               </button>

@@ -104,17 +104,19 @@ function Institutions({ result }) {
   </section>
 }
 
-export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript, screentext, frameRevision }) {
+// report: a finished report to show as it is (the 反诈识别 skill's result in an answer); nothing is fetched.
+export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript, screentext, frameRevision, report: given = null }) {
   // Refresh once each background source reaches a final state; progress-only updates
   // do not repeatedly start paid model calls or external institution queries.
   const revision = [transcript, screentext].map((stage) =>
     ['done', 'empty', 'none', 'unavailable', 'failed'].includes(stage?.status)
       ? `${stage.status}:${stage.count || 0}` : 'waiting').join('|') + `|${frameRevision || 'waiting'}`
-  const [report, setReport] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [report, setReport] = useState(given)
+  const [loading, setLoading] = useState(!given)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (given) return undefined
     let stopped = false
     const controller = new AbortController()
     setReport(null)
@@ -125,7 +127,7 @@ export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript,
       .catch((err) => { if (!stopped) setError(err.message) })
       .finally(() => { if (!stopped) setLoading(false) })
     return () => { stopped = true; controller.abort() }
-  }, [jobId, revision])
+  }, [jobId, revision, given])
 
   if (loading) {
     return (
@@ -168,9 +170,11 @@ export default function AntifraudPanel({ jobId, videoTitle, onClose, transcript,
           <span className="antifraud__module">v{report.version} · {report.module}</span>
           {videoTitle && <span className="antifraud__video">{videoTitle}</span>}
         </div>
-        <button type="button" className="btn btn--ghost btn--icon" onClick={onClose} aria-label="关闭">
-          <IconX size={14} />
-        </button>
+        {onClose ? (
+          <button type="button" className="btn btn--ghost btn--icon" onClick={onClose} aria-label="关闭">
+            <IconX size={14} />
+          </button>
+        ) : null}
       </header>
 
       {report.assessment?.reason && <p role="status">{report.assessment.reason}</p>}

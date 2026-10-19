@@ -19,6 +19,8 @@ const host = (url) => {
 // Model rounds are the thinking between steps, not steps (as in Claude / Codex): kept out of the list.
 export const isVisibleStep = (call) => !call.tool?.startsWith('vision.')
 
+const RISK = { high: '高', medium: '中', low: '低' }
+
 /** { verb, target, meta } for a call; `meta` is the outcome once known. */
 export function describeStep(call) {
   const p = call.input?.params || {}
@@ -83,6 +85,12 @@ export function describeStep(call) {
       }
     case 'papers.search':
       return { verb: '检索论文', target: `「${p.query || ''}」`, meta: done ? `${d.source || p.source || 'openalex'} · ${n} 篇` : '' }
+    case 'skill.factcheck': // backend modules/agent/skills.py
+      return { verb: '科普核查', target: '逐条查证视频里的说法',
+        meta: done ? (d.report ? `${d.report.summary?.total ?? n} 条说法 · 错误 ${d.report.summary?.wrong ?? 0} · 部分正确 ${d.report.summary?.partial ?? 0}` : '未完成') : '' }
+    case 'skill.antifraud':
+      return { verb: '反诈识别', target: '话术、引流、二维码与机构登记',
+        meta: done ? (d.report ? `风险${RISK[d.report.assessment?.risk || d.report.score?.level] || '未知'}` : '未完成') : '' }
     default:
       return { verb: call.tool, target: '', meta: done && n != null ? `${n} 项` : '' }
   }
