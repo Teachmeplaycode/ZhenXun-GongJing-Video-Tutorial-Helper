@@ -1,0 +1,2465 @@
+{
+  "items": {
+    "vinegar-bp": {
+      "url": "https://www.bilibili.com/video/BV1Nu4m1T7u8",
+      "title": "实测：电视剧“西北锤王”里的喝醋降血压，是真的吗？",
+      "topic": "空腹喝醋 降血压",
+      "note": "嘴强开箱 · 104637 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "喝醋不能降低血压",
+          "quote": "这怎么还又高了呢",
+          "label": "correct",
+          "reason": "多个权威来源明确称喝醋不能降血压",
+          "evidence": [
+            "http://jiankang.cctv.com/2019/04/22/ARTIZofRZFCXjw5FhDmw8ANJ190422.shtml",
+            "https://www.fuwaihospital.org/News/Articles/Index/202020",
+            "https://piyao.kepuchina.cn/h5/rumordetail?id=ZzLO"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "大量喝醋会让胃难受",
+          "quote": "喝多了其实这个胃还是挺难受的",
+          "label": "correct",
+          "reason": "多个权威来源均指出大量喝醋会刺激胃黏膜、引发胃部不适",
+          "evidence": [
+            "https://wsjk.tj.gov.cn/JKJY5233/JKZS7782/202008/t20200828_3579899.html",
+            "http://health.cnr.cn/jkgdxw/20170328/t20170328_523680326_1.shtml",
+            "http://health.cnr.cn/jkgdxw/20181012/t20181012_524382921.shtml",
+            "https://health.cnr.cn/jkgdxw/20260109/t20260109_527488365.shtml#1",
+            "http://gzdjk.gog.cn/system/2018/09/07/016792498.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "不要尝试靠喝醋降血压",
+          "quote": "大家千万不要尝试",
+          "label": "correct",
+          "reason": "多个权威来源均指出喝醋不能降血压，与说法一致",
+          "evidence": [
+            "http://jiankang.cctv.com/2019/04/22/ARTIZofRZFCXjw5FhDmw8ANJ190422.shtml",
+            "https://www.fuwaihospital.org/News/Articles/Index/202020",
+            "https://piyao.kepuchina.cn/h5/rumordetail?id=ZzLO"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "breathing-bp": {
+      "url": "https://www.bilibili.com/video/BV1KA411N7pk",
+      "title": "两分钟把高血压的原理给你讲得明明白白！",
+      "topic": "60秒 降血压",
+      "note": "泽桥医生 · 445691 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "高血压会使血管壁受压增加，导致血管壁变脆变硬甚至出现裂纹",
+          "quote": "原本有弹性的血管壁变脆变硬",
+          "label": "partial",
+          "reason": "来源支持高血压致血管僵硬，但未提“变脆、裂纹”，属夸大",
+          "evidence": [
+            "https://health.cnr.cn/jkgdxw/20231011/t20231011_526447106.shtml#1",
+            "https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.111.187021#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "血管硬化是不可逆的",
+          "quote": "血管的硬化是不可逆的",
+          "label": "correct",
+          "reason": "权威卫健委及医学来源均称动脉硬化不可逆",
+          "evidence": [
+            "http://wjw.xinjiang.gov.cn/hfpc/jkcj/202208/6cb9466a67f34441aced82bf61b60aaf.shtml",
+            "https://m.dayi.org.cn/qa/83505.html#1",
+            "https://m.dayi.org.cn/qa/343563.html#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "预防高血压应拒绝高盐高脂饮食并加强锻炼",
+          "quote": "请拒绝高盐高脂饮食",
+          "label": "partial",
+          "reason": "来源支持高盐高脂升压，但未涉及锻炼，属遗漏条件",
+          "evidence": [
+            "https://www.sciencedirect.com/science/article/abs/pii/S0271531781800280#1",
+            "https://pure.johnshopkins.edu/en/publications/association-of-fat-and-salt-intake-with-blood-pressure-in-urban-a-5/#1",
+            "https://pubmed.ncbi.nlm.nih.gov/12433862/#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "已得高血压者应调整生活习惯，必要时用药物控制",
+          "quote": "必要时以药物控制",
+          "label": "correct",
+          "reason": "权威来源均支持生活方式干预加必要时药物控制血压",
+          "evidence": [
+            "https://www.msdmanuals.com/ja-jp/professional/04-%e5%bf%83%e8%a1%80%e7%ae%a1%e7%96%be%e6%82%a3/%e9%ab%98%e8%a1%80%e5%9c%a7/%e9%ab%98%e8%a1%80%e5%9c%a7?media=hybrid&client=vin#3",
+            "https://www.yywsb.com/article/70518.html"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "leftovers": {
+      "url": "https://www.bilibili.com/video/BV1mV411y7kA",
+      "title": "颠覆认知！隔夜菜到底能不能吃？24小时冷藏实测！【老爸评测】",
+      "topic": "隔夜菜 致癌",
+      "note": "老爸评测 · 1355551 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "隔夜菜冷藏前先回锅加热再放入冰箱",
+          "quote": "隔夜菜你要加热一下以后再冷藏放入冰箱",
+          "label": "wrong",
+          "reason": "来源建议尽快分装冷藏，反对整锅反复回锅加热",
+          "evidence": [
+            "https://health.ftvnews.com.tw/news/detail/2026215W0253?utm_source=yahoo&utm_medium=InArticl",
+            "http://wjw.yangzhou.gov.cn/zfxxgk/fdzdgk/ywgz/jkxj/art/2026/art_e5019ac78e4d405c878d7606b8cce1bd.html"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c2",
+          "claim": "剩菜最好剩肉菜，不要剩蔬菜、凉拌菜和海鲜",
+          "quote": "最好剩下的是肉菜，不要剩蔬菜凉拌菜和海鲜",
+          "label": "correct",
+          "reason": "权威来源均建议剩荤不剩素，且凉拌菜、海鲜不宜剩",
+          "evidence": [
+            "http://ylxf.1237125.cn/topicweb/emag/zftd/page/2/2018-03/10/71/2018031071_pdf.pdf#1#1",
+            "https://xa8yuan.com/default/detaile/22090115cLLER",
+            "https://ggw.nantong.gov.cn/ntsgxxydgzwyh/xstd/content/e136f201-187a-4a0f-8a07-dd4fc6bc9562.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "热菜要趁热放冰箱，微生物滋生最少且对冰箱无害",
+          "quote": "热菜要趁热放冰箱，微生物的滋生量是最少的",
+          "label": "correct",
+          "reason": "多个权威来源一致指出应趁热密封放冰箱，减少细菌繁殖且对现代冰箱耗电影响极小",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=7326983904517095424#1#1",
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=7395527173370695680",
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=7111408587511238656"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "隔夜菜要吃时需彻底加热，100℃回锅3分钟",
+          "quote": "要彻底加热后再食用，高温100℃回锅3分钟",
+          "label": "correct",
+          "reason": "多个权威来源均支持100℃沸腾3分钟以上彻底加热",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20200826/t20200826_525227494.shtml",
+            "https://www.jxjjsdsrmyy.cn/101/202602/t20260226_7170957.html",
+            "http://jhjk.ahnmc.com/resfile/2017-01-25/61/61.pdf#1#1"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "acid-alkaline": {
+      "url": "https://www.bilibili.com/video/BV1LN411u7pz",
+      "title": "酸碱理论",
+      "topic": "酸碱体质",
+      "note": "科学小视 · 166368 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "在水溶液中电离出的阳离子全部都是氢离子的物质叫酸",
+          "quote": "电离出的阳离子全部都是氢离子",
+          "label": "correct",
+          "reason": "科普中国多条来源明确给出该阿伦尼乌斯酸定义",
+          "evidence": [
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=6969140853272244224&is_self=2",
+            "https://cloud.kepuchina.cn/h5/detail?id=6972625635187023872#1",
+            "https://www.kepuchina.cn/article/articleinfo?business_type=100&classify=0&ar_id=288335#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "在水溶液中电离出的阴离子全部都是氢氧根离子的物质叫碱",
+          "quote": "阴离子全部都是氢氧根离子",
+          "label": "correct",
+          "reason": "多个权威来源明确给出该Arrhenius碱定义",
+          "evidence": [
+            "https://xuewen.cnki.net/R2008120650002898.html",
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=6969140853272244224&is_self=2",
+            "http://edu.hqwxedu.com/web_news/html/2015-6/1435540937.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "凡是能给出质子的物质都是酸",
+          "quote": "凡是能给出质子的物质都是酸",
+          "label": "correct",
+          "reason": "多个权威来源明确：能给出质子的物质都是酸",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=6972625739780157440",
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=6969140853272244224&is_self=2",
+            "https://www.kepuchina.cn/article/articleinfo?ar_id=583753&business_type=100"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "凡是能接受电子对的物质都是酸",
+          "quote": "凡是能接受电子对的物质都是酸",
+          "label": "correct",
+          "reason": "多个权威来源一致定义路易斯酸为电子对接受体",
+          "evidence": [
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=6972627039280402432",
+            "https://xuewen.cnki.net/r2006090130000285.html",
+            "https://wiki.cnki.com.cn/HotWord/1527682.htm"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "bone-soup": {
+      "url": "https://www.bilibili.com/video/BV1B7oXYhEac",
+      "title": "为什么有人说喝汤没营养？建议看到最后【食录】",
+      "topic": "喝骨头汤 补钙",
+      "note": "赛博小食录 · 907108 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "骨头汤的钙含量与普通自来水相当，补钙效果和喝自来水差不多",
+          "quote": "补钙效果居然跟喝自来水差不多",
+          "label": "correct",
+          "reason": "多个权威来源均称骨头汤钙含量与自来水相似，补钙效果差",
+          "evidence": [
+            "https://wsjk.tj.gov.cn/JKJY5233/JKZS7782/202008/t20200828_3578219.html",
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=eegb",
+            "http://kpzg.people.com.cn/n1/2025/1021/c404214-40585953.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "汤里的营养素含量不足食材总量的10%",
+          "quote": "汤里的营养素含量甚至还不足食材总量的10%",
+          "label": "partial",
+          "reason": "来源称汤中营养素最多10-15%，非水溶性营养素不足10%，说法大体对但遗漏条件",
+          "evidence": [
+            "https://www.peopleapp.com/rmharticle/30019844179",
+            "https://sdxw.iqilu.com/share/YS0yMS0xNTMwMDk0NQ==.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "汤汁越乳白浓郁，脂肪含量就越高",
+          "quote": "汤汁越乳白浓郁，脂肪的含量就越高",
+          "label": "correct",
+          "reason": "多个权威来源一致指出汤越乳白脂肪含量越高",
+          "evidence": [
+            "http://shipin.people.com.cn/n1/2016/0706/c85914-28527672.html",
+            "https://cloud.kepuchina.cn/h5/detail?id=7025940643729100800",
+            "https://www.piyao.org.cn/20230918/a6a0ad72fdc94a5f8e402be5d95b0329/c.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "痛风患者应尽量不喝肉汤",
+          "quote": "痛风患者尽量不喝肉汤",
+          "label": "correct",
+          "reason": "权威来源称肉汤嘌呤高，是痛风加速器，不宜喝",
+          "evidence": [
+            "https://wsjkw.sh.gov.cn/spwsyyy/20260113/e193f1267192417ba69b414d8f09e7bc.html",
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=lxmw",
+            "https://health.cnr.cn/jkgdxw/20171102/t20171102_524009194.shtml#1#1"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "brown-sugar": {
+      "url": "https://www.bilibili.com/video/BV1niBiYzEwM",
+      "title": "这个冬天开始学会给女朋友做一碗热饮吧！女生也可以自己做！",
+      "topic": "红糖 补血",
+      "note": "茄猫的罐头 · 3239440 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "生姜有补血养颜、镇静缓痛的作用",
+          "quote": "生姜 补血养颜 镇静缓痛",
+          "label": "partial",
+          "reason": "来源称生姜红糖水/姜枣汤有补气补血、美容养颜，但未直接说生姜镇静缓痛",
+          "evidence": [
+            "https://m.dayi.org.cn/qa/188123#1",
+            "https://m.dayi.org.cn/qa/254453.html",
+            "https://m.dayi.org.cn/qa/231276#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "月经结束后一周是补气血的黄金期",
+          "quote": "姨走后一周才是补的黄金期",
+          "label": "correct",
+          "reason": "多个权威来源称经后一周/经后期是补气血最佳窗口",
+          "evidence": [
+            "https://health.udn.com/health/amp/story/5966/9709525?from=udnamp-referralnews_ch1005artbottom",
+            "https://zyy.rednet.cn/content/646856/75/14590558.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "红豆煮食能改善心情",
+          "quote": "吃完真的能让心情变好",
+          "label": "partial",
+          "reason": "来源称红豆含B6助安定情绪、清心除烦，但未直接证实煮食改善心情，属大体对但条件不全",
+          "evidence": [
+            "https://health.tvbs.com.tw/review/321289",
+            "http://health.people.com.cn/n1/2016/0524/c21471-28373884.html",
+            "https://my.top1health.com/Article/239/76667"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "秋冬嗓子不适可用橙子加冰糖煮茶缓解",
+          "quote": "秋冬干燥 容易嗓子不舒服",
+          "label": "partial",
+          "reason": "来源称可润喉缓解不适，但属食谱/百科，非权威医学证据",
+          "evidence": [
+            "https://jbk.39.net/yy3/250108/p5uy3nd.html",
+            "https://baike.baidu.com/item/%e5%86%b0%e7%b3%96%e9%9b%aa%e6%a2%a8%e6%a9%99/17153085"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "pig-trotter": {
+      "url": "https://www.bilibili.com/video/BV1SzBfB5Ey1",
+      "title": "阿胶、猪蹄都是劣质蛋白，这个观点偏口鱼博士不讲我还真不知道",
+      "topic": "猪蹄 胶原蛋白",
+      "note": "偏口鱼博士精选 · 349820 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "胶原蛋白（阿胶、猪蹄、鸡皮、鱼皮等动物皮类）都是劣质蛋白，人体不需要",
+          "quote": "胶原蛋白都是劣质蛋白不是好蛋白",
+          "label": "partial",
+          "reason": "来源称胶原蛋白为劣质蛋白、利用率低，但未说人体不需要",
+          "evidence": [
+            "https://www.lifetimes.cn/article/484KKy5Agp9",
+            "https://zyj.beijing.gov.cn/ylfw/ysbj/201912/t20191223_1412077.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "鸡蛋、牛奶、大豆、鱼虾、鸡胸肉、牛羊肉属于优质蛋白",
+          "quote": "好的就是鸡蛋、牛奶",
+          "label": "correct",
+          "reason": "多个权威来源明确蛋奶肉鱼虾及大豆属优质蛋白",
+          "evidence": [
+            "https://jiankang.cctv.cn/2026/09/10/ARTI5PLdTpy7wvu7ozwQViRl260910.shtml#1",
+            "https://wsjkw.sh.gov.cn/spwsyyy/20260416/5b1a56c3216148769ef4b8b710aa1e00.html",
+            "https://ynswsjkw.yn.gov.cn/html/2023/xuanchuankejiao_0814/17803.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "谷物（如大米）中的蛋白质量较差，只吃大米不吃肉不行",
+          "quote": "谷物蛋白不太行啊",
+          "label": "partial",
+          "reason": "来源指出谷物蛋白缺乏赖氨酸、消化率低，但未直接说只吃大米不行",
+          "evidence": [
+            "https://www.nahs.org.cn/zt_10027/sydbjltd/dyjhdpjl/202306/t20230626_426422.htm",
+            "https://onlinelibrary.wiley.com/doi/full-xml/10.1002/fsn3.1809#3"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "一天吃两三个三四个鸡蛋没问题",
+          "quote": "你就吃个两个三四个没事",
+          "label": "partial",
+          "reason": "指南建议每日约1个，特殊人群最多3个，说法未限定条件",
+          "evidence": [
+            "https://health.cnr.cn/sy/jd/20251222/t20251222_527468114.shtml",
+            "https://sykp.hebei.com.cn/system/2025/12/15/030369248.shtml"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "egg-yolk": {
+      "url": "https://www.bilibili.com/video/BV1mP4y1x7Da",
+      "title": "蛋黄胆固醇含量高，一天吃几个鸡蛋好？",
+      "topic": "鸡蛋黄 胆固醇",
+      "note": "刘加勇医生 · 1464562 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "吃蛋黄不会明显升高血液胆固醇",
+          "quote": "对血清胆固醇的影响特别特别轻微",
+          "label": "partial",
+          "reason": "有来源称蛋黄不升胆固醇，但ScienceDirect研究显示每日加蛋使TC/LDL显著升高，说法忽略条件",
+          "evidence": [
+            "https://www.sciencedirect.com/science/article/abs/pii/S0899900713002116#1",
+            "https://wsjkw.sh.gov.cn/spwsyyy/20240125/87fff3b0b9574549b296cabc745438ab.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "人体胆固醇主要靠自身合成，食物摄入仅占约25%",
+          "quote": "主要靠自己合成",
+          "label": "correct",
+          "reason": "权威来源称食物来源约20%-33%，与约25%一致",
+          "evidence": [
+            "http://ynswsjkw.yn.gov.cn/html/2023/xuanchuankejiao_0714/17608.html",
+            "https://www.health.harvard.edu/heart-health/how-its-made-cholesterol-production-in-your-body?shortlink=f1a061a3&pid=Email&c=selfserve-comms-2021&af_channel=Email&gad_source=1#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "一天吃两三个鸡蛋没问题",
+          "quote": "一天吃两三个也没问题",
+          "label": "partial",
+          "reason": "健康时报称健康人群每天2~3个鸡蛋可以，但权威来源建议每天不超过一个，说法遗漏条件且与部分来源不一致",
+          "evidence": [
+            "http://www.jksb.com.cn/index.php?m=wap&a=show&catid=788&id=256254",
+            "https://www.massgeneralbrigham.org/zh-cn/health-wellness/are-eggs-heart-healthy#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "蛋黄中的卵磷脂能降低胆固醇、保护心脏",
+          "quote": "它能降低胆固醇的卵磷脂",
+          "label": "unverifiable",
+          "reason": "来源均研究大豆卵磷脂，未涉及蛋黄卵磷脂",
+          "evidence": [
+            "https://pubmed.ncbi.nlm.nih.gov/9733225/#1",
+            "https://www.sciencedirect.com/science/article/abs/pii/S0021915098001324#1",
+            "https://www.sciencedirect.com/science/article/abs/pii/S0024320500008407",
+            "https://www.sciencedirect.com/science/article/abs/pii/S0955286300001157#1",
+            "https://nap.nationalacademies.org/read/1222/chapter/10?term=\"\"energy+intake\"\"#19"
+          ],
+          "suggested": "unverifiable"
+        }
+      ]
+    },
+    "msg": {
+      "url": "https://www.bilibili.com/video/BV1U5411Z7VH",
+      "title": "酒精：抱歉，安全摄入量为0的一级（类）致癌物  【医学真相】第一集",
+      "topic": "味精 致癌",
+      "note": "医学科普联盟 · 5893803 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "任何种类、任何剂量的酒都对人体有害",
+          "quote": "任何剂量的酒都对人体有害",
+          "label": "correct",
+          "reason": "多个权威来源明确称任何剂量酒精均有害",
+          "evidence": [
+            "https://hpdp.gov.mt/hpu/alcohol",
+            "https://mohw.gov.tw/cp-3790-39404-1.html",
+            "https://www.mayoclinic.org/healthy-lifestyle/nutrition-and-healthy-eating/in-depth/alcohol/art-20044551?srch_tag=nqypphxlk5pj3fmwgo2ew7nju73fpcjx&p=1#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "喝酒脸红是乙醛中毒",
+          "quote": "喝酒脸红其实就是乙醛中毒",
+          "label": "correct",
+          "reason": "多个权威来源明确称脸红是乙醛堆积/中毒表现",
+          "evidence": [
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=Dzlq",
+            "http://img1.kepuchina.cn/wiki/faq/201902/t20190218_981145.shtml",
+            "https://dxy.com/article/192932#1",
+            "https://health.rednet.cn/content/646040/52/16011370.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "适量饮酒有益健康是谎言",
+          "quote": "适量饮酒有益健康的谎言",
+          "label": "correct",
+          "reason": "多个权威来源均否定适量饮酒有益健康",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20260418/t20260418_527590015.shtml",
+            "http://health.cnr.cn/jkgdxw/20210205/t20210205_525407817.shtml#1",
+            "https://www.change4health.gov.hk/en/alcohol_aware/facts/topics/heart_attack.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "酒不会越喝越暖，只会越喝越寒",
+          "quote": "酒不会越喝越暖 相反只会越喝越寒",
+          "label": "correct",
+          "reason": "权威来源均指出喝酒散热更快、酒后寒，与说法一致",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20181010/t20181010_524381073.shtml#1",
+            "https://www.sh-na.com/portal/article/index/id/4084/cid/183.html"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "microwave": {
+      "url": "https://www.bilibili.com/video/BV1XZgzzGEUP",
+      "title": "为什么微波炉不能同时加热两颗葡萄？放进去后，可怕的一幕发生了",
+      "topic": "微波炉 辐射",
+      "note": "冷科普 · 1385300 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "微波炉不能同时加热两颗葡萄",
+          "quote": "为什么微波炉不能同时加热两颗葡萄",
+          "label": "wrong",
+          "reason": "来源明确警告两枚葡萄紧挨加热会着火爆炸，与说法相反",
+          "evidence": [
+            "https://stb.mae.edu.cn/site/yard/875/resource/34159",
+            "https://cloud.kepuchina.cn/h5/detail?id=6791538300448993280#1"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c2",
+          "claim": "金属制品不能放进微波炉加热",
+          "quote": "首先是金属制品",
+          "label": "correct",
+          "reason": "多个权威来源均指出金属器皿不可进微波炉，会反射微波、产生火花甚至起火",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=6969019787556155392",
+            "https://www.kepuchina.cn/more/202107/t20210731_3014381.shtml",
+            "https://www.cfs.gov.hk/sc_chi/programme/programme_rafs/programme_rafs_ft_02_01.html#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "带壳或薄膜的食物（如鸡蛋、火腿肠）不能用微波炉加热",
+          "quote": "有壳和有薄膜的不行",
+          "label": "partial",
+          "reason": "来源支持带壳/薄膜食物易爆，但未涵盖火腿肠等所有情况，说法绝对化",
+          "evidence": [
+            "https://www.kepuchina.cn/article/articleinfo?ar_id=398939&business_type=100&classify=0#1",
+            "https://cloud.kepuchina.cn/h5/detail?id=7404917150636322816"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "不要用微波炉烧水",
+          "quote": "也不要用微波炉烧水",
+          "label": "partial",
+          "reason": "来源称微波炉能烧水但不安全，说法绝对化遗漏条件",
+          "evidence": [
+            "https://www.kepuchina.cn/article/articleinfo?ar_id=444273&business_type=100&classify=0",
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=7002683248556765184&is_self=2",
+            "https://www.cfs.gov.hk/sc_chi/programme/programme_rafs/programme_rafs_ft_02_01.html#1"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "mung-bean": {
+      "url": "https://www.bilibili.com/video/BV1bduV6yE2e",
+      "title": "一碗绿豆汤，毁了你一夏天的努力！",
+      "topic": "绿豆汤 排毒",
+      "note": "随心Kan世界 · 32721 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "绿豆解暑的有效成分主要在绿豆皮里，不在绿豆肉里",
+          "quote": "绿豆解暑的命根子在皮上",
+          "label": "correct",
+          "reason": "多个权威来源均指出解暑有效成分多酚类主要在绿豆皮中",
+          "evidence": [
+            "https://health.cnr.cn/jkgdxw/20260731/t20260731_527738706.shtml#1",
+            "https://cloud.kepuchina.cn/newSearch/imgText?type=2&id=6654093124466143232",
+            "https://www.kepuchina.cn/article/articleinfo?ar_id=512230&business_type=100&classify=0#1",
+            "https://www.dongfangyy.com.cn/Html/News/Articles/12306.html",
+            "https://www.kepuchina.cn/2016zt/kpzgldyytc/sqxc/lbdqsjs/02/201801/t20180118_535848_8.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "煮绿豆汤时加糖会降低解暑效果",
+          "quote": "加糖就是降效果",
+          "label": "unverifiable",
+          "reason": "来源仅提糖友/脂肪肝不宜加糖，未涉及加糖降低解暑效果",
+          "evidence": [
+            "https://www.acondiabetescare.com.cn/health_cont.aspx?id=740",
+            "https://jbk.39.net/zfg/231027/l5ijj5x.html",
+            "http://www.lygcdc.cn:19000/cms/document/2936.html"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c3",
+          "claim": "吃降压药、降糖药、抗凝药后两小时内不能喝绿豆汤",
+          "quote": "吃药后两小时内碰都别碰绿豆汤",
+          "label": "partial",
+          "reason": "来源称大量饮用且间隔不足可影响药效，但未明确两小时界限，说法绝对化",
+          "evidence": [
+            "http://jyb.ncrbw.cn/h5/html5/2026-07/27/content_143745_3676880.htm",
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/12684"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "脾胃虚寒的人喝绿豆汤不要放冰，可加两片生姜",
+          "quote": "别放冰 加两片生姜",
+          "label": "correct",
+          "reason": "权威来源称脾胃虚寒者绿豆汤不宜冰镇，可加生姜中和寒性",
+          "evidence": [
+            "https://www.fshtcm.com.cn/zyy2023/jkjt/202607/t20260724_6425609.html",
+            "http://www.hnszyyxh.org/20260813/6MoFG3E0DKX.html"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "onion-wine": {
+      "url": "https://www.bilibili.com/video/BV1Zm41117HJ",
+      "title": "揭露红酒软化血管的营销骗局，资本和名校博士集体学术造假",
+      "topic": "洋葱泡红酒 软化血管",
+      "note": "丧钟克里斯 · 144189 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "红酒含有的白藜芦醇不能软化血管",
+          "quote": "白藜芦醇不仅没有保护心脏、抗衰老、软化血管的效果",
+          "label": "correct",
+          "reason": "权威来源明确红酒白藜芦醇含量低，不能软化血管",
+          "evidence": [
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=7357433032954314752",
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=BYQo",
+            "https://www.medtimes.com.hk/en-us/wikisingle-1311.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "白藜芦醇会导致严重的肾衰竭",
+          "quote": "还会导致严重的肾衰竭",
+          "label": "wrong",
+          "reason": "权威来源显示白藜芦醇改善肾功能、延缓肾衰竭，与说法矛盾",
+          "evidence": [
+            "https://www.sinomed.ac.cn/article.do?ui=2025429816",
+            "https://pubmed.ncbi.nlm.nih.gov/32040471/#abstract#1"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c3",
+          "claim": "红酒中白藜芦醇含量最高也只有每毫升5.09微克",
+          "quote": "也只有每毫升5.09微克",
+          "label": "unverifiable",
+          "reason": "来源仅给总量范围，未提每毫升5.09微克上限",
+          "evidence": [
+            "https://www.cnki.com.cn/Article/CJFDTotal-SPYK201422035.htm#1",
+            "https://www.spgykj.com/article/exportPdf?id=SPKJ201302008&st=alljournals#3#3"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c4",
+          "claim": "靠喝红酒达到软化血管效果需至少连喝两大瓶",
+          "quote": "至少连喝两大瓶才行",
+          "label": "wrong",
+          "reason": "权威来源称需每天喝上百瓶红酒才达实验剂量，且红酒不能软化血管",
+          "evidence": [
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=VMre",
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=7357433032954314752"
+          ],
+          "suggested": "wrong"
+        }
+      ]
+    },
+    "bp-drugs": {
+      "url": "https://www.bilibili.com/video/BV1HsP5zTEcb",
+      "title": "一片降压药为何能 24 小时平稳控压？看高清镜头下的释放过程",
+      "topic": "降压药 停不了",
+      "note": "科普中国 · 92625 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "硝苯地平控释片只需每日服用一片",
+          "quote": "只需每日服用一片",
+          "label": "correct",
+          "reason": "说明书及权威来源均载明常规一日一次、一次一片",
+          "evidence": [
+            "https://swin.zy91.com/pages/m-instruction/m.instruction.html?webHisId=15098&hospitalCode=1#1#2",
+            "https://www.lunan.com.cn/Product/Product/instruction/id/271.html",
+            "https://www.zdsfy.net/kpzs/109592.jhtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "硝苯地平控释片的半透膜包衣层在体内不会溶解",
+          "quote": "半透膜包衣层在体内不会溶解",
+          "label": "correct",
+          "reason": "多个权威来源明确半透膜外壳不溶解，随粪便排出",
+          "evidence": [
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/4322",
+            "https://wsjkw.gd.gov.cn/jkkp/kpzs/content/post_4882942.html",
+            "https://www.zxhospital.com/yxb/info/1024/5477.htm"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "大便中发现硝苯地平控释片的药壳是正常现象",
+          "quote": "这是正常现象",
+          "label": "correct",
+          "reason": "多个权威来源明确说明控释片空壳随粪便排出属正常现象",
+          "evidence": [
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/12526",
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/4322",
+            "http://hbsyjd.cjyun.org/p/24646.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "硝苯地平控释片能实现药物稳定匀速释放",
+          "quote": "药物的稳定匀速释放",
+          "label": "correct",
+          "reason": "多个权威来源均明确硝苯地平控释片定时定量匀速释放",
+          "evidence": [
+            "https://www.simcere.com/pro/detail.aspx?mtt=68",
+            "http://s.dayi.org.cn/mip/s/qa/43941_t.html",
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/12526",
+            "https://www.pharnexcloud.com/zixun/sd_4311#1"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "grapefruit": {
+      "url": "https://www.bilibili.com/video/BV1WXj86TEW7",
+      "title": "经常吃降压药的人，千万别碰这两种水果!",
+      "topic": "柚子 降压药",
+      "note": "陈大夫科普 · 2186471 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "吃降压药的人不能吃西柚及含西柚汁的饮料",
+          "quote": "西柚，包括所有含西柚汁的饮料",
+          "label": "partial",
+          "reason": "来源称部分降压药（如氨氯地平、非洛地平等）忌西柚，非所有降压药",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20170704/t20170704_523832591.shtml#1",
+            "https://wsjkw.sh.gov.cn/jtyx/20210820/98c19357ce0943ab99bbeaa233c919ab.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "吃普利类、沙坦类或保钾利尿剂降压药的人要当心香蕉、橘子、土豆等高钾食物",
+          "quote": "这些高钾食物留一万个心",
+          "label": "correct",
+          "reason": "多个来源均指出普利类、沙坦类及保钾利尿剂减少钾排泄，需当心高钾食物",
+          "evidence": [
+            "https://www.sinocare.com/en/sugerinfo_1_881.html",
+            "https://www.jy4yy.com/html/JianKang/202512/7Ux7Ku8Ji3Ud91530.html",
+            "https://ypk.39.net/saftydrugs/ao3e94p3.html",
+            "https://wsjkw.sh.gov.cn/jthl/20260211/6a855250b0f24794a715ca29b544b955.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "吃地平类降压药的人不用怕香蕉，医生有时还会鼓励适当吃一点",
+          "quote": "不仅不用怕香蕉",
+          "label": "partial",
+          "reason": "来源称地平类不影响血钾，香蕉适量可食，但未提医生鼓励",
+          "evidence": [
+            "https://ypk.39.net/saftydrugs/omty01wb.html",
+            "https://m.dayi.org.cn/qa/327341.html#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "西柚中的成分会抑制肝脏代谢降压药，使药物浓度升高导致低血压",
+          "quote": "浓度直接翻倍",
+          "label": "correct",
+          "reason": "多个权威来源一致指出西柚抑制肝酶使降压药浓度升高致低血压",
+          "evidence": [
+            "http://health-app.people.cn/n1/2025/1031/c14739-40593848.html",
+            "https://wsjkw.sh.gov.cn/jtyx/20210820/98c19357ce0943ab99bbeaa233c919ab.html",
+            "https://www.hnsyzszxyy.cn/jscgQJ/info_176.aspx?itemid=39986&subjectid=60&subcoumnid=8"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "morning-exercise": {
+      "url": "https://www.bilibili.com/video/BV11C41187TY",
+      "title": "坚持早起锻炼，你的身体会发生什么？",
+      "topic": "晨练 越早越好",
+      "note": "李白尼的猜想 · 4182999 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "坚持户外锻炼20到30分钟后，角质形成细胞会促使身体产生睾酮",
+          "quote": "角质形成细胞开启了它的副业",
+          "label": "unverifiable",
+          "reason": "来源未提及户外锻炼20-30分钟、角质形成细胞与睾酮关联",
+          "evidence": [
+            "http://nrb.net.in/Books/heal-yourself-with-sunlight.pdf#20#13",
+            "https://www.pelleedintorni.it/ringiovanire-allenandosi/",
+            "https://www.nzherald.co.nz/northern-advocate/news/health-by-choice-exercise-offers-a-multitude-of-health-benefits/2AUMJ2T5OB7PAY6UZUXID4XR4U/?ref=readmore#1",
+            "https://www.nikkan-gendai.com/articles/view/health/350377/2",
+            "https://www.physio-pedia.com:443/index.php?title=Exercise_Endocrine_System_Interaction&diff=prev&oldid=313530"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c2",
+          "claim": "早上锻炼后减脂效果可能会更好",
+          "quote": "你的减脂效果可能会更好",
+          "label": "partial",
+          "reason": "多来源支持早上运动减脂更佳，但称效果可能更好属大体对，部分来源强调个体差异",
+          "evidence": [
+            "https://www.womenshealthmag.com/tw/fitness/work-outs/a65589556/best-time-to-workout-to-lose-weight-1754301175/#1",
+            "https://health.ltn.com.tw/article/breakingnews/5195485?utm_campaign=STARK_health_DQN&utm_source=HEALTH&utm_medium=hotnews_right",
+            "https://www.sxmh.net.cn/article_detail/4156.html",
+            "https://dxy.com/article/202321#1",
+            "https://health.ftvnews.com.tw/news/detail/2025417W0216"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "阴天室外照度有1000到10000勒克斯，远高于室内100到500勒克斯",
+          "quote": "阴天室外的照度也有1000到10000LX",
+          "label": "partial",
+          "reason": "科普中国称阴天室外约20000lx，高于说法上限；室内数值来源不一，部分矛盾",
+          "evidence": [
+            "https://www.kepuchina.cn/article/articleinfo?ar_id=518125&business_type=100#1",
+            "https://faithtech.cn/news/185"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "早上六点的低角度太阳光可深入大脑驱动视交叉上核，设定约16小时后入睡",
+          "quote": "让你能在大约16小时后入睡",
+          "label": "partial",
+          "reason": "来源支持晨光经眼调节视交叉上核，但未支持“深入大脑”及约16小时设定",
+          "evidence": [
+            "http://big5.cctv.com/gate/big5/news.cctv.com/2025/08/28/ARTIMgovaq776Tgk5mGuAfR0250828.shtml",
+            "https://m.zhangyue.com/readbook/12896295/8.html#1",
+            "https://www.dzjkb.org.cn/dazhongkepu/dazhongkepu/f3eb933923292ab0ae7def0668de0526.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "sugar-free": {
+      "url": "https://www.bilibili.com/video/BV1aD4y167Wg",
+      "title": "无糖饮料“可能”比有糖饮料危害更大？",
+      "topic": "无糖食品 血糖",
+      "note": "中国食品报融媒体 · 941064 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "无糖饮料确实不含糖，甜味来自阿斯巴甜、赤藓糖醇、三氯蔗糖等代糖",
+          "quote": "无糖饮料确实没有糖这个物质",
+          "label": "correct",
+          "reason": "央广网与科普中国均证实无糖饮料用阿斯巴甜、赤藓糖醇、三氯蔗糖等代糖提供甜味",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20230320/t20230320_526187918.shtml#1",
+            "https://www.kepuchina.cn/health/food/202008/t20200806_1671955.shtml#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "阿斯巴甜即便在安全剂量下仍可能引起全身炎症",
+          "quote": "即便是在安全剂量下仍然可能引起全身的炎症",
+          "label": "partial",
+          "reason": "动物研究显示ADI剂量促炎，但人体全身炎症证据不足",
+          "evidence": [
+            "https://ift.onlinelibrary.wiley.com/doi/10.1111/1750-3841.17505?af=R&content=articlesChapters&field1=Keyword&mi=66uo12o&target=default&text1=cytokines#1",
+            "https://rcseng.ovidds.com:443/discover/result?logSearchID=167467290&pubid=solr_6057-medline%3A39475342#1",
+            "https://www.sciencedirect.com/science/article/abs/pii/S0278691523003332?fr=pjs&ref=cra_js_challenge#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "毒理学报告不等于医学临床报告，得不出无糖饮料一定比含糖饮料危害大的结论",
+          "quote": "毒理学报告不等于医学临床报告",
+          "label": "correct",
+          "reason": "来源区分毒理学非临床研究与临床研究，支持二者不等同",
+          "evidence": [
+            "https://www.isaf.gov.mo/wp-content/uploads/2025/11/%E5%8D%B0%E5%88%B7%E7%89%88-%E4%B8%AD%E6%88%90%E8%97%A5%E8%A8%BB%E5%86%8A%E6%8C%87%E5%BC%95-%E7%B0%A1%E8%91%A1-ver21.pdf#12#2",
+            "https://sage.cnpereading.com/paragraph/download/?doi=10.1177/10915818211073047#6#3"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "不论含糖还是无糖饮料都不应大量长期饮用，要适量",
+          "quote": "都不应该大量长期饮用",
+          "label": "correct",
+          "reason": "权威来源均提示饮料不宜替代水、过量饮用有健康风险",
+          "evidence": [
+            "https://health.cnr.cn/jkgdxw/20260609/t20260609_527654236.shtml",
+            "http://health.cnr.cn/jkgdxw/20170824/t20170824_523915868.shtml",
+            "https://news.foodmate.net/2026/07/747338.html"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "supplements": {
+      "url": "https://www.bilibili.com/video/BV1LKoXBEEEN",
+      "title": "坐着抬一抬脚后跟，就能帮助降血糖和血脂，关键要做对，收藏转发",
+      "topic": "保健品 降血糖",
+      "note": "普外科曾伊森 · 113785 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "坚持做坐姿提踵可以降低血糖和血脂",
+          "quote": "你坚持做坐姿提踵，那你就可以降低血糖血脂",
+          "label": "partial",
+          "reason": "来源支持降餐后血糖，但血脂仅称“慢慢变好”，未明确降低血脂",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=7463996506631540736",
+            "https://www.minhou.gov.cn/xjwz/zwgk/zdlyxxgk/jdjc/jbyfkz/202605/t20260518_5323132.htm"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "坐姿提踵能改善炎性指标",
+          "quote": "它可以改善炎性指标",
+          "label": "correct",
+          "reason": "科普中国、北京市政府等权威来源均称可显著降低全身免疫炎症指数",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=7463996506631540736",
+            "https://www.beijing.gov.cn/gate/big5/www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202606/t20260604_4685537.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "坐姿提踵主要激活小腿深层的比目鱼肌",
+          "quote": "才是专门针对比目鱼肌的",
+          "label": "correct",
+          "reason": "多个来源均指出坐姿提踵主要刺激深层比目鱼肌",
+          "evidence": [
+            "https://tyj.sc.gov.cn/sctyj/jszd/2020/4/13/e3e0ae3b6ec249729fef03d11768797a.shtml",
+            "https://baike.baidu.com/planet/issue?issueId=583914"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "站姿提踵主要激活小腿表层腓肠肌，效果不如坐姿提踵",
+          "quote": "效果就会差一些",
+          "label": "partial",
+          "reason": "站姿练腓肠肌有据，但“效果不如坐姿”来源未比较",
+          "evidence": [
+            "https://baike.baidu.com/item/%e6%8f%90%e8%b8%b5/0?fromModule=lemma_inlink&bst=1791613192.d2baa81a317fb2cd#1",
+            "https://www.sport.gov.cn/n20001280/n20001265/n20066978/c25921683/content.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "iv-drip": {
+      "url": "https://www.bilibili.com/video/BV1GB4y1D7cK",
+      "title": "【花小烙】输液的时候如果气泡进入了血管里会怎么样？",
+      "topic": "输液 疏通血管",
+      "note": "画渣花小烙 · 15429673 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "少量小气泡进入血管会溶进血液或被身体吸收，不会造成大的伤害",
+          "quote": "不必特别担心",
+          "label": "correct",
+          "reason": "科普中国等权威来源称微量小气泡可被吸收代谢，不造成危害",
+          "evidence": [
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=7268714124975124480",
+            "http://www.jksb.com.cn/index.php?m=wap&a=show&catid=277&id=117646",
+            "http://www.yxhospital.cn/c/2022/04/07/17709.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "对成年人来说致命的空气栓塞量在200到300毫升左右",
+          "quote": "在200到300毫升左右",
+          "label": "partial",
+          "reason": "来源称约3–5ml/kg，60kg成人180–300ml，需快速输入；说法遗漏体重与速度条件",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=7410774562299162624#1",
+            "https://www.elsevier.es/en-revista-spanish-journal-legal-medicine-446-articulo-iatrogenic-gas-embolism-S2445424923000250"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "输液时瓶内液体输完，身体血压不允许空气大量进入，最多回一些血",
+          "quote": "最多也就是回一些血出来而已",
+          "label": "correct",
+          "reason": "科普中国等来源均称静脉压高于大气压，空气不易进入，最多回血",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=7110411945885544448#1",
+            "http://www.scmy120.com/nrgl/show-5132.html",
+            "https://hosp.ccnu.edu.cn/info/1124/3561.htm#1",
+            "https://www.xtsyyy.com/HTML/2021/2/1358.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "大量空气进入血管会堵住肺部血管分支，导致呼吸困难等缺氧症状",
+          "quote": "呼吸困难",
+          "label": "partial",
+          "reason": "来源称静脉气体栓塞可致肺水肿/窒息，但未明确说堵住肺部血管分支",
+          "evidence": [
+            "https://www.msdmanuals.cn/professional/injuries-poisoning/injury-during-diving-or-work-in-compressed-air/arterial-gas-embolism?media=full%3Fwautoredirectid%3D17#mainContainer#1"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "black-sesame": {
+      "url": "https://www.bilibili.com/video/BV1tX4y1R7Cf",
+      "title": "重磅研究！哈佛大学学者白发研究刊登《Nature》，压力竟会导致体内这种细胞被耗尽【笔百科·白头发】",
+      "topic": "黑芝麻 白发",
+      "note": "蜡笔和小勋 · 1633918 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "精神压力可能导致头发迅速变白",
+          "quote": "精神压力可能会导致头发迅速变白",
+          "label": "partial",
+          "reason": "来源承认压力可致白发，但强调不会一夜全白，说法略夸大",
+          "evidence": [
+            "http://jiankang.cctv.com/2021/12/24/ARTIgkwWZ0dXSxqTZ68bRlrV211224.shtml",
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=YAVY",
+            "https://health.cnr.cn/jkgdxw/20240816/t20240816_526854515.shtml"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "压力导致的白发几乎不可逆",
+          "quote": "几乎是不可逆的",
+          "label": "wrong",
+          "reason": "权威来源称压力减轻后部分白发可恢复原发色，与不可逆矛盾",
+          "evidence": [
+            "https://ypjgj.qinghai.gov.cn/Article/FormDetailsYJJ?Article_ID=B1EAA371-D2BF-4771-B00C-DDC9BFA4A6BA#1",
+            "https://cloud.kepuchina.cn/h5/detail?id=7476461553966440448",
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=7426354028138074112&is_self=2"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c3",
+          "claim": "头发白不白和身体健康程度没有必然联系",
+          "quote": "没有必然的联系",
+          "label": "correct",
+          "reason": "权威来源明确称白发多少与健康无直接关系",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20170609/t20170609_523793434.shtml",
+            "http://www.pumcderm.net/list/97/4894.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "通常烫发比染发对头发的伤害更大",
+          "quote": "烫发比染发对头发的伤害要更大",
+          "label": "unverifiable",
+          "reason": "来源仅讨论烫染价格差异及染发损伤，未比较烫发与染发伤害大小",
+          "evidence": [
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=6970466922933821440#1",
+            "https://www.kepuchina.cn/article/articleinfo?ar_id=89972&business_type=100&classify=0#1",
+            "https://cloud.kepuchina.cn/h5/detail?id=7014675981516210176"
+          ],
+          "suggested": "unverifiable"
+        }
+      ]
+    },
+    "breakfast": {
+      "url": "https://www.bilibili.com/video/BV1YPcrzREe6",
+      "title": "【医学博士】不吃早饭会得胃炎吗？为什么你一饿就胃疼？｜如何科学养胃？",
+      "topic": "不吃早饭 胆结石",
+      "note": "兔叭咯 · 1793672 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "空腹时间过长会引发胃炎",
+          "quote": "空腹时间过长确实会得胃炎",
+          "label": "correct",
+          "reason": "多个权威来源指出长期空腹胃酸刺激胃黏膜可致胃炎",
+          "evidence": [
+            "http://www.ncrc-dd.org.cn/Html/News/Articles/4730.html",
+            "https://health.rednet.cn/content/646048/50/15846091.html",
+            "https://jbk.39.net/mxwy/230915/d4f9umm.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "生理性空腹超过15小时会增加健康风险",
+          "quote": "生理性空腹超过15个小时会增加健康风险",
+          "label": "partial",
+          "reason": "来源提及空腹超12小时增胆结石风险，未直接支持15小时阈值",
+          "evidence": [
+            "https://health.udn.com/health/story/5999/8901858?from=udn-articlemain_ch1005",
+            "https://mejorconsalud.as.com/salud/cuerpo-humano/consecuencias-no-comer-varias-horas/#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "服用铋剂后大便变黑属于正常现象",
+          "quote": "铋剂吃完了确实粑粑会变成黑色的",
+          "label": "correct",
+          "reason": "多个权威来源均指出服铋剂致黑便属正常现象",
+          "evidence": [
+            "https://m.dayi.org.cn/qa/286301.html",
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/5204",
+            "https://www.psmchina.cn/safe_medicines_information/safe_medicines_knowledge/jbcs/9762"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "吃饭太快会导致血糖快速升高并可能引起胰岛素抵抗",
+          "quote": "吃快了吃多了血糖会顶格地高",
+          "label": "partial",
+          "reason": "有来源支持吃饭快与胰岛素抵抗相关，但血糖快速升高的说法被Wiley研究否定",
+          "evidence": [
+            "https://www.sciencedirect.com/science/article/abs/pii/S009174350700326X?via=ihub#1",
+            "https://onlinelibrary.wiley.com/doi/full/10.1002/edm2.56#1"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "eight-glasses": {
+      "url": "https://www.bilibili.com/video/BV1jCPzzwEFo",
+      "title": "如果你每天喝一加仑3.8升水身体会怎样？",
+      "topic": "每天八杯水",
+      "note": "powerrrrr123 · 503275 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "每天喝一加仑水，第一周肾脏会适应并像高性能机器一样过滤",
+          "quote": "你的肾脏适应了",
+          "label": "unverifiable",
+          "reason": "来源仅泛述饮水益处或个案体验，未证实肾脏第一周适应并高效过滤",
+          "evidence": [
+            "https://pkdcure.org/wp-content/uploads/2024/11/cooking_well_2021-edit.pdf#12#2",
+            "https://kidney.org.au/wp-content/uploads/2025/10/KHA-Factsheet-Drink-Water-Instead-2025.pdf#1#1",
+            "https://www.ettoday.net/news/20170406/898772.htm?ercamp=hot_news",
+            "https://m.huanqiu.com/article/9CaKrnK1NMv",
+            "https://read.qxmd.com/read/42886618/fluid-intake-and-kidney-function-a-systematic-review-and-dose-response-meta-analysis"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c2",
+          "claim": "每天喝一加仑水到第30天关节更顺滑、膝盖咔咔声消失",
+          "quote": "膝盖的咔咔声？消失了",
+          "label": "unverifiable",
+          "reason": "来源仅泛谈关节响与润滑，未涉及每日一加仑水30天效果",
+          "evidence": [
+            "https://www.kingnet.com.tw/inquiry/single?accessKey=8c43a951fa4696201d115cb347a978a5&inquiryId=84819#1",
+            "https://news.cts.com.tw/cts/life/201912/201912171984536.html",
+            "https://health.tvbs.com.tw/regimen/342118?from=readmore",
+            "https://pansci.asia/archives/70817/amp#1"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c3",
+          "claim": "每天喝一加仑水到第60天新陈代谢加快、更有效燃烧卡路里",
+          "quote": "新陈代谢运行得更快",
+          "label": "wrong",
+          "reason": "来源显示饮水产热效应有限且短暂，无证据支持每天一加仑60天持续加快代谢",
+          "evidence": [
+            "https://pubmed.ncbi.nlm.nih.gov/14671205/#1",
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=Zynv",
+            "https://www.nature.com/articles/nutd201541#1"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c4",
+          "claim": "每天喝一加仑水到第90天看起来年轻五岁",
+          "quote": "你看起来年轻了五岁",
+          "label": "wrong",
+          "reason": "来源均为每天3升水4周个案，非一加仑90天年轻五岁",
+          "evidence": [
+            "https://my.top1health.com/Article/232/94013"
+          ],
+          "suggested": "wrong"
+        }
+      ]
+    },
+    "vitamin-c": {
+      "url": "https://www.bilibili.com/video/BV1ha4y1s7qd",
+      "title": "【医学博士】感冒吃药7天好，不吃药一星期好 | 身体：你在考我数学？",
+      "topic": "维生素C 感冒",
+      "note": "兔叭咯 · 2002403 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "感冒大部分是由病毒引起的",
+          "quote": "感冒大部分是由病毒引起",
+          "label": "correct",
+          "reason": "权威来源明确感冒为病毒感染，多数由鼻病毒等引起",
+          "evidence": [
+            "https://ccdas.pmphai.com/appdisease/toPcDetail?sessionId=&knowledgeLibPrefix=disease&id=29240#1",
+            "http://www.msdmanuals.cn/professional/infectious-diseases/respiratory-viruses/common-cold?media=full?wruleredirectid=3?wautoredirectid=36589#1",
+            "http://health.cnr.cn/jkgdxw/20240115/t20240115_526558121.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "感冒不吃药7天就能好",
+          "quote": "感冒不吃药7天就能好",
+          "label": "correct",
+          "reason": "多个权威来源称普通感冒自限，约7天自愈，无需药物",
+          "evidence": [
+            "https://wsjkw.sh.gov.cn/jthl/20240814/36d4212387344c9890666e47ffea4eeb.html#1#1",
+            "https://www.shgh.cn/Content/News/4171",
+            "https://uhs.berkeley.edu/health-promotion/health-topics/colds-and-respiratory-infections/cold-care#1",
+            "https://www.nejm.org/doi/pdf/10.1056/NEJM198601093140209",
+            "http://wjw.hunan.gov.cn/xxgk/gzdt/szdt/202211/t20221103_29114473.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "母乳中的乳铁蛋白可以刺激婴儿T细胞增殖",
+          "quote": "乳铁蛋白可以刺激小小兔T细胞的增值",
+          "label": "partial",
+          "reason": "有来源显示乳铁蛋白刺激胸腺细胞，但另有来源显示抑制T细胞增殖，说法不全面",
+          "evidence": [
+            "https://pubmed.ncbi.nlm.nih.gov/1683650/#1",
+            "https://www.sciencedirect.com/science/article/abs/pii/0165037887900416#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "建议每天睡眠7到9个小时",
+          "quote": "建议每天睡眠7-9个小时",
+          "label": "partial",
+          "reason": "部分来源支持7-9小时，但权威指南多称成人7-8小时",
+          "evidence": [
+            "https://cdcp.gd.gov.cn/zwgk/jsbzywj/content/mpost_4697833.html#1",
+            "https://wsjkw.sc.gov.cn/scwsjkw/jkys/2025/3/31/da44e475de514fbe8e8148cd1f8c74a2.shtml",
+            "https://www.pkuh6.cn/Html/Mobile/Articles/6185.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "ejiao": {
+      "url": "https://www.bilibili.com/video/BV1C8411U7Hi",
+      "title": "为什么阿胶在西医上并无营养只是一些蛋白质，而在中医上则是补品？",
+      "topic": "阿胶 补血",
+      "note": "今夜话题ing · 362465 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "阿胶营养密度高，70%以上是蛋白质",
+          "quote": "营养密度高70%以上是蛋白质",
+          "label": "partial",
+          "reason": "权威来源显示蛋白质68%-84%，但阿胶片阿胶含量39%-65%，营养密度说法需限定",
+          "evidence": [
+            "https://www.sinomed.ac.cn/article.do?ui=2019209309",
+            "https://m.meishichina.com/ingredient/EJiao/info/"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "阿胶在常温条件下可以多年不腐",
+          "quote": "常温条件下可以多年不腐",
+          "label": "partial",
+          "reason": "来源称保存得当可5年或更久，但未支持常温多年不腐，且强调防潮防霉",
+          "evidence": [
+            "https://ypk.39.net/saftydrugs/37smu5uz.html",
+            "https://h5.baike.qq.com/mobile/search_article.html?docid=qa000020119lgnaa&adtag=sg.nr.wz.wenda&VNK=acab5920",
+            "http://www.edongeejiao.com/fk_f1/Index_74.aspx"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "坐月子不能洗澡是落后观念",
+          "quote": "我们现在都知道是落后观念",
+          "label": "correct",
+          "reason": "多个权威来源均指出不能洗澡是旧观念，现代可科学洗浴",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20170724/t20170724_523865146.shtml",
+            "http://jiankang.cctv.com/m/index.shtml?article_id=ARTIn6z5o73bPM9H7DidkY91170807",
+            "https://wsjkw.sh.gov.cn/ycfbj/20210716/8f251fe00c7f41759ff63857b13eb868.html",
+            "https://www.hpa.gov.tw/Pages/Detail.aspx?nodeid=127&pid=8103",
+            "http://health.cnr.cn/jkgdxw/20190626/t20190626_524663927.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "金创药对创面止血有效",
+          "quote": "所以对创面止血有效",
+          "label": "correct",
+          "reason": "北京卫健委科普称金创药外敷可止血，与说法一致",
+          "evidence": [
+            "https://wjw.beijing.gov.cn/bmfw_20143/jkzs/jksh/202502/t20250220_4015504.html#1"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "fish-oil": {
+      "url": "https://www.bilibili.com/video/BV1KzoKBgEXz",
+      "title": "鱼油不如蛙跳——以10篇论文佐证",
+      "topic": "鱼油 降血脂",
+      "note": "耿同学讲故事 · 1187596 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "每天补充4克Omega-3脂肪酸对心血管不良事件没有显著差异",
+          "quote": "没有显著差异",
+          "label": "unverifiable",
+          "reason": "来源为试验注册与综述表格，未提供4克剂量对心血管事件无差异的结论",
+          "evidence": [
+            "https://ichgcp.net/clinical-trials-registry/NCT06840964#1",
+            "https://en.irct.ir/trial/92646",
+            "https://link.springer.com/article/10.1007/s11883-025-01363-2/tables/1#1"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c2",
+          "claim": "补充Omega-3脂肪酸不会降低重大心血管事件或癌症的发生率",
+          "quote": "不会导致重大心血管事件或癌症",
+          "label": "unverifiable",
+          "reason": "来源均为试验注册或特定癌症研究，未提供心血管事件与癌症发生率结论",
+          "evidence": [
+            "https://clinicaltrials.gov/study/NCT06195306?term=Tamoxifen%20AND%20ESR1&viewType=Table&rank=6#1",
+            "https://clinicaltrials.gov/study/NCT02295059?intr=Omega-3%20Fatty%20Acids&tab=researcher#1",
+            "https://ods.od.nih.gov/FACTSHEETS/OMEGA3FATTYACIDS-HEALTHPROFESSIONAL/?print=1#7",
+            "https://www.michiganmedicine.org/health-lab/fish-oil-supplements-may-not-work-certain-cancer-patients",
+            "https://drks.de/search/de/trial/DRKS00036800/details"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c3",
+          "claim": "鱼油补充剂对超重男性肝脏脂肪无效",
+          "quote": "对肝脏脂肪的影响 无效",
+          "label": "wrong",
+          "reason": "来源显示鱼油可减少肝脂肪，与说法矛盾",
+          "evidence": [
+            "https://healthcare-service.amed.go.jp/assets/document/guide/video/guide_video_11.pdf#22#4",
+            "https://clinicaltrials.gov/study/NCT00230113?tab=researcher#1"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c4",
+          "claim": "补充Omega-3对炎症细胞因子水平没有影响",
+          "quote": "炎症细胞因子水平都没有影响",
+          "label": "wrong",
+          "reason": "多项权威来源显示Omega-3降低TNF-α、IL-1等炎症因子，与说法矛盾",
+          "evidence": [
+            "https://europepmc.org/article/MED/39286404#free-full-text#2",
+            "https://www.nejm.org/doi/abs/10.1056/NEJM198902023200501#1",
+            "https://secure.jbs.elsevierhealth.com/action/getSharedSiteSession?redirect=https%3A%2F%2Fajcn.nutrition.org%2Farticle%2FS0002-9165%2822%2903903-X%2Fpdf&rc=0&__cf_chl_tk=i1iWosfmCBF.4uvY.KMwxyUhiWKlsY_IUS7mhK6kmJg-1769524094-1.0.1.1-dH8PtswazsvQOzA.0FcH7v3DIxGlnoptQP7IVWe9fhs#5#5"
+          ],
+          "suggested": "wrong"
+        }
+      ]
+    },
+    "whole-grains": {
+      "url": "https://www.bilibili.com/video/BV1kh411k7qu",
+      "title": "【万物由来】粗粮细粮，你分得清吗？",
+      "topic": "粗粮 越多越好",
+      "note": "马督工 · 224102 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "粗粮和细粮的分界线是加工精度",
+          "quote": "真正的分界线是加工精度",
+          "label": "correct",
+          "reason": "科普中国指出大米因碾磨加工精度不同可为粗粮或细粮",
+          "evidence": [
+            "https://www.kepuchina.cn/1/15/201703/t20170301_113026.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "细粮GI值高，会快速升高血糖",
+          "quote": "细粮的GI值高",
+          "label": "correct",
+          "reason": "权威来源明确细粮GI高，进食后血糖升高较快",
+          "evidence": [
+            "https://www.chinanutri.cn/yyj/wxpt/201603/t20160318_126278.html",
+            "https://cloud.kepuchina.cn/h5/detail?id=6967609978615046144"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "粗粮富含纤维素，消化慢，GI值低",
+          "quote": "粗粮富含纤维素",
+          "label": "partial",
+          "reason": "权威来源称粗粮等属低GI，但指出并非所有粗粮都低GI，糯性粗粮升糖快",
+          "evidence": [
+            "https://www.gzscdc.org.cn/ggfw/jkjy/kpxc/yyws/content_6559",
+            "https://ezszxyy.com/index.php/jkkp/2025/08-20/4255.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "燕麦是粗粮中维生素和叶酸含量最高的品种",
+          "quote": "维生素和叶酸含量最高的品种是燕麦",
+          "label": "unverifiable",
+          "reason": "来源仅称燕麦叶酸较高，未比较所有粗粮，无法支持最高",
+          "evidence": [
+            "https://www.cnzcs.com/maternal/Pregnant/Preg_list_detail.aspx?id=6932",
+            "https://www.spkx.net.cn/CN/abstract/abstract35272.shtml?st=aipub#1"
+          ],
+          "suggested": "unverifiable"
+        }
+      ]
+    },
+    "salt-bp": {
+      "url": "https://www.bilibili.com/video/BV1HL4y1H7QN",
+      "title": "为家里长辈多花几块钱，换种盐就能控血压（有前提的那种",
+      "topic": "吃盐 高血压",
+      "note": "丁香医生 · 349170 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "老年人吃菜越来越咸可能是因为味觉敏感度下降",
+          "quote": "很可能是因为老人家味觉敏感度下降",
+          "label": "correct",
+          "reason": "默沙东诊疗手册指出老年人味觉敏感度下降，尤其咸味感知下降",
+          "evidence": [
+            "https://www.msdmanuals.cn/home/multimedia/table/spotlight-on-aging"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "高盐饮食会带来高风险的心血管疾病",
+          "quote": "高盐饮食带来的很有可能是高风险的心血管疾病",
+          "label": "correct",
+          "reason": "多个权威来源一致指出高盐/高钠摄入增加心血管疾病风险",
+          "evidence": [
+            "https://journals.lww.com/md-journal/fulltext/2025/03140/association_of_salt_added_to_food_with_risk_of.39.aspx#1",
+            "https://wsjkw.gxzf.gov.cn/xxgk_49493/fdzdgk/ggws/jkkp/yfzs/t26163544.shtml",
+            "http://health-app.people.cn/n1/2020/0804/c14739-31809542.html#1",
+            "https://www.jacc.org/doi/pdf/10.1016/j.jacc.2012.08.998#1#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "把家里的盐换成低钠盐可以降低血压和心血管疾病风险",
+          "quote": "只要把盐换成了低钠盐 血压下降了",
+          "label": "correct",
+          "reason": "多个权威来源一致支持低钠盐可降血压及心血管风险",
+          "evidence": [
+            "https://health.cnr.cn/jkgdxw/20260502/t20260502_527607978.shtml#1",
+            "https://wsjkw.sc.gov.cn/scwsjkw/jkys/2022/3/1/3445f9df3c3b49d29d3b2a6fed1c9e36.shtml",
+            "https://jiankang.cctv.com/2025/02/26/ARTI2jeJp46sbyqI3Wgme29H250225.shtml"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "肾功能异常或正在服用影响钾排出药物的人不适合吃低钠盐",
+          "quote": "低钠盐就可能不适合你们",
+          "label": "correct",
+          "reason": "多个权威来源明确肾功能异常及服影响钾排出药物者不宜低钠盐",
+          "evidence": [
+            "https://wsjkw.sh.gov.cn/ycfbj/20230614/70d9811324cd4be0818f5b1390ed42c8.html",
+            "http://sklcvd.fuwaihospital.org/News/Articles/Index/204260",
+            "http://jiankang.cctv.com/2016/04/12/ARTIX6KL1L47qkQTdG5vx9Pb160412.shtml",
+            "https://jxt.zj.gov.cn/art/2025/10/16/art_1229123455_5661194.html"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "honey-cough": {
+      "url": "https://www.bilibili.com/video/BV1n64y1A7C1",
+      "title": "【花小烙】感冒好了之后为什么总是咳嗽很久？",
+      "topic": "蜂蜜 咳嗽",
+      "note": "画渣花小烙 · 4132742 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "咳嗽本身是一种自我保护机制",
+          "quote": "咳嗽本身是一种自我保护机制",
+          "label": "correct",
+          "reason": "多个权威来源明确称咳嗽是自我保护性反射/防御机制",
+          "evidence": [
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=DLMd",
+            "https://www.zgkpw.org.cn/newspaper/content_251336.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "感冒好了以后仍可能持续咳嗽很久",
+          "quote": "感冒都好了还会咳嗽很久",
+          "label": "correct",
+          "reason": "多个权威来源均指出感冒后咳嗽可持续3-8周",
+          "evidence": [
+            "http://health.cnr.cn/sygd/20241121/t20241121_526983846.shtml",
+            "https://www.sxcdc.cn/zxzx/spbd/art/2025/art_fd96d051f86340cab8b3011d0684a94f.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "咳嗽持续太久并伴有喘息、呼吸困难时应及时到医院就诊",
+          "quote": "伴有喘息 呼吸困难",
+          "label": "correct",
+          "reason": "权威来源指出呼吸困难/喘息需立即就医，与说法一致",
+          "evidence": [
+            "https://www.healthychildren.org/English/tips-tools/Symptom-Checker/IFrame/Pages/symptomviewer.aspx?symptom=Breathing+Trouble&_gl=1*dbngd5*_ga*MTIxODQzODcxNS4xNzYxMDY2MDkx*_ga_FD9D3XZVQQ*czE3NzAxMzg4MzYkbzgkZzEkdDE3NzAxMzk2NTEkajU0JGwwJGgw&gad_source=1&gbraid=0AAAAAqMzUp-WPp8w4-2MGQbDE4C77068N&gclid=Cj0KCQjwzYLABhD4ARIsALySuCT1zL8zavqwq6Y-1ZPDTTSZsDCurbF-sjIKgFYLqjg_pKnw3gqro3waAn65EALw_wcB#1",
+            "https://www.scmc.com.cn/list/1360/5350.html"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "气道高反应性是持续咳嗽的重要原因之一",
+          "quote": "气道高反应性",
+          "label": "correct",
+          "reason": "多项权威来源均将气道高反应性与慢性咳嗽关联研究",
+          "evidence": [
+            "https://www.uptodate.com/contents/approach-to-chronic-cough-in-children/abstract/53",
+            "https://www.sinomed.ac.cn/article.do?ui=2023339046",
+            "https://read.cnki.net/web/Conference/Article/ZGZP200904001117.html"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "sun-calcium": {
+      "url": "https://www.bilibili.com/video/BV1GQ4y187yG",
+      "title": "为什么你年纪轻轻，也需要补钙？",
+      "topic": "晒太阳 补钙",
+      "note": "锦鲤实验室 · 474289 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "缺钙是让骨头提前达到退休年龄的原因",
+          "quote": "让你的骨头先达到退休年龄的原因，就是缺钙",
+          "label": "partial",
+          "reason": "来源称缺钙可致骨质疏松，但未提“骨头提前退休”的比喻，表述夸大",
+          "evidence": [
+            "https://www.cma.org.cn/art/2023/6/14/art_4584_51318.html#1",
+            "http://s.dayi.org.cn/mip/s/disease/1157322.html?s_from=sgh_recom#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "大骨汤中能溶解的钙微乎其微",
+          "quote": "骨汤中能溶解的钙微乎其微",
+          "label": "correct",
+          "reason": "多个权威来源均指出大骨汤钙溶出极少，与说法一致",
+          "evidence": [
+            "https://210.241.78.32/Pages/Detail.aspx?nodeid=1425&pid=8447",
+            "https://210.241.78.32/Pages/Detail.aspx?nodeid=127&pid=8752",
+            "https://piyao.kepuchina.cn/rumor/rumordetail?id=eegb"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "菠菜的钙吸收率只有5%，不适合作为补钙食物",
+          "quote": "菠菜的钙吸收率只有5%",
+          "label": "unverifiable",
+          "reason": "来源摘要未给出5%具体数值，无法核实",
+          "evidence": [
+            "https://www.sciencedirect.com/science/article/abs/pii/S0002916523165099?via%3Dihub#1",
+            "https://https-pubmed-ncbi-nlm-nih-gov-443.webvpn.ynu.edu.cn/3354496/#1",
+            "https://dev.europepmc.org/article/MED/3354496"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c4",
+          "claim": "碳酸钙需经胃酸分解，一般应在用餐或饭后服用",
+          "quote": "需要经过胃酸分解才能释放出钙离子",
+          "label": "correct",
+          "reason": "Mayo Clinic及说明书均称碳酸钙需随餐/饭后服，胃酸助吸收",
+          "evidence": [
+            "https://www.mayoclinic.org/zh-hans/healthy-lifestyle/nutrition-and-healthy-eating/expert-answers/calcium-supplements/faq-20058238",
+            "https://swin.zy91.com/pages/m-instruction/m.instruction.html?webHisId=34493&hospitalCode=1"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "ginger-hair": {
+      "url": "https://www.bilibili.com/video/BV1KCMgzVEe9",
+      "title": "【医学博士】都2025年了，防脱洗发水还在卖？｜洗头越多，头发会越少？｜传说中的米诺地尔真的好使吗？｜资深雄脱是如何逆转脱发的！",
+      "topic": "生姜 生发",
+      "note": "兔叭咯 · 1992696 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "雄激素性脱发应直接使用米诺地尔，不必考虑洗发水。",
+          "quote": "那就别考虑洗发水了，直接上米诺地尔吧",
+          "label": "partial",
+          "reason": "来源支持米诺地尔治疗雄脱，但未说无需考虑洗发水，说法绝对化",
+          "evidence": [
+            "https://m.dayi.org.cn/qa/48219?from=sg#1",
+            "https://www.mayoclinic.org/zh-hans/diseases-conditions/hair-loss/diagnosis-treatment/drc-20372932?p=1#1#1#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "二氨基嘧啶氧化物与米诺地尔分子结构相似，能刺激毛囊细胞。",
+          "quote": "它与米诺地尔的分子结构极为相似",
+          "label": "partial",
+          "reason": "来源证实结构相似，但刺激毛囊细胞机制未明确支持",
+          "evidence": [
+            "https://publish.cnki.net/journal/portal/xlxj/client/paper/664e0d3d0f11af62c8b9cc00ab6ebb31",
+            "https://www.ulprospector.com/zh-tw/eu/PersonalCare/Detail/33934/10834325/LOWENOL-AHL-N?st=20&sl=538197680&crit=SW50ZXJuZXQgU2VhcmNoID4g6Zuc55Kw5YyW5ZCI54mpID4g55u055m85YqR&ss=2&surl=aHR0cHM6Ly93d3cudWxwcm9zcGVjdG9yLmNvbS96aC10dy9ldS9QZXJzb25hbENhcmUvUHJvZHVjdHMvMzY5Ni9GdW5jdGlvbmFsaXRpZXMvNzIwNQ%3d%3d"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "选择洗发水应避免月桂醇硫酸酯钠等强清洁力成分，以免破坏毛囊。",
+          "quote": "那种猛猛的清洁剂",
+          "label": "partial",
+          "reason": "来源称SLS强清洁可伤屏障，但健康头皮通常耐受，非绝对避免",
+          "evidence": [
+            "https://jbk.39.net/tf1/231009/d8hkppa.html",
+            "https://jbk.39.net/tf1/231228/a3l92c7.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "洗头时应用手指肚轻柔清洗，避免用指甲抠抓。",
+          "quote": "用手指肚去洗头",
+          "label": "correct",
+          "reason": "权威来源明确建议用指腹而非指甲洗头",
+          "evidence": [
+            "https://health.tvbs.com.tw/regimen/354515?utm_source=linetoday&utm_medium=line_original"
+          ],
+          "suggested": "correct"
+        }
+      ]
+    },
+    "bp-drop-bad": {
+      "url": "https://www.bilibili.com/video/BV1PN411b7Bw",
+      "title": "高血压患者吃降压药，血压降是坏事、降不下来才是好事！",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "吃降压药后血压降不下来是好事",
+          "quote": "降不下来就对了",
+          "label": "wrong",
+          "reason": "权威来源均将服药后血压降不下来视为需处理的问题，而非好事",
+          "evidence": [
+            "https://www.commonhealth.com.tw/article/94687?spchannel=ewm#1",
+            "https://hbmahospital.com/shownews/id/443",
+            "https://wsjkw.sh.gov.cn/xnxgjb/20240606/600fa780106d4fa2981049fea5149b92.html"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c2",
+          "claim": "血压高一点好，因为身体需要高血流速度",
+          "quote": "血压高一点好",
+          "label": "wrong",
+          "reason": "权威来源指出血压与心血管风险正相关，升高增加风险，非越高越好",
+          "evidence": [
+            "https://www.bjcdc.org/cdcmodule/jkzt/jkts/2026/118573.shtml",
+            "https://www.dzjkb.org.cn/dazhongkepu/dazhongkepu/7956bf64e111862e7d5df6604a5079d5.html"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c3",
+          "claim": "吃降压药把血压降到120/80会让人难受",
+          "quote": "到120/80他就难受",
+          "label": "partial",
+          "reason": "央视来源称特定患者降120/80不适，但非普遍",
+          "evidence": [
+            "http://jiankang.cctv.com/2018/05/08/ARTIRD40pZFML6YpQ8sa9zcp180508.shtml"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "硬把体温降下来一定是坏事",
+          "quote": "硬降下体温来一定是坏事",
+          "label": "partial",
+          "reason": "来源称盲目/强制退烧不利，但高热需退烧，说法绝对化",
+          "evidence": [
+            "http://health.cnr.cn/jkgdxw/20170116/t20170116_523486610.shtml#1",
+            "http://health.nen.com.cn/network/health/dtrd/2026/08/04/939105609209353451.shtml",
+            "https://zjsfybjy.zhuji.gov.cn/art/2020/8/7/art_2465_915.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "tea-vessels": {
+      "url": "https://www.bilibili.com/video/BV16u411N75c",
+      "title": "两味药当茶喝，冲开血管，清理全身淤堵，让您全身轻松",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "丹参对血脂和动脉粥样硬化斑块有良好的治疗作用",
+          "quote": "对血脂和动脉粥样硬化斑块等等都有良好的治疗作用",
+          "label": "partial",
+          "reason": "动物实验显示丹参改善血脂和斑块，但非临床治疗证据",
+          "evidence": [
+            "https://coaa.istic.ac.cn/openJournal/periodicalArticle/0120231100694544",
+            "https://www.cnki.com.cn/Article/CJFDTotal-ZLXZ200703020.htm#1",
+            "https://en.whuhzzs.com/data/article/lcxxg/preview/pdf/lcxxgbzz-42-4-272.pdf#2#1",
+            "https://med.wanfangdata.com.cn/Paper/Detail?id=PeriodicalPaper_zxyjh200504015&dbid=WF_QK"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "路路通具有祛风通络、利水消肿的功效",
+          "quote": "它具有祛风通络利水消肿的功效",
+          "label": "correct",
+          "reason": "多个来源均载祛风通络、利水（除湿/通经）功效",
+          "evidence": [
+            "https://health.ltn.com.tw/article/breakingnews/4374695",
+            "http://adminc.yywsb.com/article/14503.html",
+            "https://www.dhzyy.cn/news_1/820.html",
+            "https://service.mohw.gov.tw/DOCMAP/CusSite/TCMLDetailPrint.aspx?LicewordID=01&LiceNUM=057519"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c3",
+          "claim": "丹参和路路通一起煮水喝能清理血管壁上的垃圾",
+          "quote": "清理血管壁上的垃圾",
+          "label": "unverifiable",
+          "reason": "来源仅提丹参路路通活血祛瘀，未证实煮水清血管垃圾",
+          "evidence": [
+            "https://patentimages.storage.googleapis.com/ff/c1/ae/9f3d7a19223dc0/CN107334834A.pdf#1#1",
+            "http://www.sjzyyzz.com/sjzyy/ch/reader/create_pdf.aspx?file_no=190620&year_id=2019&quarter_id=06&falg=1#3#3",
+            "https://gy120.cn/dangshow.asp?articleid=2432"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c4",
+          "claim": "丹参和路路通煮水喝能降低心脑血管疾病发生的风险",
+          "quote": "自然就降低了心脑血管疾病发生的风险",
+          "label": "partial",
+          "reason": "来源仅显示丹参路路通用于治疗心血管病，未证实煮水可降低发病风险",
+          "evidence": [
+            "https://patentimages.storage.googleapis.com/ff/c1/ae/9f3d7a19223dc0/CN107334834A.pdf#1#1",
+            "https://wap-cnki-net-443.webvpn.imac.edu.cn/touch/web/Journal/Article/ZXJH201518046.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "clot-drink": {
+      "url": "https://www.bilibili.com/video/BV1Pr4y197c9",
+      "title": "每天一杯溶栓液，祛除体内血管淤积，让您一身轻松",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "桃仁、红花、赤芍、丹参等中药煮水喝能溶解血管里的斑块、打通血管淤堵",
+          "quote": "溶解血管里的淤积的斑块",
+          "label": "wrong",
+          "reason": "权威来源明确否认中药煮水能溶解斑块、疏通血管",
+          "evidence": [
+            "https://jbk.39.net/gxb/240731/b5qqehm.html",
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=7408944048344903680&is_self=2"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c2",
+          "claim": "这个溶栓汤液不能多喝，多喝会因药物过量导致身体不适应",
+          "quote": "一定不要多喝，因为药物过量",
+          "label": "partial",
+          "reason": "来源指出中药泡水非溶栓手段，过量有风险，但未直接评“溶栓汤液”",
+          "evidence": [
+            "https://jbk.39.net/nxs/240720/q8q7vlk.html",
+            "https://cloud.kepuchina.cn/newSearch/imgText?from=1&id=7408944048344903680&is_self=2",
+            "https://ypk.39.net/saftydrugs/7lh7qmg5.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "坚持服用这个方子一周或一段时间就能见效",
+          "quote": "坚持服用一周或者一段时间",
+          "label": "partial",
+          "reason": "来源显示部分方药可一周见效，但强调辨证准确，非普遍保证",
+          "evidence": [
+            "https://hnzhy.com/m/jkkp/zfnzz/1211289980297216.html",
+            "https://www.91160.com/doctors/askdetail/docid-200157821/askid-144033761.html",
+            "https://www.91160.com/doctors/articledetail/docid-1452/articleid-95857.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "anticancer-food": {
+      "url": "https://www.bilibili.com/video/BV1Fc411871U",
+      "title": "抗癌食物第一名，肿瘤细胞，慢慢减少",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "马齿苋含有硒元素和维生素E，具有抗癌物质",
+          "quote": "它含有两种以上的抗癌的物质",
+          "label": "partial",
+          "reason": "来源证实马齿苋有抗肿瘤活性，但未提及硒和维生素E，且抗癌物质表述夸大",
+          "evidence": [
+            "https://www.sinomed.ac.cn/article.do?ui=2025480316",
+            "https://www.cnki.com.cn/Article/CJFDTotal-SPYK200702002.htm#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "马齿苋泡水能防止心血管动脉硬化，对癌症病人有帮助",
+          "quote": "还有很好的防止心血管的动物硬化",
+          "label": "partial",
+          "reason": "来源支持马齿苋调血脂抗动脉硬化，但无癌症病人获益证据",
+          "evidence": [
+            "https://www.xtshos.com.cn/Html/News/Articles/6792.html",
+            "http://mlszyyy.com/mile/kepuwenhua/1725.html",
+            "https://d.wanfangdata.com.cn/periodical/CihQZXJpb2RpY2FsQ0hJU29scjkyMDI2MDYxMDIwMjYwNjEwMTYxMjM4Eg96Z2dnd3MyMDA0MDEwMTkaCHR4Z3drcXNp"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "大蒜含硒元素和大蒜素，能提高免疫力、抑制幽门螺杆菌，降低患胃癌风险",
+          "quote": "可以降低患癌的风险",
+          "label": "partial",
+          "reason": "来源支持大蒜成分及降低胃癌风险，但抑制幽门螺杆菌和提高免疫力表述不充分",
+          "evidence": [
+            "https://mpapi.bjcancer.org/Html/News/Articles/10587.html",
+            "https://literature.chinacdc.cn/xuekefuwu/gonggongweishengxueshuredianzhuiz/201909/t20190926_205825.html",
+            "https://www.sciencedirect.com/science/article/pii/S0002916522105307#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "绿茶中的茶多酚能阻断亚硝胺合成，预防癌症和高血脂",
+          "quote": "能够阻断亚硝胲在人体内的合成",
+          "label": "partial",
+          "reason": "来源支持茶多酚抑制亚硝化，但预防癌症和高血脂证据不足或为动物实验",
+          "evidence": [
+            "https://www.sciencedirect.com/science/article/abs/pii/S1383571897001782#1",
+            "https://www.sciencedirect.com/topics/medicine-and-dentistry/black-tea-extract#2",
+            "https://www.jstage.jst.go.jp/article/jems/26/3/26_3_265/_article#1"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "keto-cancer": {
+      "url": "https://www.bilibili.com/video/BV1K6CdB1EzS",
+      "title": "癌症克星——生酮饮食",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "生酮饮食指不吃糖和面包、意大利面等会转化为糖的淀粉类碳水化合物",
+          "quote": "no sugar and no starchy carbohydrates",
+          "label": "partial",
+          "reason": "来源确认为极低碳水饮食，但未提“转化为糖的淀粉”这一表述，且严格程度被简化",
+          "evidence": [
+            "https://jiankang.cctv.com/2025/08/14/ARTIju5ptKjPM5FvueizEBr2250814.shtml#1",
+            "https://cdcp.gd.gov.cn/jkjy/jkzt/yyyspaq/content/post_4709390.html#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "癌细胞依赖糖和淀粉中的葡萄糖生存",
+          "quote": "cancer cells love sugar and starch",
+          "label": "partial",
+          "reason": "来源称癌细胞大量消耗葡萄糖，但未说只依赖糖和淀粉",
+          "evidence": [
+            "http://staging.europepmc.org/backend/articlerender.fcgi?accid=PMC4615071#1",
+            "https://pubmed.ncbi.nlm.nih.gov/?term=35620573+34033261+33892108+31996711+31340585+31306426+30270319+29981891+29529525+29462809+29459024+29339110+28859155+28359800+27791278+27410235+27261584+27223849+26854130+26160659+25907369+25796090+25502934+25240061+25091860+24204635+23541363+22819688+22796500+22717091+22476082+21978418+21777645+21555120+21511450+21510766+20927436+18948178+18487028+18355922+17868184+16182371+11991231+10783904&format=abstract&size=200#4"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "去除葡萄糖可以饿死癌细胞",
+          "quote": "remove the glucose and starve the cancer cells",
+          "label": "wrong",
+          "reason": "权威来源指出媒体将基础研究误读为饿死癌细胞，该说法不客观",
+          "evidence": [
+            "http://paper.people.com.cn/rmrbhwb/html/2014-06/28/content_1446781.htm#1",
+            "http://6d.dxy.cn/article/78895"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c4",
+          "claim": "正常细胞能改用酮体供能，癌细胞缺乏这种代谢灵活性",
+          "quote": "cancer cells lack this metabolic flexibility",
+          "label": "wrong",
+          "reason": "Nature来源明确癌细胞能高效利用酮体，与说法矛盾",
+          "evidence": [
+            "https://www.nature.com/articles/cr2016110#1"
+          ],
+          "suggested": "wrong"
+        }
+      ]
+    },
+    "thick-blood": {
+      "url": "https://www.bilibili.com/video/BV1AC4y1f7z3",
+      "title": "血脂高、血液太浓，倪师教你一招",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "口渴与否可以判断血液浓度是否正常",
+          "quote": "口渴不渴就知道",
+          "label": "partial",
+          "reason": "来源称口渴时已明显缺水，不能仅凭口渴判断血液浓度正常",
+          "evidence": [
+            "https://www.sqszxxz.cn/?200.html",
+            "https://www.bhblood.com/index.php/site/page/index/2535/news_id/193756/category_id/134419/ct_id/297/okcode/af8f12e191699242efd619e6614d18ad00d208d4e58198b33c625c7c2f76073a",
+            "https://www.cnma.org.cn/nd.jsp?id=4433&groupId=-1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "吃蔗糖或喝甘蔗汁能稀释血液、降低血浓度",
+          "quote": "甘蔗汁就把血稀释掉",
+          "label": "wrong",
+          "reason": "权威来源明确否定甘蔗汁活血化瘀说法",
+          "evidence": [
+            "https://www.vietnam.vn/zh-cn/su-that-ve-ly-nuoc-mia-sa-gung-goi-mau-ve"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c3",
+          "claim": "所有酸味的东西都会影响脾胃",
+          "quote": "所有酸味的东西全部会影响到脾胃",
+          "label": "partial",
+          "reason": "来源称适度食酸可健运脾胃，过量才碍胃伤脾，非所有酸味都影响",
+          "evidence": [
+            "https://wsjk.tj.gov.cn/JKJY5233/JKZS7782/202008/t20200828_3579793.html",
+            "https://health.cnr.cn/jkgdxw/20230926/t20230926_526433020.shtml#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "血糖高的人也可以吃正常的糖",
+          "quote": "这不吃正常的糖",
+          "label": "partial",
+          "reason": "来源称糖尿病无绝对禁食但需限量，避免精制糖；说法夸大",
+          "evidence": [
+            "https://health.ntuh.gov.tw/health/new/6289.html",
+            "https://wsjkw.henan.gov.cn/2011/09-09/1276641.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "gout-water": {
+      "url": "https://www.bilibili.com/video/BV17D4217713",
+      "title": "倪海厦：尿酸高痛风，一杯水就能解决，还能净化肾脏",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "不需要购买酸碱水机器，这类机器都是骗人的",
+          "quote": "不用花钱去买机器",
+          "label": "partial",
+          "reason": "权威来源指碱性水治病宣传是骗局，但未断言所有机器都骗人",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=7304870260708962304#1#1#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "柠檬味道虽酸但属于纯碱",
+          "quote": "柠檬是纯碱",
+          "label": "partial",
+          "reason": "来源称柠檬为碱性食物，但非“纯碱”，且原汁呈酸性",
+          "evidence": [
+            "https://cloud.kepuchina.cn/h5/detail?id=6969020931225604096",
+            "https://kmweb.moa.gov.tw/knowledge_view.php?id=9852"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "喝柠檬水能治好痛风",
+          "quote": "你吃柠檬水就好了",
+          "label": "wrong",
+          "reason": "来源明确柠檬水仅辅助降尿酸，不能治疗痛风",
+          "evidence": [
+            "https://m.dayi.org.cn/qa/275862.html",
+            "https://jbk.39.net/tf/230916/u7ff41q.html"
+          ],
+          "suggested": "wrong"
+        },
+        {
+          "id": "c4",
+          "claim": "柠檬水应在午餐后喝，晚上不要喝",
+          "quote": "中餐以后吃",
+          "label": "partial",
+          "reason": "有来源支持午饭后喝，但无权威来源明确禁止晚上喝，说法绝对化",
+          "evidence": [
+            "https://wsjkw.gxzf.gov.cn/xxgk_49493/fdzdgk/ggws/jkkp/jkzs/t5699806.shtml",
+            "https://h5.baike.qq.com/mobile/article.html?docid=qa12824011z5axqv&VNK=8ba69f03"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "white-hair-trick": {
+      "url": "https://www.bilibili.com/video/BV1Bw411U7nc",
+      "title": "白发变黑一招搞定—倪师详解",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "每天喝半勺经验方，一个月头发就能变黑",
+          "quote": "每天就喝个半勺 1个月头发就变黑了",
+          "label": "partial",
+          "reason": "来源称效果因人而异，未保证一个月变黑",
+          "evidence": [
+            "https://m.dayi.org.cn/qa/326062.html#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "生地是滋补的药，可以吃",
+          "quote": "生地是滋补的药",
+          "label": "partial",
+          "reason": "生地能滋阴生津，但性寒清热，非泛指滋补，脾胃虚寒者慎用",
+          "evidence": [
+            "https://spbcm2.cmu.edu.tw/ccmp/c/c1723.htm",
+            "https://m.dayi.org.cn/qa/368410.html#1",
+            "http://paper.dzjkb.org.cn/article/33577/20002.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "茜草没有毒，可以吃",
+          "quote": "茜草又没有毒 当然没有关系 你可以吃",
+          "label": "partial",
+          "reason": "来源称无毒但需限量、有禁忌，不能随意吃",
+          "evidence": [
+            "http://s.dayi.org.cn/mip/s/qa/334442_t.html",
+            "http://s.dayi.org.cn/mip/s/cmedical/1115082.html#introduction#1#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "中医认为发为血余，头发是血多余部分所化",
+          "quote": "发为血余",
+          "label": "partial",
+          "reason": "来源称发为血之余、头发为血延续，但未说“多余部分所化”，表述有夸大",
+          "evidence": [
+            "http://health.people.com.cn/n/2015/0911/c21471-27573397.html",
+            "https://cloud.kepuchina.cn/newSearch/imgText?id=6969173222872240128#1"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "fruit-plaque": {
+      "url": "https://www.bilibili.com/video/BV1RNC2YMEUq",
+      "title": "3种水果，是血管清洁工，冲走血栓斑块，血管柔软",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "苹果含有的果胶质（可溶性纤维）有助于降低低密度胆固醇",
+          "quote": "助于低密度胆固醇的降低",
+          "label": "correct",
+          "reason": "权威来源称苹果果胶能降低坏胆固醇",
+          "evidence": [
+            "https://www.fuwai.com/News/Articles/Index/207007",
+            "https://www.sciencedirect.com/science/article/abs/pii/S0022316623073832?via%3Dihub"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c2",
+          "claim": "经常吃苹果的人胆固醇含量比不常吃苹果的人低20%",
+          "quote": "胆固醇含量比不经常吃苹果的人低20",
+          "label": "unverifiable",
+          "reason": "来源仅称苹果有助降胆固醇，未支持20%具体数值",
+          "evidence": [
+            "https://m.dayi.org.cn/qa/149257#1",
+            "https://m.dayi.org.cn/qa/226548#1",
+            "http://sklcvd.fuwaihospital.org/News/Articles/Index/207012"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c3",
+          "claim": "葡萄含有的白藜芦醇是降低胆固醇的天然物质",
+          "quote": "含有白黎芦醇，是降低胆固醇的天然物质",
+          "label": "partial",
+          "reason": "来源称白藜芦醇抗氧化、影响脂质代谢，但未证实直接降低胆固醇",
+          "evidence": [
+            "https://cancer.commonhealth.com.tw/article/731?rec=ch-cancer-i2i-1-visitor&from_website=ch_cancer&from_id=article-589&from_order=7&from_area=area03&from_index=7",
+            "https://www.commonhealth.com.tw/article/89094",
+            "https://www.eurekaselect.com/article/135128/cn#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "补充纳质素（纳豆激酶类）可降低血液粘稠度、抗凝血、加速血栓溶解",
+          "quote": "纳至素具有降低血液粘稠度、抗凝血的作用",
+          "label": "partial",
+          "reason": "动物实验和单次口服研究支持溶栓抗凝，但人体证据不足，说法夸大",
+          "evidence": [
+            "https://www.sinomed.ac.cn/article.do?ui=2021432732",
+            "https://kaken.nii.ac.jp/grant/KAKENHI-PROJECT-24650412/",
+            "https://iptt.sinica.edu.tw/shares/667"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "glucose-points": {
+      "url": "https://www.bilibili.com/video/BV1mq4y157Ko",
+      "title": "身上有4个天然的“降糖穴，每天按摩3分钟，血糖或许逐渐降下来",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "按揉然谷穴相当于人体自带的二甲双胍，能帮助降糖",
+          "quote": "就相当于是人体自带的二甲双胍",
+          "label": "partial",
+          "reason": "来源称然谷穴有助降糖，但未称等同二甲双胍，属夸大",
+          "evidence": [
+            "https://health.cnr.cn/jkgdxw/20161110/t20161110_523255935.shtml",
+            "http://szyyj.gd.gov.cn/zyyfw/ysbj/content/post_4358810.html",
+            "http://health.people.com.cn/n1/2016/0912/c21471-28708077.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "按揉大鱼际可滋阴清热润肺生津止渴，从而达到降糖作用",
+          "quote": "从而达到降糖的一个作用",
+          "label": "partial",
+          "reason": "来源支持清热润肺生津止渴，但降糖仅为辅助调理，须遵医嘱",
+          "evidence": [
+            "http://szyyj.gd.gov.cn/zyyfw/ysbj/content/post_4358810.html",
+            "https://www.lunan.com.cn/Home/News/newsDetail/id/11039/nid/41.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "按揉内庭穴可清胃泻火养阴增液，改善糖尿病中消症状",
+          "quote": "改善糖尿病中消的症状",
+          "label": "correct",
+          "reason": "广东省中医药局等来源明确内庭穴清胃泻火、养阴增液，改善中消",
+          "evidence": [
+            "http://szyyj.gd.gov.cn/zyyfw/ysbj/content/post_4358810.html",
+            "https://jk.zdjt.com/a/41055/t/yf/i/",
+            "https://health.ltn.com.tw/article/breakingnews/4555289#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "按揉关元穴可滋阴固肾、培元固本，改善糖尿病患者多尿症状",
+          "quote": "改善糖尿病患者下消的症状",
+          "label": "partial",
+          "reason": "仅权威度3的科普文提及按揉关元滋阴固肾改善多尿，权威研究为针刺/温针灸非按揉",
+          "evidence": [
+            "https://jk.zdjt.com/a/41055/t/yf/i/",
+            "https://d.wanfangdata.com.cn/periodical/zjlczz202003010"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "liver-detox": {
+      "url": "https://www.bilibili.com/video/BV1hfcUeDEsf",
+      "title": "8种排毒和清洁肝脏的最佳食谱",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "菠菜有助于稳定血糖从而减少食欲",
+          "quote": "菠菜的一个好处是它能减少食欲",
+          "label": "partial",
+          "reason": "有来源支持菠菜抑制食欲，但稳定血糖证据不足，且动物实验为主",
+          "evidence": [
+            "https://pubmed.ncbi.nlm.nih.gov/28238891/#1",
+            "https://health.ltn.com.tw/article/breakingnews/3332840",
+            "https://health.businessweekly.com.tw/article/ARTL000032093"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "葡萄柚能促进肝脏胆汁分泌帮助分解脂肪",
+          "quote": "它能帮助促进肝脏的胆汁分泌",
+          "label": "partial",
+          "reason": "来源称葡萄柚/精油刺激胆汁分泌助消化脂肪，但未明确促进肝脏分泌，且部分为精油或科普站",
+          "evidence": [
+            "http://s.dayi.org.cn/mip/s/qa/329754_t.html",
+            "https://www.chemicalbook.cn/ProductChemicalPropertiesCB3707492.htm#1",
+            "https://baike.baidu.com/item/%e8%91%a1%e8%90%84%e6%9f%9a%e5%8f%a3%e6%9c%8d%e7%b2%be%e6%b2%b9/11030054",
+            "http://news.ymt.com/health_product/xAGVQAd0"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "羽衣甘蓝能帮助肝脏排毒和抗炎",
+          "quote": "具有帮助肝脏排毒的额外特性",
+          "label": "correct",
+          "reason": "多个权威来源均称羽衣甘蓝支持肝脏解毒酶、抗氧化抗炎",
+          "evidence": [
+            "https://health.tvbs.com.tw/nutrition/366449?from=extend",
+            "https://jbk.39.net/gy/240426/o1otjov.html",
+            "https://jbk.39.net/fx/240112/w5lpvkf.html",
+            "https://jbk.39.net/fx/240222/j1mvhy7.html",
+            "https://continentalhospitals.com/zh-CN/blog/foods-that-promote-liver-health#1"
+          ],
+          "suggested": "correct"
+        },
+        {
+          "id": "c4",
+          "claim": "黄瓜有助于预防非酒精性脂肪肝病",
+          "quote": "黄瓜有助于预防非酒精性脂肪肝病",
+          "label": "partial",
+          "reason": "来源称黄瓜低热量助减重、作为清淡饮食一部分有益，但明确不能治疗脂肪肝，说法夸大",
+          "evidence": [
+            "https://jbk.39.net/zfg/240830/l5s9fwf.html",
+            "https://jbk.39.net/zfg/240924/t3t7p0q.html",
+            "https://jbk.39.net/zfg/240922/t7t3wdw.html"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "lipid-points": {
+      "url": "https://www.bilibili.com/video/BV1Mb4y1H7ks",
+      "title": "按揉这两个穴位可以降血脂",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "揉按后溪穴能够降血脂",
+          "quote": "这个地方能够降血脂",
+          "label": "unverifiable",
+          "reason": "来源仅述后溪穴调颈椎等功效，未提及降血脂",
+          "evidence": [
+            "http://yc3yy.com/jkzsShow3433.html",
+            "http://shlhzj.com/archiver/?tid-4846.html"
+          ],
+          "suggested": "unverifiable"
+        },
+        {
+          "id": "c2",
+          "claim": "按压丰隆穴能起到降脂减肥的作用",
+          "quote": "能够起到一个降脂减肥的作用",
+          "label": "partial",
+          "reason": "来源称丰隆穴可祛湿化痰、助减重降脂，但未直接证实按压即降脂减肥",
+          "evidence": [
+            "https://health.udn.com/health/tagging/%e8%b6%b3%e4%b8%89%e9%87%8c",
+            "https://m.dayi.org.cn/qa/156020",
+            "http://szyyj.gd.gov.cn/zyyfw/ysbj/content/post_4019767.html"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "每天按两三次、每次几分钟并坚持，血脂会慢慢降下来",
+          "quote": "每天按个两三次",
+          "label": "partial",
+          "reason": "来源称穴位按摩为辅助手段，不能替代药物，未证实具体频次可降血脂",
+          "evidence": [
+            "https://jbk.39.net/gxz/230921/a6fs4qi.html",
+            "http://www.gzswssy.com/paper/2026-2/6/30983.shtml"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    },
+    "berg-breathing": {
+      "url": "https://www.bilibili.com/video/BV1X7421P7NH",
+      "title": "60 秒快速降血压的呼吸法！高血压原因，自然疗法，伯格医生 Dr Berg",
+      "topic": "",
+      "note": "0 播放",
+      "reviewed": false,
+      "claims": [
+        {
+          "id": "c1",
+          "claim": "低盐饮食实际上可能使血压升高",
+          "quote": "低盐饮食实际上使高血压升高",
+          "label": "partial",
+          "reason": "有来源支持长期低盐可升压，但其他权威来源显示低盐降压，说法以偏概全",
+          "evidence": [
+            "https://www.tandfonline.com/doi/10.1080/10641963.2018.1545850#1",
+            "https://europepmc.org/article/PMC/3817896#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c2",
+          "claim": "增加钾摄入比减少钠摄入对控制高血压更重要",
+          "quote": "增加钾比少吃盐更重要",
+          "label": "partial",
+          "reason": "来源支持补钾重要，但未证明其比限钠更重要",
+          "evidence": [
+            "https://m.medlive.cn/cms/research/207752#1",
+            "https://cmtopdr.com/post/detail/e1c6cca8-101f-4b03-9a8f-5dbfe62208b6#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c3",
+          "claim": "每天需要摄入4700毫克钾",
+          "quote": "每天需4700毫克的钾",
+          "label": "partial",
+          "reason": "来源给出分年龄性别AI值，4700mg非普适每日需求",
+          "evidence": [
+            "https://brighamandwomens.staywellsolutionsonline.com/YourFamily/Women/19,Potassium#1",
+            "https://ods.od.nih.gov/pdf/factsheets/Potassium-DatosEnEspanol.pdf#1#1"
+          ],
+          "suggested": "partial"
+        },
+        {
+          "id": "c4",
+          "claim": "补充维生素D可能解决高血压问题",
+          "quote": "只要多吃D就可解决",
+          "label": "partial",
+          "reason": "来源显示维生素D与高血压相关，但未证实补充可解决高血压",
+          "evidence": [
+            "https://www.ahajournals.org/doi/10.1161/CIRCULATIONAHA.107.713339#2",
+            "https://journals.lww.com/jasn/fulltext/10.1681/asn.20233411s1637a~paradoxical-association-of-vitamin-d-supplementation-with#1"
+          ],
+          "suggested": "partial"
+        }
+      ]
+    }
+  }
+}
