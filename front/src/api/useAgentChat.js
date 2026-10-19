@@ -61,6 +61,8 @@ export function applyEvent(msg, ev) {
         : [...closeSteps(parts, t), { kind: 'text', text: ev.delta }]
       return { ...msg, parts: next, text: msg.text + ev.delta }
     }
+    case 'evidence.checked': // backend modules/agent/evidence.py: each citation, checked before the answer is final
+      return { ...msg, evidence: { items: ev.items || [], summary: ev.summary || null } }
     case 'run.completed':
       return {
         ...msg, status: 'done', progress: null, parts: closeSteps(parts, t),
