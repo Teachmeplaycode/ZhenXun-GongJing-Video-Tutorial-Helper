@@ -15,9 +15,12 @@ import time
 
 from ..settings import settings
 from .base import Comment, CommentPage, ResolveError
+from .post_text import clean
 
 MAX_PAGES = 3          # pages of top-level comments per visit (about 10 each)
-WAIT = 8.0             # seconds for the first page to arrive
+# Seconds for the first page. From this machine the page's security check (as.xiaohongshu.com) hangs
+# about 20 s before giving up, and only then does the page load its comments (~28 s in all).
+WAIT = 45.0
 SCROLL_WAIT = 4.0      # seconds for each further page
 CACHE_TTL = 600
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -48,7 +51,7 @@ def to_comment(c: dict) -> Comment:
     user = c.get("user_info") or {}
     return Comment(
         author=user.get("nickname") or "",
-        text=(c.get("content") or "").strip(),
+        text=clean(c.get("content") or ""),  # sticker codes ([皱眉R]) and topic marks out
         likes=_int(c.get("like_count")),
         reply_count=_int(c.get("sub_comment_count")),
         time=(c.get("create_time") or 0) / 1000,
@@ -92,7 +95,7 @@ async def _visit(url: str, cookie: str) -> list[CommentPage]:
         await context.add_cookies(cookies_of(cookie))
         page = await context.new_page()
         page.on("response", on_response)
-        await page.goto(url, wait_until="domcontentloaded", timeout=20_000)
+        await page.goto(url, wait_until="commit", timeout=20_000)  # the page's scripts may take a while
         if "/login" in page.url or "/404" in page.url:
             raise ResolveError("login_required", "小红书登录已失效或这条笔记打不开：请在「账号」里重新粘贴 Cookie")
         try:
