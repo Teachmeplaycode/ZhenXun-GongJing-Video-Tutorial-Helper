@@ -10,6 +10,8 @@ import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
 import SnakeMark from './components/SnakeMark'
+import HomepageMascot from './components/HomepageMascot'
+import useHomeVisual from './lib/useHomeVisual'
 import ClickSpark from './components/ClickSpark'
 import DockNav from './components/DockNav'
 import ImportPanel from './stages/ImportPanel'
@@ -70,6 +72,7 @@ function coverageNotice(coverage) {
 const byTime = (list) => [...list].sort((a, b) => a.time - b.time)
 
 export default function App() {
+  const { choice: homeVisual, select: selectHomeVisual, mobile, snakeOnly } = useHomeVisual()
   const [stage, setStage] = useState('idle')
   const [runId, setRunId] = useState(() => makeRunId())
   const [meta, setMeta] = useState(null)
@@ -616,6 +619,8 @@ export default function App() {
   // Uploads are deleted once processed, so only link jobs can re-sample.
   const canRetry = Boolean(video?.jobId) && meta?.platform !== 'local'
   const showSculpture = stage !== 'chat' && stage !== 'pictures'
+  const homeScene = stage === 'idle' || stage === 'uploading'
+  const sculptureEnabled = !homeScene || !snakeOnly
   const sculptureMode = stage === 'analyzing' || stage === 'ready' ? 'analyzing' : 'idle'
   const settledFrames = analysis.frames + (analysis.missing || 0)
   const isVerifying = stage === 'analyzing' && Boolean(analysis.total) && settledFrames >= analysis.total && !analysis.index
@@ -666,7 +671,7 @@ export default function App() {
 
   return (
     // Uploading keeps the homepage layout underneath, so the slide opens from where it sits.
-    <div className={`app app--${stage === 'uploading' ? 'idle app--uploading' : stage}`}>
+    <div className={`app app--${stage === 'uploading' ? 'idle app--uploading' : stage}${homeScene && snakeOnly ? ' app--snake-home' : ''}`}>
       <header className="topbar">
         <div className="brand">
           <SnakeMark className="brand__mark" state={brandMarkState} />
@@ -688,6 +693,12 @@ export default function App() {
           })}
         </ol>
         <DockNav className="topbar__right">
+          {stage === 'idle' && !mobile ? (
+            <div className="home-visual-switch" role="group" aria-label="首页显示效果">
+              <button type="button" aria-pressed={homeVisual === '3d'} onClick={() => selectHomeVisual('3d')}>完整 3D</button>
+              <button type="button" aria-pressed={homeVisual === 'snake'} onClick={() => selectHomeVisual('snake')}>只看小蛇</button>
+            </div>
+          ) : null}
           <span className="mono-sm muted">{runId}</span>
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
@@ -711,24 +722,29 @@ export default function App() {
 
         {showSculpture ? (
           <div ref={sculptureLayerRef} className="layer layer--sculpture">
-            {stage === 'idle' || stage === 'uploading' ? <HeroOrnaments /> : null}
-            <SculptureCanvas key={theme} mode={sculptureMode} complete={stage === 'ready'} align={stage === 'idle' || stage === 'uploading' ? 'side' : 'center'} glassRef={stage === 'idle' || stage === 'uploading' ? slideRef : null} />
+            {sculptureEnabled ? (
+              <>
+                {homeScene ? <HeroOrnaments /> : null}
+                <SculptureCanvas key={theme} mode={sculptureMode} complete={stage === 'ready'} align={homeScene ? 'side' : 'center'} glassRef={homeScene ? slideRef : null} />
+              </>
+            ) : null}
           </div>
         ) : null}
 
         {/* Kept visible while uploading so the slide can open into the upload screen. */}
         <div ref={uiLayerRef} className="layer layer--ui" hidden={stage !== 'idle' && stage !== 'uploading'}>
           <ImportPanel
+            showMascot={snakeOnly}
+            active={stage === 'idle'}
             onStart={start}
             slideRef={slideRef}
             externalError={importError}
             onClearError={() => setImportError('')}
-            sessions={sessions}
-            onOpenSession={openSession}
-            onShowHistory={() => setHistoryOpen(true)}
             onShowAccounts={(platform) => setAccountsOpen(platform || '')}
           />
         </div>
+
+        {stage === 'idle' && !snakeOnly ? <HomepageMascot state={importError ? 'think' : 'idle'} /> : null}
 
         {maskMounted && meta ? (
           <UploadMask maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />

@@ -121,6 +121,7 @@ class SessionStore:
                 "id": row["id"], "created": row["created"], "updated": row["updated"],
                 "title": video["title"], "author": video["author"], "platform": video["platform"],
                 "video_id": video["video_id"], "part": video["part"], "duration": video["duration"],
+                "kind": video.get("kind") or "video", "image_count": video.get("image_count") or 0,
                 "frames_ok": len(ok), "frames_total": len(slots),
                 "cover_index": ok[len(ok) // 2] if ok else None, "transcript": row["transcript"],
                 "questions": row["questions"], "last_question": row["last_question"] or "",

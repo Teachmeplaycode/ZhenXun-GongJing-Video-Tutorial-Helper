@@ -2,11 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import FrameLightbox from '../components/FrameLightbox'
 import { IconCheck, IconChevron, IconExpand } from '../components/Icons'
 import { fetchPictureTexts } from '../api/client'
+import { platformName } from '../lib/platforms'
 
-const PLATFORM_NAMES = {
-  local: '上传', redbook: '小红书', xiaohongshu: '小红书', douyin: '抖音', weibo: '微博', twitter: 'X', x: 'X',
-  instagram: 'Instagram', kuaishou: '快手', bilibili: 'B 站', threads: 'Threads', facebook: 'Facebook',
-}
 
 // The page for a picture set (an image post, or uploaded pictures): no analysis screen and no time
 // axis. The post on the left — a large picture, a bar to pick it as an attachment or zoom, the
@@ -51,7 +48,7 @@ export default function PictureStage({ meta, jobId, frames, selected, onToggle, 
 
   const step = (k) => setAt((i) => (i + k + total) % total)
   const lines = current ? texts[current.index] : null
-  const platform = PLATFORM_NAMES[meta?.platform] || meta?.platform || ''
+  const platform = platformName(meta?.platform)
   const textNote = screentext?.status === 'running' || screentext?.status === 'pending' ? '正在识别…'
     : screentext?.status === 'unavailable' ? (screentext.message || '本机不支持文字识别') : '这张没有文字'
 
