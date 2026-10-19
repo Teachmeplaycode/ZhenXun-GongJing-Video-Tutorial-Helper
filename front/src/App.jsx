@@ -19,7 +19,10 @@ import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
 import PictureStage from './stages/PictureStage'
-import { createLinkJob, deleteSession, fetchChapters, fetchCuts, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, deleteSource, fetchChapters, fetchCuts, fetchSource, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
+import SourcePlayer from './components/SourcePlayer'
+import EvidenceBadge from './components/EvidenceBadge'
+import { EvidenceContext } from './lib/evidence'
 import { mockUpload } from './api/mock'
 import { restoreMessages } from './api/useAgentChat'
 import { pickFrameCount, syntheticFrames } from './lib/video'
@@ -94,6 +97,18 @@ export default function App() {
   const [theme, themeChoice, cycleTheme] = useTheme()
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
+  // How cited moments can be looked at again (original / cache / none), and the open player, if any.
+  const [source, setSource] = useState({ state: 'cache' })
+  const [player, setPlayer] = useState(null) // { time, key }
+  const sourceJob = video?.jobId
+  const analysisDone = analysis.index
+  useEffect(() => {
+    setPlayer(null)
+    if (!sourceJob) return undefined
+    const ctl = new AbortController()
+    fetchSource(sourceJob, { signal: ctl.signal }).then(setSource).catch(() => setSource({ state: 'cache' }))
+    return () => ctl.abort()
+  }, [sourceJob, analysisDone])
   const [pictureFocus, setPictureFocus] = useState(null) // { index, key }: an answer's 「第 n 张」 shows that picture
   const [extraFrames, setExtraFrames] = useState([]) // replayed / closer-look frames from the chat, shown on the timeline
   const [cited, setCited] = useState([]) // times the answers point at, marked on the timeline
@@ -651,7 +666,10 @@ export default function App() {
       duration={meta?.duration}
       onSeek={pictures
         ? (time) => setPictureFocus({ index: Math.floor(time), key: Date.now() })
-        : (time) => { setTimelineOpen(true); setSeek({ time, key: Date.now() }) }}
+        : (time) => {
+          if (source.state === 'original') setPlayer({ time, key: Date.now() }) // 回看原片
+          else { setTimelineOpen(true); setSeek({ time, key: Date.now() }) } // 查看缓存证据
+        }}
       onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
       selected={selected}
       onClearSelection={() => setSelected([])}
@@ -767,8 +785,18 @@ export default function App() {
         ) : null}
 
         {video && analysis.index && !pictures ? (
-          <div className="layer layer--chat" hidden={stage !== 'chat'}>
-            {chatStage}
+          <div className="layer layer--chat" hidden={stage !== 'chat'} data-player={player ? '' : undefined}>
+            <EvidenceContext.Provider value={source}>
+              {chatStage}
+              {video.jobId && stage === 'chat' ? (
+                <>
+                  {player ? null : <EvidenceBadge source={source} upload={meta?.platform === 'local'}
+                    onDelete={async () => setSource(await deleteSource(video.jobId))} />}
+                  <SourcePlayer jobId={video.jobId} request={player} label={source.label} onClose={() => setPlayer(null)}
+                    onFallback={(time) => { setPlayer(null); setTimelineOpen(true); setSeek({ time, key: Date.now() }) }} />
+                </>
+              ) : null}
+            </EvidenceContext.Provider>
           </div>
         ) : null}
         {video && pictures ? (

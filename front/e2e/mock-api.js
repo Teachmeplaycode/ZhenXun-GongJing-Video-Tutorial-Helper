@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const FRAME = readFileSync(fileURLToPath(new URL('./fixtures/frame.jpg', import.meta.url)))
+const CLIP = readFileSync(fileURLToPath(new URL('./fixtures/playback.mp4', import.meta.url))) // 40 s, for the player
 const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
 
 // Valid uncompressed ZIPs keep the offline download tests honest without another dependency.
@@ -132,6 +133,9 @@ export class MockApi {
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
     this.frames = 8
     this.cuts = [30, 75] // shot changes the mock reports
+    // How cited moments can be looked at again (backend modules/playback); tests set 'original' to get a player.
+    this.source = { state: 'cache', label: '缓存证据', message: '平台没有提供可播放的原视频，时间点只能查看抽取的画面和文字' }
+    this.mediaBroken = false // /media answers 502 (an expired platform link)
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
     this.shotTimes = [] // moments of shot-fill keyframes the job adds after its uniform pass
     this.noteBoard = null // the editor's saved board (PUT /notes/board)
@@ -278,6 +282,24 @@ export class MockApi {
     }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/texts$/)
     if (m) return json({ status: 'done', items: [{ index: 0, lines: ['燕麦 50 克', '牛奶 250 毫升'] }, { index: 1, lines: ['热量 320 千卡'] }].slice(0, this.frames) })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/source$/)
+    if (m && req.method() === 'DELETE') {
+      this.source = { state: 'cache', label: '缓存证据', message: '上传的原视频已删除，时间点只能查看抽取的画面和文字' }
+      return json(this.source)
+    }
+    if (m) return json(this.source)
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/media$/)
+    if (m) {
+      if (this.mediaBroken) return route.fulfill({ status: 502, contentType: 'application/json', body: '{"code":"upstream"}' })
+      // Like the backend: byte ranges, so the player can seek.
+      const range = /bytes=(\d+)-(\d*)/.exec(req.headers().range || '')
+      const first = range ? Number(range[1]) : 0
+      const last = range && range[2] ? Math.min(Number(range[2]), CLIP.length - 1) : CLIP.length - 1
+      return route.fulfill({
+        status: range ? 206 : 200, contentType: 'video/mp4', body: CLIP.subarray(first, last + 1),
+        headers: { 'accept-ranges': 'bytes', ...(range ? { 'content-range': `bytes ${first}-${last}/${CLIP.length}` } : {}) },
+      })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)
