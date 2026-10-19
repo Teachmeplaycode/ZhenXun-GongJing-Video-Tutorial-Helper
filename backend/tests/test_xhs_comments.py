@@ -11,7 +11,7 @@ RAW = [
         {"content": "下转评论区的第二部分在这", "like_count": "1.2万", "sub_comment_count": "2", "create_time": 1760000000000,
          "user_info": {"nickname": "诸葛苍"}, "show_tags": ["is_author"],
          "sub_comments": [{"content": "写得好", "like_count": "3", "user_info": {"nickname": "路人"}}]},
-        {"content": "哭了", "like_count": "", "user_info": {"nickname": "甲"}}]},
+        {"content": "哭了[皱眉R]", "like_count": "", "user_info": {"nickname": "甲"}}]},
     {"has_more": True, "comments": [{"content": "第二页", "user_info": {"nickname": "乙"}}]},
 ]
 
@@ -62,3 +62,7 @@ def test_one_visit_serves_every_page(monkeypatch):
     first = asyncio.run(xhs_comments.comments("u"))
     second = asyncio.run(xhs_comments.comments("u", first.cursor))
     assert second.comments[0].text == "第二页" and visits == ["u"]
+
+
+def test_sticker_codes_are_taken_out_of_comments():
+    assert xhs_comments.to_pages(RAW, None)[0].comments[1].text == "哭了"

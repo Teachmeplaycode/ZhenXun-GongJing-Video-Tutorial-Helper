@@ -44,3 +44,8 @@ def test_an_image_post_gets_its_body(monkeypatch):
     assert v.description.startswith("第一段")
     assert v.public()["tags"] == ["催眠麦克风", "踯躅森卢笙"]
     assert v.public()["stats"]["likes"] == 174
+
+
+def test_the_logged_in_page_state_with_js_maps_still_parses():
+    html = page(NOTE).replace("window.__INITIAL_STATE__={", 'window.__INITIAL_STATE__={"Ai":{"noteDetailMap":new Map([]),"seen":new Set([])},')
+    assert post_text.parse_note(html)["tags"] == ["催眠麦克风", "踯躅森卢笙"]

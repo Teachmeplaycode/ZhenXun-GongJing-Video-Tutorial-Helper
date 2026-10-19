@@ -24,6 +24,12 @@ EMOJI = re.compile(r"\[[^\[\]\s]{1,8}[RH]\]")          # 小红书 sticker codes
 TOPIC = re.compile(r"#([^#\[\]\n]{1,40})\[话题\]#")    # #催眠麦克风[话题]# → #催眠麦克风
 
 
+def js_to_json(text: str) -> str:
+    """The page's state is a JS literal: undefined, and (logged in) empty `new Map([])` / `new Set([])`."""
+    text = re.sub(r"\bnew Map\(\[\]\)", "{}", re.sub(r"\bnew Set\(\[\]\)", "[]", text))
+    return re.sub(r"\bundefined\b", "null", text)
+
+
 def is_xiaohongshu(url: str) -> bool:
     host = urlsplit(url).hostname or ""
     return host.endswith("xiaohongshu.com") or host.endswith("xhslink.com")
@@ -49,7 +55,7 @@ def parse_note(html: str) -> dict | None:
     if not m:
         return None
     try:
-        state = json.loads(re.sub(r"\bundefined\b", "null", m.group(1)))
+        state = json.loads(js_to_json(m.group(1)))
         notes = state["note"]["noteDetailMap"]
     except (ValueError, KeyError, TypeError):
         return None
