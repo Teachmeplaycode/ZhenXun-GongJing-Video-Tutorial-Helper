@@ -96,11 +96,19 @@ async def match(llm, labelled: list[dict], extracted: list[dict]) -> dict[str, i
     return out
 
 
-async def ask_json(llm, system: str, user: str) -> dict | None:
-    from modules.llm import Usage
-    chunks = []
-    async for delta in llm.stream([{"role": "system", "content": system}, {"role": "user", "content": user}], Usage(), max_tokens=800):
-        chunks.append(delta)
+async def ask_json(llm, system: str, user: str, tries: int = 3) -> dict | None:
+    """The model's JSON answer; a network or provider hiccup is retried (10 s, 30 s) before giving up."""
+    from modules.llm import LLMError, Usage
+    for attempt in range(tries):
+        chunks = []
+        try:
+            async for delta in llm.stream([{"role": "system", "content": system}, {"role": "user", "content": user}], Usage(), max_tokens=800):
+                chunks.append(delta)
+            break
+        except LLMError:
+            if attempt == tries - 1:
+                raise
+            await asyncio.sleep(10 * 3 ** attempt)
     text = "".join(chunks)
     start, end = text.find("{"), text.rfind("}")
     try:
@@ -221,7 +229,10 @@ async def main() -> None:
                         grade(item, {"claims": []}, {})
                 async with gate:
                     run = await run_check(client, ids[item["id"]])
-                matches = await match(llm, item["claims"], run["claims"]) if run["status"] == "done" else {}
+                try:
+                    matches = await match(llm, item["claims"], run["claims"]) if run["status"] == "done" else {}
+                except Exception as exc:  # one item's scoring failing must not lose the whole run
+                    matches, run["error"] = {}, f"匹配失败：{exc}"
                 rows = grade(item, run, matches)
                 ok = sum(r["correct"] for r in rows)
                 print(f"  {item['id']}: {ok}/{len(rows)} 判定一致 · 抽出 {len(run['claims'])} 条 · {run['seconds']} 秒"
