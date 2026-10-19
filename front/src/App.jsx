@@ -28,8 +28,8 @@ import { BRAND } from './config/workspace'
 
 // Forward flow: idle → uploading → analyzing → ready → chat; each step can return.
 const STEPS = [
-  { n: '01', label: '导入视频', stages: ['idle'] },
-  { n: '02', label: '解析时间轴', stages: ['uploading', 'analyzing', 'ready'] },
+  { n: '01', label: '导入视频', picturesLabel: '导入图片', stages: ['idle'] },
+  { n: '02', label: '解析时间轴', picturesLabel: '读取图片', stages: ['uploading', 'analyzing', 'ready'] },
   { n: '03', label: '对话分析', stages: ['chat', 'pictures'] }, // pictures: an image post's page, straight from import
 ]
 const SAMPLE_META = { name: '示例素材.mp4', size: 0, type: 'video/mp4', duration: 192, width: 1920, height: 1080, sample: true }
@@ -326,7 +326,7 @@ export default function App() {
       await minimum
       signal.throwIfAborted()
       const v = job.video
-      setMeta({ ...baseMeta, name: link || images ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video' })
+      setMeta({ ...baseMeta, name: link || images ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video', description: v.description || '', tags: v.tags || [], stats: v.stats || {} })
       setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description })
       setFrames(byTime(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))))
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
@@ -540,7 +540,7 @@ export default function App() {
     const apply = () => {
       setRunId(makeRunId())
       setMaskMounted(false)
-      setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video' })
+      setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video', description: v.description || '', tags: v.tags || [], stats: v.stats || {} })
       setVideo({ videoId: id, jobId: id, task: saved.task, title: v.title, description: v.description })
       setFrames(nextFrames)
       setCoverage(saved.coverage)
@@ -682,7 +682,7 @@ export default function App() {
             return (
               <li key={s.n} className="stepper__item" data-state={state}>
                 <span className="stepper__n">{s.n}</span>
-                {s.label}
+                {(pictures && s.picturesLabel) || s.label}
               </li>
             )
           })}

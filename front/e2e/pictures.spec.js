@@ -31,6 +31,9 @@ test('pictures: an upload goes straight to the picture page — no analysis scre
   await expect(page.locator('.timeline')).toHaveCount(0)
   await expect(page.locator('.pics-post__tag')).toHaveText('上传 · 图文')
   await expect(page.locator('.pics-strip__thumb')).toHaveCount(2)
+  await expect(page.locator('.pics-body__text')).toHaveText('燕麦加牛奶，早上十分钟搞定。') // the post's body, under the pictures
+  await expect(page.locator('.pics-body__tags')).toHaveText('#早餐')
+  await expect(page.locator('.pics-post__meta')).toContainText('赞 174')
   await expect(page.locator('.pics-view__count')).toHaveText('1 / 2')
   await expect(page.locator('.pics-text li')).toHaveText(['燕麦 50 克', '牛奶 250 毫升'])
   await page.getByRole('button', { name: '下一张' }).click()
@@ -46,6 +49,7 @@ test('pictures: pick a picture as an attachment; 第 n 张 in an answer shows th
   mock.frames = 2
   mock.runs.push(pictureAnswer())
   await uploadPictures(page, mock)
+  await page.getByRole('button', { name: '下一张' }).click()
   await page.getByRole('button', { name: '选第 2 张作附件' }).click()
   await expect(page.locator('.composer__scope')).toContainText('已选 1 张')
   await page.locator('.composer__input').fill('这张写了什么')
@@ -53,7 +57,6 @@ test('pictures: pick a picture as an attachment; 第 n 张 in an answer shows th
   await expect.poll(() => mock.runsSent()[0]?.scope).toEqual({ type: 'frames', frames: [1] })
   const chip = page.locator('.msg--assistant .streaming-text .ts-chip', { hasText: '第 1 张' })
   await expect(chip).toBeVisible()
-  await page.getByRole('button', { name: '下一张' }).click()
   await expect(page.locator('.pics-view__count')).toHaveText('2 / 2')
   await chip.click()
   await expect(page.locator('.pics-view__count')).toHaveText('1 / 2')

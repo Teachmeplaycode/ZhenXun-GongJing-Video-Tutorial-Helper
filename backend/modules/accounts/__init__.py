@@ -3,6 +3,10 @@
 - B 站: the official web QR login (passport.bilibili.com …/qrcode/generate, then poll). The QR is drawn
   here (segno) from the address B 站 returns; once the user confirms in the B 站 App, the poll answer
   carries SESSDATA / bili_jct / DedeUserID, saved as BILIBILI_COOKIE. Checked with /x/web-interface/nav.
+- 小红书: like 元宝, a headless browser keeps xiaohongshu.com open until its login dialog draws the QR
+  (about 30 s: the page first waits out a security request that hangs from here). The QR is the
+  image the page draws; the page's own polling answers code_status (1 scanned, 2 confirmed), and the
+  logged-in cookies (id_token, a fresh web_session) are saved as XHS_COOKIE.
 - 腾讯元宝: it only offers WeChat QR login, inside its own page. A headless browser keeps
   yuanbao.tencent.com open; the WeChat QR image's address is read from the login iframe and downloaded
   here (the headless page doesn't paint it). After the scan the page receives hy_user / hy_token,
@@ -37,6 +41,8 @@ PLATFORMS = {
                  "purpose": "读更多评论（未登录只能读前 3 条热门）", "needs": ("SESSDATA=",)},
     "yuanbao": {"key": "YUANBAO_COOKIE", "label": "腾讯元宝", "app": "微信",
                 "purpose": "解析视频号链接", "needs": ("hy_user=", "hy_token=")},
+    "xiaohongshu": {"key": "XHS_COOKIE", "label": "小红书", "app": "小红书 App",
+                    "purpose": "读小红书笔记的评论区（也让解析更稳）", "needs": ("a1=", "web_session=")},
 }
 
 
@@ -101,7 +107,7 @@ async def status(platform: str) -> dict:
     key = info["key"]
     env = settings()
     value = env.get(key, "").strip()
-    out = {"id": platform, "label": info["label"], "purpose": info["purpose"], "app": info["app"],
+    out = {"id": platform, "label": info["label"], "purpose": info["purpose"], "app": info["app"], "qr": info.get("qr", True),
            "configured": bool(value), "source": source(key) if value else None,
            "user": env.get(f"{key}_USER", ""), "expires": None, "valid": None}
     try:
@@ -160,7 +166,9 @@ logins: dict[str, Login] = {}
 async def start(platform: str) -> Login:
     for old in [x for x in logins.values() if x.platform == platform or time.time() - x.created > LOGIN_TTL * 2]:
         await cancel(old.id)
-    login = await (_bilibili_start() if platform == "bilibili" else _yuanbao_start())
+    if not PLATFORMS[platform].get("qr", True):
+        raise AccountError(f"{PLATFORMS[platform]['label']} 不支持在这里扫码，请手动粘贴 Cookie")
+    login = await {"bilibili": _bilibili_start, "yuanbao": _yuanbao_start, "xiaohongshu": _xhs_start}[platform]()
     logins[login.id] = login
     return login
 
@@ -176,7 +184,7 @@ async def poll(login_id: str) -> Login:
         await _close(login)
         return login
     try:
-        await (_bilibili_poll(login) if login.platform == "bilibili" else _yuanbao_poll(login))
+        await {"bilibili": _bilibili_poll, "yuanbao": _yuanbao_poll, "xiaohongshu": _xhs_poll}[login.platform](login)
     except (httpx.HTTPError, ValueError):
         login.message = "暂时连不上，正在重试"
     if login.state in ("done", "expired", "error"):
@@ -196,9 +204,9 @@ async def shutdown() -> None:
 
 
 async def _close(login: Login) -> None:
-    if login.platform == "yuanbao" and login.handle is not None:
+    if login.platform in ("yuanbao", "xiaohongshu") and login.handle is not None:
         try:
-            await login.handle.close()
+            await (login.handle["context"] if isinstance(login.handle, dict) else login.handle).close()
         except Exception:
             pass
         login.handle = None
@@ -321,6 +329,63 @@ async def _yuanbao_poll(login: Login) -> None:
                 login.state, login.message = "scanned", "已扫码，请在微信里确认登录"
             elif "已失效" in text or "过期" in text:
                 login.state, login.message = "expired", "二维码已过期，请刷新"
+
+
+# 小红书 ------------------------------------------------------------------------------------------
+XHS = "https://www.xiaohongshu.com/explore"
+XHS_QR_WAIT = 60  # seconds for the login dialog to draw its QR
+
+
+async def _xhs_start() -> Login:
+    from modules.agent import browser
+
+    if not browser.available():
+        raise AccountError("小红书扫码需要浏览器：在 backend 里运行 uv run playwright install --only-shell chromium")
+    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 800}, locale="zh-CN", user_agent=UA)
+    seen = {"status": None}
+
+    async def on_response(resp):
+        if "/login/qrcode/status" not in resp.url:
+            return
+        try:
+            seen["status"] = ((await resp.json()).get("data") or {}).get("code_status")
+        except Exception:
+            pass
+
+    try:
+        page = await context.new_page()
+        page.on("response", on_response)
+        await page.goto(XHS, wait_until="commit", timeout=20_000)
+        src = ""
+        for _ in range(XHS_QR_WAIT):  # the login dialog opens by itself once the page's scripts run
+            await page.wait_for_timeout(1000)
+            src = await page.evaluate("(() => { const i = document.querySelector('.qrcode img'); return i ? i.src : '' })()")
+            if src.startswith("data:image/"):
+                break
+        if not src.startswith("data:image/"):
+            raise AccountError("小红书没有显示登录二维码，请稍后再试")
+    except AccountError:
+        await context.close()
+        raise
+    except Exception:
+        await context.close()
+        raise AccountError("打不开小红书，请检查网络") from None
+    return Login(secrets.token_urlsafe(9), "xiaohongshu", src, handle={"context": context, "seen": seen})
+
+
+async def _xhs_poll(login: Login) -> None:
+    context, seen = login.handle["context"], login.handle["seen"]
+    cookies = {c["name"]: c for c in await context.cookies("https://www.xiaohongshu.com")}
+    if cookies.get("id_token") and cookies.get("web_session"):  # only a logged-in browser has id_token
+        expires = cookies["web_session"].get("expires") or -1
+        save({"XHS_COOKIE": "; ".join(f"{n}={c['value']}" for n, c in cookies.items()),
+              "XHS_COOKIE_USER": None,
+              "XHS_COOKIE_EXPIRES": str(int(expires)) if expires and expires > 0 else None})
+        login.state, login.message = "done", "登录成功"
+    elif seen["status"] == 1:
+        login.state, login.message = "scanned", "已扫码，请在小红书 App 里确认登录"
+    elif seen["status"] == 3:
+        login.state, login.message = "expired", "二维码已过期，请刷新"
 
 
 async def all_status() -> list[dict]:

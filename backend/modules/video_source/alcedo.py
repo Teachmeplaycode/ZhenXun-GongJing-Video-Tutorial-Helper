@@ -35,12 +35,14 @@ from urllib.parse import urlsplit
 import httpx
 
 from ..settings import settings
-from .base import ResolveError, ResolvedVideo, Resolver, Stream
+from . import post_text, xhs_comments
+from .base import CommentPage, ResolveError, ResolvedVideo, Resolver, Stream
 
 PLATFORM = "alcedo"
 TIMEOUT = 60.0  # seconds for one parse (alcedo's own total timeout is 45 s)
 TOOLS = Path(__file__).resolve().parents[4] / "tools"  # next to the repository
 MAX_STREAMS = 4
+XHS_SOURCES = ("redbook", "xiaohongshu")
 COOKIES = {"BILIBILI_COOKIE": "ALCEDO_BILI_COOKIE", "DOUYIN_COOKIE": "ALCEDO_DOUYIN_COOKIE",
            "XHS_COOKIE": "ALCEDO_XHS_COOKIE", "YOUTUBE_COOKIE": "ALCEDO_YOUTUBE_COOKIE"}
 # alcedo's reasons → our codes; the message shown is ours plus alcedo's own explanation.
@@ -176,6 +178,21 @@ async def probe_duration(stream: Stream) -> float:
         return 0.0
 
 
+async def add_post_text(video: ResolvedVideo) -> None:
+    """The body, topics and counts alcedo doesn't return (小红书 notes), when the page has them."""
+    note = await post_text.fetch(video.canonical_url)
+    if not note:
+        return
+    if note["desc"]:
+        video.description = note["desc"]
+    if note["tags"]:
+        video.extra["tags"] = note["tags"]
+    if note["stats"]:
+        video.extra["stats"] = note["stats"]
+    if note["ip"]:
+        video.extra["ip"] = note["ip"]
+
+
 class AlcedoResolver(Resolver):
     platform = PLATFORM
 
@@ -189,9 +206,20 @@ class AlcedoResolver(Resolver):
         """Sessions it resolved carry the source platform (douyin, youtube …) as their platform."""
         return platform not in ("bilibili", "wechat_channels", "local")
 
+    def audience_for(self, video) -> tuple[str, ...]:
+        """小红书 comments are read with the user's login (xhs_comments); other sources have none here."""
+        return ("comments",) if video is not None and video.platform in XHS_SOURCES else ()
+
+    async def comments(self, video: ResolvedVideo, sort: str = "hot", cursor: str | None = None) -> CommentPage:
+        if video.platform not in XHS_SOURCES:
+            raise ResolveError("unsupported", "这个平台读不到评论")
+        return await xhs_comments.comments(video.canonical_url, cursor)  # one order only: 小红书's own
+
     async def resolve(self, url: str, part: int | None = None) -> ResolvedVideo:
         data = await (self._serve(url) if settings().get("ALCEDO_URL", "").strip() else self._run(url))
         video = to_video(data, url)
+        video.description = (data.get("desc") or data.get("description") or "").strip()
+        await add_post_text(video)
         if not video.duration and video.streams:  # some platforms (微博, 梨视频, Vimeo) give an address but no duration
             video.duration = await probe_duration(video.streams[0])
             if not video.duration:
