@@ -157,3 +157,24 @@ def test_whole_quote_is_validated_before_display_truncation():
     claims = asyncio.run(extract.extract_claims(ask, transcript, []))
     assert len(claims) == 1
     assert claims[0]["claim"] == claims[0]["original_text"] == real
+
+
+def test_a_reply_cut_off_at_the_output_limit_keeps_its_complete_claims():
+    cut = '[{"claim": "a", "original_text": "甲"}, {"claim": "b", "original_text": "乙"}, {"claim": "c", "orig'
+    assert [i["claim"] for i in extract._parse(cut)] == ["a", "b"]
+    assert extract._parse("没有说法") == [] and extract._parse("[") == []
+
+
+def test_a_quote_may_run_across_short_speech_segments_and_differ_in_punctuation():
+    transcript = [{"start": 70, "end": 72, "text": "结果微生物的含量"}, {"start": 72, "end": 75, "text": "加热和没加热的,相差很大"},
+                  {"start": 75, "end": 80, "text": "下一句"}]
+
+    async def ask(*args):
+        return json.dumps([output("结果微生物的含量，加热和没加热的相差很大。", index=0),
+                           output("加热和没加热的相差很大", index=0),        # begins in a later segment than it cites
+                           output("结果微生物的含量加热和没加热的相差不大", index=0)])  # not what was said
+
+    claims = asyncio.run(extract.extract_claims(ask, transcript, []))
+    assert len(claims) == 1
+    assert claims[0]["claim"] == "结果微生物的含量加热和没加热的,相差很大"  # the video's own text
+    assert (claims[0]["start"], claims[0]["end"]) == (70, 75)
