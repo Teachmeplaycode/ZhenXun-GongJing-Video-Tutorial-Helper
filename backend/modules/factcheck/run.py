@@ -12,13 +12,14 @@
 """
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
 from itertools import zip_longest
 from collections.abc import AsyncIterator
 
 from modules.frames import FrameJob
-from modules.llm import ChatClient, OllamaClient, Usage
+from modules.llm import ChatClient, LLMError, OllamaClient, Usage
 
 from . import extract, report, verify
 from .extract import Ask
@@ -29,13 +30,31 @@ SOURCES_PER_CLAIM = 6
 MAX_CLAIMS = 20
 
 
+ASK_TRIES = 3
+ASK_PAUSE = 4.0  # seconds before the second try, doubled for the third
+
+
 async def _ask(client: ChatClient | OllamaClient, messages: list[dict], max_tokens: int) -> str:
-    """用流式客户端收集一次完整文本回复。"""
-    usage = Usage()
-    chunks: list[str] = []
-    async for delta in client.stream(messages, usage, max_tokens=max_tokens):
-        chunks.append(delta)
-    return "".join(chunks)
+    """用流式客户端收集一次完整文本回复。
+
+    A provider hiccup (timeout, network, busy) or an empty reply is tried again, up to ASK_TRIES
+    times: a check that failed on it reported "no claims" or an extraction error for a whole video.
+    """
+    for attempt in range(ASK_TRIES):
+        usage = Usage()
+        chunks: list[str] = []
+        try:
+            async for delta in client.stream(messages, usage, max_tokens=max_tokens):
+                chunks.append(delta)
+        except LLMError as exc:
+            if not exc.retryable or attempt == ASK_TRIES - 1:
+                raise
+        else:
+            text = "".join(chunks)
+            if text.strip() or attempt == ASK_TRIES - 1:
+                return text
+        await asyncio.sleep(ASK_PAUSE * 2 ** attempt)
+    return ""
 
 
 CJK = re.compile(r"[\u4e00-\u9fff]")

@@ -286,3 +286,27 @@ def test_chinese_claims_search_papers_in_english_and_off_topic_papers_are_droppe
     assert [s["title"] for s in found] == ["Vinegar intake and blood pressure: a meta-analysis"]
     assert queries == [("pubmed", "vinegar hypertension blood pressure")]
     assert asyncio.run(run_module._search("白醋降压", 6, web=True, papers=True, terms="")) == []  # no English terms: no papers
+
+
+def test_a_provider_hiccup_or_empty_reply_is_asked_again(monkeypatch):
+    from modules.factcheck import run as run_module
+    from modules.llm import LLMError
+    monkeypatch.setattr(run_module, "ASK_PAUSE", 0)
+    replies = [LLMError("timeout", "模型响应超时，请重试", True), "", "[]"]
+
+    class Client:
+        calls = 0
+
+        async def stream(self, messages, usage, max_tokens=0):
+            Client.calls += 1
+            reply = replies.pop(0)
+            if isinstance(reply, Exception):
+                raise reply
+            if reply:
+                yield reply
+
+    assert asyncio.run(run_module._ask(Client(), [], 10)) == "[]" and Client.calls == 3
+
+    replies[:] = [LLMError("no_api_key", "未配置模型密钥", False)]
+    with pytest.raises(LLMError):  # a setup error is not retried
+        asyncio.run(run_module._ask(Client(), [], 10))
