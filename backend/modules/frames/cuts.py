@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import time
 from pathlib import Path
 
 from . import resume
@@ -112,18 +113,29 @@ def save(root: Path, status: str, cuts: list[float] | None = None, message: str 
     return record
 
 
+STALL_PAUSE = 3.0  # seconds before reading again after the CDN stalled
+
+
 async def run(root: Path, streams: list[Stream], duration: float, refresh=None) -> dict:
     """Detect, trying each address; `refresh` (async, → new streams) is called once if all are refused."""
     timeout = max(120.0, duration / 2)
     why = "没有可读取的视频地址"
     for attempt in range(2):
+        started = time.monotonic()
         for stream in pick_streams(streams):
             found, why = await detect(stream, root, timeout)
             if found is not None:
                 return save(root, "done", found)
-            if why != "forbidden":
+            if why not in ("forbidden", "timeout"):  # refused or stalled: the next address may do
                 break
-        if why != "forbidden" or attempt or refresh is None:
+        if attempt or why not in ("forbidden", "timeout"):
+            break
+        if why == "timeout":
+            if time.monotonic() - started > timeout / 2:  # it really was slow, not a stall: don't double the wait
+                break
+            await asyncio.sleep(STALL_PAUSE)  # the CDN stopped sending for a while (-rw_timeout): once more
+            continue
+        if refresh is None:
             break
         try:
             streams = await refresh()

@@ -37,6 +37,19 @@ def test_run_reports_an_unreadable_video(tmp_path):
     assert record["status"] == "failed" and record["cuts"] == []
 
 
+
+def test_a_stalled_detection_tries_the_next_address_and_once_more(tmp_path, monkeypatch):
+    monkeypatch.setattr(cuts, "STALL_PAUSE", 0)
+    tried = []
+
+    async def detect(stream, folder, timeout):
+        tried.append(stream.label)
+        return ([4.0, 9.5], "") if len(tried) == 3 else (None, "timeout")
+    monkeypatch.setattr(cuts, "detect", detect)
+    streams = [Stream("https://a/720", {}, "s720", 720), Stream("https://a/480", {}, "s480", 480)]
+    record = asyncio.run(cuts.run(tmp_path, streams, 60))
+    assert record["status"] == "done" and record["cuts"] == [4.0, 9.5] and len(tried) == 3
+
 @pytest.fixture
 def api(tmp_path, monkeypatch):
     import app

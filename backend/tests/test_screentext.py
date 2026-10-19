@@ -154,3 +154,36 @@ def test_misread_small_print_on_busy_screens_is_dropped():
         [("显示和亮度", 1.0), ("注说猴幕不媳阴", 0.5), ("色彰调节与色滥", 0.3), ("护眼模式", 1.0), ("督德分辦率", 0.5), ("字体大小", 1.0)])]
     frames = [(0.0, menu), (1.0, [sub("失败X5", conf=0.3, y=0.45)])]
     assert [c.text for c in build(frames)] == ["显示和亮度", "护眼模式", "字体大小", "失败X5"]
+
+
+def test_a_stalled_stream_is_read_from_the_next_address_and_then_once_more(tmp_path, monkeypatch):
+    from modules.screentext import task as task_module
+    monkeypatch.setattr(task_module, "STALL_PAUSE", 0)
+    job = make_job(tmp_path)
+    used = []
+
+    async def stalls_twice(stream, folder, timeout):
+        used.append(stream.label)
+        if len(used) <= 2:  # both addresses stall (no data for 15 s) on the first round
+            return GrabResult(False, "timeout", "Connection timed out")
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "00001.jpg").write_bytes(b"jpg")
+        return GrabResult(True)
+
+    asyncio.run(run_screentext(job, read=stalls_twice, recognize=lambda p: [sub("名额仅剩 30 个")]))
+    assert used == ["s480", "s720", "s480"] and job.screentext.status == "done"
+
+
+def test_a_read_that_was_really_slow_is_not_repeated(tmp_path, monkeypatch):
+    from modules.screentext import task as task_module
+    clock = iter([0.0, 1000.0])  # the first round took longer than half the time allowed
+    monkeypatch.setattr(task_module, "_now", lambda: next(clock, 1000.0))
+    job = make_job(tmp_path)
+    used = []
+
+    async def slow(stream, folder, timeout):
+        used.append(stream.label)
+        return GrabResult(False, "timeout", "超过 120s")
+
+    asyncio.run(run_screentext(job, read=slow, recognize=lambda p: []))
+    assert used == ["s480", "s720"] and job.screentext.message == "读取画面超时"
