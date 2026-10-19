@@ -1372,3 +1372,5 @@ span.ev-chip { cursor: help; }
 .skill-report__open { font-size: var(--fs-caption); color: var(--text-secondary); text-decoration: underline; text-underline-offset: 3px; }
 .skill-report[open] .skill-report__open { visibility: hidden; }
 .skill-report__body { padding: 0 var(--sp-12) var(--sp-12); }
+.viz-intents { display: flex; flex-direction: column; gap: var(--sp-4); }
+.viz-intents p { margin: var(--sp-4) 0 0; }
