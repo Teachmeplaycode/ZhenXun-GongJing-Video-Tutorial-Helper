@@ -392,6 +392,17 @@ class BilibiliResolver(Resolver):
             raise ResolveError("upstream", f"读取弹幕失败（HTTP {response.status_code}）", retryable=True)
         return parse_danmaku(response.content.decode("utf-8", errors="replace"))
 
+    async def play_streams(self, video: ResolvedVideo) -> list[Stream]:
+        """An MP4 with picture and sound for watching the original (modules/playback): the html5 player's
+        file at up to 1080p (asked for qn=80, tested 2026-10-19), else the low-resolution fallback.
+        The DASH tracks frames are read from carry no sound, so they can't be played as they are."""
+        try:
+            play = await self._playurl(video.extra["bvid"], video.extra["cid"], fnval=1, qn=80, platform="html5", high_quality=1)
+            found = self._durl_streams(play, "html5-mp4-hd")
+        except ResolveError:
+            found = []
+        return found or await self.fallback_streams(video)
+
     async def fallback_streams(self, video: ResolvedVideo) -> list[Stream]:
         """The html5 player's single MP4: low resolution, but its CDN doesn't require a Referer."""
         try:

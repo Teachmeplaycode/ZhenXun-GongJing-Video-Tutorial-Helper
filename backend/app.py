@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import mimetypes
 import os
 import re
 import shutil
@@ -11,11 +12,12 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, log
+from modules import accounts, log, playback
 from modules.chapters.router import ChapterService
 from modules.notes.router import NotesService
 from modules.agent import browser, run_agent
@@ -42,10 +44,11 @@ DATA_DIR = DATA_ROOT / "jobs"
 DB_PATH = DATA_ROOT / "sessions.sqlite3"
 JOB_TTL = 6 * 3600  # seconds an idle job stays in memory; its session and frames stay on disk
 MAX_UPLOAD = 4 << 30  # bytes
-SOURCE = "source"  # an uploaded file is kept as <job dir>/source.<ext> only while it is being processed
-# Keep uploaded files after processing, so replay and close looks can read them again later
-# (the benchmark runner sets it; the app itself deletes uploads, which may be private).
-KEEP_UPLOADS = os.environ.get("KEEP_UPLOADS", "").lower() in ("1", "on", "true")
+SOURCE = "source"  # an uploaded file is kept as <job dir>/source.<ext>
+# Uploads are kept after processing, so a cited moment can be played in the original and replay and
+# close looks can read it again (modules/playback). KEEP_UPLOADS=off deletes them once read (e.g. a
+# shared server); the user can also delete one session's original from the page.
+KEEP_UPLOADS = os.environ.get("KEEP_UPLOADS", "on").lower() not in ("0", "off", "false", "no")
 
 registry = default_registry()
 store = SessionStore(DB_PATH)
@@ -242,9 +245,10 @@ def find_job(job_id: str) -> FrameJob | None:
         platform = json.loads(record["video"])["platform"]
         resolver = next((r for r in registry.resolvers if r.serves(platform)), None)
         job = store.restore(job_id, resolver, DATA_DIR / job_id)
-        kept = next((DATA_DIR / job_id).glob(f"{SOURCE}.*"), None) if KEEP_UPLOADS else None
-        if job.video.platform == LOCAL and kept is not None:  # a kept upload can be read again
+        kept = next((DATA_DIR / job_id).glob(f"{SOURCE}.*"), None)
+        if job.video.platform == LOCAL and kept is not None:  # a kept upload can be read and played again
             job.video.streams = [Stream(str(kept), {}, "local-file")]
+            job.video.audio_streams = [Stream(str(kept), {}, "local-file")]
         jobs[job_id] = job
     return job
 
@@ -579,6 +583,80 @@ async def job_cuts(job_id: str):
         return cuts.save(job.root, "unavailable", message="上传的视频处理完已删除，无法检测镜头切换")
     spawn(find_cuts(job))
     return {"status": "running", "cuts": [], "message": ""}
+
+
+@app.get("/api/link-jobs/{job_id}/source")
+async def job_source(job_id: str):
+    """Whether a cited moment can be played in the original, or only seen in the cached frames."""
+    return await playback.state(get_job(job_id))
+
+
+@app.get("/api/link-jobs/{job_id}/media")
+async def job_media(job_id: str, request: Request):
+    """The original video for the page's player: a kept upload, or the platform's MP4 relayed with
+    the headers its CDN wants. Range requests pass through, so the player can seek."""
+    job = get_job(job_id)
+    playable = await playback.find(job)
+    if playable is None:
+        raise HTTPException(404, "原视频不可用，只能查看缓存的画面")
+    if playable.kind == "file":
+        kind = mimetypes.guess_type(playable.path.name)[0] or "video/mp4"
+        return FileResponse(playable.path, media_type=kind)
+    client = playback.http()  # one pool for every seek: no new connection per Range request
+    for attempt in range(2):
+        try:
+            status, headers, response = await playback.relay(client, playable.stream, request.headers.get("range"))
+        except httpx.HTTPError:
+            raise HTTPException(502, "连不上视频平台，原视频暂时播放不了") from None
+        if status in (401, 403, 404, 410) and attempt == 0:  # the address expired: ask the platform again
+            await response.aclose()
+            playable = await playback.find(job, fresh=True)
+            if playable is None:
+                raise HTTPException(404, "原视频已失效，只能查看缓存的画面")
+            continue
+        break
+    if status >= 400:
+        await response.aclose()
+        raise HTTPException(502, f"视频平台拒绝播放（HTTP {status}），只能查看缓存的画面")
+
+    first, last = playback.span(headers.get("content-range"), headers.get("content-length"))
+
+    async def body():
+        nonlocal response
+        sent, resumes = 0, 0
+        try:
+            while True:
+                try:
+                    async for chunk in response.aiter_bytes():  # as they arrive: a cut-off keeps what came
+                        sent += len(chunk)
+                        yield chunk
+                    return
+                except httpx.HTTPError:
+                    # The CDN dropped the connection part-way: carry on from the next byte, unseen by the player.
+                    if last is None or resumes >= playback.RESUMES or first + sent > last:
+                        return
+                    resumes += 1
+                    await response.aclose()
+                    _, _, response = await playback.relay(client, playable.stream, f"bytes={first + sent}-{last}")
+        finally:
+            await response.aclose()
+
+    return StreamingResponse(body(), status_code=status, headers=headers)
+
+
+@app.delete("/api/link-jobs/{job_id}/source")
+async def delete_source(job_id: str):
+    """Delete a kept upload (the frames, text and answers stay); its moments become cached evidence."""
+    job = get_job(job_id)
+    if job.video.platform != LOCAL:
+        raise HTTPException(400, "只有上传的视频可以删除原文件")
+    if job.running:
+        raise HTTPException(409, "视频还在处理，处理完再删除原文件")
+    for path in (DATA_DIR / job_id).glob(f"{SOURCE}.*"):
+        path.unlink(missing_ok=True)
+    job.video.streams, job.video.audio_streams = [], []
+    playback.forget(job_id)
+    return await playback.state(job)
 
 
 class ReplayRequest(BaseModel):

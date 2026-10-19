@@ -169,6 +169,12 @@ export const manualReplay = (jobId, start, end) => linkRequest(`/api/link-jobs/$
   body: JSON.stringify({ start, end }),
 })
 
+/** How a cited moment can be looked at again: { state: original | cache | none, label, message } */
+export const fetchSource = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/source`, { signal })
+/** Delete a kept upload (frames, text and answers stay); resolves to the new source state. */
+export const deleteSource = (jobId) => linkRequest(`/api/link-jobs/${jobId}/source`, { method: 'DELETE' })
+/** The original video for <video src>: a kept upload, or the platform's MP4 relayed by the backend. */
+export const mediaUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/media`
 export const linkFrameUrl = (jobId, index) => `${LINK_BASE}/api/link-jobs/${jobId}/frames/${index}.jpg`
 
 /** Follow a job's events (frame / missing / status / done) from `since` until its run is done. */
