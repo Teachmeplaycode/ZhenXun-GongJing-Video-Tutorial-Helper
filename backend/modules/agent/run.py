@@ -13,11 +13,11 @@ import time
 from collections.abc import AsyncIterator
 
 from modules.frames import FrameJob
-from modules.llm import ChatClient, LLMError, OllamaClient, Usage, assistant_message, tool_message
+from modules.llm import ChatClient, LLMError, OllamaClient, ToolCall, Usage, assistant_message, tool_message
 
 from modules.decide import questions as dq
 
-from . import experience, skills
+from . import experience, intent, skills
 
 from ..frames import images as picture_sets
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
@@ -477,7 +477,39 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     usage = Usage()
     answered = False  # any answer text streamed so far
     must_research, researched = False, False
-    if rounds and any(d["function"]["name"] in WEB_TOOLS for d in allowed_tools(job, web, papers, audience)):
+
+    # What kind of question this is (modules/agent/intent.py): a skill it plainly asks for runs first,
+    # a tutorial question gets the step-by-step way of answering.
+    steps += 1
+    yield tool("route", "started", tool_name="decision.intent")
+    yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
+    route = await intent.classify(question, decider)
+    offered = {d["function"]["name"] for d in allowed_tools(job, web, papers, audience)}
+    skill = route.skill if route.skill in offered and rounds else None
+    yield tool("route", "output", stdout=(
+        f"{intent.NAMES[route.kind]}（{route.how}" + (f"，概率 {route.p:.2f}" if route.p is not None else "") + "）"
+        + (f"\n先运行{skills.BY_NAME[skill].title}技能" if skill else "")), exit_code=0, data=route.as_data())
+    yield tool("route", "completed", result_count=1)
+    if route.note:
+        messages.append({"role": "user", "content": f"（回答方式）{route.note}"})
+    if skill:
+        call = ToolCall("skill0", skill, {})
+        tool_calls += 1
+        steps += 1
+        yield tool("skill0", "started", tool_name=TRACE_NAMES.get(skill, skill))
+        yield tool("skill0", "input", input={"kind": "params", "params": {}})
+        result = ToolResult("技能没有返回结果。", "未完成", error=True)
+        async for item in tools.stream(skill, {}):
+            if isinstance(item, ToolResult):
+                result = item
+            else:
+                yield {**item, "call_id": "skill0"}
+        yield tool("skill0", "output", stdout=result.text, data=result.data, exit_code=1 if result.error else 0)
+        yield tool("skill0", "completed", result_count=result.count)
+        messages.append(assistant_message("", [call]))
+        messages.append(tool_message(call, result.text))
+        researched = True  # the skill looked it up; don't make the model search again
+    if rounds and not skill and any(d["function"]["name"] in WEB_TOOLS for d in allowed_tools(job, web, papers, audience)):
         steps += 1
         yield tool("intent", "started", tool_name="decision.research_intent")
         yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})

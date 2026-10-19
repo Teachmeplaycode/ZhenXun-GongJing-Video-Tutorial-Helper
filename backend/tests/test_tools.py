@@ -115,7 +115,7 @@ def test_loop_runs_tool_and_answers(tmp_path):
     assert second[-1] == {"role": "tool", "tool_call_id": "c1", "name": "search_transcript",
                           "content": "[00:10] 今天聊体重\n[04:10] 体重保持在120斤以下"}
     names = [e["tool_name"] for e in events if e["type"] == "tool_call.started"]
-    assert names == ["frames.select", "transcript.read", "decision.research_intent", "vision.deepseek-flash",
+    assert names == ["frames.select", "transcript.read", "decision.intent", "decision.research_intent", "vision.deepseek-flash",
                      "transcript.search", "vision.deepseek-flash"]
     assert "".join(e["delta"] for e in events if e["type"] == "assistant.message.delta") == "在 [04:10] 她说体重保持在120斤以下。"
     assert events[-1]["type"] == "run.completed" and "调用工具 1 次" in events[-1]["summary"] and "输入 250" in events[-1]["summary"]

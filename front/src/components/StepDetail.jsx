@@ -37,6 +37,8 @@ function useEntrance(ref, deps) {
   }, deps)
 }
 
+const INTENT_NAMES = { tutorial: '教程操作', content: '视频内容', science: '科普核查', verify: '核实说法', fraud: '反诈识别', chat: '与视频无关' }
+
 function Meter({ p, threshold = 0.5, label }) {
   return (
     <div className="viz-meter" data-row>
@@ -383,7 +385,17 @@ export default function StepDetail({ call, onSeek }) {
   const d = call.data || {}
   useEntrance(ref, [call.status])
   let body
-  if (call.tool === 'decision.research_intent' && d.p != null) {
+  if (call.tool === 'decision.intent' && d.probabilities && Object.keys(d.probabilities).length) {
+    // Each kind's probability from the decision model; only a sure pick (≥ 0.6) changes how it answers.
+    body = (
+      <div className="viz-intents">
+        {Object.entries(d.probabilities).sort((a, b) => b[1] - a[1]).map(([kind, p]) => (
+          <Meter key={kind} p={p} threshold={0.6} label={INTENT_NAMES[kind] || kind} />
+        ))}
+        <p className="mono-sm muted">{d.sure ? '有把握：按这一类回答' : '把握不足：照常回答'}</p>
+      </div>
+    )
+  } else if (call.tool === 'decision.research_intent' && d.p != null) {
     body = <Meter p={d.p} label={d.needed ? '需要查资料' : '不需要查资料'} />
   } else if (call.tool === 'web.search' && d.results) {
     body = <Results results={d.results} />
