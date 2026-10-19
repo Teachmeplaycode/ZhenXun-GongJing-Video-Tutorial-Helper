@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import re
 import uuid
 from itertools import zip_longest
 from collections.abc import AsyncIterator
@@ -37,24 +38,59 @@ async def _ask(client: ChatClient | OllamaClient, messages: list[dict], max_toke
     return "".join(chunks)
 
 
-async def _search(query: str, limit: int, *, web: bool, papers: bool) -> list[dict]:
-    """组合网页 + 学术论文检索，返回 build_source 格式列表。任一来源失败不影响整体。"""
+CJK = re.compile(r"[\u4e00-\u9fff]")
+TERMS_SYSTEM = """把用户给的一条健康/科普说法转成英文医学文献检索词，用于 PubMed。
+只输出 2 到 6 个英文检索词，用空格分隔，不要解释、不要标点、不要引号。
+例：说法「每天空腹喝一勺白醋能治好高血压」→ vinegar hypertension blood pressure"""
+STOP = {"and", "or", "the", "of", "in", "on", "for", "with", "to", "a", "an", "effect", "effects"}
+
+
+async def paper_terms(ask: Ask, claim: str) -> str:
+    """English search terms for a claim's literature search; the claim itself if it is already
+    English, "" when a Chinese claim couldn't be put into English (then papers aren't searched:
+    OpenAlex answers a Chinese sentence with unrelated works)."""
+    if not CJK.search(claim):
+        return claim
+    try:
+        raw = await ask([{"role": "system", "content": TERMS_SYSTEM}, {"role": "user", "content": claim[:300]}], 40)
+    except Exception:
+        return ""
+    words = re.findall(r"[A-Za-z][A-Za-z0-9-]*", raw or "")
+    return " ".join(words[:8]) if len(words) >= 2 else ""
+
+
+def on_topic(terms: str, title: str, abstract: str) -> bool:
+    """A paper shares at least one meaningful search term (or its stem) with the query."""
+    text = f"{title} {abstract}".lower()
+    keys = [w.lower() for w in terms.split() if len(w) > 3 and w.lower() not in STOP]
+    return not keys or any(k[:max(5, len(k) - 2)] in text for k in keys)
+
+
+async def _search(query: str, limit: int, *, web: bool, papers: bool, terms: str | None = None) -> list[dict]:
+    """组合网页 + 学术论文检索，返回 build_source 格式列表。任一来源失败不影响整体。
+    terms：论文检索用的英文检索词（None 时用 query 本身；空串时不检索论文）。"""
+    terms = query if terms is None else terms
     web_sources: list[dict] = []
     paper_sources: list[dict] = []
     if web:
         try:
             from modules.agent.web import search as web_search
             results = await web_search(query, limit=limit)
-            for r in results:
-                web_sources.append(report.build_source(r.title, r.url, r.snippet))
+            # Most authoritative first (unknown counts as middling); low-authority pages only fill gaps.
+            level = lambda r: getattr(r, "authority", None)  # noqa: E731 — only DeepSeek's results carry it
+            results = sorted(results, key=lambda r: -(level(r) if level(r) is not None else 2))
+            solid = [r for r in results if level(r) is None or level(r) >= 2]
+            for r in (solid if len(solid) >= 3 else results):
+                web_sources.append(report.build_source(r.title, r.url, r.snippet, level(r), getattr(r, "site", "")))
         except Exception:
             pass
-    if papers:
+    if papers and terms:
         try:
             from modules.agent.papers import search_papers
             for source in ("pubmed", "openalex"):
                 try:
-                    found = await search_papers(query, limit=limit, source=source)
+                    found = [p for p in await search_papers(terms, limit=limit, source=source)
+                             if on_topic(terms, p.title, p.abstract)]
                     for p in found:
                         paper_sources.append(report.build_source(p.title, p.url, p.abstract[:300]))
                     if found:
@@ -117,7 +153,8 @@ async def run_factcheck(
     async def do_search(query: str, limit: int) -> list[dict]:
         if search is not None:
             return await search(query, limit)
-        return await _search(query, limit, web=web, papers=papers)
+        terms = await paper_terms(do_ask, query) if papers else ""
+        return await _search(query, limit, web=web, papers=papers, terms=terms)
 
     # 1. 抽取说法
     try:

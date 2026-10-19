@@ -104,7 +104,7 @@ DEFINITIONS = [
 WEB_DEFINITIONS = [
     {"type": "function", "function": {
         "name": "web_search",
-        "description": "联网搜索，返回网页标题、链接和摘要。用来核实视频里的说法、补充背景知识或查最新信息。优先用英文关键词，结果更可靠；需要中文资料时再用中文。",
+        "description": "联网搜索，返回网页标题、链接和摘要，多数结果还带站点、发布日期和权威度（0–4，4 为政府、官方媒体、期刊）。用来核实视频里的说法、补充背景知识或查最新信息。中文话题用中文关键词，国际话题用英文；可以用 site:gov.cn 这类语法限定站点。引用时优先权威度 3–4 的来源；权威度只说明站点可信，不等于证实了说法。",
         "parameters": {"type": "object", "properties": {
             "query": {"type": "string", "description": "搜索词"},
             "limit": {"type": "integer", "description": f"返回几条，1 到 {MAX_WEB_RESULTS}，默认 6"},
@@ -394,14 +394,17 @@ class AgentTools:
             return ToolResult(f"没有搜到「{query}」的结果。", "0 条")
         verdicts, note, probs = await self._screen(query, results)
         data = {"query": query, "results": [
-            {"title": r.title, "url": r.url, "host": urllib.parse.urlsplit(r.url).hostname or "", "verdict": v, "p": p}
+            {"title": r.title, "url": r.url, "host": urllib.parse.urlsplit(r.url).hostname or "", "verdict": v, "p": p,
+             "authority": r.authority, "site": r.site, "date": r.date}
             for r, v, p in zip(results, verdicts, probs)]}
         lines = []
         for r, verdict in zip(results, verdicts):
             if verdict == "irrelevant":
                 continue
             tag = "【可靠性存疑：内容农场、自媒体或拼凑内容的可能性较大】" if verdict == "unreliable" else ""
-            lines.append(f"{len(lines) + 1}. {tag}{r.title}\n   {r.url}\n   {r.snippet}")
+            # The search engine's authority score (DeepSeek): the site's standing, not proof of the claim.
+            about = " · ".join(x for x in (r.site, f"权威度 {r.authority}/4（{web.authority_label(r.authority)}）" if r.authority is not None else "", r.date) if x)
+            lines.append(f"{len(lines) + 1}. {tag}{r.title}" + (f"\n   [{about}]" if about else "") + f"\n   {r.url}\n   {r.snippet}")
         if not lines:
             return ToolResult(f"搜到的结果都和「{query}」无关（{note}），换个关键词再搜。", note, data=data)
         return ToolResult(UNTRUSTED + "\n".join(lines) + (f"\n（{note}）" if note else ""),

@@ -17,7 +17,7 @@ import httpx
 
 from modules.settings import settings
 
-from .web import HEADERS, Pacer, WebError, rerank
+from .web import HEADERS, Pacer, WebError
 
 ATOM = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
 ABSTRACT_CHARS = 600
@@ -150,9 +150,7 @@ async def search_papers(query: str, limit: int = 6, source: str = "openalex", *,
     own = client is None
     client = client or httpx.AsyncClient(timeout=20, headers=HEADERS, trust_env=False, follow_redirects=True)
     try:
-        found = await SOURCES.get(source, openalex)(query, limit, client)
-        ranked = await rerank(query, [f"{p.title}\n{p.abstract[:800]}" for p in found], client)
-        return [found[i] for i, _ in ranked] if ranked else found
+        return await SOURCES.get(source, openalex)(query, limit, client)
     except httpx.HTTPError:
         raise WebError("无法连接论文检索服务，请检查网络") from None
     except ET.ParseError:
