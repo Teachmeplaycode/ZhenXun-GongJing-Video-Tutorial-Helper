@@ -194,7 +194,7 @@ cleanup() {
 trap cleanup INT TERM EXIT
 
 # --reload-include .env: edited keys take effect without restarting by hand.
-(cd "$BACKEND" && exec uv run uvicorn app:app --port "$API_PORT" --reload --reload-include .env 2>&1) | prefix "${CYAN}[api]${RESET}" &
+(cd "$BACKEND" && exec uv run uvicorn app:app --port "$API_PORT" --reload --reload-include .env --timeout-graceful-shutdown 3 2>&1) | prefix "${CYAN}[api]${RESET}" &
 PIDS="$PIDS $!"
 (cd "$FRONT" && exec npm run dev --silent 2>&1) | prefix "${GREEN}[web]${RESET}" &
 PIDS="$PIDS $!"

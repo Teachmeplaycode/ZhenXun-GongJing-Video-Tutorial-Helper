@@ -1296,3 +1296,43 @@ img { display: block; }
   .pics-view { flex: none; height: 50vh; }
   .pics-chat { height: 80vh; padding-right: 0; }
 }
+
+/* ---------- looking back at the original (components/SourcePlayer.jsx, EvidenceBadge.jsx) ---------- */
+.evidence-badge {
+  position: absolute; top: var(--sp-12); right: calc(var(--sp-48) + env(safe-area-inset-right, 0px)); z-index: 5;
+  display: inline-flex; align-items: center; gap: var(--sp-6); padding: 3px var(--sp-10, 10px);
+  border: var(--border-hairline); border-radius: var(--radius-pill); background: var(--bg-surface);
+  font-size: var(--fs-caption); color: var(--text-secondary);
+}
+.evidence-badge__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary, var(--text-secondary)); }
+.evidence-badge[data-state="original"] .evidence-badge__dot { background: #2f9e5b; }
+.evidence-badge[data-state="cache"] .evidence-badge__dot { background: #c9891c; }
+.evidence-badge button { border: 0; padding: 0; background: none; font: inherit; color: var(--text-secondary); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.evidence-badge button:hover { color: var(--text-primary); }
+.evidence-badge__confirm { display: inline-flex; gap: var(--sp-8); color: var(--text-primary); }
+.source-player {
+  position: absolute; top: var(--sp-12); right: calc(var(--sp-48) + env(safe-area-inset-right, 0px)); z-index: 6;
+  width: min(460px, 42vw); display: flex; flex-direction: column; gap: var(--sp-6); padding: var(--sp-8);
+  border: var(--border-hairline); border-radius: var(--radius-md, 12px); background: var(--bg-surface);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+.source-player__head { display: flex; align-items: center; gap: var(--sp-8); padding: 0 var(--sp-4); }
+.source-player__badge { padding: 1px var(--sp-8); border-radius: var(--radius-pill); background: var(--accent-active); color: var(--text-on-accent); font-size: var(--fs-caption); }
+.source-player__time { flex: 1; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.source-player__video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius-sm); background: #000; }
+.source-player__failed { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-8); padding: var(--sp-16); }
+.source-player__failed p { margin: 0; }
+.source-player__note { margin: 0; padding: 0 var(--sp-4); }
+@media (max-width: 900px) {
+  .source-player { left: var(--sp-12); right: var(--sp-12); width: auto; }
+  .evidence-badge { right: var(--sp-12); }
+}
+.source-player__frame { position: relative; }
+.source-player__loading {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: 4px 12px; border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.6); color: #FFFFFF; font-size: var(--fs-caption); pointer-events: none;
+}
+/* With the original open, the chat makes room on the right instead of being covered by it. */
+@media (min-width: 901px) {
+  .layer--chat[data-player] { padding-right: calc(min(460px, 42vw) + var(--sp-48) + var(--sp-16)); }
+}
