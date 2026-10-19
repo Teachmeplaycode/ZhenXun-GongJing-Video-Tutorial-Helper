@@ -141,8 +141,10 @@ def test_last_round_has_no_tools(tmp_path, monkeypatch):
         return [e async for e in run_agent(job, client, "q")]
     events = asyncio.run(go())
     assert len(requests) == 2 and "tools" not in requests[1]
-    images = [p for p in requests[1]["messages"][-1]["content"] if p["type"] == "image_url"]
+    # the frames it asked for, then the reminder that no tools are left: answer in words
+    images = [p for p in requests[1]["messages"][-2]["content"] if p["type"] == "image_url"]
     assert len(images) == 2 and events[-1]["type"] == "run.completed"
+    assert requests[1]["messages"][-1]["content"].startswith("工具调用次数已经用完")
 
 
 def test_asked_ranges():
@@ -199,3 +201,23 @@ def test_research_question_cannot_skip_the_lookup(tmp_path, monkeypatch):
     assert answer == "出处是 CMAJ 2012（https://cmaj.ca/x）。"  # the unresearched first answer never reached the user
     assert requests[1]["messages"][-1]["content"].startswith("你还没有调用")
     assert any(e["type"] == "tool_call.started" and e["tool_name"] == "web.search" for e in events)
+
+
+def test_tool_markup_written_out_in_the_final_round_is_not_shown_and_asked_again(tmp_path, monkeypatch):
+    monkeypatch.setenv("LLM_MAX_TOOL_ROUNDS", "0")
+    requests = []
+    leak = "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"fetch_page\">\n<｜｜DSML｜｜ parameter name=\"url\">https://x</｜｜DSML｜｜ parameter>"
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        text = leak if len(requests) == 1 else "视频在 01:24 点了「报表布局」。"
+        return httpx.Response(200, text=sse({"choices": [{"delta": {"content": text}, "finish_reason": "stop"}]}))
+
+    client = ChatClient(LLMConfig("https://api.deepseek.com", "deepseek-flash", "k"), transport=httpx.MockTransport(handler))
+
+    async def go():
+        return [e async for e in run_agent(make_job(tmp_path), client, "q")]
+    events = asyncio.run(go())
+    answer = "".join(e["delta"] for e in events if e["type"] == "assistant.message.delta")
+    assert "DSML" not in answer and answer == "视频在 01:24 点了「报表布局」。"
+    assert len(requests) == 2 and requests[1]["messages"][-1]["content"].startswith("工具调用次数已经用完")
