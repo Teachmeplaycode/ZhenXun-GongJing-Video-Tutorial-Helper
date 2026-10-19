@@ -74,7 +74,7 @@ function QrLogin({ account, onDone }) {
     return (
       <div className="qr-login">
         <div className="qr-login__code is-loading" aria-hidden="true" />
-        <p className="mono-sm muted">{account.id === 'yuanbao' ? '正在打开腾讯元宝的登录页（约 15 秒）…' : '正在获取二维码…'}</p>
+        <p className="mono-sm muted">{{ yuanbao: '正在打开腾讯元宝的登录页（约 15 秒）…', xiaohongshu: '正在打开小红书的登录页（约 30 秒）…' }[account.id] || '正在获取二维码…'}</p>
       </div>
     )
   }
