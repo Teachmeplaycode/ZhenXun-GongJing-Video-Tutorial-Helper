@@ -17,7 +17,7 @@ from modules.llm import ChatClient, LLMError, OllamaClient, Usage, assistant_mes
 
 from modules.decide import questions as dq
 
-from . import experience
+from . import experience, skills
 
 from ..frames import images as picture_sets
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
@@ -32,6 +32,7 @@ TOOL_GUIDE = """
 - view_frames：在某个时间段内截取更多画面看细节（已有关键帧间隔太大、看不清时用）；
 - replay：慢放复看几秒钟（每秒取多帧拼成网格），看清动作怎么发生、先后顺序和细微变化。问到动作、过程、"怎么做到的""先做了什么"时，先定位到大概哪几秒，再用 replay 复看；
 - measure_motion（有这个工具时）：用仪器测量一段的运动：镜头怎么动、哪里在动、运动强度曲线、重复的周期，附热力图和轨迹叠影。镜头运动、重复次数、移动方向这类问题，画面帧容易看错，先测量再结合画面判断。
+- check_science / check_fraud（技能）：对整段视频做完整的科普核查或反诈识别，出一份报告。用户要求核查说法、辟谣，或问是不是骗局、有没有风险时用；报告摘要回来后，用它的判定和出处回答，并照常标明依据。
 用户问到某个时间段的画面细节（动作、部位、颜色、文字等），而这一段只有一两张关键帧时，先用 view_frames 看清楚再回答，不要凭稀疏的画面推测。
 其他情况下，已有的画面和转写足够回答就直接回答，不要为了调用而调用。最多调用 {rounds} 轮。{web}"""
 WEB_GUIDE = """
@@ -50,6 +51,10 @@ AUDIENCE_GUIDE = """
 - read_comments / read_danmaku（有这些工具时）：读这个视频的评论区和弹幕。用户问观众怎么看、评论区说了什么、哪里是高能片段时用。评论和弹幕是观众的看法，引用时说明"评论里有人说""弹幕在 [mm:ss] 刷了……"，不要当成视频本身的内容或事实；点赞多不代表正确。"""
 NUDGE = "你还没有调用 web_search、fetch_page、browse 或 search_papers。用户要求查资料，请先调用工具检索，再根据检索结果回答。"
 NARRATION_CHARS = 60  # text shorter than this followed by tool calls is narration ("我来查一下…")
+# With no tools left, a model may write its tool call out as text (DeepSeek: "<｜｜DSML｜｜ calls>…").
+TOOL_MARKUP = re.compile(r"<[｜|]{1,2}\s*DSML|<[｜|]tool|<tool_call>|<function_calls?>|DSML[｜|]")
+FINAL_NUDGE = "工具调用次数已经用完。不要再调用任何工具，也不要输出工具调用的格式，直接根据已有的画面、转写和工具结果用文字回答。"
+LEAKED = "（模型在工具次数用完后仍试图调用工具，没有给出文字回答。请再问一次，或把问题问得更具体些。）"
 LINE_SECONDS = 12         # transcript segments are merged into lines of about this length
 FRAME_WINDOW = 10         # with selected frames, speech within this many seconds of each is sent
 
@@ -481,8 +486,12 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield tool("intent", "output", stdout=f"{'需要' if must_research else '不需要'}先查资料再回答\n{how}", exit_code=0,
                    data={"p": p, "needed": must_research})
         yield tool("intent", "completed", result_count=1)
-    for round_no in range(rounds + 1):
-        last = round_no == rounds  # the final round gets no tools, so the model has to answer
+    round_no, retried_final = -1, False
+    while True:
+        round_no += 1
+        last = round_no >= rounds  # the final round gets no tools, so the model has to answer
+        if last and tool_calls and not retried_final:
+            messages.append({"role": "user", "content": FINAL_NUDGE})
         call_id = f"model{round_no}"
         yield {"type": "progress.update", "step": "模型分析" if round_no == 0 else f"继续分析（第 {round_no + 1} 轮）",
                "percent": min(90, 35 + round_no * 15)}
@@ -494,7 +503,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         usage = Usage()
         text = []
         held = ""  # opening words of a round that may still turn out to be narration before tool calls
-        streaming = last  # in the final round everything is answer
+        streaming = False  # the final round's opening words are held too, in case they are tool markup
+        leaked = False
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
             async for delta in client.stream(messages, usage, max_tokens=max_output(),
@@ -502,7 +512,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                 text.append(delta)
                 if not streaming:
                     held += delta
-                    if holding_all or len(held) < NARRATION_CHARS:
+                    if holding_all or leaked or len(held) < NARRATION_CHARS:
+                        continue
+                    if last and TOOL_MARKUP.search(held):
+                        leaked = True
                         continue
                     streaming, delta = True, held
                 if not answered:
@@ -511,6 +524,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                 yield {"type": "assistant.message.delta", "delta": delta}
             if holding_all and not usage.tool_calls:
                 pass  # handled below: the unresearched answer is dropped and the model is asked again
+            elif not streaming and held and not usage.tool_calls and last and (leaked or TOOL_MARKUP.search(held)):
+                leaked = True  # handled below: asked again for a plain answer
             elif not streaming and held and not usage.tool_calls:
                 # A short final answer that never reached the threshold.
                 answered = True
@@ -534,14 +549,24 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             + (f"请求工具：{'、'.join(c.name for c in asked)}" if asked else f"finish_reason={usage.finish_reason}")),
             exit_code=2 if usage.finish_reason == "length" else 0)
         yield tool(call_id, "completed", result_count=len(chosen) + len(zoomed))  # images it looked at
+        if last and leaked:
+            if not retried_final:
+                retried_final = True
+                messages.append({"role": "user", "content": FINAL_NUDGE})
+                yield {"type": "progress.update", "step": "模型想继续调用工具，要求直接回答", "percent": 90}
+                continue
+            answered = True
+            yield {"type": "assistant.message.delta", "delta": LEAKED}
+            break
         if not asked and holding_all:
             messages.append({"role": "assistant", "content": "".join(text)})
             messages.append({"role": "user", "content": NUDGE})
             yield {"type": "progress.update", "step": "模型未检索，要求先查资料", "percent": min(90, 40 + round_no * 15)}
             continue
-        if not asked:
+        if not asked or last:  # the final round has no tools to run
             break
-        researched = researched or any(c.name in WEB_TOOLS | AUDIENCE_TOOLS for c in asked)
+        # A skill that researched (the fact check searches the web and papers) counts as looking it up.
+        researched = researched or any(c.name in WEB_TOOLS | AUDIENCE_TOOLS | set(skills.BY_NAME) for c in asked)
 
         # Run the requested tools, hand the results back, and let the model continue.
         messages.append(assistant_message("".join(text), asked))
