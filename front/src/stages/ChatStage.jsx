@@ -13,9 +13,7 @@ import { screenStep, speechStep } from './AnalyzeHud'
 import Avatar from '../components/Avatar'
 import { collectCited, collectExtras } from '../lib/extraFrames'
 import Workbench from '../components/Workbench'
-import AntifraudTab from '../components/bench/AntifraudTab'
 import NotesTab from '../components/bench/NotesTab'
-import FactCheckReport from '../components/FactCheckReport'
 
 const STICK_THRESHOLD = 48 // px from bottom that still counts as "following"
 // 114.25 → "01:54.3" (the agent reads tenths; whole seconds stay "01:54")
@@ -132,11 +130,6 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   const panels = {
     chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
       onSelect={onChapterSelect} onHover={onChapterHover} />,
-    antifraud: <AntifraudTab video={video} transcript={transcript} screentext={screentext}
-      frameRevision={`${coverage?.ok ?? 0}:${coverage?.missing ?? 0}:${coverage?.pending ?? frames.length}`} />,
-    factcheck: video?.jobId ? <FactCheckReport jobId={video.jobId} video={video} onSeek={onSeek} embedded
-      open={bench.open && bench.tab === 'factcheck'} />
-      : <p className="bench__note muted">导入视频后可以核查。</p>,
     notes: <NotesTab video={video} messages={messages} />,
   }
 

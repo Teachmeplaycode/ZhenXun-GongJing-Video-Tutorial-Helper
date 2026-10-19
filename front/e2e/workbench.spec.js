@@ -15,30 +15,23 @@ async function enterChat(page, setup) {
   return mock
 }
 
-test('the workbench folds out from the right edge with four tabs, and remembers where it was', async ({ page }) => {
+test('the workbench folds out from the right edge with its tabs, and remembers where it was', async ({ page }) => {
   await enterChat(page)
   const handle = page.locator('.bench__handle')
   await expect(handle).toHaveAttribute('aria-expanded', 'false')
   await expect(page.locator('.chat__toolbar, .chat__factcheck, .chat__export')).toHaveCount(0) // nothing stacked above the composer
   await handle.click()
-  await expect(page.getByRole('tab')).toHaveText([/章节/, '反诈', '科普', '笔记'])
-  await page.getByRole('tab', { name: '科普' }).click()
-  await expect(page.getByRole('tab', { name: '科普' })).toHaveAttribute('aria-selected', 'true')
+  // 反诈 and 科普 are skills the agent runs in an answer now (e2e/skills.spec.js), not tabs.
+  await expect(page.getByRole('tab')).toHaveText([/章节/, '笔记'])
   // arrow keys move between tabs
-  await page.getByRole('tab', { name: '科普' }).press('ArrowRight')
+  await page.getByRole('tab', { name: /章节/ }).click()
+  await page.getByRole('tab', { name: /章节/ }).press('ArrowRight')
   await expect(page.getByRole('tab', { name: '笔记' })).toHaveAttribute('aria-selected', 'true')
   await page.reload()
   await page.locator('.import-control__link').fill(LINK)
   await page.locator('.import-control__submit').click()
   await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
   await expect(page.getByRole('tab', { name: '笔记' })).toHaveAttribute('aria-selected', 'true')
-})
-
-test('anti-fraud runs only after 开始识别', async ({ page }) => {
-  const mock = await enterChat(page)
-  await openBench(page, '反诈')
-  await expect(page.getByRole('button', { name: '开始识别' })).toBeVisible()
-  expect(mock.requests.some((r) => r.path.endsWith('/antifraud'))).toBe(false)
 })
 
 test('notes: generate, then open the editor; the Q&A export moved into the tab', async ({ page, context }) => {

@@ -7,9 +7,8 @@ import { IconChevron } from './Icons'
 // panels: { key: element } in tab order; labels: { key: '章节' }; badges: { key: '3' } (optional).
 export const BENCH_TABS = [
   { key: 'chapters', label: '章节' },
-  { key: 'antifraud', label: '反诈' },
-  { key: 'factcheck', label: '科普' },
   { key: 'notes', label: '笔记' },
+  // 反诈 and 科普 are no longer tabs: they are skills the agent runs in an answer (modules/agent/skills.py).
 ]
 
 // hide: tab keys that don't apply (a picture set has no chapters).

@@ -23,7 +23,7 @@ from modules.video_source.base import Comment
 
 from modules.decide import questions as dq
 
-from . import browser, papers, web
+from . import browser, papers, skills, web
 
 MAX_VIEW = 6          # frames per view_frames call
 MAX_READ_CHARS = 4000
@@ -177,7 +177,7 @@ ARGS = {
 TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view", "replay": "frames.replay", "measure_motion": "frames.motion",
                "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search",
                "browse": "browser.use", "read_comments": "audience.comments", "read_danmaku": "audience.danmaku",
-               "read_chapters": "chapters.read"}
+               "read_chapters": "chapters.read", **skills.TRACE}
 
 
 def web_enabled() -> bool:
@@ -198,7 +198,7 @@ def definitions(web: bool = True, papers: bool = True, audience: tuple[str, ...]
     if not web_enabled():
         web = papers = False
     extra = viewers + [d for d in WEB_DEFINITIONS
-             if (papers if d["function"]["name"] in PAPER_TOOLS else web)]
+             if (papers if d["function"]["name"] in PAPER_TOOLS else web)] + skills.definitions(web)
     if web and browser.available():
         extra.append(BROWSE_DEFINITION)
     return DEFINITIONS + extra
@@ -231,7 +231,18 @@ class AgentTools:
         self.pages: dict[str, web.Page] = {}  # fetched this answer, so offset reads don't refetch
 
     async def stream(self, name: str, args: dict):
-        """Like run, but yields the tool's live events (browser.*) before its ToolResult."""
+        """Like run, but yields the tool's live events (browser.*, a skill's progress) before its ToolResult."""
+        if name in skills.BY_NAME:
+            if self.llm is None:
+                yield ToolResult("这个技能需要模型服务，现在不可用。", "不可用", error=True)
+                return
+            async for item in skills.run(name, self.job, self.llm, web=web_enabled()):
+                if isinstance(item, tuple):
+                    _, text, summary, count, data, error = item
+                    yield ToolResult(text, summary, count, error=error, data=data)
+                else:
+                    yield item
+            return
         if name != "browse":
             yield await self.run(name, args)
             return
