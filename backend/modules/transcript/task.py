@@ -57,7 +57,7 @@ async def run_transcript(job: FrameJob, *, read: ReadAudio = read_audio, transcr
 
     transcribe = transcribe or (asr.transcribe if asr.available() else None)
     if transcribe is None:
-        return finish("unavailable", "本机没有安装语音识别（mlx-whisper），只分析画面")
+        return finish("unavailable", "当前环境未安装可用的语音识别引擎，只分析画面")
     if not job.video.audio_streams:
         return finish("none", "该视频没有可读取的音轨，只分析画面")
 

@@ -779,6 +779,9 @@ async def agent_run(body: AgentRequest):
                       status=status, code=final.get("code"), message=final.get("message") if status == "error" else None,
                       elapsed_ms=round((time.perf_counter() - started) * 1000), model=final.get("model"),
                       prompt_tokens=usage.get("prompt"), completion_tokens=usage.get("completion"),
+                      known_prompt_tokens=usage.get("known_prompt", usage.get("prompt")),
+                      known_completion_tokens=usage.get("known_completion", usage.get("completion")),
+                      usage_complete=usage.get("complete", usage.get("prompt") is not None and usage.get("completion") is not None),
                       rounds=sum(1 for c in calls.values() if c["name"].startswith("vision.")),
                       web=body.web, papers=body.papers, scope="frames" if frames else "all",
                       tools=[{k: c[k] for k in ("name", "ms", "ok", "count")} for c in calls.values()
