@@ -144,7 +144,7 @@ def _start_cleanup(client):
     return task
 
 
-async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int, str]:
+async def _by_main_model(question: str, *, client=None) -> tuple[Intent | None, dict | None, int, str]:
     """Return the classification plus measured usage, including failed/invalid model answers.
 
     One deadline bounds the user's wait. Client cleanup may finish in the background afterwards;
@@ -154,7 +154,8 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
     started = time.perf_counter()
     timeout = LLM_FALLBACK_TIMEOUT
     deadline = started + timeout
-    client = usage = None
+    owns_client = client is None
+    usage = None
     label = None
     detail = ""
     try:
@@ -171,7 +172,8 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
         except (TypeError, ValueError):
             pass  # invalid/non-positive/non-finite values keep the default
         deadline = started + timeout
-        client = create_client(LLMConfig.from_env())
+        if owns_client:
+            client = create_client(LLMConfig.from_env())
         usage = Usage()
         prompt = LLM_PROMPT.format(question=(question or "").translate(_CONTROL)[:500], **CRITERIA)
 
@@ -191,7 +193,7 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
         detail = ("主模型未配置或不可用" if getattr(error, "code", None) == "no_api_key"
                   else "主模型分类失败，已退回关键词")
     finally:
-        if client is not None:
+        if owns_client and client is not None:
             cleanup = _start_cleanup(client)
             # Preserve caller cancellation; closing the pool is independently owned from here.
             if not asyncio.current_task().cancelling():
@@ -210,8 +212,12 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
     return got, counts, took, detail
 
 
-async def classify(question: str, decider=None) -> Intent:
-    """The question's kind: the decision model's pick, else the main model's, else keywords. Never raises."""
+async def classify(question: str, decider=None, *, client=None) -> Intent:
+    """Pick a kind, optionally through a caller-owned (e.g. metered) main-model client.
+
+    The injected client is never closed here. Existing two-positional-argument callers keep the
+    private-client fallback. Caller cancellation still propagates so shared meters retain usage.
+    """
     started = time.perf_counter()
     if decider is not None:
         try:
@@ -222,7 +228,7 @@ async def classify(question: str, decider=None) -> Intent:
             return Intent(decision.choice, probs[decision.choice], probs, "决策模型", elapsed_ms=took)
         except Exception:  # noqa: BLE001 — the decision model is optional
             pass
-    fallback, used, took, detail = await _by_main_model(question)
+    fallback, used, took, detail = await _by_main_model(question, client=client)
     if fallback is not None:
         fallback.elapsed_ms = round((time.perf_counter() - started) * 1000)
         return fallback
