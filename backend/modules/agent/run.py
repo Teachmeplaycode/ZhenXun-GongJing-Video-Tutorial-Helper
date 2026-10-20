@@ -304,6 +304,9 @@ def speech_warning(job: FrameJob) -> str:
     return "语音转写不可靠（" + "；".join(reasons) + "）：不要把它当作台词，说了什么以画面字幕为准"
 
 
+MATERIAL_READ = "我已经看过这个视频的资料（标题、语音转写、画面文字和关键帧），请提问。"
+
+
 def build_messages(job: FrameJob, frames: list, question: str, history: list[dict], scope_all: bool,
                    transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], "")) -> list[dict]:
     video = job.video
@@ -317,10 +320,8 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
         context.append(f"简介：{video.description[:800]}")
     if video.extra.get("tags"):
         context.append("话题：" + "、".join(f"#{t}" for t in video.extra["tags"]))
-    if pictures:
-        context.append(f"范围：{'全部图片' if scope_all else '用户选中的图片'}，共提供 {len(frames)} 张")
-    else:
-        context.append(f"范围：{'整段视频' if scope_all else '用户选中的帧'}，共提供 {len(frames)} 帧画面")
+    scope = (f"范围：{'全部图片' if scope_all else '用户选中的图片'}，共提供 {len(frames)} 张" if pictures
+             else f"范围：{'整段视频' if scope_all else '用户选中的帧'}，共提供 {len(frames)} 帧画面")
     stats = video.extra.get("stats") or {}
     names = {"views": "播放", "likes": "点赞", "comments": "评论", "danmaku": "弹幕", "favorites": "收藏", "shares": "转发"}
     if stats:
@@ -352,11 +353,18 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
         data = base64.b64encode(job.frame_path(slot.index).read_bytes()).decode()
         content.append({"type": "text", "text": picture_sets.image_label(slot.index) if pictures else f"帧 {frame_no(slot.index)} · {clock(slot.time)}"})
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}})
-    content.append({"type": "text", "text": f"问题：{question}"})
 
     past = [{"role": m["role"], "content": str(m["content"])[:HISTORY_CHARS]}
             for m in history[-HISTORY_MESSAGES:] if m.get("role") in ("user", "assistant") and m.get("content")]
-    return [{"role": "system", "content": SYSTEM_PROMPT}, *past, {"role": "user", "content": content}]
+    # The video's material comes first and the same for every question about it (asking about the whole
+    # video), so the provider's context cache serves it from the second question on; the conversation and
+    # this question come after it. Measured on an Excel tutorial, three questions in a row: 4-11 % of the
+    # prompt read from the cache before, most of it after (see the commit).
+    return [{"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content},
+            {"role": "assistant", "content": MATERIAL_READ},
+            *past,
+            {"role": "user", "content": [{"type": "text", "text": scope}, {"type": "text", "text": f"问题：{question}"}]}]
 
 
 async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
@@ -472,7 +480,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             yield tool("lessons", "completed", result_count=lessons.count("\n- "))
         messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))
                        + lessons}
-    prompt_tokens = completion_tokens = 0
+    prompt_tokens = completion_tokens = cached_tokens = 0
     tool_calls = 0
     usage = Usage()
     answered = False  # any answer text streamed so far
@@ -574,6 +582,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                    "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens}}
             return
         prompt_tokens += usage.prompt_tokens or 0
+        cached_tokens += usage.cached_tokens or 0
         completion_tokens += usage.completion_tokens or 0
         asked = usage.tool_calls
         yield tool(call_id, "output", stdout=(
@@ -639,6 +648,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         except LLMError:
             break  # what was written stands; the note below says it was cut off
         prompt_tokens += usage.prompt_tokens or 0
+        cached_tokens += usage.cached_tokens or 0
         completion_tokens += usage.completion_tokens or 0
 
     tokens = f"输入 {prompt_tokens} · 输出 {completion_tokens} tokens"
@@ -646,5 +656,5 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield {"type": "assistant.message.delta", "delta": "\n\n（回答达到长度上限，已截断）"}
     extra = f" · 调用工具 {tool_calls} 次" if tool_calls else ""
     yield {"type": "run.completed", "steps": steps, "elapsed_ms": round((time.perf_counter() - started) * 1000),
-           "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens}, "tool_calls": tool_calls,
+           "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens, "cached": cached_tokens}, "tool_calls": tool_calls,
            "summary": f"分析 {len(chosen)} 帧 · {len(lines)} 行语音{extra} · {model} · {tokens}"}
