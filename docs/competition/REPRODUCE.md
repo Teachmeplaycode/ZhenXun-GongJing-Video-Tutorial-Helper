@@ -18,6 +18,7 @@ git switch --detach 34b38f0f74a1b85dd1cba167a4063a6642eab44f
 (cd backend && uv sync)
 (cd front && npm ci)
 (cd backend && uv run playwright install --only-shell chromium)
+(cd front && npx playwright install chromium)
 ```
 
 上述安装命令是复现步骤，本轮未在全新系统上执行。无仓库访问权限时由仓库所有者开通正常 GitHub 访问；不要把 token 写进 URL 或文档。
@@ -71,14 +72,13 @@ export API_PORT=8024 WEB_PORT=5204
 
 前端现有 Playwright 配置使用独立 5199，mock 所有 API，不调用真实模型；若已占用，需要在不提交的临时配置中换端口，不复用其他服务。单元测试/E2E 通过也不能证明模型准确率。
 
-以下为真实评测命令说明，**本轮未执行真实评测**，运行前需确认费用和数据。科普评测必须先由用户完成至少一条标准答案复核、在 `backend/evals/factcheck.json` 中标记 reviewed，再运行默认命令。当前 reviewed=0，直接执行会在启动后端/模型前退出并提示“没有要跑的条目”；这是前置条件未满足，不是一次真实评测。`--drafts` 仅供诊断，不能代替人工标签。
+以下为真实评测命令说明，**本轮未执行真实评测**，运行前需确认费用和数据。科普评测必须先由用户完成至少一个完整条目内每条说法、判定和证据的人工复核，再在 `backend/evals/factcheck.json` 中将该条目标记 reviewed，再运行默认命令。当前 reviewed=0，直接执行会在启动后端/模型前退出并提示“没有要跑的条目”；这是前置条件未满足，不是一次真实评测。`--drafts` 仅供诊断，不能代替人工标签。
 
 ```bash
 cd backend
 uv run python scripts/eval.py --judge
 uv run python scripts/factcheck_eval.py
-uv run python scripts/bench.py --config E --n 100
-uv run python scripts/bench.py --config E --val --n 60 --seed 31 --set LLM_TEMPERATURE=0
+# MotionBench E 请先完成下一节的元数据与校准准备，不能直接运行。
 ```
 
 `eval.py` 当前是 11 个视频、47 道题（旧 README 的 7/29 已过时）。`factcheck_eval.py` 是独立脚本，没有 `eval.py --factcheck` 参数；默认只评测人工标为 reviewed 的条目，目前 42 条草稿、165 条说法、reviewed=0。`--drafts` 可跑草稿，仅供诊断，不能当人工确认的准确率。
@@ -90,3 +90,50 @@ uv run python scripts/bench.py --config E --val --n 60 --seed 31 --set LLM_TEMPE
 Linux 适配由 [Issue #8](https://github.com/Teachmeplaycode/MyTargetProject/issues/8)、`feat/cloud-adapters` 工作线负责。其 PR 尚待建立/验证，不能把本指南的 macOS 启动步骤直接当成当前 main 已通过的 Linux 流程。适配分支计划增加 faster-whisper/RapidOCR，可用性与安装命令以 A 分支实际 PR 为准。
 
 待验证：全新 Mac 安装；指定真实视频的 ASR/OCR/问答/回看；Linux 容器或实际 Linux 流程；真实模型准确率与费用；多浏览器演示；人工验收集 D。记录机器、源码 SHA、命令、退出码、耗时与数据来源后再更新完成状态。
+
+## MotionBench 元数据与 E 校准准备（未在本轮执行）
+
+MotionBench 数据集的学术用途与 CC-BY-NC-SA-4.0 限制见项目实验记录及 [数据集页面](https://huggingface.co/datasets/zai-org/MotionBench)。只有具备适用访问/使用权限并能连接官方站点时继续。下列步骤应在上面的新副本 `backend` 目录执行；网络失败就停下记录，不跳过元数据或校准。
+
+先用数据集官方 API 查找元数据文件，记录实际 revision 与文件 SHA256，不猜仓库内的子路径，也不覆盖已有数据：
+
+```bash
+python3 - <<'PYDATA'
+import hashlib, json
+from pathlib import Path
+from urllib.parse import quote
+from urllib.request import urlopen
+base = 'https://huggingface.co/datasets/zai-org/MotionBench'
+with urlopen('https://huggingface.co/api/datasets/zai-org/MotionBench', timeout=60) as response:
+    info = json.load(response)
+names = [i['rfilename'] for i in info['siblings']
+         if i['rfilename'].rsplit('/', 1)[-1] == 'video_info.meta.jsonl']
+assert len(names) == 1, '元数据名称不唯一或已改变，请检查官方数据集清单'
+revision = info['sha']
+target = Path('data/bench/motionbench/video_info.meta.jsonl')
+assert not target.exists(), '已有元数据，先核对来源；本脚本不覆盖'
+with urlopen(f"{base}/resolve/{revision}/{quote(names[0], safe='/')}", timeout=120) as response:
+    data = response.read()
+rows = [json.loads(line) for line in data.decode().splitlines() if line.strip()]
+assert rows and all('qa' in row and 'question_type' in row for row in rows)
+target.parent.mkdir(parents=True, exist_ok=True)
+target.write_bytes(data)
+record = {'revision': revision, 'path': names[0], 'sha256': hashlib.sha256(data).hexdigest(), 'rows': len(rows)}
+(target.parent / 'metadata-source.json').write_text(json.dumps(record, indent=2))
+print(record)
+PYDATA
+uv run python scripts/calibrate.py --out data/bench/calibration.json
+CALIBRATION_FILE="$PWD/data/bench/calibration.json" uv run python - <<'PYCAL'
+from modules.frames import instruments
+value = instruments.learned()
+assert value and value.get('camera', {}).get('n', 0) > 0, '没有有效镜头校准，停止E评测'
+assert value.get('count', {}).get('n', 0) > 0, '没有有效计数校准，停止E评测'
+print('E校准已读取；请保存文件SHA、样本和生成记录')
+PYCAL
+uv run python scripts/bench.py --config E --n 100
+uv run python scripts/bench.py --config E --val --n 60 --seed 31 --set LLM_TEMPERATURE=0
+```
+
+`calibrate.py` 按需下载训练片段并用本机仪器测量，不调用问答模型；后两条 bench 命令会调用模型。缺校准文件时现有 `instruments.learned()` 会返回 None、使用固定校准，因此必须通过上面的非空校准检查后再称为 E。数据下载、校准与真实 bench 在本轮均未执行。
+
+重新生成校准是复现方法，不保证重现历史63.3%：精确复现还缺当时的数据集revision、校准文件/读数、训练与验证排除记录、逐题结果、模型版本和配置。校准/验证划分会读取 `data/bench/results/train` 里的训练记录；新副本缺这些历史记录，划分也可能变化。获得这些原始产物并核对SHA前，只能称为新的复现实验，不能宣称历史数值已复现。
