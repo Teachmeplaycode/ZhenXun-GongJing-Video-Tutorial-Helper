@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import inspect
 import os
 import re
 import time
@@ -501,9 +502,19 @@ async def _run_agent(job: FrameJob, client: ChatClient | OllamaClient, question:
     steps += 1
     yield tool("route", "started", tool_name="decision.intent")
     yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
+    over = spend.gate_round()
+    if over:
+        raise agent_budget.BudgetExceeded(spend, over)
     metered_before = spend.llm_calls
     try:
-        route = await spend.bounded(intent.classify(question, decider))
+        # A optionally accepts this per-answer client; old implementations and call sites
+        # retain their positional API. The proxy then owns timeout/cancel usage as well.
+        try:
+            params = inspect.signature(intent.classify).parameters
+            injected = "client" in params or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        except (TypeError, ValueError):
+            injected = False
+        route = await spend.bounded(intent.classify(question, decider, **({"client": client} if injected else {})))
     except BaseException as exc:
         if spend.llm_calls == metered_before:
             spend.record(None, None, status="cancelled" if isinstance(exc, (asyncio.CancelledError, GeneratorExit)) else "error")

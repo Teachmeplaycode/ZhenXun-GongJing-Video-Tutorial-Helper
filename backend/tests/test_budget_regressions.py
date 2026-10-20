@@ -299,3 +299,58 @@ def test_finite_prices_that_overflow_still_cannot_produce_infinite_cost(monkeypa
     b = AnswerBudget()
     b.llm_finished(1000, 1000)
     assert b.cost()['cny'] is None and not b.cost()['computable']
+
+
+def test_exhausted_tokens_do_not_start_unmetered_intent_fallback(tmp_path, monkeypatch):
+    monkeypatch.setenv('LLM_BUDGET_MAX_TOKENS', '0')
+    entered = []
+    async def classify(question, decider=None):
+        entered.append(True)
+        from modules.agent.intent import by_keywords
+        return by_keywords(question)
+    monkeypatch.setattr('modules.agent.run.intent.classify', classify)
+    raw = types.SimpleNamespace(config=types.SimpleNamespace(model='unused'))
+    done = collect(run_agent(make_job(tmp_path, ['ok']), raw, 'hello'))[-1]
+    assert entered == []
+    assert done['code'] == 'budget' and done['budget']['limit_hits'] == ['tokens']
+
+
+def test_optional_intent_client_is_metered_once(tmp_path, monkeypatch):
+    import httpx
+    from modules.llm import Usage
+    from modules.agent import intent
+    injected = []
+    async def classify(question, decider=None, *, client=None):
+        injected.append(client)
+        u = Usage()
+        _ = [d async for d in client.stream([], u)]
+        route = intent.by_keywords(question)
+        route.usage = {'prompt_tokens': u.prompt_tokens, 'completion_tokens': u.completion_tokens}
+        return route
+    monkeypatch.setattr('modules.agent.run.intent.classify', classify)
+    handler = lambda r: httpx.Response(200, text=sse_body(
+        {'choices': [{'delta': {'content': 'answer'}, 'finish_reason': 'stop'}]},
+        {'choices': [], 'usage': {'prompt_tokens': 50, 'completion_tokens': 5}}))
+    done = collect(run_agent(make_job(tmp_path, ['ok']), client_for(handler), 'hello'))[-1]
+    from modules.agent.budget import MeteredClient
+    assert isinstance(injected[0], MeteredClient)
+    assert done['budget']['llm_calls'] == 2 and done['usage']['prompt'] == 100
+    assert done['usage']['completion'] == 10  # metadata must not add the routed stream twice
+
+
+def test_optional_intent_client_preserves_partial_on_answer_deadline(tmp_path, monkeypatch):
+    from modules.llm import Usage
+    async def classify(question, decider=None, *, client=None):
+        _ = [d async for d in client.stream([], Usage())]
+        raise AssertionError('deadline must interrupt')
+    monkeypatch.setattr('modules.agent.run.intent.classify', classify)
+    monkeypatch.setenv('LLM_BUDGET_MAX_SECONDS', '.03')
+    class Slow:
+        config = types.SimpleNamespace(model='slow')
+        async def stream(self, messages, usage, **kwargs):
+            usage.prompt_tokens = 31
+            await asyncio.sleep(60)
+            yield 'never'
+    done = collect(run_agent(make_job(tmp_path, ['ok']), Slow(), 'hello'))[-1]
+    assert done['code'] == 'budget' and done['usage']['known_prompt'] == 31
+    assert done['budget']['llm_calls'] == 1 and not done['usage']['complete']
