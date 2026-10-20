@@ -81,7 +81,7 @@ def test_the_agent_sees_a_picture_set_and_only_picture_tools(tmp_path):
         job.frame_path(s.index).parent.mkdir(parents=True, exist_ok=True)
         job.frame_path(s.index).write_bytes(b"jpg")
     messages = build_messages(job, job.slots, "这两张图说了什么", [], scope_all=True)
-    texts = [p["text"] for p in messages[-1]["content"] if p["type"] == "text"]
+    texts = [p["text"] for p in messages[1]["content"] if p["type"] == "text"]  # the material message
     assert texts[0].startswith("图集标题：早餐图集\n共 2 张图片\n这是一组图片") and "第 1 张" in texts and "第 2 张" in texts
     assert not any("时长" in t for t in texts)
     names = {d["function"]["name"] for d in allowed_tools(job, False, False, ())}
