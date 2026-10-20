@@ -24,7 +24,11 @@ sys.path.insert(0, str(ROOT))
 from modules.agent import intent  # noqa: E402
 
 
-def report(name: str, rows: list[tuple[str, str, object]]) -> None:
+def report(name: str, rows: list[tuple[str, str, object]], *, attempts=None) -> None:
+    if not rows:
+        print(f"\n{name}: 不可用（没有实际分类结果，不计算准确率）")
+        report_usage(attempts or [])
+        return
     right = sum(got.kind == want for _, want, got in rows)
     print(f"\n{name}: {right}/{len(rows)} = {right / len(rows):.0%}")
     for kind in intent.CRITERIA:
@@ -41,11 +45,17 @@ def report(name: str, rows: list[tuple[str, str, object]]) -> None:
     waited = [g.elapsed_ms for _, _, g in rows if g.elapsed_ms]
     if waited:
         print(f"  平均耗时 {sum(waited) / len(rows):.0f} ms/题（含主模型回退等待）")
-        tokens = [g.usage for _, _, g in rows if g.usage]
-        if tokens:
-            prompt = sum(t["prompt_tokens"] or 0 for t in tokens)
-            completion = sum(t["completion_tokens"] or 0 for t in tokens)
-            print(f"  主模型 token：prompt {prompt} + completion {completion}（{len(tokens)}/{len(rows)} 题实际调用）")
+    report_usage(rows if attempts is None else attempts)
+
+
+def report_usage(rows):
+    """Include failed classifications too: discarded answers can still be billable."""
+    tokens = [g.usage for _, _, g in rows if g.usage]
+    if tokens:
+        prompt = sum(t["prompt_tokens"] for t in tokens if t["prompt_tokens"] is not None)
+        completion = sum(t["completion_tokens"] for t in tokens if t["completion_tokens"] is not None)
+        unknown = sum(t["prompt_tokens"] is None or t["completion_tokens"] is None for t in tokens)
+        print(f"  主模型已知 token：prompt {prompt} + completion {completion}（{len(tokens)}/{len(rows)} 题实际调用；{unknown} 题用量不完整/未知）")
 
 
 async def with_fallback(questions) -> tuple[list[tuple[str, str, object]], str]:
@@ -63,6 +73,23 @@ async def with_fallback(questions) -> tuple[list[tuple[str, str, object]], str]:
     return rows, name
 
 
+async def with_decider(questions, decider):
+    """Score only the decision model, without silently invoking the main model instead."""
+    from modules.decide import questions as dq
+    rows = []
+    for question, kind in questions:
+        started = time.perf_counter()
+        try:
+            decision = await decider.choice(dq.question_state(question), intent.QUESTION, intent.CRITERIA, task="intent")
+            probs = {k: round(v, 3) for k, v in decision.probabilities.items()}
+            got = intent.Intent(decision.choice, probs[decision.choice], probs, "决策模型",
+                                elapsed_ms=round((time.perf_counter() - started) * 1000))
+        except Exception:  # optional local model unavailable; never count another method as it
+            continue
+        rows.append((question, kind, got))
+    return rows
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--keywords", action="store_true")
@@ -74,15 +101,14 @@ async def main() -> None:
     from modules.decide.client import Decider
     decider = Decider()
     await decider.warm()
-    started = time.perf_counter()
-    rows = [(q, k, await intent.classify(q, decider)) for q, k in questions]
-    await decider.aclose()
-    if all(g.how == "关键词" for _, _, g in rows):
-        print("\n决策模型不可用（Ollama 没有运行？），上面就是退回时的结果")
-    else:
-        report(f"决策模型（{decider.model}，平均 {(time.perf_counter() - started) / len(rows) * 1000:.0f} ms/题）", rows)
+    try:
+        rows = await with_decider(questions, decider)
+    finally:
+        await decider.aclose()
+    report(f"决策模型（{decider.model}，实际分类 {len(rows)}/{len(questions)} 题；准确率分母仅含实际分类）", rows)
     fallback_rows, name = await with_fallback(questions)
-    report(name, fallback_rows)
+    # Keyword results aren't model predictions, but failed requests can still have usage.
+    report(name, [(q, k, g) for q, k, g in fallback_rows if g.how == "主模型回退"], attempts=fallback_rows)
 
 
 if __name__ == "__main__":
