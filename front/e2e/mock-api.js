@@ -79,7 +79,10 @@ export function researchAnswer() {
     { type: 'assistant.message.delta', delta: '- 视频在 [00:30] 提到柚子会抑制 **CYP3A4**\n- FDA 说明见 https://www.fda.gov/grapefruit', t: 7.4 },
     { type: 'tool_call.output', call_id: 'model1', stdout: 'finish_reason=stop', exit_code: 0, t: 7.5 },
     { type: 'tool_call.completed', call_id: 'model1', result_count: 8, t: 7.5 },
-    { type: 'run.completed', steps: 6, elapsed_ms: 7600, summary: '分析 8 帧 · 4 行语音 · deepseek-flash · 输入 1000 · 输出 100 tokens', t: 7.6 },
+    { type: 'run.completed', steps: 6, elapsed_ms: 7600, summary: '分析 8 帧 · 4 行语音 · deepseek-flash · 输入 1000 · 输出 100 tokens',
+      usage: { prompt: 1000, completion: 100 }, cost: { cny: 0.0006, computable: true, reason: null },
+      budget: { external_calls: 1, tool_calls: 1, blocked_calls: 0, frames_read: 0, limit_hits: [], prompt_tokens: 1000,
+                completion_tokens: 100, tokens_known: true, llm_calls: 2, llm_failures: 0, max_wait_ms: 2300, elapsed_ms: 7600 }, t: 7.6 },
   ]
 }
 
