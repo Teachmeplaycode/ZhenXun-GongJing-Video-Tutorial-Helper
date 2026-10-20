@@ -29,6 +29,10 @@ QTYPES = {
     "action_count": "动作与计数",
     "summary": "总结",
     "verify": "核实",
+    # Software tutorials (evals/tutorial.json): why a step / where it fails, and questions the video
+    # can't answer, whose right answer is that it doesn't say.
+    "reason": "原因与出错",
+    "absent": "证据不足",
 }
 
 TARGET_VIDEOS = 30
@@ -37,7 +41,10 @@ TARGET_PER_CATEGORY = 5
 
 # Fields consumed by scripts/eval.py (including this module's classification metadata).
 # Optional execution controls remain optional: web/papers default True; absent/empty frames mean all.
-CASE_FIELDS = frozenset({"id", "video", "question", "rubric", "qtype", "checks", "frames", "web", "papers"})
+CASE_FIELDS = frozenset({"id", "video", "question", "rubric", "qtype", "checks", "frames", "web", "papers",
+                         "reviewed", "evidence"})
+# reviewed: false marks a drafted case whose reference answer no person has confirmed yet; eval.py
+# skips it unless --drafts. evidence: the seconds the reference answer rests on (for checks.near).
 
 
 def normalize_video_url(url: str) -> str:
@@ -134,6 +141,13 @@ def validate(spec: dict) -> list[str]:
         if "frames" in c and (not isinstance(c["frames"], list)
                               or not all(type(frame) is int and frame >= 0 for frame in c["frames"])):
             errors.append(f"{cid or '?'} 的 frames 应为非负整数数组")
+        if "reviewed" in c and not isinstance(c["reviewed"], bool):
+            errors.append(f"{cid or '?'} 的 reviewed 应为布尔值")
+        if "evidence" in c and (not isinstance(c["evidence"], list)
+                                or not all(isinstance(t, (int, float)) and not isinstance(t, bool) and t >= 0 for t in c["evidence"])):
+            errors.append(f"{cid or '?'} 的 evidence 应为非负秒数数组")
+        if isinstance(c.get("checks"), dict) and c["checks"].get("near") and not c.get("evidence"):
+            errors.append(f"{cid or '?'} 用了 checks.near 但没有 evidence 时间点")
         for flag in ("web", "papers"):
             if flag in c and not isinstance(c[flag], bool):
                 errors.append(f"{cid or '?'} 的 {flag} 应为布尔值")
@@ -144,7 +158,7 @@ def validate(spec: dict) -> list[str]:
 def _validate_checks(cid: str, c: dict) -> list[str]:
     if not isinstance(c, dict):
         return [f"{cid}.checks 应为对象"]
-    supported = {"tools_any", "tools_all", "tools_none", "contains_any", "contains_none", "timestamps"}
+    supported = {"tools_any", "tools_all", "tools_none", "contains_any", "contains_none", "timestamps", "near", "citations_ok"}
     errors: list[str] = [f"{cid}.checks 不支持字段 {key}" for key in c if key not in supported]
     for key in ("tools_any", "tools_all", "tools_none"):
         if key in c and (not isinstance(c[key], list)
@@ -161,8 +175,9 @@ def _validate_checks(cid: str, c: dict) -> list[str]:
     if "contains_none" in c and (not isinstance(c["contains_none"], list)
                                 or not all(isinstance(item, str) and item.strip() for item in c["contains_none"])):
         errors.append(f"{cid}.checks.contains_none 应为字符串数组，元素应为非空字符串")
-    if "timestamps" in c and not isinstance(c["timestamps"], bool):
-        errors.append(f"{cid}.checks.timestamps 不是布尔值")
+    for key in ("timestamps", "near", "citations_ok"):
+        if key in c and not isinstance(c[key], bool):
+            errors.append(f"{cid}.checks.{key} 不是布尔值")
     return errors
 
 

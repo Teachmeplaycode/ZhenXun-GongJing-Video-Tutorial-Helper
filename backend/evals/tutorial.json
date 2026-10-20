@@ -1,0 +1,1642 @@
+{
+  "note": "Held-out software tutorials for acceptance (the main demo scenario): chosen 2026-10-20, never used while tuning. Run: uv run python scripts/eval.py --cases evals/tutorial.json --judge (add --drafts before the reference answers are reviewed).",
+  "videos": {
+    "tut-excel-cf": {
+      "url": "https://www.bilibili.com/video/BV1LU4y1h72K",
+      "category": "tutorial",
+      "note": "Excel：用公式定义条件格式（陆离Lowry）"
+    },
+    "tut-vlookup": {
+      "url": "https://www.bilibili.com/video/BV1M34y1C7HZ",
+      "category": "tutorial",
+      "note": "Excel：vlookup 函数使用方法详解（材料天地）"
+    },
+    "tut-vlookup3": {
+      "url": "https://www.bilibili.com/video/BV1Lh41187WL",
+      "category": "tutorial",
+      "note": "Excel：VLOOKUP 同表、跨表、跨工作簿（山竹Excel）"
+    },
+    "tut-dropdown": {
+      "url": "https://www.bilibili.com/video/BV1hj41117W2",
+      "category": "tutorial",
+      "note": "Excel：二级联动下拉菜单（Excel自学成才）"
+    },
+    "tut-word-toc": {
+      "url": "https://www.bilibili.com/video/BV1Yu411k7Dy",
+      "category": "tutorial",
+      "note": "Word：自动生成目录"
+    },
+    "tut-word-levels": {
+      "url": "https://www.bilibili.com/video/BV1Cz411B7ho",
+      "category": "tutorial",
+      "note": "Word：多级标题和目录生成设置"
+    },
+    "tut-ppt-anim": {
+      "url": "https://www.bilibili.com/video/BV1Da4y1i72P",
+      "category": "tutorial",
+      "note": "PPT：几个动画效果（新手向）"
+    },
+    "tut-ppt-morph": {
+      "url": "https://www.bilibili.com/video/BV1sJ4m1W7wK",
+      "category": "tutorial",
+      "note": "PPT：平滑动画"
+    },
+    "tut-wps-table": {
+      "url": "https://www.bilibili.com/video/BV1fE411f7Jx",
+      "category": "tutorial",
+      "note": "WPS：基础表格制作"
+    },
+    "tut-ps-cutout": {
+      "url": "https://www.bilibili.com/video/BV1ob4y1h7Kj",
+      "category": "tutorial",
+      "note": "PS：三种抠图方法"
+    },
+    "tut-ps-curves": {
+      "url": "https://www.bilibili.com/video/BV14AjnzfEsw",
+      "category": "tutorial",
+      "note": "PS：曲线调色"
+    },
+    "tut-jianying-subs": {
+      "url": "https://www.bilibili.com/video/BV1gD421u75J",
+      "category": "tutorial",
+      "note": "剪映：加字幕的三种方法"
+    },
+    "tut-pr-basics": {
+      "url": "https://www.bilibili.com/video/BV1s7411s7Lq",
+      "category": "tutorial",
+      "note": "PR：8 分钟上手基础剪辑"
+    },
+    "tut-vscode-py": {
+      "url": "https://www.bilibili.com/video/BV1tF411M7hy",
+      "category": "tutorial",
+      "note": "VS Code：配置 Python 运行环境（火星动力猿）"
+    },
+    "tut-vscode-py2": {
+      "url": "https://www.bilibili.com/video/BV1VW4y1N7YD",
+      "category": "tutorial",
+      "note": "VS Code：配置 Python（疯狂沉迷学习）"
+    },
+    "tut-cad": {
+      "url": "https://www.bilibili.com/video/BV1Tg411k7XX",
+      "category": "tutorial",
+      "note": "AutoCAD：入门教程"
+    }
+  },
+  "cases": [
+    {
+      "id": "tut-excel-cf-locate",
+      "video": "tut-excel-cf",
+      "qtype": "locate",
+      "question": "在条件格式里用公式标记销量小于100的整行时，公式里是怎么锁定列的？",
+      "rubric": "参考答案：在新建规则“使用公式确定要设置的单元格”中，输入公式时把列锁定（如 $F6），只判断销量这一列，再应用格式并确定。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "锁定列",
+            "锁列",
+            "锁定"
+          ],
+          [
+            "销量这一列",
+            "销量列"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        336.0,
+        340.0,
+        343.0
+      ]
+    },
+    {
+      "id": "tut-excel-cf-reason",
+      "video": "tut-excel-cf",
+      "qtype": "reason",
+      "question": "为什么用公式设置条件格式时，公式必须返回TRUE或FALSE？",
+      "rubric": "参考答案：因为条件格式是基于公式返回的逻辑值判断：TRUE则执行条件格式，FALSE则不执行，所以公式必须是逻辑函数并返回TRUE或FALSE。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        58.0,
+        61.0,
+        63.0,
+        64.0
+      ]
+    },
+    {
+      "id": "tut-excel-cf-summary",
+      "video": "tut-excel-cf",
+      "qtype": "summary",
+      "question": "要把销量小于100的整行都标记背景色，完整步骤是什么？",
+      "rubric": "参考答案：选中整个数据区域→点击条件格式→新建规则→选择“使用公式确定要设置的单元格”→输入公式（如 =$F6<100，锁定列只判断销量列）→设置填充格式→点击确定。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "选中整个区域",
+            "选中整个数据区域",
+            "选中区域"
+          ],
+          [
+            "条件格式"
+          ],
+          [
+            "新建规则"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        330.0,
+        332.0,
+        334.0,
+        336.0
+      ]
+    },
+    {
+      "id": "tut-excel-cf-absent",
+      "video": "tut-excel-cf",
+      "qtype": "absent",
+      "question": "视频里有没有讲怎么用公式根据日期标记周末为红色、工作日为绿色？",
+      "rubric": "参考答案：视频没有讲根据日期标记周末/工作日（周末红色、工作日绿色）的具体做法；视频讲的是用公式确定条件格式的原理，以及标记销量小于100的数据、姓名和整行，最后只留了日期标记工作日/周末的思考题。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-vlookup-locate",
+      "video": "tut-vlookup",
+      "qtype": "locate",
+      "question": "在VLOOKUP函数中，第二参数框选数据范围后，按哪个键进行绝对引用？",
+      "rubric": "参考答案：按F4键进行绝对引用，时间在02:02。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "F4"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        122.0
+      ]
+    },
+    {
+      "id": "tut-vlookup-reason",
+      "video": "tut-vlookup",
+      "qtype": "reason",
+      "question": "为什么第二参数框选数据范围后要按F4做绝对引用？",
+      "rubric": "参考答案：防止往下填充数据时数据范围变动，时间在02:05。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        125.0
+      ]
+    },
+    {
+      "id": "tut-vlookup-summary",
+      "video": "tut-vlookup",
+      "qtype": "summary",
+      "question": "使用VLOOKUP函数查找某人语文成绩的完整步骤是什么？",
+      "rubric": "参考答案：1. 点击单元格输入=VLOOKUP；2. 第一参数选姓名单元格；3. 第二参数从姓名列开始框选数据范围并按F4绝对引用；4. 第三参数输入语文成绩在框选范围中的列数2；5. 第四参数选择精确匹配；6. 确定并向下填充公式。依据时间00:00-04:42。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "输入",
+            "等于"
+          ],
+          [
+            "姓名"
+          ],
+          [
+            "框选",
+            "F4"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        0.0,
+        45.0,
+        117.0,
+        122.0
+      ]
+    },
+    {
+      "id": "tut-vlookup-absent",
+      "video": "tut-vlookup",
+      "qtype": "absent",
+      "question": "VLOOKUP函数如何实现多条件查找？",
+      "rubric": "参考答案：视频没有讲多条件查找，视频讲的是VLOOKUP单条件查找语文成绩的用法。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-vlookup3-locate",
+      "video": "tut-vlookup3",
+      "qtype": "locate",
+      "question": "跨表查询时，第二参数框选完A表数据后，标准格式应该是什么样？",
+      "rubric": "参考答案：标准格式是“A表!B:D”，即工作表名加感叹号，后面跟框选的范围。如果出现两个“A表”或多余符号如“G1”就是错的。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "A表!B:D",
+            "A表感叹号B到D"
+          ],
+          [
+            "工作表名",
+            "工作表名字"
+          ],
+          [
+            "感叹号"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        128.0,
+        131.0,
+        133.0,
+        136.0
+      ]
+    },
+    {
+      "id": "tut-vlookup3-reason",
+      "video": "tut-vlookup3",
+      "qtype": "reason",
+      "question": "跨表查询时第二参数为什么容易出错？出错后怎么办？",
+      "rubric": "参考答案：因为鼠标点来点去会导致第二参数出现重复的工作表名或多余符号，格式不对。出错后应把整个第二参数删掉，重新框选。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        90.0,
+        91.0,
+        170.0,
+        171.0
+      ]
+    },
+    {
+      "id": "tut-vlookup3-summary",
+      "video": "tut-vlookup3",
+      "qtype": "summary",
+      "question": "跨工作簿查询的完整步骤是什么？",
+      "rubric": "参考答案：1. 在需要分数的表格中输入=VLOOKUP；2. 第一参数选名字；3. 第二参数点任务栏对应文件，框选源数据范围，检查格式为单引号+[工作簿名]+工作表名+!+范围；4. 第三参数输入列数；5. 第四参数输入0精确匹配；6. 回车确定。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "VLOOKUP"
+          ],
+          [
+            "第一参数",
+            "名字"
+          ],
+          [
+            "第二参数",
+            "框选"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        289.0,
+        291.0,
+        293.0,
+        310.0
+      ]
+    },
+    {
+      "id": "tut-vlookup3-absent",
+      "video": "tut-vlookup3",
+      "qtype": "absent",
+      "question": "VLOOKUP跨工作簿查询时，如果源文件关闭了怎么办？",
+      "rubric": "参考答案：视频没有讲源文件关闭后的处理方法。视频主要讲了同表、跨表、跨工作簿查询的第二参数格式和常见错误。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-dropdown-locate",
+      "video": "tut-dropdown",
+      "qtype": "locate",
+      "question": "一级下拉菜单在数据验证里把允许改成什么，来源选了哪些单元格？",
+      "rubric": "参考答案：在数据选项卡点数据验证，把允许改成「序列」，来源选中A1到D1（首行省份）区域，点确定。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "序列"
+          ],
+          [
+            "A1到D1",
+            "A1:D1",
+            "A1到D1的数据",
+            "首行"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        123.0,
+        125.0,
+        127.0,
+        136.0
+      ]
+    },
+    {
+      "id": "tut-dropdown-reason",
+      "video": "tut-dropdown",
+      "qtype": "reason",
+      "question": "为什么要把每个城市区域按Ctrl+T创建成智能表？",
+      "rubric": "参考答案：创建智能表后，在源数据下方新增城市（如衢州、湖州、温州），右侧二级下拉菜单能实时动态更新；不创建的话新增城市不会出现在下拉里。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        209.0,
+        211.0,
+        217.0,
+        232.0
+      ]
+    },
+    {
+      "id": "tut-dropdown-summary",
+      "video": "tut-dropdown",
+      "qtype": "summary",
+      "question": "制作可自动更新的二级联动下拉菜单，完整步骤是什么？",
+      "rubric": "参考答案：①准备源数据：一级菜单放首行，二级城市放对应列下方；②选中数据按Ctrl+G定位条件选常量；③公式选项卡点「根据所选内容创建」，选首行确定；④一级菜单用数据验证选序列，来源选A1:D1；⑤二级菜单数据验证选序列，来源用Indirect公式引用左侧省份单元格；⑥选中各数据区域按Ctrl+T创建智能表，实现新增数据自动更新。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "定位条件",
+            "常量"
+          ],
+          [
+            "根据所选内容创建"
+          ],
+          [
+            "数据验证",
+            "序列"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        61.0,
+        67.0,
+        78.0,
+        125.0
+      ]
+    },
+    {
+      "id": "tut-dropdown-absent",
+      "video": "tut-dropdown",
+      "qtype": "absent",
+      "question": "二级下拉菜单里怎么设置输入不在列表时弹出错误提示？",
+      "rubric": "参考答案：视频没有讲数据验证的出错警告/输入信息设置；视频讲的是准备源数据、定位常量、根据所选内容创建名称、用序列和Indirect做两级下拉，以及用Ctrl+T智能表实现源数据自动更新。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-word-toc-locate",
+      "video": "tut-word-toc",
+      "qtype": "locate",
+      "question": "插入自定义目录时，在哪里设置显示级别为2？",
+      "rubric": "参考答案：在“引用”选项卡点击“目录”选择“自定义目录”，在弹出的对话框中找到“显示级别”选项，将其改为2。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "引用"
+          ],
+          [
+            "目录"
+          ],
+          [
+            "自定义目录"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        147.0,
+        150.0,
+        151.0,
+        153.0
+      ]
+    },
+    {
+      "id": "tut-word-toc-reason",
+      "video": "tut-word-toc",
+      "qtype": "reason",
+      "question": "为什么在自定义目录时要点击“选项”并修改目录级别？",
+      "rubric": "参考答案：因为Word有默认的目录样式，需要删除默认样式，并将自己新建的样式（如一级、二级）分别设置为目录级别1和2，这样目录才能正确识别自定义标题样式。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        177.0,
+        179.0,
+        182.0,
+        183.0
+      ]
+    },
+    {
+      "id": "tut-word-toc-summary",
+      "video": "tut-word-toc",
+      "qtype": "summary",
+      "question": "如何为Word文档自动生成目录？请按顺序说出完整步骤。",
+      "rubric": "参考答案：1. 新建样式并修改格式（如一级标题三号黑体居中，二级标题四号宋体加粗左对齐等）；2. 将正文中的标题应用对应的样式；3. 点击“引用”->“目录”->“自定义目录”；4. 设置显示级别和前导符；5. 点击“选项”，删除默认样式，将自定义样式设为目录级别；6. 点击确定生成目录。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "新建样式",
+            "创建样式"
+          ],
+          [
+            "修改"
+          ],
+          [
+            "应用样式",
+            "设置成样式"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        27.0,
+        30.0,
+        34.0,
+        40.0
+      ]
+    },
+    {
+      "id": "tut-word-toc-absent",
+      "video": "tut-word-toc",
+      "qtype": "absent",
+      "question": "视频里有没有讲如何更新目录页码？",
+      "rubric": "参考答案：视频没有讲如何更新目录页码。视频主要讲了如何新建样式、修改标题格式、应用样式以及插入自定义目录的步骤，但没有涉及目录更新或页码更新的操作。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-word-levels-locate",
+      "video": "tut-word-levels",
+      "qtype": "locate",
+      "question": "定义新的多级列表是在哪个选项卡里点开的？",
+      "rubric": "参考答案：在「开始」选项卡里点「多级列表」，再选「定义新的多级列表」（01:03-01:09）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "开始"
+          ],
+          [
+            "多级列表"
+          ],
+          [
+            "定义新的多级列表"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        63.0,
+        69.0
+      ]
+    },
+    {
+      "id": "tut-word-levels-reason",
+      "video": "tut-word-levels",
+      "qtype": "reason",
+      "question": "为什么每个级别编号后都要把「编号之后」设成空格？",
+      "rubric": "参考答案：让编号和标题文字之间用空格分隔，标题显示更规整；不设空格编号会紧贴文字（01:43-01:50、02:09-02:11）。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        103.0,
+        108.0,
+        110.0,
+        131.0
+      ]
+    },
+    {
+      "id": "tut-word-levels-summary",
+      "video": "tut-word-levels",
+      "qtype": "summary",
+      "question": "从新建文档到自动生成目录，完整步骤是什么？",
+      "rubric": "参考答案：先输入各级标题文字，在「开始」里点「多级列表」→「定义新的多级列表」，逐级设置标题1-4、大纲级别1-4和正规编号，编号后选空格；再选中各级标题套用样式，最后在「引用」里选自动目录样式1生成目录（00:36-04:17）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "多级列表",
+            "定义新的多级列表"
+          ],
+          [
+            "大纲级别",
+            "级别1"
+          ],
+          [
+            "正规编号"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        36.0,
+        63.0,
+        94.0,
+        221.0
+      ]
+    },
+    {
+      "id": "tut-word-levels-absent",
+      "video": "tut-word-levels",
+      "qtype": "absent",
+      "question": "目录生成后怎么更新页码或设置目录字体格式？",
+      "rubric": "参考答案：视频没有讲目录的更新和字体格式设置；视频只讲了多级列表定义、各级标题设置和用「引用」插入自动目录。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-ppt-anim-locate",
+      "video": "tut-ppt-anim",
+      "qtype": "locate",
+      "question": "在制作最基础的平滑动画时，是在哪个菜单里选择平滑效果的？",
+      "rubric": "参考答案：在顶部【切换】动画菜单里选择平滑效果，具体在00:45提到。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "切换"
+          ],
+          [
+            "平滑"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        43.0,
+        45.0
+      ]
+    },
+    {
+      "id": "tut-ppt-anim-reason",
+      "video": "tut-ppt-anim",
+      "qtype": "reason",
+      "question": "为什么在制作圆环进度动画时要添加一个和背景同颜色的圆形？",
+      "rubric": "参考答案：为了制造伪镂空效果，使圆环中间看起来是空的，依据在04:25。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        265.0
+      ]
+    },
+    {
+      "id": "tut-ppt-anim-summary",
+      "video": "tut-ppt-anim",
+      "qtype": "summary",
+      "question": "制作排序/打乱动画的完整步骤是什么？",
+      "rubric": "参考答案：首先把乱序图片摆在页面中，然后复制页面并把全部图片排列整齐，最后把第二页的切换设置为平滑，依据在01:40到01:47。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "乱序图片",
+            "乱序"
+          ],
+          [
+            "复制页面",
+            "复制"
+          ],
+          [
+            "排列整齐",
+            "排列"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        100.0,
+        103.0,
+        107.0
+      ]
+    },
+    {
+      "id": "tut-ppt-anim-absent",
+      "video": "tut-ppt-anim",
+      "qtype": "absent",
+      "question": "视频里有没有讲如何给PPT添加背景音乐？",
+      "rubric": "参考答案：视频没有讲如何给PPT添加背景音乐，视频主要讲的是平滑动画、列表动画、进度动画等PPT动画效果的制作。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-ppt-morph-locate",
+      "video": "tut-ppt-morph",
+      "qtype": "locate",
+      "question": "做镂空圆聚焦效果时，在哪个菜单里选什么操作？",
+      "rubric": "参考答案：选中矩形和圆形后，在「形状格式」的「合并形状」中选择「剪除」（画面文字也识别为剪除），得到镂空的圆。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "形状格式"
+          ],
+          [
+            "合并形状"
+          ],
+          [
+            "剪除",
+            "剪除"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        63.0,
+        64.0,
+        66.0
+      ]
+    },
+    {
+      "id": "tut-ppt-morph-reason",
+      "video": "tut-ppt-morph",
+      "qtype": "reason",
+      "question": "变魔术时红牌变黑牌，为什么要垫一张透明黑牌？",
+      "rubric": "参考答案：红牌前面覆盖了一张透明度为0的黑牌，平滑过渡时红牌逐渐透明消失、黑牌逐渐显现至不透明，从而实现变色/换牌效果。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        84.0,
+        86.0,
+        88.0,
+        90.0
+      ]
+    },
+    {
+      "id": "tut-ppt-morph-summary",
+      "video": "tut-ppt-morph",
+      "qtype": "summary",
+      "question": "用平滑做镂空圆聚焦重点的完整步骤是什么？",
+      "rubric": "参考答案：①插入一个矩形，再插入一个圆形；②选中这两个形状，在形状格式的合并形状中选择剪除，得到镂空的圆；③把它放大一些并给一点透明度；④使用平滑，用镂空位置聚焦重点。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "插入矩形",
+            "矩形"
+          ],
+          [
+            "插入圆形",
+            "圆形"
+          ],
+          [
+            "合并形状"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        60.0,
+        61.0,
+        63.0,
+        64.0
+      ]
+    },
+    {
+      "id": "tut-ppt-morph-absent",
+      "video": "tut-ppt-morph",
+      "qtype": "absent",
+      "question": "平滑动画的持续时间在哪里设置、设多少秒合适？",
+      "rubric": "参考答案：视频没有讲平滑动画的持续时间设置方法和具体秒数；视频讲的是平滑能实现的效果（放大缩小、位移、变色、旋转、透明）、画布外待命、镂空圆聚焦、文本过渡和变牌原理等。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-wps-table-locate",
+      "video": "tut-wps-table",
+      "qtype": "locate",
+      "question": "合并单元格是在哪里点的？",
+      "rubric": "参考答案：选中A1到K1后，右键点击菜单中的“合并”选项（02:08）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "合并"
+          ],
+          [
+            "右键"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        125.0,
+        128.0
+      ]
+    },
+    {
+      "id": "tut-wps-table-reason",
+      "video": "tut-wps-table",
+      "qtype": "reason",
+      "question": "为什么要在设置单元格格式里选“缩小字体填充”？",
+      "rubric": "参考答案：为了让单元格里的字体能自动变小以适应列宽（05:20-05:43）。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        320.0,
+        341.0
+      ]
+    },
+    {
+      "id": "tut-wps-table-summary",
+      "video": "tut-wps-table",
+      "qtype": "summary",
+      "question": "从新建空白表格到加边框的完整步骤是什么？",
+      "rubric": "参考答案：新建空白文档→选中A1到K17→右键选“所有框线”→再选中A1到K1右键合并（00:32-02:18）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "新建空白文档"
+          ],
+          [
+            "所有框线"
+          ],
+          [
+            "合并"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        32.0,
+        47.0,
+        65.0,
+        128.0
+      ]
+    },
+    {
+      "id": "tut-wps-table-absent",
+      "video": "tut-wps-table",
+      "qtype": "absent",
+      "question": "怎么设置打印区域和打印标题行？",
+      "rubric": "参考答案：视频没有讲打印设置，只讲了新建表格、加框线、合并单元格和调整格式。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-ps-cutout-locate",
+      "video": "tut-ps-cutout",
+      "qtype": "locate",
+      "question": "通道抠图时，在通道面板找到对比最大的通道后，具体点了什么操作？",
+      "rubric": "参考答案：在通道面板找到对比最大的通道后，右击拷贝一层（约00:39），然后按Ctrl+L调出色阶调整。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "右击拷贝",
+            "拷贝一层"
+          ],
+          [
+            "通道面板",
+            "通道"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        36.0,
+        38.0,
+        39.0
+      ]
+    },
+    {
+      "id": "tut-ps-cutout-reason",
+      "video": "tut-ps-cutout",
+      "qtype": "reason",
+      "question": "蒙版抠图中按Alt键进入蒙版再粘贴反向，这一步的作用是什么？",
+      "rubric": "参考答案：按Alt键进入蒙版后粘贴并反向，是为了让透明物体（如冰块、酒杯）的暗部保留、亮部透明，从而在蒙版中正确显示透明效果；若不反向，透明区域会显示错误。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        64.0,
+        65.0,
+        67.0
+      ]
+    },
+    {
+      "id": "tut-ps-cutout-summary",
+      "video": "tut-ps-cutout",
+      "qtype": "summary",
+      "question": "用“选择并遮住”抠孔雀毛发的完整步骤是什么？",
+      "rubric": "参考答案：先用主体功能大致选出孔雀（01:19），接着找到选择并遮住（01:22），用第二个画笔仔细涂抹毛发边缘（01:25），涂多的地方按住Alt键恢复（01:34），涂抹好后点击净化颜色（01:37），确定后添加黑色背景查看效果（01:39），最后用黑色画笔擦除毛刺（01:44）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "主体功能",
+            "主体"
+          ],
+          [
+            "选择并遮住"
+          ],
+          [
+            "第二个画笔",
+            "画笔"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        79.0,
+        82.0,
+        85.0,
+        94.0
+      ]
+    },
+    {
+      "id": "tut-ps-cutout-absent",
+      "video": "tut-ps-cutout",
+      "qtype": "absent",
+      "question": "视频里有没有讲如何用钢笔工具抠图？",
+      "rubric": "参考答案：视频没有讲钢笔工具抠图。视频讲的是通道抠图、蒙版抠图和选择并遮住三种方法，以及稿定设计的智能抠图神器。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-ps-curves-locate",
+      "video": "tut-ps-curves",
+      "qtype": "locate",
+      "question": "在PS里怎么打开曲线面板？菜单路径和快捷键分别是什么？",
+      "rubric": "参考答案：点击「图像」菜单，在「调整」里找到「曲线」；快捷键是 Ctrl+M（画面文字显示 Ctrl加m）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "图像"
+          ],
+          [
+            "调整"
+          ],
+          [
+            "曲线"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        37.0,
+        38.0,
+        40.0
+      ]
+    },
+    {
+      "id": "tut-ps-curves-reason",
+      "video": "tut-ps-curves",
+      "qtype": "reason",
+      "question": "为什么RGB曲线上下拉动只改变明暗，不改变颜色？",
+      "rubric": "参考答案：因为RGB曲线是红、绿、蓝三条曲线的合并版，在RGB曲线上拉一条相当于同时拉动三条曲线，三种颜色之间保持平衡，所以画面只有明度变化，不会有颜色变化。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        111.0,
+        115.0,
+        119.0,
+        121.0
+      ]
+    },
+    {
+      "id": "tut-ps-curves-summary",
+      "video": "tut-ps-curves",
+      "qtype": "summary",
+      "question": "把一张偏黄的图调回正常颜色，完整步骤是什么？",
+      "rubric": "参考答案：先打开蓝色曲线向上推加蓝，抵消黄色；此时画面若偏红，再到红色曲线向下压加一点青色，使颜色正常。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "蓝色曲线"
+          ],
+          [
+            "上推加蓝",
+            "向上推加蓝",
+            "加蓝"
+          ],
+          [
+            "红色曲线"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        162.0,
+        164.0,
+        166.0,
+        168.0
+      ]
+    },
+    {
+      "id": "tut-ps-curves-absent",
+      "video": "tut-ps-curves",
+      "qtype": "absent",
+      "question": "曲线面板里的预设选项怎么用？",
+      "rubric": "参考答案：视频没有讲曲线面板的预设选项怎么用。视频讲的是曲线的打开方式、直方图原理、明暗调整、S型曲线以及红绿蓝颜色曲线的调色应用。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-jianying-subs-locate",
+      "video": "tut-jianying-subs",
+      "qtype": "locate",
+      "question": "第二种方法里，选中音频后右键点了哪个菜单？",
+      "rubric": "参考答案：在时间轴上选中人声部分的音频，右键点击「识别字幕」菜单。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "识别字幕"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        52.0,
+        54.0
+      ]
+    },
+    {
+      "id": "tut-jianying-subs-reason",
+      "video": "tut-jianying-subs",
+      "qtype": "reason",
+      "question": "为什么第一种手动加字幕的方法不适合长视频？",
+      "rubric": "参考答案：因为要边听音频边手动打字幕并调整大小位置，耗时又费力，视频长就过于笨拙。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        26.0,
+        30.0,
+        32.0,
+        36.0
+      ]
+    },
+    {
+      "id": "tut-jianying-subs-summary",
+      "video": "tut-jianying-subs",
+      "qtype": "summary",
+      "question": "用文稿匹配加字幕的完整步骤是什么？",
+      "rubric": "参考答案：在文本栏点击智能字幕，选择文稿匹配，粘贴文稿后点击开始匹配，完成后检查并手动修改断句。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "智能字幕"
+          ],
+          [
+            "文稿匹配"
+          ],
+          [
+            "开始匹配"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        91.0,
+        94.0,
+        98.0,
+        101.0
+      ]
+    },
+    {
+      "id": "tut-jianying-subs-absent",
+      "video": "tut-jianying-subs",
+      "qtype": "absent",
+      "question": "剪映怎么自动给字幕加双语翻译？",
+      "rubric": "参考答案：视频没有讲双语翻译功能；视频讲的是手动加字幕、识别字幕和文稿匹配三种加字幕方法。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-pr-basics-locate",
+      "video": "tut-pr-basics",
+      "qtype": "locate",
+      "question": "在PR里怎么把视频片段的速度调慢？具体在哪个菜单操作？",
+      "rubric": "参考答案：右键点击素材，选择「速度/持续时间」，把100%改成50%。依据在05:36-05:42。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "速度/持续时间",
+            "速度持续时间"
+          ],
+          [
+            "右键"
+          ],
+          [
+            "50%"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        336.0,
+        338.0,
+        340.0,
+        342.0
+      ]
+    },
+    {
+      "id": "tut-pr-basics-reason",
+      "video": "tut-pr-basics",
+      "qtype": "reason",
+      "question": "为什么删除电影原声不能直接删音频轨道？",
+      "rubric": "参考答案：直接删除音频轨道会连带删除画面轨道，所以要先右键「取消链接」再删音频。依据在06:00-06:15。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        360.0,
+        363.0,
+        366.0,
+        369.0
+      ]
+    },
+    {
+      "id": "tut-pr-basics-summary",
+      "video": "tut-pr-basics",
+      "qtype": "summary",
+      "question": "从新建项目到导出视频，完整的剪辑步骤是什么？",
+      "rubric": "参考答案：新建项目→新建序列→导入素材→拖入时间轴剪辑→加转场/调速度→取消链接删原声加BGM→导出媒体选H.264高比特率。依据在00:21-07:34。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "新建项目"
+          ],
+          [
+            "新建序列"
+          ],
+          [
+            "导入素材"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        21.0,
+        45.0,
+        52.0,
+        209.0
+      ]
+    },
+    {
+      "id": "tut-pr-basics-absent",
+      "video": "tut-pr-basics",
+      "qtype": "absent",
+      "question": "视频里有没有讲怎么给视频添加调色或Lumetri颜色效果？",
+      "rubric": "参考答案：视频没有讲调色或Lumetri颜色效果。视频主要讲了基础剪辑、转场、变速、音频处理和导出。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-vscode-py-locate",
+      "video": "tut-vscode-py",
+      "qtype": "locate",
+      "question": "安装Python解释器时，必须勾选哪个选项？",
+      "rubric": "参考答案：在安装界面勾选“Add Python 3.9 to PATH”（画面文字显示为“Add Python 3.9 to PATH”），位置在02:14左右。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "Add Python 3.9 to PATH",
+            "Add Python to PATH",
+            "PATH"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        134.0,
+        138.0
+      ]
+    },
+    {
+      "id": "tut-vscode-py-reason",
+      "video": "tut-vscode-py",
+      "qtype": "reason",
+      "question": "为什么安装Python解释器时要勾选那个选项？不勾会怎样？",
+      "rubric": "参考答案：不勾选的话安装就白费了（无法在命令行直接使用Python），所以一定要勾上。依据在02:14-02:18。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        134.0,
+        138.0
+      ]
+    },
+    {
+      "id": "tut-vscode-py-summary",
+      "video": "tut-vscode-py",
+      "qtype": "summary",
+      "question": "在VS Code中配置Python运行环境的完整步骤是什么？",
+      "rubric": "参考答案：1. 下载并安装VS Code（安装时勾选三个选项）；2. 下载并安装Python解释器（安装时勾选Add Python to PATH）；3. 打开VS Code安装中文包和Python插件；4. 新建文件夹存放代码，右键通过Code打开；5. 编写代码并点击运行，结果在终端显示。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "下载VS Code",
+            "安装VS Code"
+          ],
+          [
+            "安装Python解释器",
+            "安装Python"
+          ],
+          [
+            "安装插件",
+            "中文包",
+            "Python插件"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        44.0,
+        84.0,
+        167.0,
+        213.0
+      ]
+    },
+    {
+      "id": "tut-vscode-py-absent",
+      "video": "tut-vscode-py",
+      "qtype": "absent",
+      "question": "如何配置Python虚拟环境（venv）？",
+      "rubric": "参考答案：视频没有讲如何配置Python虚拟环境（venv）。视频讲的是下载安装VS Code、安装Python解释器、安装插件、新建文件夹写代码并运行，以及通过修改launch.json让代码在外部控制台运行。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-vscode-py2-locate",
+      "video": "tut-vscode-py2",
+      "qtype": "locate",
+      "question": "在VSCode里怎么把界面改成中文？具体点了哪里？",
+      "rubric": "参考答案：在扩展搜索框输入 chinese，安装中文语言包插件（01:07），安装好后点击右下角 Restart 重启软件（01:17）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "chinese",
+            "中文"
+          ],
+          [
+            "Restart",
+            "重启"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        67.0,
+        70.0,
+        77.0
+      ]
+    },
+    {
+      "id": "tut-vscode-py2-reason",
+      "video": "tut-vscode-py2",
+      "qtype": "reason",
+      "question": "安装时勾选“添加到环境变量”有什么用？",
+      "rubric": "参考答案：勾选后可以直接右键选择 VSCode 打开文件（00:36）；并且如果安装 Python 时也添加了环境变量，之后就能直接运行 Python 代码（02:08）。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        36.0,
+        128.0
+      ]
+    },
+    {
+      "id": "tut-vscode-py2-summary",
+      "video": "tut-vscode-py2",
+      "qtype": "summary",
+      "question": "从安装到能运行Python代码，完整步骤是什么？",
+      "rubric": "参考答案：1. 双击安装文件，同意许可协议（00:18-00:19）；2. 选择安装路径，建议改到其他盘（00:21）；3. 开始菜单文件夹直接下一步（00:31）；4. 附加任务勾选“添加到环境变量”等，点击下一步（00:36-00:43）；5. 点击安装（00:45）；6. 打开 VSCode，安装中文插件并重启（01:07-01:17）；7. 安装 Python 插件（01:34-01:35）；8. 用 Ctrl+Shift+P 选择 Python 解释器（02:14-02:20）；9. 写代码后 Ctrl+S 保存并运行（02:55）。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "安装"
+          ],
+          [
+            "中文插件",
+            "chinese"
+          ],
+          [
+            "Python插件",
+            "python"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        18.0,
+        21.0,
+        36.0,
+        67.0
+      ]
+    },
+    {
+      "id": "tut-vscode-py2-absent",
+      "video": "tut-vscode-py2",
+      "qtype": "absent",
+      "question": "怎么在VSCode里配置Python虚拟环境（venv）？",
+      "rubric": "参考答案：视频没有讲虚拟环境的配置。视频讲的是 VSCode 的安装、中文插件和 Python 插件的安装，以及选择 Python 解释器和保存运行代码。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    },
+    {
+      "id": "tut-cad-locate",
+      "video": "tut-cad",
+      "qtype": "locate",
+      "question": "画60度角时，要点开哪个图标并勾选什么？",
+      "rubric": "参考答案：点开右下角三条杠的图标，勾选“极轴追踪”，然后点那串数字设置角度。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "三条杠",
+            "右下角"
+          ],
+          [
+            "极轴追踪"
+          ]
+        ],
+        "timestamps": true,
+        "near": true
+      },
+      "reviewed": false,
+      "evidence": [
+        55.0,
+        57.0,
+        61.0
+      ]
+    },
+    {
+      "id": "tut-cad-reason",
+      "video": "tut-cad",
+      "qtype": "reason",
+      "question": "缩放图形后尺寸标注也跟着变大了，为什么要改比例因子？",
+      "rubric": "参考答案：因为缩放后标注尺寸也放大了，需在标注管理器主单位中把比例因子改为0.5，让尺寸标注恢复正常。",
+      "checks": {
+        "citations_ok": true
+      },
+      "reviewed": false,
+      "evidence": [
+        237.0,
+        249.0,
+        251.0
+      ]
+    },
+    {
+      "id": "tut-cad-summary",
+      "video": "tut-cad",
+      "qtype": "summary",
+      "question": "用AutoCAD出图成PDF的完整步骤是什么？",
+      "rubric": "参考答案：点打印机图标，打印机名称选Microsoft Print to PDF，打印范围选窗口并框选图纸边框，勾选居中打印，打印样式表选m开头的，图形方向改为横向，点确定后选择保存位置保存。",
+      "checks": {
+        "citations_ok": true,
+        "contains_any": [
+          [
+            "打印机图标"
+          ],
+          [
+            "Microsoft Print to PDF"
+          ],
+          [
+            "窗口"
+          ]
+        ],
+        "timestamps": true
+      },
+      "reviewed": false,
+      "evidence": [
+        317.0,
+        319.0,
+        329.0,
+        336.0
+      ]
+    },
+    {
+      "id": "tut-cad-absent",
+      "video": "tut-cad",
+      "qtype": "absent",
+      "question": "视频里有没有讲怎么设置尺寸标注的箭头样式？",
+      "rubric": "参考答案：视频没有讲设置尺寸标注箭头样式，视频讲的是画线、图层、标注尺寸、图案填充、文字、移动缩放、符号绘制和出图PDF。",
+      "checks": {
+        "contains_any": [
+          [
+            "没有",
+            "没讲",
+            "未提到",
+            "没提到",
+            "未涉及",
+            "找不到",
+            "不包含",
+            "并未",
+            "无法从视频"
+          ]
+        ]
+      },
+      "reviewed": false
+    }
+  ]
+}
