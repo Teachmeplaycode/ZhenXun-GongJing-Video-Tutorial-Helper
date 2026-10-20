@@ -179,6 +179,6 @@ async def classify(question: str, decider=None) -> Intent:
     if fallback is not None:
         return fallback
     got = by_keywords(question)
-    if used or took:  # a main-model attempt happened: keep its wait (and counts, if any) for the budget
+    if used or took or detail:  # a main-model attempt happened: keep its wait (and counts) for the budget
         got.usage, got.elapsed_ms, got.detail = used or None, took, detail or got.detail
     return got
