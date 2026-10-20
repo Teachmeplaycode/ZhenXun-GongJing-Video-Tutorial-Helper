@@ -136,6 +136,7 @@ export class MockApi {
     // How cited moments can be looked at again (backend modules/playback); tests set 'original' to get a player.
     this.source = { state: 'cache', label: '缓存证据', message: '平台没有提供可播放的原视频，时间点只能查看抽取的画面和文字' }
     this.mediaBroken = false // /media answers 502 (an expired platform link)
+    this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
     this.shotTimes = [] // moments of shot-fill keyframes the job adds after its uniform pass
     this.noteBoard = null // the editor's saved board (PUT /notes/board)
@@ -300,6 +301,8 @@ export class MockApi {
         headers: { 'accept-ranges': 'bytes', ...(range ? { 'content-range': `bytes ${first}-${last}/${CLIP.length}` } : {}) },
       })
     }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/suggestions$/)
+    if (m) return json(this.suggestions) // backend modules/suggest.py; tests set questions to see them
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)
