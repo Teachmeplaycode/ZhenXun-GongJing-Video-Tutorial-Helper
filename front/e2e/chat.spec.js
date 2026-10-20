@@ -232,6 +232,19 @@ test('a 视频号 link without a 元宝 login offers to scan', async ({ page }) 
   await expect(page.locator('.account-card').first()).toContainText('腾讯元宝')
 })
 
+test('the web demo has no platform logins', async ({ page }) => {
+  await start(page, (mock) => {
+    mock.publicDemo = true
+    mock.linkError = { code: 'login_required', message: '解析视频号需要登录腾讯元宝：点右上角「账号」用微信扫码登录' }
+  })
+  await expect(page.locator('.btn--theme')).toBeVisible()
+  await expect(page.getByRole('button', { name: '账号' })).toHaveCount(0)
+  await page.locator('.import-control__link').fill('https://weixin.qq.com/sph/AbCdEf')
+  await page.locator('.import-control__submit').click()
+  await expect(page.locator('.field-error')).toBeVisible()
+  await expect(page.locator('.field-error__action')).toHaveCount(0)
+})
+
 test('theme: follows the system, then light, then dark, and is remembered', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
   await start(page)

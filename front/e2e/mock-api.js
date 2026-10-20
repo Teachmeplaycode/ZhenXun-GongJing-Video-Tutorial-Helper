@@ -131,6 +131,7 @@ export class MockApi {
     this.runs = [] // queued agent answers (event lists); the default answer when empty
     this.gate = null // when set, the next agent run waits for gate.release()
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
+    this.publicDemo = false // the web demo: /api/health says public, accounts are closed
     this.frames = 8
     this.cuts = [30, 75] // shot changes the mock reports
     // How cited moments can be looked at again (backend modules/playback); tests set 'original' to get a player.
@@ -221,7 +222,7 @@ export class MockApi {
     const json = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) })
     const stream = (events) => route.fulfill({ status: 200, contentType: 'text/event-stream', body: sse(events) })
 
-    if (path === '/api/health') return json({ ok: true, platforms: ['bilibili', 'wechat_channels', 'local'], ffmpeg: true, model: 'deepseek-flash' })
+    if (path === '/api/health') return json({ ok: true, platforms: this.publicDemo ? ['bilibili', 'local'] : ['bilibili', 'wechat_channels', 'local'], ffmpeg: true, model: 'deepseek-flash', public: this.publicDemo })
     if (path === '/api/sessions' && req.method() === 'GET') return json({ sessions: this.sessions.map((s) => s.summary) })
     let m = path.match(/^\/api\/sessions\/(\w+)\/export$/)
     if (m) {
