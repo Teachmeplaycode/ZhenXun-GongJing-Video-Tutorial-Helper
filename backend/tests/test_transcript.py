@@ -113,13 +113,13 @@ def test_pick_transcript_whole_video_and_selection(tmp_path):
     job.transcript = Transcript("running")
     lines, note = pick_transcript(job, None)
     assert lines == [] and "转写中" in note
-    content = build_messages(job, job.slots, "q", [], True, transcript=(lines, note))[-1]["content"]
+    content = build_messages(job, job.slots, "q", [], True, transcript=(lines, note))[1]["content"]
     assert "语音：语音仍在转写中" in content[0]["text"]
 
 
 def test_transcript_goes_into_the_request(tmp_path):
     job = make_job(tmp_path)
-    content = build_messages(job, job.slots[:1], "讲了什么", [], True, transcript=(["[00:01] 大家好"], "1 句"))[-1]["content"]
+    content = build_messages(job, job.slots[:1], "讲了什么", [], True, transcript=(["[00:01] 大家好"], "1 句"))[1]["content"]
     assert content[1]["text"] == "语音转写（1 句）：\n[00:01] 大家好" and content[2]["type"] == "text"
 
 
