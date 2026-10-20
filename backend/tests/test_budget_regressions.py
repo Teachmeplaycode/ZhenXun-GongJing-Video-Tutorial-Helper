@@ -390,8 +390,9 @@ def test_unknown_output_allowance_is_not_available_for_reuse():
         proxy = MeteredClient(Unknown(), b)
         _ = [d async for d in proxy.stream([], Usage(), max_tokens=100)]
         assert b.unreported_token_reserve == 100 and not b.tokens_known
-        with pytest.raises(BudgetExceeded):
+        with pytest.raises(BudgetExceeded) as denied:
             _ = [d async for d in proxy.stream([], Usage())]
+        assert "保守预留" in denied.value.message  # unknown usage must not be called a measured total
     asyncio.run(go())
 
 
@@ -454,4 +455,37 @@ def test_route_task_cancel_is_settled_before_its_proxy_finishes(tmp_path, monkey
             events = await task
             assert events[-1]['usage']['known_prompt'] == 31
         assert b.llm_calls == 1 and b.prompt_tokens == 31 and not b.tokens_known
+    asyncio.run(go())
+
+
+def test_settle_does_not_cancel_an_already_cleaning_route_again():
+    from modules.agent.budget import MeteredClient
+    from modules.llm import Usage
+    entered, cleaning = asyncio.Event(), asyncio.Event()
+    cancellations = []
+    class Cleanly:
+        async def stream(self, messages, usage, **kwargs):
+            try:
+                entered.set()
+                await asyncio.sleep(60)
+                yield 'never'
+            finally:
+                cleaning.set()
+                try:
+                    await asyncio.sleep(.01)
+                except asyncio.CancelledError:
+                    cancellations.append('cleanup cancelled twice')
+                    raise
+    async def go():
+        b = AnswerBudget()
+        async def consume():
+            _ = [d async for d in MeteredClient(Cleanly(), b).stream([], Usage())]
+        task = asyncio.create_task(consume())
+        await entered.wait()
+        task.cancel()  # same first cancellation that A issues before returning
+        await cleaning.wait()
+        b.settle_calls(list(b.active))
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert cancellations == [] and b.llm_calls == 1
     asyncio.run(go())

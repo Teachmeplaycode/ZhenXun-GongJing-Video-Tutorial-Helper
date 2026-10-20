@@ -33,7 +33,7 @@ DENY_TEXT = {
     "tool_calls": "本次回答的工具调用次数已达到上限（{limit} 次）。这次调用没有执行。请直接根据已有的画面、转写和工具结果回答。",
     "frames": "本次回答读取的帧数已达到上限（{limit} 帧）。这次调用没有执行。请根据已有画面回答。",
     "seconds": "本次回答的时长已达到上限（{limit} 秒），已停止新的模型和工具调用。已有内容已保留。",
-    "tokens": "本次回答已报告的 token 用量已达到上限（{limit}），已停止新的模型和工具调用。已有内容已保留。",
+    "tokens": "本次回答可用的 token 额度已用完（上限 {limit}，包含已报告用量和未确认请求的保守预留），已停止新的模型和工具调用。已有内容已保留。",
 }
 
 
@@ -211,7 +211,7 @@ class AnswerBudget:
             if call is None:
                 continue
             task = call.get("task")
-            if task is not None and task is not current and not task.done():
+            if task is not None and task is not current and not task.done() and not task.cancelling():
                 task.cancel()
             self.finish_call(key, "cancelled")
 
