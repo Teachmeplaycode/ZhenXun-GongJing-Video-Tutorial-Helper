@@ -595,7 +595,7 @@ class AgentTools:
             if not got:
                 why = "原视频已删除（本地上传的视频处理完就删了）" if self.job.video.platform == "local" else "这一段读取失败"
                 return ToolResult(f"无法复看 {span}：{why}。可以改用已有的关键帧。", "读取失败", error=True)
-        frames = sorted(folder.glob("[0-9][0-9].jpg"))
+        frames = sorted(folder.glob("[0-9][0-9].jpg"))[:p.count]
         times = p.times[:len(frames)]
         note = f"（只复看了开头 {slowmo.MAX_SPAN:.0f} 秒；需要后面的再复看下一段）" if p.clipped else ""
         text = (f"复看 {span}，每秒 {p.fps:g} 帧，共 {len(frames)} 帧，按时间顺序见下一条消息，每张前标了精确时间。"
@@ -631,7 +631,7 @@ class AgentTools:
         if len(files) < 3:
             why = "原视频已删除（本地上传的视频处理完就删了）" if self.job.video.platform == "local" else "这一段读取失败"
             return ToolResult(f"无法测量 {fine_clock(a)}–{fine_clock(b)} 的运动：{why}。", "读取失败", error=True)
-        r = await asyncio.to_thread(instruments.analyze, files, a, fps, folder / "out")
+        r = await asyncio.to_thread(instruments.analyze, files[:instruments.MAX_FRAMES], a, fps, folder / "out")
         lines = [f"测量 {fine_clock(r.start)}–{fine_clock(r.end)}：每秒 {r.fps:.1f} 帧、共 {r.frames} 帧的低分辨率解码（这些帧不发给你，只给测量结果）。",
                  f"镜头：{r.camera}" + (f"（{note}）" if (note := instruments.camera_note(r.camera)) else "")] + [f"  {d}" for d in r.camera_detail] + [
                  f"运动强度（每格约 {r.bucket:.2f} 秒，从 {fine_clock(r.start)} 起）：{instruments.bar(r.energy)}",
@@ -681,7 +681,7 @@ class AgentTools:
         if not images:
             # The source is gone (an upload already deleted) or unreachable: use the sampled frames in range.
             nearby = [s for s in self.job.in_time_order() if s.status == "ok" and a - 1 <= s.time <= b + 1
-                      and self.job.frame_path(s.index).is_file()][:MAX_VIEW]
+                      and self.job.frame_path(s.index).is_file()][:n]
             images = [(f"画面 · {clock(s.time)}", self.job.frame_path(s.index)) for s in nearby]
             note = "无法重新读取视频，以下是这一段已有的关键帧" if images else "无法读取这一段的画面"
         stamps = "、".join(label.split(" · ")[1] for label, _ in images)

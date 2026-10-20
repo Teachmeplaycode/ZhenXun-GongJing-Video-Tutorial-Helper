@@ -90,12 +90,15 @@ test('an answer shows its steps inline, then the text, sources and footer', asyn
 test('an answer without a computable cost says so instead of showing ¥0', async ({ page }) => {
   const mock = await start(page)
   mock.runs.push(researchAnswer().map((e) => e.type === 'run.completed'
-    ? { ...e, cost: { cny: null, computable: false, reason: '单价未配置（LLM_PRICE_IN_M / LLM_PRICE_OUT_M）' } }
+    ? { ...e, usage: { prompt: null, completion: null, known_prompt: 23, known_completion: 0, complete: false },
+        summary: '分析 4 帧 · fake-model · 输入 未知 · 输出 未知 tokens',
+        cost: { cny: null, computable: false, reason: '有调用的 token 用量未知' } }
     : e))
   await enterChat(page)
   await ask(page, '柚子会影响药物吗？')
   const meta = lastAnswer(page).locator('.msg-footer__meta')
   await expect(meta).toContainText('费用不可计算')
+  await expect(meta).toContainText('输入 未知 · 输出 未知 tokens')
   await expect(meta).not.toContainText('￥')
 })
 

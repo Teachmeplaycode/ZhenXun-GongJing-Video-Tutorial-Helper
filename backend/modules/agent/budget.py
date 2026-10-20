@@ -1,45 +1,25 @@
-"""One answer's unified budget, call cost and wait record (task B, issue #30).
+"""One-answer budget and cost metering. Unset limits preserve existing behavior.
 
-Three jobs, all configurable through environment variables (unset / unparsable = no limit;
-the defaults keep today's normal Q&A untouched):
-
-  1. Budget gates — refuse further work when an answer has used too much, while the model can
-     still answer from what it already has (the refusal goes back as a tool result, not an error):
-
-       LLM_BUDGET_MAX_EXTERNAL     web_search / fetch_page / browse / search_papers calls combined
-       LLM_BUDGET_MAX_TOOL_CALLS   tool calls actually executed (failed ones included)
-       LLM_BUDGET_MAX_FRAMES       frames read from the video (view_frames / replay images,
-                                   measure_motion's decoded frames too: they are read, just not sent)
-       LLM_BUDGET_MAX_SECONDS      wall-clock time of the whole answer; once over, further model
-                                   rounds get no tools so the model has to wrap up
-       LLM_BUDGET_MAX_TOKENS       prompt + completion tokens combined, same wrap-up behaviour
-
-     Frame / external / call limits are soft: a call that starts under the limit may push the
-     count past it; the next one is refused. tool_calls in run.completed keeps its old meaning
-     (calls the model asked for, refused ones included); budget.tool_calls counts executions.
-
-  2. Metering — every main-model call's input/output tokens and first-word wait, the whole
-     answer's totals, longest wait, plus the intent fallback's usage/elapsed_ms metadata when
-     module A provides it (read with getattr: absent metadata is simply not counted, and
-     modules/agent/intent.py itself is never touched).
-
-  3. Cost — estimated in CNY from per-million-token prices:
-
-       LLM_PRICE_IN_M   ¥ per 1M input tokens
-       LLM_PRICE_OUT_M  ¥ per 1M output tokens
-
-     Both must be set and every call's usage known for a cost to exist; otherwise the cost is
-     None ("不可计算") and is never reported as ¥0. Reference prices (checked 2026-10-20,
-     https://api-docs.deepseek.com/quick_start/pricing, deepseek-flash, per 1M tokens, USD):
-     input cache-miss $0.15 off-peak / $0.30 peak, input cache-hit $0.003–0.006, output
-     $0.60 off-peak / $1.20 peak. The stream's usage does not split cache hits, so configuring
-     the cache-miss price is the conservative choice.
+Call/external counters reserve before execution (failed attempts count). Initial selected
+frames count too; view_frames is clipped and replay/motion require their worst-case quota.
+frames_reserved is conservative logical tool quota, not a count of physical retry decodes.
+Seconds bound outstanding awaits through cancellation; synchronous/native cleanup still
+requires cooperative cancellation. Tokens use reported known lower bounds and output caps:
+provider input size/unknown usage cannot be predicted, so this is not a hard total-token cap.
+Prices LLM_PRICE_IN_M/LLM_PRICE_OUT_M are CNY per million. No default or currency conversion
+is assumed; unknown price or any incomplete call makes cost unavailable. Configure the
+actual provider/model price (official source https://api-docs.deepseek.com/quick_start/pricing).
 """
 from __future__ import annotations
 
+import asyncio
+import math
 import os
 import time
 from dataclasses import dataclass, field
+from contextlib import aclosing
+
+from modules.llm import LLMError
 
 EXTERNAL_TOOLS = {"web_search", "fetch_page", "search_papers", "browse"}
 FRAME_TOOLS = {"view_frames", "replay", "measure_motion"}
@@ -52,23 +32,26 @@ DENY_TEXT = {
                 "这次调用没有执行。请根据已获取的信息回答，并说明哪些内容未能进一步核实。",
     "tool_calls": "本次回答的工具调用次数已达到上限（{limit} 次）。这次调用没有执行。请直接根据已有的画面、转写和工具结果回答。",
     "frames": "本次回答读取的帧数已达到上限（{limit} 帧）。这次调用没有执行。请根据已有画面回答。",
-    "seconds": "本次回答的时长已达到上限（{limit} 秒）。请立即根据已有信息收尾作答，不要再调用工具。",
-    "tokens": "本次回答的 token 用量已达到上限（{limit}）。请立即根据已有信息收尾作答，不要再调用工具。",
+    "seconds": "本次回答的时长已达到上限（{limit} 秒），已停止新的模型和工具调用。已有内容已保留。",
+    "tokens": "本次回答已报告的 token 用量已达到上限（{limit}），已停止新的模型和工具调用。已有内容已保留。",
 }
 
 
 def _number(raw: str) -> float | None:
+    if isinstance(raw, bool):
+        return None
     try:
         value = float(raw)
     except (TypeError, ValueError):
         return None
-    return value if value >= 0 else None
+    return value if math.isfinite(value) and value >= 0 else None
 
 
 def limits(env: dict | None = None) -> dict[str, float | None]:
     """The configured caps; None = unlimited. `env` defaults to the process environment."""
     source = os.environ if env is None else env
-    return {name: _number(source.get(var, "")) for name, var in LIMIT_ENV.items()}
+    parsed = {name: _number(source.get(var, "")) for name, var in LIMIT_ENV.items()}
+    return {k: (int(v) if v is not None and k != "seconds" else v) for k, v in parsed.items()}
 
 
 def prices(env: dict | None = None) -> tuple[float | None, float | None]:
@@ -85,6 +68,11 @@ class AnswerBudget:
     tool_calls: int = 0        # executed calls, failures included; refused calls are not here
     blocked_calls: int = 0
     frames_read: int = 0
+    frames_reserved: int = 0
+    calls: list[dict] = field(default_factory=list)
+    active: dict = field(default_factory=dict, repr=False)
+    prompt_complete: bool = True
+    completion_complete: bool = True
     limit_hits: list[str] = field(default_factory=list)  # each cap, in the order first hit
     prompt_tokens: int = 0
     completion_tokens: int = 0
@@ -113,7 +101,7 @@ class AnswerBudget:
         """
         if self.caps["seconds"] is not None and self.elapsed() >= self.caps["seconds"]:
             return self._hit("seconds")
-        if (self.tokens_known and self.caps["tokens"] is not None
+        if (self.caps["tokens"] is not None
                 and self.prompt_tokens + self.completion_tokens >= self.caps["tokens"]):
             return self._hit("tokens")
         if self.caps["tool_calls"] is not None and self.tool_calls >= self.caps["tool_calls"]:
@@ -121,22 +109,22 @@ class AnswerBudget:
         if name in EXTERNAL_TOOLS and self.caps["external"] is not None \
                 and self.external_calls >= self.caps["external"]:
             return self._hit("external")
-        if name in FRAME_TOOLS and self.caps["frames"] is not None and self.frames_read >= self.caps["frames"]:
+        if name in FRAME_TOOLS and self.caps["frames"] is not None and self.frames_reserved >= self.caps["frames"]:
             return self._hit("frames")
         return None
 
     def gate_round(self) -> str | None:
-        """Whether the next model round must be the last (no tools) because time/tokens ran out."""
+        """Why no further model request may start (time or reported token lower bound)."""
         if self.caps["seconds"] is not None and self.elapsed() >= self.caps["seconds"]:
             return self._hit("seconds")
-        if (self.tokens_known and self.caps["tokens"] is not None
+        if (self.caps["tokens"] is not None
                 and self.prompt_tokens + self.completion_tokens >= self.caps["tokens"]):
             return self._hit("tokens")
         return None
 
     def deny_text(self, cap: str) -> str:
         limit = self.caps[cap]
-        return DENY_TEXT[cap].format(limit=int(limit) if limit is not None else 0)
+        return DENY_TEXT[cap].format(limit=f"{limit:g}" if limit is not None else "0")
 
     def tool_done(self, name: str, count: int = 0) -> None:
         """Account one executed tool call (failed ones too: the attempt cost the budget)."""
@@ -145,6 +133,7 @@ class AnswerBudget:
             self.external_calls += 1
         if name in FRAME_TOOLS:
             self.frames_read += max(0, count)
+            self.frames_reserved += max(0, count)
 
     def tool_refused(self) -> None:
         self.blocked_calls += 1
@@ -158,25 +147,16 @@ class AnswerBudget:
             self._first_word_at = time.perf_counter()
             self._note_wait(int((self._first_word_at - self._call_started) * 1000))
 
-    def llm_finished(self, prompt_tokens: int | None, completion_tokens: int | None) -> None:
-        """A stream that ended (however it ended): tokens and, with no word at all, the full wait."""
-        self.llm_calls += 1
-        if prompt_tokens is None or completion_tokens is None:
-            self.tokens_known = False
-        else:
-            self.prompt_tokens += prompt_tokens
-            self.completion_tokens += completion_tokens
-        if self._first_word_at is None and self._call_started is not None:
-            self._note_wait(int((time.perf_counter() - self._call_started) * 1000))
+    def llm_finished(self, prompt_tokens, completion_tokens):
+        wait = None
+        if self._call_started is not None:
+            wait = int(((self._first_word_at or time.perf_counter()) - self._call_started) * 1000)
+        self.record(prompt_tokens, completion_tokens, wait_ms=wait)
         self._call_started = self._first_word_at = None
 
-    def llm_failed(self) -> None:
-        """A stream that broke: its usage cannot be known, so no cost estimate is possible."""
-        self.llm_calls += 1
-        self.llm_failures += 1
-        self.tokens_known = False
-        if self._call_started is not None and self._first_word_at is None:
-            self._note_wait(int((time.perf_counter() - self._call_started) * 1000))
+    def llm_failed(self):
+        wait = None if self._call_started is None else int(((self._first_word_at or time.perf_counter()) - self._call_started) * 1000)
+        self.record(None, None, wait_ms=wait, status="error")
         self._call_started = self._first_word_at = None
 
     def _note_wait(self, ms: int) -> None:
@@ -184,23 +164,118 @@ class AnswerBudget:
 
     # ---- the intent fallback (module A) -----------------------------------------------
     def add_side(self, usage, elapsed_ms) -> None:
-        """Count the intent fallback's usage/elapsed_ms when module A provides them on Intent.
-
-        `usage` may be a Usage-like object (prompt_tokens / completion_tokens) or a dict
-        (either key spelling); anything else — including the attrs being absent, which is
-        today's intent.py — is simply not counted. A broken usage marks the cost unknowable
-        rather than guessing zero.
-        """
-        if isinstance(elapsed_ms, (int, float)) and elapsed_ms >= 0:
+        """A's metadata is absent for no request, but nullable fields mean a real unknown call."""
+        if isinstance(elapsed_ms, (int, float)) and not isinstance(elapsed_ms, bool) and math.isfinite(elapsed_ms) and elapsed_ms >= 0:
             self._note_wait(int(elapsed_ms))
-        prompt, completion = side_tokens(usage)
-        if prompt is None and completion is None:
+        if usage is None:
             return
-        if prompt is None or completion is None:
-            self.tokens_known = False
+        p, c = side_tokens(usage)
+        self.record(p, c, wait_ms=None, status="intent")
+
+    def record(self, prompt, completion, *, wait_ms=None, status="done"):
+        p, c = token(prompt), token(completion)
+        self.llm_calls += 1
+        failed = status in {"error", "cancelled"}
+        self.llm_failures += int(failed)
+        self.prompt_tokens += p or 0
+        self.completion_tokens += c or 0
+        self.prompt_complete &= p is not None and not failed
+        self.completion_complete &= c is not None and not failed
+        self.tokens_known = self.prompt_complete and self.completion_complete
+        if wait_ms is not None:
+            self._note_wait(wait_ms)
+        self.calls.append({"prompt": p, "completion": c, "wait_ms": wait_ms, "status": status})
+
+    def finish_call(self, key, status="done"):
+        call = self.active.pop(key, None)
+        if call is None:
             return
-        self.prompt_tokens += prompt
-        self.completion_tokens += completion
+        p, c = side_tokens(call["usage"])
+        self.record(p, c, wait_ms=int(((call["first"] or time.perf_counter()) - call["began"]) * 1000), status=status)
+
+    def cancel_open_calls(self):
+        for key in list(self.active):
+            self.finish_call(key, "cancelled")
+
+    def usage(self):
+        return {"prompt": self.prompt_tokens if self.prompt_complete else None,
+                "completion": self.completion_tokens if self.completion_complete else None,
+                "known_prompt": self.prompt_tokens, "known_completion": self.completion_tokens,
+                "complete": self.tokens_known}
+
+    def remaining_seconds(self):
+        cap = self.caps["seconds"]
+        return None if cap is None else max(0., cap - self.elapsed())
+
+    async def bounded(self, awaitable):
+        """The answer's remaining wall time applies to each outstanding await, not just rounds."""
+        remaining = self.remaining_seconds()
+        if remaining is None:
+            return await awaitable
+        if remaining <= 0:
+            if hasattr(awaitable, "close"):
+                awaitable.close()
+            raise BudgetExceeded(self, "seconds")
+        try:
+            return await asyncio.wait_for(awaitable, remaining)
+        except TimeoutError as exc:
+            raise BudgetExceeded(self, "seconds") from exc
+
+    async def iterate(self, stream):
+        try:
+            while True:
+                try:
+                    item = await self.bounded(anext(stream))
+                except StopAsyncIteration:
+                    return
+                yield item
+        finally:
+            await stream.aclose()
+
+    def select_frames(self, count):
+        cap = self.caps["frames"]
+        n = count if cap is None else min(count, max(0, int(cap) - self.frames_reserved))
+        if n < count:
+            self._hit("frames")
+        self.frames_reserved += n
+        self.frames_read += n
+        return n
+
+    def prepare_tool(self, name, args):
+        """Reserve before awaiting: parallel callers cannot each spend the same remaining slot.
+
+        view_frames is clipped. replay/motion reserve their conservative per-call maximum;
+        if it will not fit, refuse before decoding. Failed attempts keep their reservation.
+        """
+        args = dict(args)
+        denied = self.check_tool(name)
+        reserve = 0
+        if not denied and name in FRAME_TOOLS:
+            if name == "view_frames":
+                try:
+                    reserve = max(1, min(6, int(args.get("count", 4))))
+                except (ValueError, TypeError, OverflowError):
+                    reserve = 4
+            else:
+                reserve = 16 if name == "replay" else 300
+            cap = self.caps["frames"]
+            remaining = reserve if cap is None else max(0, int(cap) - self.frames_reserved)
+            if name == "view_frames":
+                reserve = min(reserve, remaining)
+                args["count"] = reserve
+            if reserve == 0 or reserve > remaining:
+                denied = self._hit("frames")
+        if denied:
+            self.tool_refused()
+            return denied, args
+        self.tool_calls += 1
+        self.external_calls += int(name in EXTERNAL_TOOLS)
+        self.frames_reserved += reserve
+        return None, args
+
+    def tool_result(self, name, count):
+        if name in FRAME_TOOLS:
+            self.frames_read += max(0, count)
 
     # ---- reports ----------------------------------------------------------------------
     def cost(self) -> dict:
@@ -212,7 +287,12 @@ class AnswerBudget:
             return {"cny": None, "computable": False, "reason": "没有模型调用"}
         if not self.tokens_known:
             return {"cny": None, "computable": False, "reason": "有调用的 token 用量未知"}
-        cny = (self.prompt_tokens * in_price + self.completion_tokens * out_price) / 1_000_000
+        try:
+            cny = (self.prompt_tokens * in_price + self.completion_tokens * out_price) / 1_000_000
+        except OverflowError:
+            cny = math.inf
+        if not math.isfinite(cny):
+            return {"cny": None, "computable": False, "reason": "费用超出可计算数值范围"}
         return {"cny": round(cny, 6), "computable": True, "reason": None}
 
     def cost_text(self) -> str:
@@ -224,24 +304,72 @@ class AnswerBudget:
     def snapshot(self, elapsed_ms: int | None = None) -> dict:
         """Structured fields for run.completed and the answer log line."""
         return {"external_calls": self.external_calls, "tool_calls": self.tool_calls,
-                "blocked_calls": self.blocked_calls, "frames_read": self.frames_read,
+                "blocked_calls": self.blocked_calls, "frames_read": self.frames_read, "frames_reserved": self.frames_reserved,
                 "limit_hits": list(self.limit_hits),
                 "limits": {k: v for k, v in self.caps.items() if v is not None},
                 "prompt_tokens": self.prompt_tokens, "completion_tokens": self.completion_tokens,
-                "tokens_known": self.tokens_known, "llm_calls": self.llm_calls,
+                "tokens_known": self.tokens_known, "token_limit_basis": "reported_lower_bound", "llm_calls": self.llm_calls,
                 "llm_failures": self.llm_failures, "max_wait_ms": self.max_wait_ms,
                 "elapsed_ms": elapsed_ms if elapsed_ms is not None else int(self.elapsed() * 1000),
-                "cost": self.cost()}
+                "calls": list(self.calls), "usage": self.usage(), "cost": self.cost()}
+
+
+def token(value):
+    return value if type(value) is int and value >= 0 else None
 
 
 def side_tokens(usage) -> tuple[int | None, int | None]:
-    """(prompt, completion) tokens out of an intent fallback's usage metadata, or (None, None)."""
     if usage is None:
         return None, None
     if isinstance(usage, dict):
-        pick = lambda *keys: next((usage[k] for k in keys if isinstance(usage.get(k), int)), None)  # noqa: E731
+        def pick(*keys):
+            return next((token(usage[k]) for k in keys if k in usage), None)
         return pick("prompt", "prompt_tokens"), pick("completion", "completion_tokens")
-    prompt = getattr(usage, "prompt_tokens", None)
-    completion = getattr(usage, "completion_tokens", None)
-    return (prompt if isinstance(prompt, int) else None,
-            completion if isinstance(completion, int) else None)
+    return token(getattr(usage, "prompt_tokens", None)), token(getattr(usage, "completion_tokens", None))
+
+
+class BudgetExceeded(LLMError):
+    def __init__(self, spend, cap):
+        spend._hit(cap)
+        self.cap = cap
+        super().__init__("budget", spend.deny_text(cap), False)
+
+
+class MeteredClient:
+    """Per-answer proxy, including nested/concurrent skills. No mutation of shared clients."""
+    def __init__(self, client, spend):
+        self.client, self.spend = client, spend
+
+    def __getattr__(self, key):
+        return getattr(self.client, key)
+
+    async def stream(self, messages, usage, max_tokens=2048, **kwargs):
+        b = self.spend
+        over = b.gate_round()
+        if over:
+            raise BudgetExceeded(b, over)
+        cap = b.caps["tokens"]
+        if cap is not None:
+            # Input size is provider-reported only; enforce remaining known lower bound
+            # and cap this request's output, without claiming a hard total-token bound.
+            max_tokens = min(max_tokens, max(1, int(cap - b.prompt_tokens - b.completion_tokens)))
+        began, first, status = time.perf_counter(), None, "done"
+        key = object()
+        b.active[key] = {"usage": usage, "began": began, "first": None}
+        stream = self.client.stream(messages, usage, max_tokens=max_tokens, **kwargs)
+        try:
+            async with aclosing(b.iterate(stream)) as owned_stream:
+                async for delta in owned_stream:
+                    if first is None and delta:
+                        first = time.perf_counter()
+                        if key in b.active:
+                            b.active[key]["first"] = first
+                    yield delta
+        except (asyncio.CancelledError, GeneratorExit):
+            status = "cancelled"
+            raise
+        except BaseException:
+            status = "error"
+            raise
+        finally:
+            b.finish_call(key, status)
