@@ -61,6 +61,17 @@ rapidocr-onnxruntime 声明依赖非 headless 的 `opencv-python`：它需要 li
 
 `start.sh` 的配置从进程环境读取；后端也能读取 `backend/.env` 中的模型配置。ASR/OCR 的后端选择优先由启动进程设置。无主模型密钥时 `/api/health` 仍返回 `ok=true`、`model=null`，只代表 Web/API 已启动。
 
+## 公网演示模式
+
+对外开放时在启动环境里设 `PUBLIC_DEMO=1`（`backend/modules/visitors.py`）：
+
+- 每个浏览器拿到一个签名 Cookie 里的匿名访客 ID；会话归创建它的访客，别人列不出、打不开、问不了、删不掉（返回 404）。
+- 平台账号接口全部返回 403，前端隐藏「账号」按钮。
+- 只能导入 `PUBLIC_PLATFORMS` 里的来源，默认 `bilibili,local`（B 站与本地上传）。
+- `VISITOR_SECRET` 指定 Cookie 签名密钥；不设时自动生成并保存在数据目录的 `visitor_secret`。
+
+本机桌面版不设这个变量，行为不变。
+
 ## 验证清单
 
 1. `ffmpeg` / `ffprobe` 可用，能够实际编码和解码短测试视频。
