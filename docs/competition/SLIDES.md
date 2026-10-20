@@ -97,6 +97,7 @@
 
 **复现命令**：
 ```bash
+# 先按 REPRODUCE.md 准备元数据与有效校准文件；否则不能称为 E。
 cd backend && uv run python scripts/bench.py --config E --n 100
 ```
 
@@ -109,7 +110,7 @@ cd backend && uv run python scripts/bench.py --config E --n 100
 **要点**：
 - 结论 → 证据类型 → 时间 → 点击回看
 - 展示证据校验与原片可用状态；引用可定位不等于事实正确，以UI实际标签为准
-- 模型乱码或空回复会被重试（PR #24）
+- 空回复显示可重试错误，由用户决定是否重试；不承诺自动重试模型回答
 
 **图示**：[回答气泡 → 证据标签 → 时间跳转 → 原片片段]
 
