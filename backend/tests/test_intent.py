@@ -10,6 +10,12 @@ from modules.agent.run import run_agent
 from modules.llm import ChatClient, LLMConfig
 from tests.test_tools import make_job, sse
 
+
+@pytest.fixture(autouse=True)
+def no_main_model_fallback(monkeypatch):
+    """These tests predate the main-model fallback; keep them on the keyword/decider paths."""
+    monkeypatch.setenv("INTENT_LLM_FALLBACK", "off")
+
 QUESTIONS = [  # (question, kind) — the keyword fallback must get these right
     ("视频里第几秒点了哪个按钮，把数据透视表改成了表格形式？", "tutorial"),
     ("为什么我照着做到这一步就报错了", "tutorial"),
