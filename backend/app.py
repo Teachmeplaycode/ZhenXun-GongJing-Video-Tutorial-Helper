@@ -332,7 +332,8 @@ async def health():
 @app.post("/api/links/resolve")
 async def resolve_link(body: LinkRequest):
     """Identity and metadata only, e.g. to show title and parts before sampling."""
-    visitors.check_platform(registry.find(extract_url(body.url)).platform)
+    if visitors.enabled():
+        visitors.check_platform(registry.find(extract_url(body.url)).platform)
     _, video = await registry.resolve(body.url, body.part)
     return video.public()
 
@@ -352,7 +353,8 @@ async def create_link_job(body: LinkRequest):
     prune()
     timer = log.Timer()
     try:
-        visitors.check_platform(registry.find(extract_url(body.url)).platform)
+        if visitors.enabled():  # refused before the link is fetched with the owner's logins
+            visitors.check_platform(registry.find(extract_url(body.url)).platform)
         resolver, video = await registry.resolve(body.url, body.part)
         visitors.check_platform(video.platform)
     except ResolveError as exc:
