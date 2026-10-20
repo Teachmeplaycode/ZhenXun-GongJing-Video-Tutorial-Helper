@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from modules import accounts, log, playback
 from modules.chapters.router import ChapterService
+from modules.suggest import SuggestService
 from modules.notes.router import NotesService
 from modules.agent import browser, run_agent
 from modules.agent.evidence import with_evidence
@@ -309,6 +310,8 @@ async def resolve_link(body: LinkRequest):
 
 chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(), cutting, lambda job: find_cuts(job))
 app.include_router(chapter_service.router)
+suggest_service = SuggestService(lambda job_id: get_job(job_id), spawn, lambda: get_llm())
+app.include_router(suggest_service.router)
 notes_service = NotesService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(),
                              chapters_busy=lambda job_id: job_id in chapter_service.running)
 app.include_router(notes_service.router)

@@ -5,6 +5,7 @@ import Composer, { loadSwitches } from '../components/Composer'
 import ChaptersPanel from '../components/ChaptersPanel'
 import { IconArrowDown, IconArrowRight } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
+import { fetchSuggestions } from '../api/client'
 import SpotlightCard from '../components/react-bits/SpotlightCard'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
 import { WORKSPACE_CONTENT } from '../config/workspace'
@@ -63,6 +64,34 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citedKey])
   useEffect(() => { onBusy?.(running) }, [running, onBusy])
+
+  // Questions written for this very video (backend modules/suggest.py), once its speech and on-screen
+  // text are read; until then, and if they can't be made, the general ones.
+  const [tailored, setTailored] = useState([])
+  const jobId = video?.jobId
+  const fresh = !messages.length
+  useEffect(() => {
+    if (!jobId || !fresh) return undefined
+    let stopped = false
+    let timer = null
+    const ctl = new AbortController()
+    const poll = async (tries) => {
+      try {
+        const r = await fetchSuggestions(jobId, { signal: ctl.signal })
+        if (stopped) return
+        if (r.status === 'done') {
+          setTailored(r.questions.map((q) => ({ title: q.label, description: q.hint || '为这个视频推荐', question: q.question, tailored: true })))
+          return
+        }
+        if (r.status === 'failed') return
+      } catch {
+        if (stopped) return
+      }
+      if (tries > 0) timer = setTimeout(() => poll(tries - 1), 4000)
+    }
+    poll(60) // about four minutes: long videos read their text for a while
+    return () => { stopped = true; clearTimeout(timer); ctl.abort() }
+  }, [jobId, fresh])
   useEffect(() => {
     if (!replayRequest || running) return
     followRef.current = true
@@ -154,9 +183,10 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
                   ? '默认理解全部图片；在左边把某几张「选作附件」，就只针对它们提问。'
                   : '在下方时间轴中点选薄片，可将对应关键帧作为附件带入提问；未选择时默认理解整段视频。输入 / 可以选择常用任务。'}
               </p>
+              {tailored.length ? <p className="chat__suggest-label mono-sm">为这个视频推荐的问题</p> : null}
               <div className="chat__suggest">
-                {(pictures ? WORKSPACE_CONTENT.pictureSuggestions : WORKSPACE_CONTENT.suggestions).map((s) => (
-                  <SpotlightCard key={s.title} theme="light" spotlightColor="var(--accent-active)" intensity={0.7} className="workspace-card chat-task">
+                {(tailored.length ? tailored : pictures ? WORKSPACE_CONTENT.pictureSuggestions : WORKSPACE_CONTENT.suggestions).map((s) => (
+                  <SpotlightCard key={s.question} theme="light" spotlightColor="var(--accent-active)" intensity={0.7} className={`workspace-card chat-task${s.tailored ? ' chat-task--tailored' : ''}`}>
                     <button type="button" onClick={() => ask(s.question, loadSwitches())}>
                       <strong>{s.title}</strong><span className="workspace-card__description">{s.description}</span>
                       <span className="workspace-card__action">{s.question} <IconArrowRight size={14} /></span>
