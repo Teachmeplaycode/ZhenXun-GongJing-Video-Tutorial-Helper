@@ -45,6 +45,7 @@ CASES = ROOT / "evals" / "cases.json"
 DATA = ROOT / "data" / "evals"
 VIDEOS = DATA / "videos.json"
 RESULTS = DATA / "results"
+NEAR = 6  # seconds: a cited time this close to a reference moment counts as pointing at it
 TIME_RE = re.compile(r"(?<![\d:])\d{1,2}:\d{2}(?::\d{2})?(?![\d:])")  # the chat links [01:23] and bare 01:23 alike
 TRANSIENT = ("busy", "timeout", "network", "upstream", "empty", "http")  # provider hiccups: asked again once
 # Steps every answer has; they say nothing about the model's choices.
@@ -140,7 +141,7 @@ async def ask(client: httpx.AsyncClient, job_id: str, case: dict) -> dict:
     body = {"video_id": job_id, "question": case["question"], "history": False,
             "web": case.get("web", True), "papers": case.get("papers", True),
             "scope": {"type": "frames", "frames": case["frames"]} if case.get("frames") else {"type": "all"}}
-    text, tools, final, started = [], [], {}, time.perf_counter()
+    text, tools, final, started, checked = [], [], {}, time.perf_counter(), {}
     try:
         async with client.stream("POST", "/api/agent/runs", json=body, timeout=600) as r:
             async for line in r.aiter_lines():
@@ -153,6 +154,8 @@ async def ask(client: httpx.AsyncClient, job_id: str, case: dict) -> dict:
                     tools.append({"name": e["tool_name"]})
                 elif e["type"] == "tool_call.input" and tools and e["call_id"].startswith(("tool", "zoom")):
                     tools[-1]["args"] = (e.get("input") or {}).get("params")
+                elif e["type"] == "evidence.checked":  # modules/agent/evidence.py: each citation checked
+                    checked = e.get("summary") or {}
                 elif e["type"] in ("run.completed", "run.error"):
                     final = e
     except httpx.HTTPError as exc:
@@ -161,7 +164,19 @@ async def ask(client: httpx.AsyncClient, job_id: str, case: dict) -> dict:
     return {"answer": "".join(text), "tools": tools, "status": "done" if final.get("type") == "run.completed" else "error",
             "error": final.get("message") if final.get("type") != "run.completed" else None, "code": final.get("code"),
             "seconds": round(time.perf_counter() - started, 1), "prompt_tokens": usage.get("prompt"),
-            "completion_tokens": usage.get("completion"), "model": final.get("model")}
+            "completion_tokens": usage.get("completion"), "model": final.get("model"),
+            "citations": {"total": checked.get("total", 0), "failed": checked.get("failed", 0)}}
+
+
+def cited_seconds(answer: str) -> list[float]:
+    """Every time the answer points at (ranges give both ends)."""
+    out = []
+    for stamp in TIME_RE.findall(answer):
+        seconds = 0.0
+        for part in stamp.split(":"):
+            seconds = seconds * 60 + int(part)
+        out.append(seconds)
+    return out
 
 
 def check(case: dict, run: dict) -> list[str]:
@@ -191,6 +206,12 @@ def check(case: dict, run: dict) -> list[str]:
         fails.append("没有引用时间点")
     if c.get("timestamps") is False and TIME_RE.search(answer):
         fails.append("不该引用时间点")
+    if c.get("near"):
+        cited = cited_seconds(answer)
+        if not any(abs(t - e) <= NEAR for t in cited for e in case.get("evidence") or []):
+            fails.append(f"引用的时间都不在依据时间 {NEAR} 秒内")
+    if c.get("citations_ok") and (run.get("citations") or {}).get("failed"):
+        fails.append(f"有 {run['citations']['failed']} 条引用没通过校验")
     return fails
 
 
@@ -226,8 +247,12 @@ def summary(results: list[dict]) -> dict:
     n = len(results) or 1
     tokens = [r["prompt_tokens"] or 0 for r in results]
     graded = [r["judge"]["score"] for r in results if r.get("judge") and r["judge"].get("score") is not None]
+    cites = [r.get("citations") or {} for r in results]
+    cited = sum(c.get("total", 0) for c in cites)
     return {"cases": len(results), "passed": sum(r["passed"] for r in results),
             "avg_seconds": round(sum(r["seconds"] for r in results) / n, 1),
+            "max_seconds": max((r["seconds"] for r in results), default=0),
+            "citations": cited, "citations_failed": sum(c.get("failed", 0) for c in cites),
             "avg_prompt_k": round(sum(tokens) / n / 1000, 1),
             "judge_avg": round(sum(graded) / len(graded), 2) if graded else None}
 
@@ -282,7 +307,10 @@ def print_report(results: list[dict], before: dict | None) -> None:
         k = f"{(r['prompt_tokens'] or 0) / 1000:.0f}"
         print(f"{mark:2}{r['id']:<26}{'通过' if r['passed'] else '失败':<6}{r['seconds']:>6.0f}s{k:>7}  {change}{note}"[:220])
     s = summary(results)
-    line = f"\n通过 {s['passed']}/{s['cases']} · 平均 {s['avg_seconds']}s · 平均输入 {s['avg_prompt_k']}k tokens"
+    line = (f"\n通过 {s['passed']}/{s['cases']} · 平均 {s['avg_seconds']}s · 最长 {s.get('max_seconds', 0):.0f}s"
+            f" · 平均输入 {s['avg_prompt_k']}k tokens")
+    if s.get("citations"):
+        line += f" · 引用 {s['citations']} 条，未通过校验 {s['citations_failed']} 条"
     if s["judge_avg"] is not None:
         line += f" · 评分均值 {s['judge_avg']}/2"
     print(line)
@@ -300,11 +328,17 @@ async def main() -> None:
     parser.add_argument("--judge", action="store_true", help="grade answers against each rubric with the model")
     parser.add_argument("--concurrency", type=int, default=2)
     parser.add_argument("--prepare", action="store_true", help="only parse the videos")
+    parser.add_argument("--cases", default=str(CASES), help="question set (default evals/cases.json; held-out tutorials: evals/tutorial.json)")
+    parser.add_argument("--drafts", action="store_true", help="also cases not yet reviewed by a person (reviewed: false)")
     args = parser.parse_args()
 
-    spec = load(CASES)
+    spec = load(Path(args.cases))
+    global RESULTS
+    if Path(args.cases).stem != "cases":  # each question set keeps its own history to compare with
+        RESULTS = DATA / f"results-{Path(args.cases).stem}"
     wanted = [w.strip() for w in (args.only or "").split(",") if w.strip()]
-    cases = [c for c in spec["cases"] if not wanted or any(w in c["id"] for w in wanted)]
+    cases = [c for c in spec["cases"] if (not wanted or any(w in c["id"] for w in wanted))
+             and (args.drafts or c.get("reviewed", True))]
     needed = {c["video"] for c in cases}
     videos = {k: v for k, v in spec["videos"].items() if k in needed or args.prepare}
     before = previous()

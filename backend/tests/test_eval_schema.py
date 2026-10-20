@@ -10,9 +10,9 @@ CASES = Path(__file__).resolve().parent.parent / "evals" / "cases.json"
 
 def test_categories_and_qtypes_match_issue():
     assert len(CATEGORIES) == 6
-    assert len(QTYPES) == 5
     assert "ad_shopping" in CATEGORIES
-    assert set(QTYPES) == {"locate", "visual_detail", "action_count", "summary", "verify"}
+    # Issue #7's five, plus the software-tutorial set's two (evals/tutorial.json)
+    assert set(QTYPES) == {"locate", "visual_detail", "action_count", "summary", "verify", "reason", "absent"}
 
 
 def test_current_cases_json_is_valid():
@@ -255,3 +255,16 @@ def test_distinct_video_identifiers_parts_hash_routes_and_ports_remain_valid(fir
     spec = {"videos": {"first": {"url": first, "note": "confirmed", "category": "lecture"},
                        "second": {"url": second, "note": "confirmed", "category": "sports"}}, "cases": []}
     assert validate(spec) == []
+
+
+def test_tutorial_fields_are_checked():
+    base = {"videos": {"v": {"url": "https://www.bilibili.com/video/BV1y44y1A76r", "category": "tutorial", "note": "Excel 教程"}},
+            "cases": [{"id": "c", "video": "v", "question": "q", "rubric": "r", "qtype": "locate",
+                       "reviewed": False, "evidence": [86, 90.5], "checks": {"near": True, "citations_ok": True}}]}
+    assert validate(base) == []
+    bad = __import__("copy").deepcopy(base)
+    bad["cases"][0].update({"reviewed": "no", "evidence": [-1]})
+    errors = validate(bad)
+    assert any("reviewed" in e for e in errors) and any("evidence" in e for e in errors)
+    del base["cases"][0]["evidence"]
+    assert any("checks.near" in e for e in validate(base))
