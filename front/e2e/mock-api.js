@@ -135,6 +135,7 @@ export class MockApi {
     this.cuts = [30, 75] // shot changes the mock reports
     // How cited moments can be looked at again (backend modules/playback); tests set 'original' to get a player.
     this.source = { state: 'cache', label: '缓存证据', message: '平台没有提供可播放的原视频，时间点只能查看抽取的画面和文字' }
+    this.replayDelay = 0 // ms before /replay answers
     this.mediaBroken = false // /media answers 502 (an expired platform link)
     this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
@@ -315,6 +316,7 @@ export class MockApi {
       message: this.chaptersMessage || (this.chaptersStatus === 'done' ? `已生成 ${this.chapters.length} 个章节` : ''),
     })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/replay$/)
+    if (m && this.replayDelay) await new Promise((r) => setTimeout(r, this.replayDelay)) // a slow read, to cancel
     if (m && req.method() === 'POST') {
       const { start, end } = body
       const frames = [0, 1, 2, 3].map((i) => `/api/link-jobs/${m[1]}/replay/0000000-0000000-030/0${i}.jpg`)

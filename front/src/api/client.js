@@ -163,10 +163,11 @@ export const fetchCuts = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs
 export const fetchChapters = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/chapters`, { signal })
 
 /** Replay a stretch framed on the timeline, without the model. Returns { manual: 'replay', events } (saved in the session). */
-export const manualReplay = (jobId, start, end) => linkRequest(`/api/link-jobs/${jobId}/replay`, {
+export const manualReplay = (jobId, start, end, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/replay`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ start, end }),
+  signal,
 })
 
 /** How a cited moment can be looked at again: { state: original | cache | none, label, message } */

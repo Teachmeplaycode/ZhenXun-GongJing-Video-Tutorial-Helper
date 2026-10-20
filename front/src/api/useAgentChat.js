@@ -152,7 +152,9 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
     if (question) send(question.text, question.attachments || [], question.options || {})
   }, [messages, send])
 
-  const stop = useCallback(() => controllerRef.current?.abort(), [])
+  const replayRef = useRef(null) // the manual replay in progress, if any: cancelled by its own button or by stop
+  const stop = useCallback(() => { controllerRef.current?.abort(); replayRef.current?.abort() }, [])
+  const cancelReplay = useCallback(() => replayRef.current?.abort(), [])
 
   // A stretch framed on the timeline, replayed without the model; the card shows while it loads.
   const replay = useCallback(async (start, end) => {
@@ -160,14 +162,21 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
     const id = nextId()
     const base = { ...emptyAnswer(), id, manual: 'replay', range: [start, end] }
     setMessages((list) => [...list, base])
+    replayRef.current?.abort()
+    const ctl = new AbortController()
+    replayRef.current = ctl
     try {
-      const body = await manualReplay(video.jobId, start, end)
+      const body = await manualReplay(video.jobId, start, end, { signal: ctl.signal })
       const msg = body.events.reduce(applyEvent, base)
       setMessages((list) => list.map((m) => (m.id === id ? { ...msg, status: 'done' } : m)))
     } catch (err) {
-      setMessages((list) => list.map((m) => (m.id === id ? { ...m, status: 'error', error: err.message } : m)))
+      const stopped = err.name === 'AbortError' || ctl.signal.aborted
+      setMessages((list) => list.map((m) => (m.id === id
+        ? { ...m, status: stopped ? 'stopped' : 'error', error: stopped ? '已取消慢放' : err.message } : m)))
+    } finally {
+      if (replayRef.current === ctl) replayRef.current = null
     }
   }, [video])
 
-  return { messages, send, regenerate, stop, running, replay }
+  return { messages, send, regenerate, stop, running, replay, cancelReplay }
 }
