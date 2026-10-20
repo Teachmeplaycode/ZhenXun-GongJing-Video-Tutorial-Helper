@@ -70,6 +70,8 @@ test('an answer shows its steps inline, then the text, sources and footer', asyn
 
   const answer = lastAnswer(page)
   await expect(answer.locator('.msg-footer__meta')).toContainText('4 步') // model rounds are not listed as steps
+  await expect(answer.locator('.msg-footer__meta')).toContainText('输出 100 tokens')
+  await expect(answer.locator('.msg-footer__meta')).toContainText('约￥0.0006') // the cost run.completed reported
   await expect(answer.locator('.step-group')).toContainText('执行了 4 步')
   // Steps come before the text, as they happened.
   const order = await answer.locator('.bubble--assistant > *').evaluateAll((els) => els.map((e) => e.className))
@@ -83,6 +85,21 @@ test('an answer shows its steps inline, then the text, sources and footer', asyn
 
   // Narration before the tool call ("我来查一下资料。") stayed out of the answer.
   await expect(answer.locator('.streaming-text')).not.toContainText('我来查一下资料')
+})
+
+test('an answer without a computable cost says so instead of showing ¥0', async ({ page }) => {
+  const mock = await start(page)
+  mock.runs.push(researchAnswer().map((e) => e.type === 'run.completed'
+    ? { ...e, usage: { prompt: null, completion: null, known_prompt: 23, known_completion: 0, complete: false },
+        summary: '分析 4 帧 · fake-model · 输入 未知 · 输出 未知 tokens',
+        cost: { cny: null, computable: false, reason: '有调用的 token 用量未知' } }
+    : e))
+  await enterChat(page)
+  await ask(page, '柚子会影响药物吗？')
+  const meta = lastAnswer(page).locator('.msg-footer__meta')
+  await expect(meta).toContainText('费用不可计算')
+  await expect(meta).toContainText('输入 未知 · 输出 未知 tokens')
+  await expect(meta).not.toContainText('￥')
 })
 
 test('a search step opens to verdicts per result', async ({ page }) => {

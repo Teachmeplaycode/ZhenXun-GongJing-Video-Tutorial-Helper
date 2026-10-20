@@ -95,6 +95,7 @@ function Footer({ message, onRegenerate }) {
       {done ? (
         <span className="msg-footer__meta mono-sm">
           {steps ? `${steps} 步 · ` : ''}{fmtElapsed(done.elapsedMs)}{done.summary ? ` · ${done.summary.split(' · ').slice(-2).join(' · ')}` : ''}
+          {done.cost?.cny != null ? ` · 约￥${done.cost.cny.toFixed(4)}` : (done.cost && !done.cost.computable ? ' · 费用不可计算' : '')}
         </span>
       ) : null}
       <span className="msg-footer__actions">

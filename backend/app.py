@@ -22,6 +22,8 @@ from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.notes.router import NotesService
 from modules.agent import browser, run_agent
+from modules.agent.budget import AnswerBudget
+from contextlib import aclosing
 from modules.agent.evidence import with_evidence
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.export.api import create_router as create_export_router
@@ -744,41 +746,57 @@ async def agent_run(body: AgentRequest):
         started = time.perf_counter()
         calls: dict[str, dict] = {}  # call_id → {name, start, ok, count, ms}
         final: dict = {}
+        spend = AnswerBudget()
         try:
-            async for event in with_evidence(run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
-                                         web=body.web, papers=body.papers, framed=framed), job, body.question):
-                event = {**event, "t": round(time.perf_counter() - started, 2)}
-                if event["type"] == "assistant.message.delta":
-                    text.append(event["delta"])
-                    if events and events[-1]["type"] == "assistant.message.delta":
-                        events[-1] = {**events[-1], "delta": events[-1]["delta"] + event["delta"]}
+            async with aclosing(run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(), web=body.web, papers=body.papers, framed=framed, budget=spend)) as owned_stream:
+                async for event in with_evidence(owned_stream, job, body.question):
+                    event = {**event, "t": round(time.perf_counter() - started, 2)}
+                    if event["type"] == "assistant.message.delta":
+                        text.append(event["delta"])
+                        if events and events[-1]["type"] == "assistant.message.delta":
+                            events[-1] = {**events[-1], "delta": events[-1]["delta"] + event["delta"]}
+                        else:
+                            events.append(event)
+                    elif event["type"] == "browser.frame":
+                        # Screenshots are large: a saved answer keeps only each browse's latest one.
+                        events = [e for e in events if not (e["type"] == "browser.frame" and e.get("call_id") == event.get("call_id"))]
+                        events.append(event)
                     else:
                         events.append(event)
-                elif event["type"] == "browser.frame":
-                    # Screenshots are large: a saved answer keeps only each browse's latest one.
-                    events = [e for e in events if not (e["type"] == "browser.frame" and e.get("call_id") == event.get("call_id"))]
-                    events.append(event)
-                else:
-                    events.append(event)
-                    if event["type"] in ("run.completed", "run.error"):
-                        status = "done" if event["type"] == "run.completed" else "error"
-                        final = event
-                    track(calls, event)
-                yield sse({"run_id": run_id, **event})
+                        if event["type"] in ("run.completed", "run.error"):
+                            status = "done" if event["type"] == "run.completed" else "error"
+                            final = event
+                        track(calls, event)
+                    yield sse({"run_id": run_id, **event})
         except Exception as exc:
             log.error("answer", exc, run_id=run_id, job_id=job.id)
             status, final = "error", {"code": "internal", "message": str(exc)[:200]}
-            events.append({"type": "run.error", "code": "internal", "message": "后端出错了，详情见日志"})
+            spend.cancel_open_calls()
+            events.append({"type": "run.error", "code": "internal", "message": "后端出错了，详情见日志",
+                           "usage": spend.usage(), "budget": spend.snapshot(), "cost": spend.cost()})
             yield sse({"run_id": run_id, **events[-1]})
         finally:
+            spend.cancel_open_calls()
+            final = {**final, "usage": spend.usage(), "budget": spend.snapshot(), "cost": spend.cost()}
             if status == "stopped":
-                events.append({"type": "run.error", "code": "stopped", "message": "已停止"})
+                events.append({"type": "run.error", "code": "stopped", "message": "已停止",
+                               "usage": final["usage"], "budget": final["budget"], "cost": final["cost"]})
             store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
             usage = final.get("usage") or {}
+            cost = final.get("cost") or {}
+            spent = final.get("budget") or {}
             log.event("answer", run_id=run_id, job_id=job.id, platform=job.video.platform, question=body.question[:200],
                       status=status, code=final.get("code"), message=final.get("message") if status == "error" else None,
                       elapsed_ms=round((time.perf_counter() - started) * 1000), model=final.get("model"),
                       prompt_tokens=usage.get("prompt"), completion_tokens=usage.get("completion"),
+                      known_prompt_tokens=usage.get("known_prompt"), known_completion_tokens=usage.get("known_completion"),
+                      usage_complete=usage.get("complete"),
+                      cost_cny=cost.get("cny"), cost_computable=cost.get("computable"),
+                      cost_reason=None if cost.get("computable") else cost.get("reason"),
+                      max_wait_ms=spent.get("max_wait_ms"), external_calls=spent.get("external_calls"),
+                      frames_read=spent.get("frames_read"), tool_calls=spent.get("tool_calls"),
+                      requested_tool_calls=final.get("tool_calls"),
+                      budget_limit_hits=spent.get("limit_hits") or None,
                       rounds=sum(1 for c in calls.values() if c["name"].startswith("vision.")),
                       web=body.web, papers=body.papers, scope="frames" if frames else "all",
                       tools=[{k: c[k] for k in ("name", "ms", "ok", "count")} for c in calls.values()
