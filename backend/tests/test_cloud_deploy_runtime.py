@@ -58,3 +58,27 @@ def test_download_script_uses_available_installer_then_venv_python(tmp_path, has
     assert calls[0][1:3] == (["pip", "install"] if has_uv else ["-m", "pip"])
     assert calls[1][0] == ".venv/bin/python" and calls[1][1] == "-c"
     assert "snapshot_download" in calls[1][2]
+
+
+@pytest.mark.parametrize("downloaded, explicit", [(True, None), (True, "custom-model"), (False, None), (False, "custom-model")])
+def test_normal_start_prefers_downloaded_model_and_preserves_override(tmp_path, downloaded, explicit):
+    root = tmp_path / "project"
+    script = root / "deploy/huawei/start.sh"
+    script.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "deploy/huawei/start.sh", script)
+    local = tmp_path / "downloaded-model"
+    if downloaded:
+        local.mkdir()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "dirname").symlink_to(shutil.which("dirname"))
+    executable = root / "backend/.venv/bin/uvicorn"
+    executable.parent.mkdir(parents=True)
+    executable.write_text("#!" + sys.executable + "\nimport json,os\nwith open(os.environ['CALL_LOG'],'w') as f: json.dump({'ASR_MODEL':os.environ['ASR_MODEL']},f)\n")
+    executable.chmod(0o755)
+    log = tmp_path / "started.json"
+    env = {"PATH": str(bin_dir), "CALL_LOG": str(log), "ASR_LOCAL_MODEL_DIR": str(local)}
+    if explicit is not None:
+        env["ASR_MODEL"] = explicit
+    subprocess.run(["/bin/bash", str(script)], env=env, check=True)
+    assert json.loads(log.read_text())["ASR_MODEL"] == (explicit or (str(local) if downloaded else "small"))

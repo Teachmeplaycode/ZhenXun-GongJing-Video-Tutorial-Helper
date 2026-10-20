@@ -44,7 +44,7 @@ nohup bash gongjing/deploy/huawei/start.sh > gongjing-server.log 2>&1 < /dev/nul
 curl --fail http://127.0.0.1:17080/api/health
 ```
 
-平台卡片请使用 `platform-start.sh` 的内容作为启动脚本；它同时设置本地 ASR 权重路径与沙箱持久化数据目录。上面的普通 `start.sh` 启动方式，若也要使用已下载权重，需要设置 `ASR_MODEL=/root/runtime/gongjing/models/whisper-small`。
+平台卡片请使用 `platform-start.sh` 的内容作为启动脚本；它同时设置本地 ASR 权重路径与沙箱持久化数据目录。普通 `start.sh` 优先采用已下载的 `/root/runtime/gongjing/models/whisper-small` 目录；可用 `ASR_LOCAL_MODEL_DIR` 指定其他预下载目录，或用 `ASR_MODEL` 显式覆盖。没有本地目录时才使用模型名 `small`（首次转写需要访问模型源）。
 
 ### 依赖解析：headless Linux 上不能让 rapidocr 拉入 opencv-python（2026-10-20 实测）
 

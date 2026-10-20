@@ -56,7 +56,7 @@
 | `SCREENTEXT` | 可选 | 画面文字识别（每秒一帧读出字幕和画面上的字，默认开启）；`SCREENTEXT=off` 关闭。后端见上方"两个平台的识别后端" |
 | `BROWSER` | 可选 | 浏览器操作（Playwright 无头 Chromium，默认开启，跟"联网"开关走）；第一次要下载浏览器：`cd backend && uv run playwright install --only-shell chromium`；`BROWSER=off` 关闭 |
 | `DECISION` / `DECISION_MODEL` | 可选 | 决策模块（本机 Ollama，默认开启、`qwen3.5:9b`）：过滤搜索结果、拦截网页注入、判断是否需要查资料；Ollama 没开时自动退回简单规则 |
-| `INTENT_LLM_FALLBACK` | 可选 | 问题分类的主模型回退（默认开启）：本地决策模型不可用时，由问答主模型在 `INTENT_LLM_FALLBACK_TIMEOUT`（默认 5）秒内从六个固定类别中选一，超时或答不出才退回关键词规则；`off` 关闭。回退的 token 用量与耗时记录在路由事件里，供预算统计 |
+| `INTENT_LLM_FALLBACK` | 可选 | 问题分类的主模型回退（默认开启）：本地决策模型不可用时，由问答主模型在 `INTENT_LLM_FALLBACK_TIMEOUT`（默认 5）秒内从六个固定类别中选一，超时或答不出才退回关键词规则；`off` 关闭。回退的 token 用量与前台等待耗时记录在路由事件里，供预算统计；耗时不含返回后继续完成的后台连接清理 |
 
 其余配置项（转写模型、搜索引擎顺序、工具轮数等）见 [backend/README.md](backend/README.md)。
 

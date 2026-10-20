@@ -126,11 +126,30 @@ async def _before_deadline(awaitable, deadline: float):
             task.add_done_callback(lambda finished: None if finished.cancelled() else finished.exception())
 
 
+# Keep deferred client closes alive after returning a keyword fallback. A spent request deadline
+# must not cancel the HTTP connection-pool close and leak sockets on repeated provider timeouts.
+_CLIENT_CLEANUPS: set[asyncio.Task] = set()
+
+
+def _cleanup_finished(task):
+    _CLIENT_CLEANUPS.discard(task)
+    if not task.cancelled():
+        task.exception()  # observe a close failure without leaking provider details to the UI
+
+
+def _start_cleanup(client):
+    task = asyncio.create_task(client.aclose())
+    _CLIENT_CLEANUPS.add(task)
+    task.add_done_callback(_cleanup_finished)
+    return task
+
+
 async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int, str]:
     """Return the classification plus measured usage, including failed/invalid model answers.
 
-    One deadline covers streaming and client cleanup. Unknown token counts stay None; a failed
-    request can still have consumed tokens, so keyword fallback must keep any reported counts.
+    One deadline bounds the user's wait. Client cleanup may finish in the background afterwards;
+    elapsed_ms measures the wait until the decision returns, not that deferred cleanup. Unknown
+    token counts stay None, and failed requests retain any reported counts.
     """
     started = time.perf_counter()
     timeout = LLM_FALLBACK_TIMEOUT
@@ -173,10 +192,17 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
                   else "主模型分类失败，已退回关键词")
     finally:
         if client is not None:
-            try:
-                await _before_deadline(client.aclose(), deadline)
-            except Exception:  # noqa: BLE001 — cleanup must not discard a valid answer or usage
-                detail = detail or "主模型连接清理未在分类时限内完成"
+            cleanup = _start_cleanup(client)
+            # Preserve caller cancellation; closing the pool is independently owned from here.
+            if not asyncio.current_task().cancelling():
+                try:
+                    done, _ = await asyncio.wait({cleanup}, timeout=max(0.0, deadline - time.perf_counter()))
+                    if done:
+                        cleanup.result()
+                    else:
+                        detail = detail or "主模型连接正在后台清理"
+                except Exception:  # noqa: BLE001 — cleanup must not discard a valid answer or usage
+                    detail = detail or "主模型连接清理失败"
     took = round((time.perf_counter() - started) * 1000)
     counts = ({"prompt_tokens": usage.prompt_tokens, "completion_tokens": usage.completion_tokens}
               if usage is not None else None)
