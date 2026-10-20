@@ -114,7 +114,7 @@ function Footer({ message, onRegenerate }) {
 const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`
 
 // A replay framed by hand on the timeline: the player straight away, no model and no steps list.
-function ManualReplay({ message, onTime }) {
+function ManualReplay({ message, onTime, onStop }) {
   const call = message.parts.find((p) => p.kind === 'steps')?.calls[0]
   const d = call?.data || {}
   const [start, end] = message.range || [d.start, d.end]
@@ -127,7 +127,12 @@ function ManualReplay({ message, onTime }) {
           {start != null ? <span className="mono-sm">{fine(start)} – {fine(end)}</span> : null}
           {d.frames ? <span className="mono-sm muted">{d.frames.length} 帧 · 每秒 {d.fps} 帧 · 未经模型</span> : null}
         </div>
-        {message.status === 'running' ? <div className="manual-replay__wait mono-sm muted">正在读取这一段…</div> : null}
+        {message.status === 'running' ? (
+          <div className="manual-replay__wait mono-sm muted">
+            正在读取这一段…
+            {onStop ? <button type="button" className="link-btn manual-replay__cancel" onClick={onStop}>取消</button> : null}
+          </div>
+        ) : null}
         {message.error ? <div className="bubble__error">{message.error}</div> : null}
         {d.frames ? <Replay d={d} onSeek={onTime} /> : null}
       </div>
@@ -154,7 +159,7 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
       </div>
     )
   }
-  if (message.manual === 'replay') return <ManualReplay message={message} onTime={onTime} />
+  if (message.manual === 'replay') return <ManualReplay message={message} onTime={onTime} onStop={onStop} />
   const streaming = message.status === 'running'
   const parts = message.parts
   const lastText = parts.map((p) => p.kind).lastIndexOf('text')

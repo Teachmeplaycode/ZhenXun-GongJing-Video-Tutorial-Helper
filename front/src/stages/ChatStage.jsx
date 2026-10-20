@@ -31,7 +31,7 @@ const fineClock = (t) => {
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
 export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
-  const { messages, send, regenerate, stop, running, replay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
+  const { messages, send, regenerate, stop, running, replay, cancelReplay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   // The workbench sidebar: open or not and which tab, remembered across visits.
   const [bench, setBench] = useState(() => {
     try {
@@ -92,8 +92,10 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     poll(60) // about four minutes: long videos read their text for a while
     return () => { stopped = true; clearTimeout(timer); ctl.abort() }
   }, [jobId, fresh])
+  // A replay framed before this chat opened belongs to another video (or an earlier visit): ignore it.
+  const openedAt = useRef(Date.now())
   useEffect(() => {
-    if (!replayRequest || running) return
+    if (!replayRequest || running || replayRequest.key < openedAt.current) return
     followRef.current = true
     setFollowing(true)
     replay(replayRequest.start, replayRequest.end)

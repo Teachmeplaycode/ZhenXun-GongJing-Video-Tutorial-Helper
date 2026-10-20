@@ -1375,3 +1375,4 @@ span.ev-chip { cursor: help; }
 .viz-intents { display: flex; flex-direction: column; gap: var(--sp-4); }
 .viz-intents p { margin: var(--sp-4) 0 0; }
 .chat__suggest-label { margin: var(--sp-12) 0 0; color: var(--text-secondary); }
+.manual-replay__cancel { margin-left: var(--sp-8); font-size: var(--fs-caption); }
