@@ -72,11 +72,13 @@ def test_run_streams_answer_with_images(tmp_path):
 
     body = seen["body"]
     assert seen["auth"] == "Bearer sk-test" and body["stream"] and body["thinking"] == {"type": "disabled"}
-    assert [m["role"] for m in body["messages"]] == ["system", "user", "assistant", "user"]
-    content = body["messages"][-1]["content"]
-    images = [c for c in content if c["type"] == "image_url"]
+    # system, the video's material (the same for every question: cached), its acknowledgement, the
+    # conversation so far, then this question
+    assert [m["role"] for m in body["messages"]] == ["system", "user", "assistant", "user", "assistant", "user"]
+    material, asked = body["messages"][1]["content"], body["messages"][-1]["content"]
+    images = [c for c in material if c["type"] == "image_url"]
     assert len(images) == 3 and images[0]["image_url"]["url"].startswith("data:image/jpeg;base64,")
-    assert "没有取到画面的时段" in content[0]["text"] and content[-1]["text"] == "问题：讲了什么"
+    assert "没有取到画面的时段" in material[0]["text"] and asked[-1]["text"] == "问题：讲了什么"
 
 
 @pytest.mark.parametrize("status,code", [(401, "unauthorized"), (402, "insufficient_balance"), (503, "upstream")])
@@ -160,3 +162,14 @@ def test_stream_closed_without_content_is_an_error(tmp_path):
     handler = lambda r: httpx.Response(200, text=": keep-alive\n\n")
     events = collect(run_agent(make_job(tmp_path, ["ok"]), client_for(handler), "q"))
     assert events[-1]["type"] == "run.error" and events[-1]["code"] == "empty"
+
+
+def test_the_video_material_is_the_same_for_every_question_so_it_can_be_cached(tmp_path):
+    from modules.agent.run import build_messages
+    job = make_job(tmp_path, ["ok", "ok", "ok"])
+    first = build_messages(job, job.slots, "第一个问题", [], scope_all=True)
+    second = build_messages(job, job.slots, "第二个问题", [{"role": "user", "content": "第一个问题"},
+                                                     {"role": "assistant", "content": "回答"}], scope_all=True)
+    assert first[:3] == second[:3]  # system, material, acknowledgement: an identical prefix
+    assert first[-1]["content"][-1]["text"] == "问题：第一个问题" and second[-1]["content"][-1]["text"] == "问题：第二个问题"
+    assert second[3:5] == [{"role": "user", "content": "第一个问题"}, {"role": "assistant", "content": "回答"}]

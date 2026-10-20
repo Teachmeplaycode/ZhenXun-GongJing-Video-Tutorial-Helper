@@ -101,6 +101,7 @@ class Usage:
     """What a stream reported besides its text: token counts, why it stopped, requested tool calls."""
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
+    cached_tokens: int | None = None  # of the prompt, read from the provider's context cache (cheaper, faster)
     finish_reason: str | None = None
     tool_calls: list[ToolCall] = field(default_factory=list)
 
@@ -226,6 +227,9 @@ class ChatClient:
                 if chunk.get("usage"):
                     usage.prompt_tokens = chunk["usage"].get("prompt_tokens")
                     usage.completion_tokens = chunk["usage"].get("completion_tokens")
+                    # DeepSeek: prompt_cache_hit_tokens; OpenAI-style: prompt_tokens_details.cached_tokens
+                    usage.cached_tokens = chunk["usage"].get("prompt_cache_hit_tokens",
+                                                             (chunk["usage"].get("prompt_tokens_details") or {}).get("cached_tokens"))
                 for choice in chunk.get("choices") or []:
                     if choice.get("finish_reason"):
                         usage.finish_reason = choice["finish_reason"]
