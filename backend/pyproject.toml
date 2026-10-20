@@ -21,7 +21,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cloud = ["faster-whisper>=1.2,<2", "rapidocr-onnxruntime>=1.4,<2"]
+# av>=16 dropped the metadata_errors kwarg faster-whisper still passes (seen on aarch64 Linux, 2026-10-20).
+cloud = ["faster-whisper>=1.2,<2", "av>=14,<16", "rapidocr-onnxruntime>=1.4,<2"]
 
 [dependency-groups]
 dev = [
