@@ -74,7 +74,7 @@
 | `search_transcript` | 搜转写关键词 |
 | `read_transcript` | 读某时间段转写 |
 | `view_frames` | 现场抽 1-6 帧 |
-| `replay` | 慢放复看（16 帧/秒） |
+| `replay` | 慢放复看（每次最多16帧；最高15帧/秒，默认采样率随片段时长调整） |
 | `measure_motion` | 镜头运动、运动强度、周期、热力图 |
 
 **出处**：`backend/modules/agent/tools.py`
