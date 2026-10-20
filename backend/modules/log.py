@@ -7,7 +7,8 @@ Every record has `ts` (unix seconds), `event` and the event's fields. Events:
 - transcript     job_id, status, segments, ms
 - upload         job_id, size, ms
 - answer         run_id, job_id, platform, question, status (done/error/stopped), code, elapsed_ms, model,
-                 prompt_tokens, completion_tokens, web, papers, tools: [{name, ms, ok, count}]
+                 prompt_tokens, completion_tokens (nullable), known_prompt_tokens, known_completion_tokens,
+                 usage_complete, web, papers, tools: [{name, ms, ok, count}]
 - account.login  platform, state
 - error          where, type, message, trace (unhandled exceptions)
 
@@ -58,8 +59,14 @@ class Console(logging.Handler):
         for key in ("ms", "elapsed_ms"):
             if isinstance(p.get(key), (int, float)):
                 bits.append(f"{p[key] / 1000:.1f}s")
-        if p.get("prompt_tokens") is not None:
-            bits.append(f"{(p['prompt_tokens'] or 0) / 1000:.1f}k→{(p.get('completion_tokens') or 0) / 1000:.1f}k tokens")
+        if any(p.get(k) is not None for k in ("prompt_tokens", "completion_tokens", "known_prompt_tokens", "known_completion_tokens")):
+            def token_count(field):
+                value = p.get(field)
+                if value is not None:
+                    return f"{value / 1000:.1f}k"
+                known = p.get("known_" + field)
+                return f"未知（已知 {known / 1000:.1f}k）" if known is not None else "未知"
+            bits.append(f"{token_count('prompt_tokens')}→{token_count('completion_tokens')} tokens")
         if p.get("tools"):
             bits.append("tools=" + ",".join(t["name"] for t in p["tools"]))
         if p.get("message"):

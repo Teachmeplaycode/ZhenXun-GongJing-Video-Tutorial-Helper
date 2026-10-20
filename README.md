@@ -4,10 +4,11 @@
 
 ## 跑起来
 
-需要 macOS（Apple Silicon，语音转写用 mlx-whisper）、[uv](https://docs.astral.sh/uv/)、Node.js、ffmpeg：
+支持 macOS（Apple Silicon）和 Linux 两种环境，语音转写和画面文字识别按平台自动选择后端，也可用 `ASR_BACKEND` / `OCR_BACKEND` 手工切换（见下表）。需要 [uv](https://docs.astral.sh/uv/)、Node.js、ffmpeg：
 
 ```bash
-brew install uv node ffmpeg
+# macOS（Apple Silicon）：brew install uv node ffmpeg
+# Linux（x86_64 / aarch64）：dnf install -y python3.11+ nodejs ffmpeg  # 或 apt 等价命令
 ```
 
 在 `backend/.env` 写入配置（见下表，至少要有问答模型），然后：
@@ -16,6 +17,19 @@ brew install uv node ffmpeg
 ./dev.sh          # 检查环境 → 安装依赖 → 同时启动后端和前端，打开 http://localhost:5173
 ./dev.sh --check  # 只检查，不启动
 ```
+
+### 两个平台的识别后端
+
+| | macOS 默认 | Linux 默认 | 手工切换 |
+| --- | --- | --- | --- |
+| 语音转写 | mlx-whisper（`whisper-large-v3-turbo`） | faster-whisper（CPU int8，默认 `small`，`ASR_CPU_THREADS` 控制线程数） | `ASR_BACKEND=mlx` / `faster-whisper` |
+| 画面文字 | macOS Vision | RapidOCR ONNX | `OCR_BACKEND=vision` / `rapidocr` |
+
+- macOS 上什么都不用做：mlx-whisper 与 Vision 按平台标记安装，行为与之前完全一致。
+- Linux 上安装云端可选依赖组：`cd backend && uv sync --extra cloud`（faster-whisper + rapidocr-onnxruntime）。不装时对应能力自动关闭，只分析画面/只读语音，不会报错。
+- **headless Linux（无 libGL）注意**：rapidocr-onnxruntime 声明依赖非 headless 的 `opencv-python`（要 libGL，且与项目用的 `opencv-python-headless` 都装 `cv2`，互相破坏）。pyproject 的 `[tool.uv] exclude-dependencies` 已把它从解析里排除，uv 0.12.9 本地解析与锁定已验证；无 libGL 的 openEuler aarch64 实测的是下述 pip 路径，Linux 的 uv 路径仍待部署环境验证。没有 uv 时用 `deploy/huawei/prepare.sh` 的等价 pip 序列：先装 `opencv-python-headless`，再 `--no-deps` 装 `rapidocr-onnxruntime` 并显式补上它的真实依赖（onnxruntime、numpy、Pillow、pyclipper、PyYAML、Shapely、six、tqdm）——不要先装 rapidocr 再手动卸装 opencv-python，那会同时损坏 headless 的 cv2。
+- Linux 的 ASR 模型默认 `small`；下载不动 Hugging Face 时可改用 ModelScope 转换权重（见 [deploy/huawei/README.md](deploy/huawei/README.md)），设 `ASR_MODEL=/本地权重路径`。
+- 云端（无本地 Ollama）问题分类由主模型在 5 秒内完成（见配置表的 `INTENT_LLM_FALLBACK`），超时才退回关键词规则。
 
 `dev.sh` 会做这些事：
 
@@ -39,9 +53,10 @@ brew install uv node ffmpeg
 | `OPENALEX_API_KEY` | 建议 | 论文检索；不带 key 每天约 100 次，带免费 key 约 1000 次 |
 | `YUANBAO_COOKIE` | 视频号需要 | 腾讯元宝登录态 `hy_user=…; hy_token=…`，用来解析视频号链接；会过期。**可以直接在页面右上角「账号」里用微信扫码登录** |
 | `BILIBILI_COOKIE` | 可选 | B 站登录态（`SESSDATA=…`），用来读更多评论；不配置时 B 站只给前 3 条热门评论，弹幕不需要登录。**可以在「账号」里用 B 站 App 扫码登录** |
-| `SCREENTEXT` | 可选 | 画面文字识别（每秒一帧读出字幕和画面上的字，用 macOS 自带的文字识别，默认开启）；`SCREENTEXT=off` 关闭 |
+| `SCREENTEXT` | 可选 | 画面文字识别（每秒一帧读出字幕和画面上的字，默认开启）；`SCREENTEXT=off` 关闭。后端见上方"两个平台的识别后端" |
 | `BROWSER` | 可选 | 浏览器操作（Playwright 无头 Chromium，默认开启，跟"联网"开关走）；第一次要下载浏览器：`cd backend && uv run playwright install --only-shell chromium`；`BROWSER=off` 关闭 |
 | `DECISION` / `DECISION_MODEL` | 可选 | 决策模块（本机 Ollama，默认开启、`qwen3.5:9b`）：过滤搜索结果、拦截网页注入、判断是否需要查资料；Ollama 没开时自动退回简单规则 |
+| `INTENT_LLM_FALLBACK` | 可选 | 问题分类的主模型回退（默认开启）：本地决策模型不可用时，由问答主模型在 `INTENT_LLM_FALLBACK_TIMEOUT`（默认 5）秒内从六个固定类别中选一，超时或答不出才退回关键词规则；`off` 关闭。回退的 token 用量与前台等待耗时记录在路由事件里，供预算统计；耗时不含返回后继续完成的后台连接清理 |
 
 其余配置项（转写模型、搜索引擎顺序、工具轮数等）见 [backend/README.md](backend/README.md)。
 

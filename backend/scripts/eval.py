@@ -222,11 +222,12 @@ async def judge(llm, case: dict, run: dict) -> dict | None:
 # ---- report -------------------------------------------------------------------------------------
 def summary(results: list[dict]) -> dict:
     n = len(results) or 1
-    tokens = [r["prompt_tokens"] or 0 for r in results]
+    tokens = [r["prompt_tokens"] for r in results if r["prompt_tokens"] is not None]
     graded = [r["judge"]["score"] for r in results if r.get("judge") and r["judge"].get("score") is not None]
     return {"cases": len(results), "passed": sum(r["passed"] for r in results),
             "avg_seconds": round(sum(r["seconds"] for r in results) / n, 1),
-            "avg_prompt_k": round(sum(tokens) / n / 1000, 1),
+            "avg_prompt_k": round(sum(tokens) / len(tokens) / 1000, 1) if tokens else None,
+            "prompt_known_cases": len(tokens), "prompt_unknown_cases": len(results) - len(tokens),
             "judge_avg": round(sum(graded) / len(graded), 2) if graded else None}
 
 
@@ -243,18 +244,21 @@ def print_report(results: list[dict], before: dict | None) -> None:
         was = old.get(r["id"])
         change = "" if not was or was["passed"] == r["passed"] else ("（新通过）" if r["passed"] else "（退步）")
         note = "；".join(r["fails"]) or (f"评分 {r['judge']['score']}：{r['judge']['reason']}" if r.get("judge") else "")
-        k = f"{(r['prompt_tokens'] or 0) / 1000:.0f}"
+        k = f"{r['prompt_tokens'] / 1000:.0f}" if r["prompt_tokens"] is not None else "未知"
         print(f"{mark:2}{r['id']:<26}{'通过' if r['passed'] else '失败':<6}{r['seconds']:>6.0f}s{k:>7}  {change}{note}"[:220])
     s = summary(results)
-    line = f"\n通过 {s['passed']}/{s['cases']} · 平均 {s['avg_seconds']}s · 平均输入 {s['avg_prompt_k']}k tokens"
+    input_average = f"{s['avg_prompt_k']}k" if s["avg_prompt_k"] is not None else "未知"
+    line = (f"\n通过 {s['passed']}/{s['cases']} · 平均 {s['avg_seconds']}s · 已知输入均值 {input_average} tokens"
+            f"（已知 {s['prompt_known_cases']}/{s['cases']}，未知 {s['prompt_unknown_cases']}）")
     if s["judge_avg"] is not None:
         line += f" · 评分均值 {s['judge_avg']}/2"
     print(line)
     if before:
         b = before["summary"]
         same = {r["id"] for r in results} == {r["id"] for r in before["results"]}
+        old_input = f"{b['avg_prompt_k']}k" if b["avg_prompt_k"] is not None else "未知"
         print(f"上次（{before['started']}{'' if same else '，用例不同'}）：通过 {b['passed']}/{b['cases']} · 平均 {b['avg_seconds']}s · "
-              f"平均输入 {b['avg_prompt_k']}k" + (f" · 评分均值 {b['judge_avg']}/2" if b.get("judge_avg") is not None else ""))
+              f"记录输入均值 {old_input}" + (f" · 评分均值 {b['judge_avg']}/2" if b.get("judge_avg") is not None else ""))
 
 
 async def main() -> None:
