@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, log, playback
+from modules import accounts, log, playback, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.notes.router import NotesService
@@ -37,6 +37,7 @@ from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
 from modules.antifraud.router import create_router as antifraud_router
 from modules.video_source import ResolveError, ResolvedVideo, Stream, default_registry
+from modules.video_source.registry import extract_url
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
 # GONGJING_DATA_DIR lets a second server (e.g. for testing) keep its own frames and sessions:
@@ -78,6 +79,27 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="GongJ!ng? backend", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def visitor(request: Request, call_next):
+    """Public demo: who is asking, from a signed cookie; a browser without one gets a new id."""
+    if not visitors.enabled():
+        return await call_next(request)
+    key = visitors.secret(DATA_ROOT)
+    who = visitors.verify(request.cookies.get(visitors.COOKIE), key)
+    fresh = who is None
+    if fresh:
+        who = visitors.new()
+    token = visitors.current.set(who)
+    try:
+        response = await call_next(request)
+    finally:
+        visitors.current.reset(token)
+    if fresh:
+        response.set_cookie(visitors.COOKIE, visitors.sign(who, key), max_age=visitors.MAX_AGE,
+                            httponly=True, samesite="lax", secure=request.url.scheme == "https")
+    return response
 
 
 class LinkRequest(BaseModel):
@@ -239,6 +261,9 @@ def snapshot(job: FrameJob) -> dict:
 
 
 def find_job(job_id: str) -> FrameJob | None:
+    """The job, if it exists and (in the public demo) belongs to whoever is asking."""
+    if visitors.enabled() and not visitors.may_see(store.owner(job_id)):
+        return None
     job = jobs.get(job_id)
     if job is None:
         record = store.get(job_id)
@@ -297,13 +322,18 @@ async def health():
         model = get_llm().config.model
     except LLMError:
         model = None
-    return {"ok": True, "platforms": [r.platform for r in registry.resolvers], "ffmpeg": bool(shutil.which("ffmpeg")),
-            "model": model}
+    platforms = [r.platform for r in registry.resolvers]
+    if visitors.enabled():
+        platforms = [p for p in platforms if p in visitors.platforms()]
+    return {"ok": True, "platforms": platforms, "ffmpeg": bool(shutil.which("ffmpeg")),
+            "model": model, "public": visitors.enabled()}
 
 
 @app.post("/api/links/resolve")
 async def resolve_link(body: LinkRequest):
     """Identity and metadata only, e.g. to show title and parts before sampling."""
+    if visitors.enabled():
+        visitors.check_platform(registry.find(extract_url(body.url)).platform)
     _, video = await registry.resolve(body.url, body.part)
     return video.public()
 
@@ -323,7 +353,10 @@ async def create_link_job(body: LinkRequest):
     prune()
     timer = log.Timer()
     try:
+        if visitors.enabled():  # refused before the link is fetched with the owner's logins
+            visitors.check_platform(registry.find(extract_url(body.url)).platform)
         resolver, video = await registry.resolve(body.url, body.part)
+        visitors.check_platform(video.platform)
     except ResolveError as exc:
         log.event("link.resolve", ok=False, url=body.url[:200], code=exc.code, message=exc.message, ms=timer.ms)
         raise
@@ -334,7 +367,7 @@ async def create_link_job(body: LinkRequest):
         job = FrameJob(job_id, video, resolver, DATA_DIR / job_id, count=len(video.extra["images"]))
         job.transcript, job.screentext = Transcript(), ScreenText()
         jobs[job_id] = job
-        store.create(job, body.url, body.task)
+        store.create(job, body.url, body.task, visitors.owner())
         spawn(process_images(job))
         return snapshot(job)
     job = FrameJob(job_id, video, resolver, DATA_DIR / job_id, count=sampling.plan(body.sampling, video.duration or 0).frames)
@@ -342,7 +375,7 @@ async def create_link_job(body: LinkRequest):
     job.screentext = ScreenText()
     frames_run = start_sampling(job, body.sampling)
     jobs[job_id] = job
-    store.create(job, body.url, body.task)
+    store.create(job, body.url, body.task, visitors.owner())
     spawn(frames_run)
     spawn(transcribe(job))
     spawn(read_screen(job))
@@ -384,6 +417,7 @@ IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
 @app.post("/api/images")
 async def upload_images(files: list[UploadFile] = File(...), task: str = Form("")):
     """Upload pictures (screenshots, a saved image post): they become an image job, kept on disk."""
+    visitors.check_platform(LOCAL)
     prune()
     if not files or len(files) > images.MAX_IMAGES:
         raise HTTPException(422, f"一次上传 1 到 {images.MAX_IMAGES} 张图片")
@@ -415,7 +449,7 @@ async def upload_images(files: list[UploadFile] = File(...), task: str = Form(""
     job = FrameJob(job_id, video, resolver, root, count=len(saved))
     job.transcript, job.screentext = Transcript(), ScreenText()
     jobs[job_id] = job
-    store.create(job, f"上传：{title}", task)
+    store.create(job, f"上传：{title}", task, visitors.owner())
     log.event("upload.images", job_id=job_id, count=len(saved))
     spawn(process_images(job))
     return snapshot(job)
@@ -424,6 +458,7 @@ async def upload_images(files: list[UploadFile] = File(...), task: str = Form(""
 @app.post("/api/videos")
 async def upload_video(file: UploadFile = File(...), task: str = Form(""), sampling_spec: str = Form("", alias="sampling")):
     """Upload a local video: it then runs exactly like a link job (frames + transcript, then deleted)."""
+    visitors.check_platform(LOCAL)
     prune()
     name = Path(file.filename or "").name or "上传的视频"
     job_id = uuid.uuid4().hex[:12]
@@ -453,7 +488,7 @@ async def upload_video(file: UploadFile = File(...), task: str = Form(""), sampl
     job.screentext = ScreenText()
     frames_run = start_sampling(job, spec)
     jobs[job_id] = job
-    store.create(job, f"上传：{name}", task)
+    store.create(job, f"上传：{name}", task, visitors.owner())
 
     async def process() -> None:
         try:
@@ -812,7 +847,8 @@ LOCAL_ORIGIN = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
 
 
 def local_only(request: Request) -> None:
-    """Login endpoints write credentials: refuse calls made by pages from other sites."""
+    """Login endpoints write credentials: refuse calls made by pages from other sites, and visitors."""
+    visitors.check_accounts()
     origin = request.headers.get("origin")
     if (origin and not LOCAL_ORIGIN.match(origin)) or request.headers.get("sec-fetch-site") == "cross-site":
         raise HTTPException(403, "只能从本机的页面调用")
@@ -886,7 +922,7 @@ async def logout(platform: str, request: Request):
 @app.get("/api/sessions")
 async def list_sessions(limit: int = 50):
     """Saved sessions, most recently used first."""
-    return {"sessions": store.list(limit)}
+    return {"sessions": store.list(limit, owner=visitors.current.get() if visitors.enabled() else None)}
 
 
 @app.get("/api/sessions/{session_id}")

@@ -214,6 +214,10 @@ export function exportSessionUrl(id, { format = 'md', ids = null } = {}) {
   return `${LINK_BASE}/api/sessions/${id}/export${query ? `?${query}` : ''}`
 }
 
+/** { ok, platforms, model, public }: `public` is the web demo, where each browser sees only its own
+ * sessions and platform logins are closed. */
+export const getHealth = () => linkRequest('/api/health')
+
 // ---- Platform logins (cookies stay in the backend; only status comes back) -------------
 
 /** [{ id, label, purpose, app, configured, source, user, expires, valid }] */
