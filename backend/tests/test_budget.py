@@ -156,7 +156,7 @@ def test_add_side_counts_intent_fallback_and_tolerates_absence():
     b.add_side(None, None)                                # today's intent.py: no metadata, no crash
     assert b.prompt_tokens == 50 and b.completion_tokens == 5
     b.add_side({"prompt": 10}, 50)                        # half a usage: marked unknown, not added
-    assert b.prompt_tokens == 50 and not b.tokens_known
+    assert b.prompt_tokens == 60 and not b.tokens_known
 
 
 # ---- run_agent integration --------------------------------------------------------------------
@@ -273,10 +273,10 @@ def test_two_tool_calls_in_one_round_both_count(tmp_path, monkeypatch):
     events = collect(run_agent(job, client_for(handler), "画面里有什么"))
     done = events[-1]
     assert done["budget"]["tool_calls"] == 2            # both calls of the round, concurrent or not
-    assert done["budget"]["frames_read"] == 2           # one nearby keyframe per view_frames fallback
+    assert done["budget"]["frames_read"] == 6           # initial four + two nearby fallback frames
 
 
-def test_token_budget_forces_a_toolless_round(tmp_path, monkeypatch):
+def test_token_budget_stops_without_an_extra_model_call(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM_BUDGET_MAX_TOKENS", "500")
     job = make_job(tmp_path, ["ok"])
     bodies = []
@@ -292,15 +292,15 @@ def test_token_budget_forces_a_toolless_round(tmp_path, monkeypatch):
             {"choices": [], "usage": {"prompt_tokens": 700, "completion_tokens": 20}}))
 
     events = collect(run_agent(job, client_for(handler), "查一下 x"))
-    assert any(e["type"] == "progress.update" and "预算已用完" in e["step"] for e in events)
-    assert "tools" not in bodies[1]                     # the gated round asks for no tools
+    assert len(bodies) == 1  # exhausted budget must not pay for another forced-final call
+    assert events[-1]["type"] == "run.error" and events[-1]["code"] == "budget"
     denied = [e for e in events if e["type"] == "tool_call.output" and e.get("exit_code") == 3]
     assert denied and denied[0]["data"]["budget"] == "tokens"
     done = events[-1]
     assert done["budget"]["limit_hits"] == ["tokens"] and done["budget"]["blocked_calls"] == 1
 
 
-def test_seconds_budget_forces_a_direct_answer(tmp_path, monkeypatch):
+def test_zero_seconds_budget_starts_no_model_call(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM_BUDGET_MAX_SECONDS", "0")
     job = make_job(tmp_path, ["ok"])
     bodies = []
@@ -312,7 +312,8 @@ def test_seconds_budget_forces_a_direct_answer(tmp_path, monkeypatch):
             {"choices": [], "usage": {"prompt_tokens": 200, "completion_tokens": 10}}))
 
     events = collect(run_agent(job, client_for(handler), "讲了什么"))
-    assert "tools" not in bodies[0]
+    assert bodies == []
+    assert events[-1]["type"] == "run.error" and events[-1]["code"] == "budget"
     assert events[-1]["budget"]["limit_hits"] == ["seconds"]
 
 

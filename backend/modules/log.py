@@ -7,7 +7,7 @@ Every record has `ts` (unix seconds), `event` and the event's fields. Events:
 - transcript     job_id, status, segments, ms
 - upload         job_id, size, ms
 - answer         run_id, job_id, platform, question, status (done/error/stopped), code, elapsed_ms, model,
-                  prompt_tokens, completion_tokens, cost_cny / cost_computable / cost_reason (modules/agent/budget.py:
+                  prompt_tokens, completion_tokens, known_prompt_tokens, known_completion_tokens, usage_complete, cost_cny / cost_computable / cost_reason (modules/agent/budget.py:
                   CNY estimate, None and not computable when the price or usage is unknown), max_wait_ms,
                   external_calls, frames_read, tool_calls, budget_limit_hits, web, papers,
                   tools: [{name, ms, ok, count}]
