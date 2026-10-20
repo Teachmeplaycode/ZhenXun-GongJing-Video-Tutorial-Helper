@@ -66,7 +66,7 @@ export function applyEvent(msg, ev) {
     case 'run.completed':
       return {
         ...msg, status: 'done', progress: null, parts: closeSteps(parts, t),
-        completed: { steps: ev.steps, elapsedMs: ev.elapsed_ms, summary: ev.summary },
+        completed: { steps: ev.steps, elapsedMs: ev.elapsed_ms, summary: ev.summary, usage: ev.usage, cost: ev.cost },
       }
     case 'run.error': {
       // A step still running when the run ends was cut off: by the user (stopped) or by the failure.

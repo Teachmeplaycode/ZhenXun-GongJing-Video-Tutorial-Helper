@@ -17,6 +17,7 @@ from modules.llm import ChatClient, LLMError, OllamaClient, ToolCall, Usage, ass
 
 from modules.decide import questions as dq
 
+from . import budget as agent_budget
 from . import experience, intent, skills
 
 from ..frames import images as picture_sets
@@ -378,6 +379,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     """Yield §9.2 events. Errors end the stream with `run.error` instead of raising."""
     started = time.perf_counter()
     steps = 0
+    spend = agent_budget.AnswerBudget()
 
     def tool(call_id: str, kind: str, **payload) -> dict:
         return {"type": f"tool_call.{kind}", "call_id": call_id, **payload}
@@ -436,16 +438,36 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     by_hand = [] if slow or asked or pictures else [(str(a), str(b)) for a, b in (framed or [])[-1:]]
     reason = "你刚在时间轴上手动慢放了这一段" if by_hand else "问题要求慢放这一段" if slow else "问题指定了时间段"
     slow = slow or by_hand
+    zoom_notes = []
     for i, (a, b) in enumerate(slow or asked):
         steps += 1
         tid = f"zoom{i}"
         name, args = ("replay", {"start": a, "end": b}) if slow else ("view_frames", {"start": a, "end": b, "count": 6})
         yield tool(tid, "started", tool_name=TRACE_NAMES[name])
         yield tool(tid, "input", input={"kind": "params", "params": {**args, "reason": reason}})
+        denied = spend.check_tool(name)
+        if denied:
+            spend.tool_refused()
+            yield tool(tid, "output", stdout=spend.deny_text(denied), exit_code=3, data={"budget": denied})
+            yield tool(tid, "completed", result_count=0)
+            zoom_notes = zoom_notes + [spend.deny_text(denied)]
+            continue
         result = await tools.run(name, args)
+        spend.tool_done(name, result.count)
         yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0, data=result.data)
         yield tool(tid, "completed", result_count=result.count)
         zoomed += result.images
+    if zoomed:
+        question_part = messages[-1]["content"].pop()  # keep the question last
+        spans = "、".join(f"{fine_clock(float(a))}–{fine_clock(float(b))}" for a, b in slow)
+        lead = (f"用户提问前刚在时间轴上手动慢放了 {spans}，下面是这段的逐帧画面（标了精确时间）。问题里说的"
+                "「这段」「慢放的部分」「刚才」指的就是它；不用再调用 replay 看同一段：" if by_hand
+                else "问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用再调用 replay 看同一段：" if slow
+                else "问题所问时间段的加密画面：")
+        denied_notes = [{"type": "text", "text": "\n".join(zoom_notes)}] if zoom_notes else []
+        messages[-1]["content"] += denied_notes + [{"type": "text", "text": lead}] + image_message(zoomed)["content"] + [question_part]
+    elif zoom_notes:
+        messages[-1]["content"].append({"type": "text", "text": "\n".join(zoom_notes)})
     if zoomed:
         question_part = messages[-1]["content"].pop()  # keep the question last
         spans = "、".join(f"{fine_clock(float(a))}–{fine_clock(float(b))}" for a, b in slow)
@@ -484,6 +506,9 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield tool("route", "started", tool_name="decision.intent")
     yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
     route = await intent.classify(question, decider)
+    # Module A's Intent may carry usage / elapsed_ms metadata (getattr: absent = not counted;
+    # intent.py itself is never touched by this). Counted into this answer's budget and cost.
+    spend.add_side(getattr(route, "usage", None), getattr(route, "elapsed_ms", None))
     offered = {d["function"]["name"] for d in allowed_tools(job, web, papers, audience)}
     skill = route.skill if route.skill in offered and rounds else None
     yield tool("route", "output", stdout=(
@@ -518,10 +543,16 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield tool("intent", "output", stdout=f"{'需要' if must_research else '不需要'}先查资料再回答\n{how}", exit_code=0,
                    data={"p": p, "needed": must_research})
         yield tool("intent", "completed", result_count=1)
-    round_no, retried_final = -1, False
+    round_no, retried_final, gated = -1, False, False
     while True:
         round_no += 1
         last = round_no >= rounds  # the final round gets no tools, so the model has to answer
+        over = spend.gate_round()  # time / token budget spent: this round gets no tools either
+        if over and not last:
+            last = True
+            if not gated:
+                gated = True
+                yield {"type": "progress.update", "step": "预算已用完，要求直接作答", "percent": 90}
         if last and tool_calls and not retried_final:
             messages.append({"role": "user", "content": FINAL_NUDGE})
         call_id = f"model{round_no}"
@@ -539,8 +570,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         leaked = False
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
+            spend.llm_started()
             async for delta in client.stream(messages, usage, max_tokens=max_output(),
                                              tools=None if last else allowed_tools(job, web, papers, audience)):
+                spend.llm_first_word()
                 text.append(delta)
                 if not streaming:
                     held += delta
@@ -568,6 +601,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                 # The server closed the stream without a word (a busy DeepSeek does this after ~10 minutes).
                 raise LLMError("empty", "模型没有返回任何内容，请稍后重试", True)
         except LLMError as err:
+            spend.llm_failed()
             yield tool(call_id, "output", stderr=err.message, exit_code=1)
             yield tool(call_id, "completed", result_count=0)
             yield {"type": "run.error", "code": err.code, "message": err.message, "retryable": err.retryable,
@@ -575,6 +609,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             return
         prompt_tokens += usage.prompt_tokens or 0
         completion_tokens += usage.completion_tokens or 0
+        spend.llm_finished(usage.prompt_tokens, usage.completion_tokens)
         asked = usage.tool_calls
         yield tool(call_id, "output", stdout=(
             f"输入 {usage.prompt_tokens} · 输出 {usage.completion_tokens} tokens\n"
@@ -609,11 +644,19 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             tid = f"tool{tool_calls}"
             yield tool(tid, "started", tool_name=TRACE_NAMES.get(call.name, call.name))
             yield tool(tid, "input", input={"kind": "params", "params": call.arguments})
+            denied = spend.check_tool(call.name)
+            if denied:  # the budget is spent: refuse the call, tell the model, it can still answer
+                spend.tool_refused()
+                yield tool(tid, "output", stdout=spend.deny_text(denied), exit_code=3, data={"budget": denied})
+                yield tool(tid, "completed", result_count=0)
+                messages.append(tool_message(call, spend.deny_text(denied)))
+                continue
             async for item in tools.stream(call.name, call.arguments):
                 if isinstance(item, ToolResult):
                     result = item
                 else:
                     yield {**item, "call_id": tid}  # browser.* while the tool runs
+            spend.tool_done(call.name, result.count)  # failures count too: the attempt was made
             yield tool(tid, "output", stdout=result.text, data=result.data,
                        exit_code=1 if result.error else 0)
             yield tool(tid, "completed", result_count=result.count)
@@ -633,18 +676,25 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield {"type": "progress.update", "step": "回答较长，继续写", "percent": 90}
         usage, text = Usage(), []
         try:
+            spend.llm_started()
             async for delta in client.stream(messages, usage, max_tokens=max_output()):
+                spend.llm_first_word()
                 text.append(delta)
                 yield {"type": "assistant.message.delta", "delta": delta}
         except LLMError:
+            spend.llm_failed()
             break  # what was written stands; the note below says it was cut off
         prompt_tokens += usage.prompt_tokens or 0
         completion_tokens += usage.completion_tokens or 0
+        spend.llm_finished(usage.prompt_tokens, usage.completion_tokens)
 
     tokens = f"输入 {prompt_tokens} · 输出 {completion_tokens} tokens"
     if usage.finish_reason == "length":
         yield {"type": "assistant.message.delta", "delta": "\n\n（回答达到长度上限，已截断）"}
     extra = f" · 调用工具 {tool_calls} 次" if tool_calls else ""
-    yield {"type": "run.completed", "steps": steps, "elapsed_ms": round((time.perf_counter() - started) * 1000),
+    elapsed_ms = round((time.perf_counter() - started) * 1000)
+    report = spend.snapshot(elapsed_ms=elapsed_ms)
+    yield {"type": "run.completed", "steps": steps, "elapsed_ms": elapsed_ms,
            "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens}, "tool_calls": tool_calls,
+           "budget": report, "cost": report["cost"],
            "summary": f"分析 {len(chosen)} 帧 · {len(lines)} 行语音{extra} · {model} · {tokens}"}

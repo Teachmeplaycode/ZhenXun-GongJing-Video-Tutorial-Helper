@@ -1,5 +1,5 @@
 """The eval runner's automatic checks (scripts/eval.py)."""
-from scripts.eval import check
+from scripts.eval import check, summary
 
 
 def run(answer="", tools=(), status="done"):
@@ -24,3 +24,25 @@ def test_errors_and_no_timestamps():
 
 def test_text_checks_ignore_spaces():
     assert check({"checks": {"contains_any": [["9块9"]]}}, run("咖啡 9 块 9 一杯")) == []
+
+
+def test_summary_averages_costs_over_priced_cases_only():
+    results = [
+        {"passed": True, "seconds": 10, "prompt_tokens": 1000, "completion_tokens": 100,
+         "cost_cny": 0.0028, "max_wait_ms": 2300, "judge": None},
+        {"passed": True, "seconds": 20, "prompt_tokens": 2000, "completion_tokens": 200,
+         "cost_cny": None, "max_wait_ms": 5000, "judge": None},  # no price / unknown usage
+        {"passed": False, "seconds": 5, "prompt_tokens": 0, "completion_tokens": 0,
+         "cost_cny": 0.0002, "max_wait_ms": 800, "judge": None},
+    ]
+    s = summary(results)
+    assert s["cost_priced"] == "2/3" and s["avg_cost_cny"] == 0.0015 and s["max_cost_cny"] == 0.0028
+    assert s["max_wait_s"] == 5.0 and s["avg_completion_k"] == 0.1
+
+
+def test_summary_without_any_priced_case_reports_none():
+    results = [{"passed": True, "seconds": 10, "prompt_tokens": 100, "completion_tokens": 10,
+                "cost_cny": None, "max_wait_ms": None, "judge": None}]
+    s = summary(results)
+    assert s["avg_cost_cny"] is None and s["max_cost_cny"] is None
+    assert s["cost_priced"] == "0/1" and s["max_wait_s"] is None

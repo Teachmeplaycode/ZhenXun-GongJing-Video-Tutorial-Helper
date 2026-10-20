@@ -775,10 +775,17 @@ async def agent_run(body: AgentRequest):
                 events.append({"type": "run.error", "code": "stopped", "message": "已停止"})
             store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
             usage = final.get("usage") or {}
+            cost = final.get("cost") or {}
+            spent = final.get("budget") or {}
             log.event("answer", run_id=run_id, job_id=job.id, platform=job.video.platform, question=body.question[:200],
                       status=status, code=final.get("code"), message=final.get("message") if status == "error" else None,
                       elapsed_ms=round((time.perf_counter() - started) * 1000), model=final.get("model"),
                       prompt_tokens=usage.get("prompt"), completion_tokens=usage.get("completion"),
+                      cost_cny=cost.get("cny"), cost_computable=cost.get("computable"),
+                      cost_reason=None if cost.get("computable") else cost.get("reason"),
+                      max_wait_ms=spent.get("max_wait_ms"), external_calls=spent.get("external_calls"),
+                      frames_read=spent.get("frames_read"), tool_calls=final.get("tool_calls"),
+                      budget_limit_hits=spent.get("limit_hits") or None,
                       rounds=sum(1 for c in calls.values() if c["name"].startswith("vision.")),
                       web=body.web, papers=body.papers, scope="frames" if frames else "all",
                       tools=[{k: c[k] for k in ("name", "ms", "ok", "count")} for c in calls.values()

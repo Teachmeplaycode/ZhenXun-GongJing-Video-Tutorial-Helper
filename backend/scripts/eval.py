@@ -156,10 +156,15 @@ async def ask(client: httpx.AsyncClient, job_id: str, case: dict) -> dict:
     except httpx.HTTPError as exc:
         final = {"type": "run.error", "code": "http", "message": str(exc)}
     usage = final.get("usage") or {}
+    cost = final.get("cost") or {}
+    spent = final.get("budget") or {}
     return {"answer": "".join(text), "tools": tools, "status": "done" if final.get("type") == "run.completed" else "error",
             "error": final.get("message") if final.get("type") != "run.completed" else None, "code": final.get("code"),
             "seconds": round(time.perf_counter() - started, 1), "prompt_tokens": usage.get("prompt"),
-            "completion_tokens": usage.get("completion"), "model": final.get("model")}
+            "completion_tokens": usage.get("completion"), "model": final.get("model"),
+            "cost_cny": cost.get("cny"), "cost_computable": cost.get("computable"),
+            "max_wait_ms": spent.get("max_wait_ms"), "external_calls": spent.get("external_calls"),
+            "frames_read": spent.get("frames_read"), "budget_limit_hits": spent.get("limit_hits")}
 
 
 def check(case: dict, run: dict) -> list[str]:
@@ -224,9 +229,19 @@ def summary(results: list[dict]) -> dict:
     n = len(results) or 1
     tokens = [r["prompt_tokens"] or 0 for r in results]
     graded = [r["judge"]["score"] for r in results if r.get("judge") and r["judge"].get("score") is not None]
+    # Costs are averaged only over the cases whose price and usage were both known; the count says
+    # which口径, so a "cheap" average over half the cases cannot pass for the whole run's.
+    priced = [r["cost_cny"] for r in results if r.get("cost_cny") is not None]
+    waits = [r["max_wait_ms"] for r in results if r.get("max_wait_ms") is not None]
+    out_tokens = [r.get("completion_tokens") or 0 for r in results]
     return {"cases": len(results), "passed": sum(r["passed"] for r in results),
             "avg_seconds": round(sum(r["seconds"] for r in results) / n, 1),
             "avg_prompt_k": round(sum(tokens) / n / 1000, 1),
+            "avg_completion_k": round(sum(out_tokens) / n / 1000, 1),
+            "cost_priced": f"{len(priced)}/{len(results)}",
+            "avg_cost_cny": round(sum(priced) / len(priced), 4) if priced else None,
+            "max_cost_cny": round(max(priced), 4) if priced else None,
+            "max_wait_s": round(max(waits) / 1000, 1) if waits else None,
             "judge_avg": round(sum(graded) / len(graded), 2) if graded else None}
 
 
@@ -236,7 +251,7 @@ def previous() -> dict | None:
 
 
 def print_report(results: list[dict], before: dict | None) -> None:
-    print(f"\n{'':2}{'用例':<26}{'结果':<6}{'耗时':>7}{'输入k':>7}  说明")
+    print(f"\n{'':2}{'用例':<26}{'结果':<6}{'耗时':>7}{'输入k':>7}{'输出k':>7}{'费用￥':>9}  说明")
     old = {r["id"]: r for r in (before or {}).get("results", [])}
     for r in results:
         mark = "✓" if r["passed"] else "✗"
@@ -244,11 +259,21 @@ def print_report(results: list[dict], before: dict | None) -> None:
         change = "" if not was or was["passed"] == r["passed"] else ("（新通过）" if r["passed"] else "（退步）")
         note = "；".join(r["fails"]) or (f"评分 {r['judge']['score']}：{r['judge']['reason']}" if r.get("judge") else "")
         k = f"{(r['prompt_tokens'] or 0) / 1000:.0f}"
-        print(f"{mark:2}{r['id']:<26}{'通过' if r['passed'] else '失败':<6}{r['seconds']:>6.0f}s{k:>7}  {change}{note}"[:220])
+        out_k = f"{(r.get('completion_tokens') or 0) / 1000:.1f}"
+        cny = f"{r['cost_cny']:.4f}" if r.get("cost_cny") is not None else "未知"
+        print(f"{mark:2}{r['id']:<26}{'通过' if r['passed'] else '失败':<6}{r['seconds']:>6.0f}s{k:>7}{out_k:>7}{cny:>9}"
+              f"  {change}{note}"[:220])
     s = summary(results)
     line = f"\n通过 {s['passed']}/{s['cases']} · 平均 {s['avg_seconds']}s · 平均输入 {s['avg_prompt_k']}k tokens"
     if s["judge_avg"] is not None:
         line += f" · 评分均值 {s['judge_avg']}/2"
+    if s["avg_cost_cny"] is not None:
+        line += f" · 平均费用 ￥{s['avg_cost_cny']}（{s['cost_priced']} 题可计算，未配置单价或 usage 未知的题不计入）"
+        line += f" · 最大费用 ￥{s['max_cost_cny']}"
+    else:
+        line += f" · 费用不可计算（{s['cost_priced']} 题有可算费用：请配置 LLM_PRICE_IN_M / LLM_PRICE_OUT_M）"
+    if s["max_wait_s"] is not None:
+        line += f" · 最大等待 {s['max_wait_s']}s"
     print(line)
     if before:
         b = before["summary"]
