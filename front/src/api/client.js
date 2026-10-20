@@ -175,6 +175,8 @@ export const fetchSource = (jobId, { signal } = {}) => linkRequest(`/api/link-jo
 export const deleteSource = (jobId) => linkRequest(`/api/link-jobs/${jobId}/source`, { method: 'DELETE' })
 /** The original video for <video src>: a kept upload, or the platform's MP4 relayed by the backend. */
 export const mediaUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/media`
+/** Questions worth asking about this video: { status: waiting | running | done | failed, questions: [{ question, kind, label, hint }] } */
+export const fetchSuggestions = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/suggestions`, { signal })
 export const linkFrameUrl = (jobId, index) => `${LINK_BASE}/api/link-jobs/${jobId}/frames/${index}.jpg`
 
 /** Follow a job's events (frame / missing / status / done) from `since` until its run is done. */
