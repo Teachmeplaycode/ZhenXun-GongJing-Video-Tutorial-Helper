@@ -30,7 +30,7 @@
 源码包采用显式白名单，只含后端代码、前端代码、测试、依赖清单与部署脚本。
 
 ```bash
-# 本机打包，生成 /private/tmp/gongjing-cloud-source.tar.gz
+# 本机打包，默认输出到系统临时目录（脚本会打印路径）；也可 --output /目标目录/源码包.tar.gz
 python3 deploy/huawei/bundle.py
 
 # 平台资源管理器上传到 /root/workspace 后，在平台命令行运行

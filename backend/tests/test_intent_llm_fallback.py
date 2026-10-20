@@ -22,6 +22,7 @@ def no_stray_env(monkeypatch, tmp_path):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.delenv("LLM_KEY_FILE", raising=False)
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("INTENT_LLM_FALLBACK_TIMEOUT", raising=False)
     monkeypatch.setenv("LLM_API_KEY", "test-key")
     monkeypatch.setenv("INTENT_LLM_FALLBACK", "on")
     from modules import settings
@@ -224,3 +225,38 @@ def test_elapsed_includes_failed_decider_before_main_or_keyword_fallback(monkeyp
     got = asyncio.run(intent.classify("这是不是骗局", BrokenDecider()))
     assert got.elapsed_ms >= 25
     assert got.how == ("主模型回退" if fallback == "on" else "关键词")
+
+
+def test_configured_timeout_is_used_and_reported(monkeypatch):
+    monkeypatch.setenv("INTENT_LLM_FALLBACK_TIMEOUT", "0.02")
+
+    class Slow:
+        async def aclose(self):
+            pass
+
+        async def stream(self, *args, **kwargs):
+            await asyncio.sleep(1)
+            yield "chat"
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: Slow())
+    got = asyncio.run(intent.classify("hello"))
+    assert got.how == "关键词" and 15 <= got.elapsed_ms < 250
+    assert "0.02秒" in got.detail
+
+
+@pytest.mark.parametrize("invalid", ["garbage", "0", "-1", "nan", "inf", "-inf"])
+def test_invalid_timeout_settings_keep_the_default(monkeypatch, invalid):
+    monkeypatch.setenv("INTENT_LLM_FALLBACK_TIMEOUT", invalid)
+    monkeypatch.setattr(intent, "LLM_FALLBACK_TIMEOUT", 0.02)
+
+    class Slow:
+        async def aclose(self):
+            pass
+
+        async def stream(self, *args, **kwargs):
+            await asyncio.sleep(1)
+            yield "chat"
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: Slow())
+    got = asyncio.run(intent.classify("hello"))
+    assert got.how == "关键词" and "0.02秒" in got.detail

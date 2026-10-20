@@ -16,6 +16,7 @@ answered as before. An uncertain decision (the top option below CONFIDENT) chang
 from __future__ import annotations
 
 import asyncio
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -132,7 +133,8 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
     request can still have consumed tokens, so keyword fallback must keep any reported counts.
     """
     started = time.perf_counter()
-    deadline = started + LLM_FALLBACK_TIMEOUT
+    timeout = LLM_FALLBACK_TIMEOUT
+    deadline = started + timeout
     client = usage = None
     label = None
     detail = ""
@@ -143,6 +145,13 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
 
         if settings().get(LLM_FALLBACK_SETTING, "on").lower() in ("off", "0", "false"):
             return None, None, 0, ""
+        try:
+            configured = float(settings().get("INTENT_LLM_FALLBACK_TIMEOUT", timeout))
+            if math.isfinite(configured) and configured > 0:
+                timeout = configured
+        except (TypeError, ValueError):
+            pass  # invalid/non-positive/non-finite values keep the default
+        deadline = started + timeout
         client = create_client(LLMConfig.from_env())
         usage = Usage()
         prompt = LLM_PROMPT.format(question=(question or "").translate(_CONTROL)[:500], **CRITERIA)
@@ -158,7 +167,7 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
         if label is None:
             detail = "主模型没有回答六个类别代码之一"
     except TimeoutError:
-        detail = f"主模型{LLM_FALLBACK_TIMEOUT:g}秒内没有完成分类"
+        detail = f"主模型{timeout:g}秒内没有完成分类"
     except Exception as error:  # noqa: BLE001 — the model is optional; keywords always answer
         detail = ("主模型未配置或不可用" if getattr(error, "code", None) == "no_api_key"
                   else "主模型分类失败，已退回关键词")
