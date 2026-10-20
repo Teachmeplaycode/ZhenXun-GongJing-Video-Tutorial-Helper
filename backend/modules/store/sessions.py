@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   video TEXT NOT NULL,            -- ResolvedVideo.public() + resolver-private `extra`
   slots TEXT NOT NULL,            -- [{index, time, status, reason}]
   transcript TEXT,                -- Transcript.as_dict(): {status, message, segments: [{start, end, text}]}
-  screentext TEXT                 -- ScreenText.as_dict(): {status, message, segments: [{start, end, text, pos}]}
+  screentext TEXT,                -- ScreenText.as_dict(): {status, message, segments: [{start, end, text, pos}]}
+  owner TEXT NOT NULL DEFAULT ''  -- the visitor who made it in the public demo (modules/visitors); '' locally
 );
 CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,17 +68,19 @@ class SessionStore:
             self.db.execute("ALTER TABLE sessions ADD COLUMN transcript TEXT")
         if "screentext" not in columns:  # ... and before on-screen text
             self.db.execute("ALTER TABLE sessions ADD COLUMN screentext TEXT")
+        if "owner" not in columns:  # ... and before the public demo kept visitors apart
+            self.db.execute("ALTER TABLE sessions ADD COLUMN owner TEXT NOT NULL DEFAULT ''")
 
     def close(self) -> None:
         self.db.close()
 
     # ---- sessions ------------------------------------------------------------------------
-    def create(self, job: FrameJob, source: str, task: str = "") -> None:
+    def create(self, job: FrameJob, source: str, task: str = "", owner: str = "") -> None:
         now = time.time()
         with self.db:
             self.db.execute(
-                "INSERT INTO sessions (id, created, updated, source, task, video, slots) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (job.id, now, now, source, task, json.dumps(video_record(job.video), ensure_ascii=False), slots_json(job)))
+                "INSERT INTO sessions (id, created, updated, source, task, video, slots, owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (job.id, now, now, source, task, json.dumps(video_record(job.video), ensure_ascii=False), slots_json(job), owner))
 
     def save_slots(self, job: FrameJob) -> None:
         with self.db:
@@ -96,6 +99,10 @@ class SessionStore:
     def exists(self, session_id: str) -> bool:
         return self.db.execute("SELECT 1 FROM sessions WHERE id = ?", (session_id,)).fetchone() is not None
 
+    def owner(self, session_id: str) -> str | None:
+        row = self.db.execute("SELECT owner FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        return None if row is None else row[0]
+
     def ids(self) -> set[str]:
         return {row[0] for row in self.db.execute("SELECT id FROM sessions")}
 
@@ -106,13 +113,14 @@ class SessionStore:
     def get(self, session_id: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
 
-    def list(self, limit: int = 50) -> list[dict]:
+    def list(self, limit: int = 50, owner: str | None = None) -> list[dict]:
+        """Most recently used first; only `owner`'s when given."""
         rows = self.db.execute("""
             SELECT s.id, s.created, s.updated, s.video, s.slots, json_extract(s.transcript, '$.status') AS transcript,
                    (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id AND m.role = 'user') AS questions,
                    (SELECT content FROM messages m WHERE m.session_id = s.id AND m.role = 'user'
                      ORDER BY m.id DESC LIMIT 1) AS last_question
-            FROM sessions s ORDER BY s.updated DESC LIMIT ?""", (limit,)).fetchall()
+            FROM sessions s WHERE ? IS NULL OR s.owner = ? ORDER BY s.updated DESC LIMIT ?""", (owner, owner, limit)).fetchall()
         items = []
         for row in rows:
             video, slots = json.loads(row["video"]), json.loads(row["slots"])

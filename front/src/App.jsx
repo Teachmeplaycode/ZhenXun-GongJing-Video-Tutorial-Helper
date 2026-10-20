@@ -19,7 +19,7 @@ import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
 import PictureStage from './stages/PictureStage'
-import { createLinkJob, deleteSession, deleteSource, fetchChapters, fetchCuts, fetchSource, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, deleteSource, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
 import SourcePlayer from './components/SourcePlayer'
 import EvidenceBadge from './components/EvidenceBadge'
 import { EvidenceContext } from './lib/evidence'
@@ -94,12 +94,16 @@ export default function App() {
   const [sessionsError, setSessionsError] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
   const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
+  const [publicDemo, setPublicDemo] = useState(false) // the web demo: no platform logins
   const [theme, themeChoice, cycleTheme] = useTheme()
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
   // How cited moments can be looked at again (original / cache / none), and the open player, if any.
   const [source, setSource] = useState({ state: 'cache' })
   const [player, setPlayer] = useState(null) // { time, key }
+  useEffect(() => {
+    getHealth().then((health) => setPublicDemo(Boolean(health?.public))).catch(() => {})
+  }, [])
   const sourceJob = video?.jobId
   const analysisDone = analysis.index
   useEffect(() => {
@@ -725,9 +729,11 @@ export default function App() {
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
           </button>
-          <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
-            <IconUser size={14} /> 账号
-          </button>
+          {publicDemo ? null : (
+            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
+              <IconUser size={14} /> 账号
+            </button>
+          )}
           {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入'} /> : null}
         </DockNav>
       </header>
@@ -758,7 +764,7 @@ export default function App() {
             slideRef={slideRef}
             externalError={importError}
             onClearError={() => setImportError('')}
-            onShowAccounts={(platform) => setAccountsOpen(platform || '')}
+            onShowAccounts={publicDemo ? null : (platform) => setAccountsOpen(platform || '')}
           />
         </div>
 
@@ -816,7 +822,7 @@ export default function App() {
         </div>
       </main>
 
-      <AccountsDrawer open={accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
+      <AccountsDrawer open={!publicDemo && accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
 
       <HistoryDrawer
         open={historyOpen}
