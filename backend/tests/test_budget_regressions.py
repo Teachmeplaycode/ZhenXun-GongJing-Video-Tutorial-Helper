@@ -203,6 +203,7 @@ def test_budget_error_is_persisted_in_answer_log(tmp_path, monkeypatch):
     records = [json.loads(line) for path in (tmp_path / 'logs').glob('*.jsonl') for line in path.read_text().splitlines()]
     final = next(r for r in records if r['event'] == 'answer')
     assert final['status'] == 'error' and final['budget_limit_hits'] == ['seconds']
+    assert final['tool_calls'] == 0
     assert final['cost_cny'] is None and final['known_prompt_tokens'] == 0
 
 
@@ -237,6 +238,7 @@ def test_stopping_api_stream_persists_live_budget(tmp_path, monkeypatch):
     final = next(r for r in captured if r['event'] == 'answer')
     assert final['status'] == 'stopped' and final['known_prompt_tokens'] == 23
     assert final['usage_complete'] is False and final['prompt_tokens'] is None
+    assert final['tool_calls'] == 0
     assistant = app.store.messages(job.id)[-1]
     stopped = assistant['events'][-1]
     assert stopped['code'] == 'stopped' and stopped['budget']['llm_calls'] == 1
@@ -354,3 +356,102 @@ def test_optional_intent_client_preserves_partial_on_answer_deadline(tmp_path, m
     done = collect(run_agent(make_job(tmp_path, ['ok']), Slow(), 'hello'))[-1]
     assert done['code'] == 'budget' and done['usage']['known_prompt'] == 31
     assert done['budget']['llm_calls'] == 1 and not done['usage']['complete']
+
+
+def test_parallel_output_allowances_are_reserved_before_requests():
+    from modules.agent.budget import MeteredClient, limits
+    from modules.llm import Usage
+    requested = []
+    class Concurrent:
+        async def stream(self, messages, usage, max_tokens=2048, **kwargs):
+            requested.append(max_tokens)
+            await asyncio.sleep(.01)
+            usage.prompt_tokens, usage.completion_tokens = 0, max_tokens
+            yield 'done'
+    async def go():
+        b = AnswerBudget(caps={**limits({}), 'tokens': 100})
+        proxy = MeteredClient(Concurrent(), b)
+        async def one():
+            return [d async for d in proxy.stream([], Usage(), max_tokens=70)]
+        await asyncio.gather(one(), one())
+        assert requested == [70, 30]
+        assert b.completion_tokens == 100 and b.output_reserved == 0
+    asyncio.run(go())
+
+
+def test_unknown_output_allowance_is_not_available_for_reuse():
+    from modules.agent.budget import MeteredClient, limits, BudgetExceeded
+    from modules.llm import Usage
+    class Unknown:
+        async def stream(self, messages, usage, **kwargs):
+            yield 'no usage'
+    async def go():
+        b = AnswerBudget(caps={**limits({}), 'tokens': 100})
+        proxy = MeteredClient(Unknown(), b)
+        _ = [d async for d in proxy.stream([], Usage(), max_tokens=100)]
+        assert b.unreported_token_reserve == 100 and not b.tokens_known
+        with pytest.raises(BudgetExceeded):
+            _ = [d async for d in proxy.stream([], Usage())]
+    asyncio.run(go())
+
+
+def test_exhausted_continuation_emits_budget_error(tmp_path, monkeypatch):
+    import httpx
+    calls = []
+    monkeypatch.setenv('LLM_BUDGET_MAX_TOKENS', '100')
+    def handler(r):
+        calls.append(True)
+        return httpx.Response(200, text=sse_body(
+            {'choices': [{'delta': {'content': 'partial answer'}, 'finish_reason': 'length'}]},
+            {'choices': [], 'usage': {'prompt_tokens': 90, 'completion_tokens': 10}}))
+    done = collect(run_agent(make_job(tmp_path, ['ok']), client_for(handler), 'hello'))[-1]
+    assert calls == [True]
+    assert done['type'] == 'run.error' and done['code'] == 'budget'
+    assert done['budget']['limit_hits'] == ['tokens']
+
+
+@pytest.mark.parametrize('mode', ['timeout', 'cancel'])
+def test_route_task_cancel_is_settled_before_its_proxy_finishes(tmp_path, monkeypatch, mode):
+    from modules.llm import Usage
+    from modules.agent import intent
+    started = asyncio.Event()
+    class Slow:
+        config = types.SimpleNamespace(model='slow')
+        async def stream(self, messages, usage, **kwargs):
+            usage.prompt_tokens = 31
+            started.set()
+            await asyncio.sleep(60)
+            yield 'never'
+    async def classify(question, decider=None, *, client=None):
+        u = Usage()
+        async def ask():
+            _ = [d async for d in client.stream([], u, max_tokens=8)]
+        task = asyncio.create_task(ask())
+        try:
+            await started.wait()
+            if mode == 'cancel':
+                await asyncio.sleep(60)
+            route = intent.by_keywords(question)
+            route.usage = {'prompt_tokens': u.prompt_tokens, 'completion_tokens': u.completion_tokens}
+            return route
+        finally:
+            task.cancel()  # deliberate A behavior: do not await potentially slow cleanup
+    monkeypatch.setattr('modules.agent.run.intent.classify', classify)
+    async def go():
+        b = AnswerBudget()
+        async def consume():
+            return [e async for e in run_agent(make_job(tmp_path, ['ok']), Slow(), 'hello', budget=b)]
+        task = asyncio.create_task(consume())
+        await started.wait()
+        if mode == 'cancel':
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        else:
+            # Classifier returns with its cancelled proxy still active; next model
+            # call would hang, so intercept just the terminal ledger via a small cap.
+            b.caps['tokens'] = 31
+            events = await task
+            assert events[-1]['usage']['known_prompt'] == 31
+        assert b.llm_calls == 1 and b.prompt_tokens == 31 and not b.tokens_known
+    asyncio.run(go())
