@@ -109,14 +109,33 @@ def _parse_label(text: str) -> str | None:
     return min(found)[1] if found else None
 
 
-async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int, str]:
-    """Ask the main chat model to pick one of the six labels.
+async def _before_deadline(awaitable, deadline: float):
+    """Cancel a slow operation without letting its cleanup extend the decision deadline."""
+    task = asyncio.ensure_future(awaitable)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=max(0.0, deadline - time.perf_counter()))
+        if done:
+            return task.result()
+        raise TimeoutError
+    finally:
+        if not task.done():
+            task.cancel()
+            # A transport can take time to react to cancellation. Consume its eventual error,
+            # but don't keep the user waiting for a socket/transport cleanup.
+            task.add_done_callback(lambda finished: None if finished.cancelled() else finished.exception())
 
-    Returns (intent, usage, elapsed_ms, detail); the intent is None whenever the model is not
-    configured, doesn't answer one of the six labels within LLM_FALLBACK_TIMEOUT, or fails —
-    the caller then falls back to the keyword rules. Never raises.
+
+async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int, str]:
+    """Return the classification plus measured usage, including failed/invalid model answers.
+
+    One deadline covers streaming and client cleanup. Unknown token counts stay None; a failed
+    request can still have consumed tokens, so keyword fallback must keep any reported counts.
     """
     started = time.perf_counter()
+    deadline = started + LLM_FALLBACK_TIMEOUT
+    client = usage = None
+    label = None
+    detail = ""
     try:
         from modules.llm import create_client
         from modules.llm.client import LLMConfig, Usage
@@ -124,43 +143,36 @@ async def _by_main_model(question: str) -> tuple[Intent | None, dict | None, int
 
         if settings().get(LLM_FALLBACK_SETTING, "on").lower() in ("off", "0", "false"):
             return None, None, 0, ""
-        config = LLMConfig.from_env()
-        client = create_client(config)
-        try:
-            usage = Usage()
-            prompt = LLM_PROMPT.format(question=(question or "").translate(_CONTROL)[:500], **CRITERIA)
+        client = create_client(LLMConfig.from_env())
+        usage = Usage()
+        prompt = LLM_PROMPT.format(question=(question or "").translate(_CONTROL)[:500], **CRITERIA)
 
-            async def collect() -> str:
-                parts = []
-                async for delta in client.stream([{"role": "user", "content": prompt}], usage, max_tokens=8):
-                    parts.append(delta)
-                return "".join(parts)
+        async def collect() -> str:
+            parts = []
+            async for delta in client.stream([{"role": "user", "content": prompt}], usage, max_tokens=8):
+                parts.append(delta)
+            return "".join(parts)
 
-            text = await asyncio.wait_for(collect(), timeout=LLM_FALLBACK_TIMEOUT)
-        finally:
-            await client.aclose()
+        text = await _before_deadline(collect(), deadline)
         label = _parse_label(text)
-        took = round((time.perf_counter() - started) * 1000)
         if label is None:
-            return None, None, took, "主模型没有回答六个类别代码之一"
-        counts = {"prompt_tokens": usage.prompt_tokens, "completion_tokens": usage.completion_tokens}
-        return Intent(label, None, {}, "主模型回退", usage=counts, elapsed_ms=took), counts, took, ""
-    except Exception:  # noqa: BLE001 — the main model is optional; keywords always answer
-        took = round((time.perf_counter() - started) * 1000)
-        reason = "主模型未配置或不可用" if _missing_key() else f"主模型{LLM_FALLBACK_TIMEOUT:.0f}秒内没有完成分类"
-        return None, None, took, reason
-
-
-def _missing_key() -> bool:
-    try:
-        from modules.llm.client import LLMConfig, LLMError
-        try:
-            LLMConfig.from_env()
-            return False
-        except LLMError:
-            return True
-    except Exception:  # noqa: BLE001
-        return False
+            detail = "主模型没有回答六个类别代码之一"
+    except TimeoutError:
+        detail = f"主模型{LLM_FALLBACK_TIMEOUT:g}秒内没有完成分类"
+    except Exception as error:  # noqa: BLE001 — the model is optional; keywords always answer
+        detail = ("主模型未配置或不可用" if getattr(error, "code", None) == "no_api_key"
+                  else "主模型分类失败，已退回关键词")
+    finally:
+        if client is not None:
+            try:
+                await _before_deadline(client.aclose(), deadline)
+            except Exception:  # noqa: BLE001 — cleanup must not discard a valid answer or usage
+                detail = detail or "主模型连接清理未在分类时限内完成"
+    took = round((time.perf_counter() - started) * 1000)
+    counts = ({"prompt_tokens": usage.prompt_tokens, "completion_tokens": usage.completion_tokens}
+              if usage is not None else None)
+    got = Intent(label, None, {}, "主模型回退", usage=counts, elapsed_ms=took, detail=detail) if label else None
+    return got, counts, took, detail
 
 
 async def classify(question: str, decider=None) -> Intent:
@@ -177,8 +189,11 @@ async def classify(question: str, decider=None) -> Intent:
             pass
     fallback, used, took, detail = await _by_main_model(question)
     if fallback is not None:
+        fallback.elapsed_ms = round((time.perf_counter() - started) * 1000)
         return fallback
     got = by_keywords(question)
-    if used or took or detail:  # a main-model attempt happened: keep its wait (and counts) for the budget
-        got.usage, got.elapsed_ms, got.detail = used or None, took, detail or got.detail
+    if used is not None or took or detail or decider is not None:
+        got.usage = used
+        got.elapsed_ms = round((time.perf_counter() - started) * 1000)
+        got.detail = detail
     return got
