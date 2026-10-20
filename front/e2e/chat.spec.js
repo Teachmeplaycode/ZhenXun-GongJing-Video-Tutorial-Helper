@@ -377,3 +377,32 @@ test('back goes up one level behind the pixel wipe: chat → timeline → import
   await expect(page.locator('.import-control__link')).toBeVisible()
   await expect(page.locator('.import-control__link')).toHaveValue(LINK) // kept, to adjust and parse again
 })
+
+test('a replay framed on one video is not replayed again when the next one opens', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  const menu = await frame(page, 0.45, 0.55)
+  await menu.getByRole('menuitem', { name: '直接慢放' }).click()
+  await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(4)
+  // back to the import screen, and the next video
+  while (await page.locator('.btn--back').isVisible()) await page.locator('.btn--back').click()
+  await page.locator('.import-control__link').fill(LINK)
+  await page.locator('.import-control__submit').click()
+  await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
+  await expect(page.locator('.composer__input')).toBeVisible()
+  await page.waitForTimeout(800)
+  await expect(page.locator('.msg--manual')).toHaveCount(0)
+  expect(mock.requests.filter((r) => r.path.endsWith('/replay'))).toHaveLength(1)
+})
+
+test('a slow replay can be cancelled from its card', async ({ page }) => {
+  await start(page, (m) => { m.replayDelay = 5000 })
+  await enterChat(page)
+  const menu = await frame(page, 0.45, 0.55)
+  await menu.getByRole('menuitem', { name: '直接慢放' }).click()
+  const card = page.locator('.msg--manual')
+  await expect(card).toContainText('正在读取这一段')
+  await card.getByRole('button', { name: '取消' }).click()
+  await expect(card).toContainText('已取消慢放')
+  await expect(card.getByRole('button', { name: '取消' })).toHaveCount(0)
+})
