@@ -150,7 +150,7 @@ cd backend && uv run python scripts/bench.py --config E --n 100
 **要点**：
 - 可回到原片——每条引用可验证
 - 验收目标：视频里没有的内容明确说证据不足
-- 评测数字可复现（MotionBench、factcheck_eval）
+- 已提供 MotionBench、factcheck_eval 的准备与运行流程，尚待执行验证；历史数字缺少原始产物，不能宣称已复现，科普评测还需先完成人工标注复核（当前 reviewed=0）
 - 扩展性强——技能化架构
 
 **下一步**：

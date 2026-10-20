@@ -4,7 +4,18 @@
 
 ## 实际发生的工作
 
-- 2026-10-20，主会话准备真实 `origin/main` 的干净快照，版本 `34b38f0f74a1b85dd1cba167a4063a6642eab44f`，270个文件；main归档SHA256为 `6a1fe3cf02e3336519bdc485ed9b94968536191c50a5f2e207fa006f8f58965a`。不含本地环境配置、登录态、数据目录或未提交改动。
+- 2026-10-20，主会话从真实 `origin/main` 版本 `34b38f0f74a1b85dd1cba167a4063a6642eab44f` 的279个已跟踪文件构建干净快照，明确排除下列9个文件后归档剩余270个文件。main归档SHA256为 `6a1fe3cf02e3336519bdc485ed9b94968536191c50a5f2e207fa006f8f58965a`。不含本地环境配置、登录态、数据目录或未提交改动。
+
+  - `datas/wechat.txt`
+  - `docs/brand/gongjing-logo-animal-core-studies.png`
+  - `docs/brand/gongjing-logo-animal-head-studies-02.png`
+  - `docs/brand/gongjing-logo-final-animal-shortlist.png`
+  - `docs/brand/gongjing-logo-head-only-mascot-studies.png`
+  - `docs/brand/gongjing-logo-motion-system-01.png`
+  - `docs/brand/gongjing-logo-silhouette-chibi-studies.png`
+  - `docs/brand/gongjing-logo-studies-01.png`
+  - `docs/brand/gongjing-logo-studies-02-bot.png`
+
 - 原先上传到主机目录，CodeArts隔离沙箱未找到输入。经资源管理器上传到对应CodeArts沙箱后，A会话校验了归档大小和SHA；保留了输入阻塞记录，未用旧源码冒充本次输入。
 - C初次请求的持久历史显示“无响应内容”，并未开始写文档。主会话在原会话续作，确认了任务读取、SHA核验、真实Git元数据读取和五个文档的写入工具记录。
 - C实际使用 `huaweicloud-maas/OpenPangu-2.0-Flash`。它在 `/workspace/gongjing-20261020/c-docs` 初始化的是仅含新增文档的空Git仓库，并未建立完整main源码基线；其合成提交 `95d23dc` 只用于云端产物记录，不能推入真实项目历史。主会话取回完整新增文件补丁，并在真实main的独立工作区验证和应用。
