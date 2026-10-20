@@ -7,7 +7,8 @@ from modules import log
 
 
 @pytest.fixture(autouse=True)
-def detach():
+def detach(tmp_path, monkeypatch):
+    monkeypatch.setenv("GONGJING_DATA_DIR", str(tmp_path / "data"))
     yield
     log.logger.handlers.clear()  # later tests must not write into this test's folder
 
@@ -67,3 +68,48 @@ def test_stats_report_summarizes():
     assert "## 回答  2 次" in text and "done 1" in text and "timeout 1" in text
     assert "web.search" in text and "失败原因：login_expired 1" in text
     assert "1 个未处理" in text and "tb" in text
+
+
+def test_partial_answer_usage_survives_logging_and_stats(tmp_path, monkeypatch, capsys):
+    import asyncio
+    from types import SimpleNamespace
+    import app
+    from scripts.log_stats import report
+
+    job = SimpleNamespace(id="job", video=SimpleNamespace(platform="test"))
+    monkeypatch.setattr(app, "find_job", lambda _: job)
+    monkeypatch.setattr(app, "get_llm", lambda: object())
+    monkeypatch.setattr(app, "get_decider", lambda: None)
+    monkeypatch.setattr(app, "store", SimpleNamespace(history=lambda _: [], framed=lambda _: [], add_message=lambda *a, **kw: None))
+
+    async def run(*args, **kwargs):
+        yield {"type": "assistant.message.delta", "delta": "answer"}
+        yield {"type": "run.completed", "model": "test", "usage": {
+            "prompt": None, "completion": 20, "known_prompt": 1234, "known_completion": 20, "complete": False}}
+
+    monkeypatch.setattr(app, "run_agent", run)
+    monkeypatch.setattr(app, "with_evidence", lambda gen, *args: gen)
+    log.setup(tmp_path)
+
+    async def consume():
+        response = await app.agent_run(app.AgentRequest(video_id="job", question="test"))
+        return [item async for item in response.body_iterator]
+
+    assert asyncio.run(consume())
+    row = next(r for r in records(tmp_path) if r["event"] == "answer")
+    assert row["prompt_tokens"] is None and row["known_prompt_tokens"] == 1234
+    assert row["known_completion_tokens"] == 20 and row["usage_complete"] is False
+    assert "未知（已知 1.2k）" in capsys.readouterr().err
+    text = report([row], False)
+    assert "输入已知共 1234 tokens" in text and "不完整 1/1" in text
+    assert "完整字段均值 未知" in text and "输出已知共 20 tokens" in text
+
+
+def test_stats_never_double_adds_known_counts_or_zero_fills_unknown():
+    from scripts.log_stats import report
+    rows = [{"event": "answer", "status": "error", "prompt_tokens": 1000, "known_prompt_tokens": 1000,
+             "completion_tokens": None, "known_completion_tokens": 5, "usage_complete": False},
+            {"event": "answer", "status": "error", "prompt_tokens": None, "completion_tokens": None}]
+    text = report(rows, False)
+    assert "输入已知共 1000 tokens" in text and "输出已知共 5 tokens" in text
+    assert "完整字段均值 1.0k，完整 1/2" in text and "不完整 2/2" in text

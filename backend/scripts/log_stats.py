@@ -58,10 +58,19 @@ def report(records: list[dict], show_errors: bool) -> str:
         times = [a["elapsed_ms"] for a in done]
         if times:
             out.append(f"耗时（完成的）：中位 {secs(pct(times, 0.5))}  P90 {secs(pct(times, 0.9))}  最长 {secs(max(times))}")
-        prompt = [a.get("prompt_tokens") or 0 for a in answers]
-        completion = [a.get("completion_tokens") or 0 for a in answers]
-        out.append(f"token：输入共 {sum(prompt) / 1000:.0f}k（平均 {sum(prompt) / len(answers) / 1000:.1f}k）  "
-                   f"输出共 {sum(completion) / 1000:.0f}k（平均 {sum(completion) / len(answers) / 1000:.1f}k）")
+        def token_stat(field, label):
+            full = [a[field] for a in answers if a.get(field) is not None]
+            # A partial record has a known lower bound. Never add it twice to a full total.
+            known = [a[field] if a.get(field) is not None else a.get("known_" + field) for a in answers]
+            known = [n for n in known if n is not None]
+            total = f"{sum(known)} tokens" if known else "未知（无已知计数）"
+            average = f"{sum(full) / len(full) / 1000:.1f}k" if full else "未知"
+            return f"{label}已知共 {total}（完整字段均值 {average}，完整 {len(full)}/{len(answers)}）"
+
+        incomplete = sum(a.get("usage_complete") is False or a.get("prompt_tokens") is None
+                         or a.get("completion_tokens") is None for a in answers)
+        out.append(f"token（已知下界；不完整 {incomplete}/{len(answers)} 次）："
+                   + token_stat("prompt_tokens", "输入") + "  " + token_stat("completion_tokens", "输出"))
         models = Counter(a.get("model") for a in answers if a.get("model"))
         if models:
             out.append("模型：" + "  ".join(f"{k} {v}" for k, v in models.most_common()))
