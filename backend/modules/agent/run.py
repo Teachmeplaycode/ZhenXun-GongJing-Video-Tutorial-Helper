@@ -506,6 +506,8 @@ async def _run_agent(job: FrameJob, client: ChatClient | OllamaClient, question:
     if over:
         raise agent_budget.BudgetExceeded(spend, over)
     metered_before = spend.llm_calls
+    route_active_before = set(spend.active)
+    injected = False
     try:
         # A optionally accepts this per-answer client; old implementations and call sites
         # retain their positional API. The proxy then owns timeout/cancel usage as well.
@@ -516,9 +518,14 @@ async def _run_agent(job: FrameJob, client: ChatClient | OllamaClient, question:
             injected = False
         route = await spend.bounded(intent.classify(question, decider, **({"client": client} if injected else {})))
     except BaseException as exc:
-        if spend.llm_calls == metered_before:
+        # A cancels its task without awaiting slow cleanup to preserve its deadline.
+        # Settle live route usage before producing a terminal event, and never add a
+        # second phantom metadata call while its proxy is still being finalized.
+        spend.settle_calls(set(spend.active) - route_active_before)
+        if not injected and spend.llm_calls == metered_before:
             spend.record(None, None, status="cancelled" if isinstance(exc, (asyncio.CancelledError, GeneratorExit)) else "error")
         raise
+    spend.settle_calls(set(spend.active) - route_active_before)
     # Module A's Intent may carry usage / elapsed_ms metadata (getattr: absent = not counted;
     # intent.py itself is never touched by this). Counted into this answer's budget and cost.
     if spend.llm_calls == metered_before:
@@ -694,7 +701,10 @@ async def _run_agent(job: FrameJob, client: ChatClient | OllamaClient, question:
                 async for delta in owned_stream:
                     text.append(delta)
                     yield {"type": "assistant.message.delta", "delta": delta}
+        except agent_budget.BudgetExceeded:
+            raise
         except LLMError:
+            usage.finish_reason = "length"
             break  # what was written stands; the note below says it was cut off
         prompt_tokens += usage.prompt_tokens or 0
         completion_tokens += usage.completion_tokens or 0
@@ -720,6 +730,7 @@ async def run_agent(job, client, question, *, frames=None, history=None, decider
         async with aclosing(_run_agent(job, client, question, frames=frames, history=history, decider=decider, web=web, papers=papers, framed=framed, budget=spend)) as owned_stream:
             async for event in owned_stream:
                 if event["type"] in {"run.completed", "run.error"}:
+                    spend.cancel_open_calls()
                     event = {**event, "usage": spend.usage(), "budget": spend.snapshot(), "cost": spend.cost()}
                 yield event
     except agent_budget.BudgetExceeded as exc:

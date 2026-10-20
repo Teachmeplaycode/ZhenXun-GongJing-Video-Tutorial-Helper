@@ -69,6 +69,8 @@ class AnswerBudget:
     blocked_calls: int = 0
     frames_read: int = 0
     frames_reserved: int = 0
+    output_reserved: int = 0
+    unreported_token_reserve: int = 0
     calls: list[dict] = field(default_factory=list)
     active: dict = field(default_factory=dict, repr=False)
     prompt_complete: bool = True
@@ -102,7 +104,7 @@ class AnswerBudget:
         if self.caps["seconds"] is not None and self.elapsed() >= self.caps["seconds"]:
             return self._hit("seconds")
         if (self.caps["tokens"] is not None
-                and self.prompt_tokens + self.completion_tokens >= self.caps["tokens"]):
+                and self.prompt_tokens + self.completion_tokens + self.output_reserved + self.unreported_token_reserve >= self.caps["tokens"]):
             return self._hit("tokens")
         if self.caps["tool_calls"] is not None and self.tool_calls >= self.caps["tool_calls"]:
             return self._hit("tool_calls")
@@ -118,7 +120,7 @@ class AnswerBudget:
         if self.caps["seconds"] is not None and self.elapsed() >= self.caps["seconds"]:
             return self._hit("seconds")
         if (self.caps["tokens"] is not None
-                and self.prompt_tokens + self.completion_tokens >= self.caps["tokens"]):
+                and self.prompt_tokens + self.completion_tokens + self.output_reserved + self.unreported_token_reserve >= self.caps["tokens"]):
             return self._hit("tokens")
         return None
 
@@ -191,11 +193,30 @@ class AnswerBudget:
         if call is None:
             return
         p, c = side_tokens(call["usage"])
+        allowance = call.get("allowance", 0)
+        self.output_reserved -= allowance
+        if p is None or c is None or status in {"error", "cancelled"}:
+            # Unknown/cancelled output may still be charged: do not make its allowance
+            # available to another call. Completed known usage reconciles normally.
+            self.unreported_token_reserve += max(0, allowance - (c or 0))
         self.record(p, c, wait_ms=int(((call["first"] or time.perf_counter()) - call["began"]) * 1000), status=status)
 
-    def cancel_open_calls(self):
-        for key in list(self.active):
+    def settle_calls(self, keys):
+        try:
+            current = asyncio.current_task()
+        except RuntimeError:
+            current = None
+        for key in list(keys):
+            call = self.active.get(key)
+            if call is None:
+                continue
+            task = call.get("task")
+            if task is not None and task is not current and not task.done():
+                task.cancel()
             self.finish_call(key, "cancelled")
+
+    def cancel_open_calls(self):
+        self.settle_calls(list(self.active))
 
     def usage(self):
         return {"prompt": self.prompt_tokens if self.prompt_complete else None,
@@ -305,6 +326,7 @@ class AnswerBudget:
         """Structured fields for run.completed and the answer log line."""
         return {"external_calls": self.external_calls, "tool_calls": self.tool_calls,
                 "blocked_calls": self.blocked_calls, "frames_read": self.frames_read, "frames_reserved": self.frames_reserved,
+                "output_reserved": self.output_reserved, "unreported_token_reserve": self.unreported_token_reserve,
                 "limit_hits": list(self.limit_hits),
                 "limits": {k: v for k, v in self.caps.items() if v is not None},
                 "prompt_tokens": self.prompt_tokens, "completion_tokens": self.completion_tokens,
@@ -349,13 +371,20 @@ class MeteredClient:
         if over:
             raise BudgetExceeded(b, over)
         cap = b.caps["tokens"]
+        allowance = 0
         if cap is not None:
             # Input size is provider-reported only; enforce remaining known lower bound
             # and cap this request's output, without claiming a hard total-token bound.
-            max_tokens = min(max_tokens, max(1, int(cap - b.prompt_tokens - b.completion_tokens)))
+            remaining = int(cap - b.prompt_tokens - b.completion_tokens - b.output_reserved - b.unreported_token_reserve)
+            if remaining <= 0:
+                raise BudgetExceeded(b, "tokens")
+            max_tokens = min(max_tokens, remaining)
+            allowance = max_tokens
+            b.output_reserved += allowance
         began, first, status = time.perf_counter(), None, "done"
         key = object()
-        b.active[key] = {"usage": usage, "began": began, "first": None}
+        b.active[key] = {"usage": usage, "began": began, "first": None,
+                         "allowance": allowance, "task": asyncio.current_task()}
         stream = self.client.stream(messages, usage, max_tokens=max_tokens, **kwargs)
         try:
             async with aclosing(b.iterate(stream)) as owned_stream:
