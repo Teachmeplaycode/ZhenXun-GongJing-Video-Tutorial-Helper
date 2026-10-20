@@ -150,3 +150,77 @@ def test_intent_keeps_the_old_call_shape_for_the_budget():
     assert old_style.usage is None and old_style.elapsed_ms == 0 and old_style.detail == ""
     data = old_style.as_data()
     assert data["kind"] == "chat" and data["how"] == "关键词" and "usage" in data and "elapsed_ms" in data
+
+
+def test_invalid_answer_keeps_billable_usage(monkeypatch):
+    monkeypatch.setattr("modules.llm.create_client", lambda config: main_model("无法分类"))
+    got = asyncio.run(intent.classify("这是不是骗局"))
+    assert got.how == "关键词" and got.usage == {"prompt_tokens": 11, "completion_tokens": 2}
+
+
+def test_stream_failure_keeps_partial_usage_and_reports_failure_not_timeout(monkeypatch):
+    class Broken:
+        async def aclose(self):
+            pass
+
+        async def stream(self, messages, usage, **kwargs):
+            usage.prompt_tokens = 13
+            yield "fra"
+            raise RuntimeError("upstream failed")
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: Broken())
+    got = asyncio.run(intent.classify("这是不是骗局"))
+    assert got.how == "关键词" and got.usage == {"prompt_tokens": 13, "completion_tokens": None}
+    assert "分类失败" in got.detail and "秒" not in got.detail
+
+
+def test_unreported_usage_is_unknown_not_zero(monkeypatch):
+    class NoCounts:
+        async def aclose(self):
+            pass
+
+        async def stream(self, messages, usage, **kwargs):
+            yield "chat"
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: NoCounts())
+    got = asyncio.run(intent.classify("你好"))
+    assert got.how == "主模型回退"
+    assert got.usage == {"prompt_tokens": None, "completion_tokens": None}
+
+
+def test_cleanup_shares_the_classification_deadline(monkeypatch):
+    monkeypatch.setattr(intent, "LLM_FALLBACK_TIMEOUT", 0.05)
+
+    class SlowClose:
+        async def aclose(self):
+            await asyncio.sleep(1)
+
+        async def stream(self, messages, usage, **kwargs):
+            usage.prompt_tokens, usage.completion_tokens = 7, 1
+            yield "fraud"
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: SlowClose())
+
+    async def run():
+        # The outer timeout would fail the old implementation's unbounded finally/aclose.
+        return await asyncio.wait_for(intent.classify("这是不是骗局"), 0.25)
+
+    got = asyncio.run(run())
+    assert got.how == "主模型回退" and got.kind == "fraud"
+    assert got.usage == {"prompt_tokens": 7, "completion_tokens": 1}
+    assert 40 <= got.elapsed_ms < 250 and "清理" in got.detail
+
+
+@pytest.mark.parametrize("fallback", ["on", "off"])
+def test_elapsed_includes_failed_decider_before_main_or_keyword_fallback(monkeypatch, fallback):
+    monkeypatch.setenv("INTENT_LLM_FALLBACK", fallback)
+    monkeypatch.setattr("modules.llm.create_client", lambda config: main_model("chat"))
+
+    class BrokenDecider:
+        async def choice(self, *args, **kwargs):
+            await asyncio.sleep(0.03)
+            raise RuntimeError("decider unavailable")
+
+    got = asyncio.run(intent.classify("这是不是骗局", BrokenDecider()))
+    assert got.elapsed_ms >= 25
+    assert got.how == ("主模型回退" if fallback == "on" else "关键词")
