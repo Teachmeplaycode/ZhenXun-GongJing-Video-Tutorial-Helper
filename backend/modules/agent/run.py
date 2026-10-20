@@ -481,6 +481,27 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))
                        + lessons}
     prompt_tokens = completion_tokens = cached_tokens = 0
+    usage_complete = {"prompt": True, "completion": True}
+
+    def add_usage(prompt, completion, cached=None):
+        nonlocal prompt_tokens, completion_tokens, cached_tokens
+        cached_tokens += cached or 0
+        if prompt is None:
+            usage_complete["prompt"] = False
+        else:
+            prompt_tokens += prompt
+        if completion is None:
+            usage_complete["completion"] = False
+        else:
+            completion_tokens += completion
+
+    def total_usage():
+        # Null means the authoritative total is unknown; retain partial known counts separately.
+        return {"prompt": prompt_tokens if usage_complete["prompt"] else None,
+                "completion": completion_tokens if usage_complete["completion"] else None,
+                "cached": cached_tokens, "known_prompt": prompt_tokens, "known_completion": completion_tokens,
+                "complete": all(usage_complete.values())}
+
     tool_calls = 0
     usage = Usage()
     answered = False  # any answer text streamed so far
@@ -492,6 +513,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield tool("route", "started", tool_name="decision.intent")
     yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
     route = await intent.classify(question, decider)
+    route_usage = getattr(route, "usage", None)
+    if route_usage is not None:
+        # Once per route attempt, regardless of whether it classified or fell back to keywords.
+        add_usage(route_usage.get("prompt_tokens"), route_usage.get("completion_tokens"))
     offered = {d["function"]["name"] for d in allowed_tools(job, web, papers, audience)}
     skill = route.skill if route.skill in offered and rounds else None
     yield tool("route", "output", stdout=(
@@ -576,14 +601,13 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                 # The server closed the stream without a word (a busy DeepSeek does this after ~10 minutes).
                 raise LLMError("empty", "模型没有返回任何内容，请稍后重试", True)
         except LLMError as err:
+            add_usage(usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens)
             yield tool(call_id, "output", stderr=err.message, exit_code=1)
             yield tool(call_id, "completed", result_count=0)
             yield {"type": "run.error", "code": err.code, "message": err.message, "retryable": err.retryable,
-                   "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens}}
+                   "model": model, "usage": total_usage()}
             return
-        prompt_tokens += usage.prompt_tokens or 0
-        cached_tokens += usage.cached_tokens or 0
-        completion_tokens += usage.completion_tokens or 0
+        add_usage(usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens)
         asked = usage.tool_calls
         yield tool(call_id, "output", stdout=(
             f"输入 {usage.prompt_tokens} · 输出 {usage.completion_tokens} tokens\n"
@@ -646,15 +670,17 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                 text.append(delta)
                 yield {"type": "assistant.message.delta", "delta": delta}
         except LLMError:
+            add_usage(usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens)
             break  # what was written stands; the note below says it was cut off
-        prompt_tokens += usage.prompt_tokens or 0
-        cached_tokens += usage.cached_tokens or 0
-        completion_tokens += usage.completion_tokens or 0
+        add_usage(usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens)
 
-    tokens = f"输入 {prompt_tokens} · 输出 {completion_tokens} tokens"
+    totals = total_usage()
+    shown_prompt = totals["prompt"] if totals["prompt"] is not None else f"未知（已知 {prompt_tokens}）"
+    shown_completion = totals["completion"] if totals["completion"] is not None else f"未知（已知 {completion_tokens}）"
+    tokens = f"输入 {shown_prompt} · 输出 {shown_completion} tokens"
     if usage.finish_reason == "length":
         yield {"type": "assistant.message.delta", "delta": "\n\n（回答达到长度上限，已截断）"}
     extra = f" · 调用工具 {tool_calls} 次" if tool_calls else ""
     yield {"type": "run.completed", "steps": steps, "elapsed_ms": round((time.perf_counter() - started) * 1000),
-           "model": model, "usage": {"prompt": prompt_tokens, "completion": completion_tokens, "cached": cached_tokens}, "tool_calls": tool_calls,
+           "model": model, "usage": total_usage(), "tool_calls": tool_calls,
            "summary": f"分析 {len(chosen)} 帧 · {len(lines)} 行语音{extra} · {model} · {tokens}"}

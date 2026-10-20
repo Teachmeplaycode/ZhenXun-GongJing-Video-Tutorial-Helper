@@ -24,3 +24,22 @@ def test_errors_and_no_timestamps():
 
 def test_text_checks_ignore_spaces():
     assert check({"checks": {"contains_any": [["9块9"]]}}, run("咖啡 9 块 9 一杯")) == []
+
+
+def test_unknown_token_totals_are_excluded_from_known_average(capsys):
+    from scripts.eval import summary, print_report
+    results = [{"id": "known", "prompt_tokens": 2000, "seconds": 1, "passed": True, "fails": []},
+               {"id": "unknown", "prompt_tokens": None, "seconds": 1, "passed": True, "fails": []}]
+    got = summary(results)
+    assert got["avg_prompt_k"] == 2.0
+    assert got["prompt_known_cases"] == 1 and got["prompt_unknown_cases"] == 1
+    print_report(results, None)
+    printed = capsys.readouterr().out
+    assert "未知" in next(line for line in printed.splitlines() if "unknown" in line)
+    assert "已知输入均值 2.0k" in printed and "已知 1/2，未知 1" in printed
+
+
+def test_no_known_usage_has_no_numeric_average():
+    from scripts.eval import summary
+    got = summary([{"prompt_tokens": None, "seconds": 1, "passed": False}])
+    assert got["avg_prompt_k"] is None and got["prompt_unknown_cases"] == 1

@@ -20,10 +20,22 @@ dependencies = [
   "markdown-it-py>=4,<5",
 ]
 
+[project.optional-dependencies]
+# av>=16 dropped the metadata_errors kwarg faster-whisper still passes (seen on aarch64 Linux, 2026-10-20).
+cloud = ["faster-whisper>=1.2,<2", "av>=14,<16", "rapidocr-onnxruntime>=1.4,<2"]
+
 [dependency-groups]
 dev = [
     "pytest>=8",
 ]
+
+[tool.uv]
+# rapidocr-onnxruntime declares a dependency on opencv-python, which needs libGL (absent on
+# headless Linux servers) and would sit next to the project's opencv-python-headless — both ship
+# the cv2 package, so one breaks the other. Exclusion is stored in uv.lock and honored by
+# subsequent syncs; the root headless dependency supplies cv2. Requires a uv version supporting
+# exclude-dependencies (validated locally with uv 0.12.9).
+exclude-dependencies = ["opencv-python"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
