@@ -260,3 +260,94 @@ def test_invalid_timeout_settings_keep_the_default(monkeypatch, invalid):
     monkeypatch.setattr("modules.llm.create_client", lambda config: Slow())
     got = asyncio.run(intent.classify("hello"))
     assert got.how == "关键词" and "0.02秒" in got.detail
+
+
+def test_repeated_timeouts_eventually_close_real_httpx_clients(monkeypatch):
+    monkeypatch.setenv("INTENT_LLM_FALLBACK_TIMEOUT", "0.01")
+    clients, transports = [], []
+
+    class ClosingTransport(httpx.MockTransport):
+        closed = False
+
+        async def aclose(self):
+            await asyncio.sleep(0.03)
+            await super().aclose()
+            self.closed = True
+
+    async def hang(request):
+        await asyncio.sleep(10)
+        return httpx.Response(200, text="unreachable")
+
+    def create(config):
+        transport = ClosingTransport(hang)
+        client = ChatClient(config, transport=transport)
+        clients.append(client)
+        transports.append(transport)
+        return client
+
+    monkeypatch.setattr("modules.llm.create_client", create)
+
+    async def go():
+        for _ in range(3):
+            got = await asyncio.wait_for(intent.classify("视频内容"), 0.25)
+            assert got.how == "关键词"
+        await asyncio.wait_for(asyncio.gather(*list(intent._CLIENT_CLEANUPS)), 0.5)
+        await asyncio.sleep(0)  # run done callbacks that release retained cleanup references
+        assert not intent._CLIENT_CLEANUPS
+        assert all(c.http.is_closed for c in clients) and all(t.closed for t in transports)
+
+    asyncio.run(go())
+
+
+def test_caller_cancellation_propagates_while_client_finishes_closing(monkeypatch):
+    entered, closed = None, None
+
+    class Client:
+        async def stream(self, *args, **kwargs):
+            entered.set()
+            await asyncio.sleep(10)
+            yield "chat"
+
+        async def aclose(self):
+            await asyncio.sleep(0.02)
+            closed.set()
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: Client())
+
+    async def go():
+        nonlocal entered, closed
+        entered, closed = asyncio.Event(), asyncio.Event()
+        task = asyncio.create_task(intent.classify("hello"))
+        await entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(task, 0.1)
+        await asyncio.wait_for(closed.wait(), 0.5)
+        await asyncio.sleep(0)
+        assert not intent._CLIENT_CLEANUPS
+
+    asyncio.run(go())
+
+
+def test_deferred_cleanup_failure_is_observed_without_exposing_provider_error(monkeypatch):
+    monkeypatch.setenv("INTENT_LLM_FALLBACK_TIMEOUT", "0.01")
+
+    class Client:
+        async def stream(self, *args, **kwargs):
+            yield "chat"
+
+        async def aclose(self):
+            await asyncio.sleep(0.03)
+            raise RuntimeError("private-provider-detail")
+
+    monkeypatch.setattr("modules.llm.create_client", lambda config: Client())
+
+    async def go():
+        failures = []
+        asyncio.get_running_loop().set_exception_handler(lambda loop, context: failures.append(context))
+        got = await intent.classify("hello")
+        assert got.kind == "chat" and "private-provider-detail" not in got.detail
+        await asyncio.sleep(0.05)
+        assert not intent._CLIENT_CLEANUPS and not failures
+
+    asyncio.run(go())
