@@ -1,4 +1,4 @@
-"""Text recognition with macOS Vision (VNRecognizeTextRequest): on-device, free, good at Chinese.
+"""On-device text recognition with macOS Vision or RapidOCR ONNX on Linux.
 
 Measured 2026-10-16 (M-series Mac): ~35 ms per 960×540 frame. Plain subtitles come back at
 confidence 1.0; stylized captions ("失败 X5") at 0.3–0.5, sometimes with a wrong character.
@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
+from functools import lru_cache
 
 from modules.settings import settings
 
@@ -25,19 +26,53 @@ class Line:
         return self.y + self.h / 2
 
 
+def backend_name() -> str:
+    return settings().get("OCR_BACKEND", "vision" if sys.platform == "darwin" else "rapidocr")
+
+
 def available() -> bool:
-    if sys.platform != "darwin" or settings().get("SCREENTEXT", "on").lower() in ("off", "0", "false"):
+    if settings().get("SCREENTEXT", "on").lower() in ("off", "0", "false"):
         return False
     try:
-        import Vision  # noqa: F401
-        import Quartz  # noqa: F401
+        if backend_name() == "rapidocr":
+            import rapidocr_onnxruntime  # noqa: F401
+        else:
+            import Vision  # noqa: F401
+            import Quartz  # noqa: F401
     except ImportError:
         return False
     return True
 
 
+@lru_cache(maxsize=1)
+def _rapid_engine():
+    from rapidocr_onnxruntime import RapidOCR
+
+    return RapidOCR(intra_op_num_threads=2, inter_op_num_threads=1)
+
+
+def _rapid_recognize(path: str) -> list[Line]:
+    import cv2
+
+    image = cv2.imread(path)
+    if image is None:
+        return []
+    height, width = image.shape[:2]
+    result, _ = _rapid_engine()(image)
+    lines = []
+    for points, text, confidence in result or []:
+        xs, ys = [p[0] for p in points], [p[1] for p in points]
+        x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+        lines.append(Line(str(text), float(confidence), x0 / width, y0 / height,
+                          (x1 - x0) / width, (y1 - y0) / height))
+    return lines
+
+
 def recognize(path: str) -> list[Line]:
     """Lines of text in one image. Runs synchronously; call it in a thread."""
+    if backend_name() == "rapidocr":
+        return _rapid_recognize(path)
+
     import Quartz
     import Vision
     from Foundation import NSURL

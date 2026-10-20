@@ -20,6 +20,9 @@ dependencies = [
   "markdown-it-py>=4,<5",
 ]
 
+[project.optional-dependencies]
+cloud = ["faster-whisper>=1.2,<2", "rapidocr-onnxruntime>=1.4,<2"]
+
 [dependency-groups]
 dev = [
     "pytest>=8",

@@ -1,6 +1,7 @@
-"""Local speech recognition with mlx-whisper (Apple Silicon).
+"""Local speech recognition: mlx-whisper on Mac, faster-whisper CPU on Linux.
 
-  ASR_MODEL     default mlx-community/whisper-large-v3-turbo (downloaded on first use, ~1.5 GB)
+  ASR_BACKEND   mlx (Mac default) or faster-whisper (Linux default)
+  ASR_MODEL     mlx-community/whisper-large-v3-turbo on Mac, small on Linux
   ASR_LANGUAGE  default zh; set to `auto` to let Whisper detect the language
 """
 from __future__ import annotations
@@ -8,7 +9,9 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import sys
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 DEFAULT_MODEL = "mlx-community/whisper-large-v3-turbo"
@@ -23,7 +26,7 @@ HALLUCINATIONS = re.compile(r"请不吝点赞|订阅.{0,4}转发|打赏支持|�
 def hallucinated(text: str) -> bool:
     return bool(HALLUCINATIONS.search(text.strip()))
 
-_lock = asyncio.Lock()  # one model run at a time: it holds several GB of unified memory
+_lock = asyncio.Lock()  # serialize recognition to bound memory and CPU usage
 
 
 @dataclass
@@ -36,16 +39,31 @@ class Segment:
         return {"start": round(self.start, 2), "end": round(self.end, 2), "text": self.text}
 
 
+def backend_name() -> str:
+    return os.environ.get("ASR_BACKEND", "mlx" if sys.platform == "darwin" else "faster-whisper")
+
+
 def available() -> bool:
     try:
-        import mlx_whisper  # noqa: F401
+        if backend_name() == "faster-whisper":
+            import faster_whisper  # noqa: F401
+        else:
+            import mlx_whisper  # noqa: F401
     except ImportError:
         return False
     return True
 
 
 def model_name() -> str:
-    return os.environ.get("ASR_MODEL", DEFAULT_MODEL)
+    return os.environ.get("ASR_MODEL", "small" if backend_name() == "faster-whisper" else DEFAULT_MODEL)
+
+
+@lru_cache(maxsize=1)
+def _cpu_model(name: str):
+    from faster_whisper import WhisperModel
+
+    return WhisperModel(name, device="cpu", compute_type="int8",
+                        cpu_threads=int(os.environ.get("ASR_CPU_THREADS", "4")), num_workers=1)
 
 
 def clean(raw: list[dict]) -> list[Segment]:
@@ -67,9 +85,19 @@ def clean(raw: list[dict]) -> list[Segment]:
 
 
 def _run(path: Path) -> list[Segment]:
+    language = os.environ.get("ASR_LANGUAGE", "zh")
+    if backend_name() == "faster-whisper":
+        segments, _ = _cpu_model(model_name()).transcribe(
+            str(path), language=None if language == "auto" else language,
+            initial_prompt=ZH_PROMPT if language == "zh" else None,
+            condition_on_previous_text=False, vad_filter=True, beam_size=5,
+        )
+        return clean([{"start": s.start, "end": s.end, "text": s.text,
+                       "no_speech_prob": s.no_speech_prob, "avg_logprob": s.avg_logprob,
+                       "compression_ratio": s.compression_ratio} for s in segments])
+
     import mlx_whisper
 
-    language = os.environ.get("ASR_LANGUAGE", "zh")
     result = mlx_whisper.transcribe(
         str(path), path_or_hf_repo=model_name(),
         language=None if language == "auto" else language,
