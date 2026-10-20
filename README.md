@@ -27,6 +27,7 @@
 
 - macOS 上什么都不用做：mlx-whisper 与 Vision 按平台标记安装，行为与之前完全一致。
 - Linux 上安装云端可选依赖组：`cd backend && uv sync --extra cloud`（faster-whisper + rapidocr-onnxruntime）。不装时对应能力自动关闭，只分析画面/只读语音，不会报错。
+- **headless Linux（无 libGL）注意**：rapidocr-onnxruntime 声明依赖非 headless 的 `opencv-python`（要 libGL，且与项目用的 `opencv-python-headless` 都装 `cv2`，互相破坏）。pyproject 的 `[tool.uv] exclude-dependencies` 已把它从解析里排除，uv 0.12.9 本地解析与锁定已验证；无 libGL 的 openEuler aarch64 实测的是下述 pip 路径，Linux 的 uv 路径仍待部署环境验证。没有 uv 时用 `deploy/huawei/prepare.sh` 的等价 pip 序列：先装 `opencv-python-headless`，再 `--no-deps` 装 `rapidocr-onnxruntime` 并显式补上它的真实依赖（onnxruntime、numpy、Pillow、pyclipper、PyYAML、Shapely、six、tqdm）——不要先装 rapidocr 再手动卸装 opencv-python，那会同时损坏 headless 的 cv2。
 - Linux 的 ASR 模型默认 `small`；下载不动 Hugging Face 时可改用 ModelScope 转换权重（见 [deploy/huawei/README.md](deploy/huawei/README.md)），设 `ASR_MODEL=/本地权重路径`。
 - 云端（无本地 Ollama）问题分类由主模型在 5 秒内完成（见配置表的 `INTENT_LLM_FALLBACK`），超时才退回关键词规则。
 

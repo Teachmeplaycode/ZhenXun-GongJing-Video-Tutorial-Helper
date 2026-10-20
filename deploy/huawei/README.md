@@ -46,6 +46,17 @@ curl --fail http://127.0.0.1:17080/api/health
 
 平台卡片请使用 `platform-start.sh` 的内容作为启动脚本；它同时设置本地 ASR 权重路径与沙箱持久化数据目录。上面的普通 `start.sh` 启动方式，若也要使用已下载权重，需要设置 `ASR_MODEL=/root/runtime/gongjing/models/whisper-small`。
 
+### 依赖解析：headless Linux 上不能让 rapidocr 拉入 opencv-python（2026-10-20 实测）
+
+rapidocr-onnxruntime 声明依赖非 headless 的 `opencv-python`：它需要 libGL（无显示器的服务器没有），且与项目主依赖 `opencv-python-headless` 都安装 `cv2` 目录，两者共存互相破坏（后装者覆盖，卸载时又会删掉共用文件，必须强制重装才能修复）。干净 openEuler aarch64（无 libGL）上直接 `pip install rapidocr-onnxruntime` 的结果是 `import cv2` 报 `ImportError: libGL.so.1`（退出码 1，已实测复现）。
+
+修复已固化，两条路径都不需要手动卸装：
+
+- **有 uv**（`prepare.sh` 主路径）：`backend/pyproject.toml` 的 `[tool.uv] exclude-dependencies = ["opencv-python"]` 把它从解析中排除，规则会记录在锁文件中，后续 `uv sync --locked --extra cloud` 继续排除 GUI 包；需要支持该配置的 uv（本地验证版本 0.12.9）。Linux 沙箱没有 uv，云端只验证了下述 pip 路径。
+- **无 uv**（`prepare.sh` 自动 fallback，venv 内 pip，非全局）：先装 `opencv-python-headless`，再 `--no-deps` 装 `rapidocr-onnxruntime`，最后显式补上它的真实依赖 `onnxruntime numpy Pillow pyclipper PyYAML Shapely six tqdm`。该序列已在干净 venv 实测：`import cv2`、`import rapidocr_onnxruntime`、`RapidOCR` 实例化与识别（conf 0.98）全部通过。
+
+回归保障：`backend/tests/test_cloud_deps.py` 离线锁定这些声明（主依赖保持 headless、cloud 组不含 opencv-python、uv exclusion 存在、prepare.sh 安装顺序正确）。
+
 主模型配置项：`LLM_PROVIDER=deepseek`（本项目通用 OpenAI 兼容客户端名称）、`LLM_BASE_URL`、`LLM_MODEL`、`LLM_API_KEY`。密钥在云端单独配置，不从本机代码包迁移；切勿写进前端或提交到仓库。先确认服务支持 `image_url` 与工具调用；仅文字模型不能承担视频画面问答。
 
 `start.sh` 的配置从进程环境读取；后端也能读取 `backend/.env` 中的模型配置。ASR/OCR 的后端选择优先由启动进程设置。无主模型密钥时 `/api/health` 仍返回 `ok=true`、`model=null`，只代表 Web/API 已启动。
