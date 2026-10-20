@@ -34,7 +34,7 @@ print('videos', len(c['videos']), 'cases', len(c['cases']))
 print('items', len(f), 'claims', sum(len(i['claims']) for i in f.values()),
       'reviewed', sum(bool(i.get('reviewed')) for i in f.values()))
 PY
-rg -n '13万|130000|62[.]5|63[.]3|token' README.md backend/README.md docs essay -g '*.md'
+rg -n '13万|(^|[^0-9])130000([^0-9]|$)|62[.]5|63[.]3|token' README.md backend/README.md docs essay -g '*.md' -g '!docs/competition/**'
 ```
 
 本轮计数结果为 `videos 11 cases 47`、`items 42 claims 165 reviewed 0`。原始运行数据未纳入云端输入，准确率、成本、文件大小及“约13万”的口径仍需对应原始结果核查。请同时记录集合、配置、模型、温度、运行SHA、分母和人工标签状态，不把“静态一致”写成“验收通过”。
