@@ -33,9 +33,9 @@ export const WORKSPACE_CONTENT = {
 }
 
 export const SCULPTURE_SETTINGS = {
-  count: 500,
-  lowCount: 250,
-  frame: { w: 22, h: 13.5 },
+  count: 250,
+  lowCount: 200,
+  frame: { w: 22, h: 12 },
   sideOffset: 6, // the left loop passes behind the glass import slide
   // An occasional PV-style signal distortion on the model only (no inversion), homepage only.
   // Frame looks and burst rhythm live in lib/useModelGlitch.js, the shader in lib/postPass.js.
