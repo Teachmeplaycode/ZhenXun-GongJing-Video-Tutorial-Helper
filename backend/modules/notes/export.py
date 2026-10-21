@@ -156,7 +156,7 @@ async def to_long_image(page: str) -> bytes:
         raise ImageError("生成长图需要浏览器：在 backend 里运行 uv run playwright install --only-shell chromium")
     try:
         chromium = await browser.browser()
-        context = await chromium.new_context(viewport={"width": IMAGE_WIDTH, "height": 900}, device_scale_factor=IMAGE_SCALE)
+        context = await chromium.new_context(viewport={"width": IMAGE_WIDTH, "height": 120}, device_scale_factor=IMAGE_SCALE)
     except Exception as exc:  # noqa: BLE001 — most often the browser was never downloaded
         raise ImageError("浏览器启动失败，暂时不能生成长图") from exc
     try:
@@ -165,7 +165,7 @@ async def to_long_image(page: str) -> bytes:
         height = await tab.evaluate("document.documentElement.scrollHeight")
         if height * IMAGE_SCALE > MAX_IMAGE_PX:
             await context.close()
-            context = await chromium.new_context(viewport={"width": IMAGE_WIDTH, "height": 900},
+            context = await chromium.new_context(viewport={"width": IMAGE_WIDTH, "height": 120},
                                                  device_scale_factor=max(0.5, MAX_IMAGE_PX / height))
             tab = await context.new_page()
             await tab.set_content(page, wait_until="load")
