@@ -79,8 +79,7 @@ def test_locally_everything_stays_one_user(api, monkeypatch):
 def test_accounts_and_unlisted_platforms_are_closed(api, monkeypatch):
     app, _ = api
     client, _ = visitor(app)
-    assert client.get("/api/accounts").status_code == 403
-    assert client.put("/api/accounts/bilibili", json={"cookie": "x"}).status_code == 403
+    assert client.get("/api/accounts").status_code == 401  # signed out: nothing to link a login to
 
     class Channels:
         platform = "wechat_channels"
@@ -190,3 +189,51 @@ def test_oauth_buttons_show_only_when_configured(api, monkeypatch):
     assert client.get("/api/auth/google/start", follow_redirects=False).status_code == 404
     bad = client.get("/api/auth/github/callback?code=x&state=forged", follow_redirects=False)
     assert bad.headers["location"].endswith("?login=failed")
+
+
+def test_each_account_links_its_own_bilibili_login(api, monkeypatch):
+    """Scanning B 站's QR saves the login to that account only, encrypted; others and the server's own stay out."""
+    import httpx
+
+    from modules import accounts, settings
+
+    app, _ = api
+    monkeypatch.setenv("BILIBILI_COOKIE", "SESSDATA=server-own")  # the server's: never used for visitors
+
+    def platform(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/qrcode/generate"):
+            return httpx.Response(200, json={"data": {"url": "https://passport.bilibili.com/h5?x=1", "qrcode_key": "k1"}})
+        if request.url.path.endswith("/qrcode/poll"):
+            return httpx.Response(200, json={"data": {"code": 0, "url": "https://b/?SESSDATA=alice-sess&bili_jct=j&DedeUserID=7&Expires=4102444800"}})
+        return httpx.Response(200, json={"data": {"isLogin": "alice-sess" in request.headers.get("cookie", ""), "uname": "阿丽丝"}})
+
+    monkeypatch.setattr(accounts, "transport", httpx.MockTransport(platform))
+    monkeypatch.setattr(accounts, "_checks", {})
+    alice, bob = TestClient(app.app), TestClient(app.app)
+    alice.post("/api/auth/register", json={"name": "alice", "password": "secret1"})
+    bob.post("/api/auth/register", json={"name": "bobby", "password": "secret1"})
+    assert [a["id"] for a in alice.get("/api/accounts").json()["accounts"]] == ["bilibili"]  # only what may be linked
+    assert alice.get("/api/accounts").json()["accounts"][0]["configured"] is False  # the server's own isn't shown
+
+    login = alice.post("/api/accounts/bilibili/login").json()
+    assert bob.get(f"/api/accounts/login/{login['id']}").status_code == 404  # not bob's to poll
+    done = alice.get(f"/api/accounts/login/{login['id']}").json()
+    assert done["state"] == "done" and done["account"]["configured"] and done["account"]["user"] == "阿丽丝"
+
+    assert alice.get("/api/accounts").json()["accounts"][0]["user"] == "阿丽丝"
+    assert bob.get("/api/accounts").json()["accounts"][0]["configured"] is False
+    stored = app.member_service.users.db.execute("SELECT value FROM platform_logins WHERE name = 'BILIBILI_COOKIE'").fetchone()[0]
+    assert "alice-sess" not in stored  # encrypted at rest
+
+    seen = {}
+
+    @app.app.get("/api/test-cookie")
+    async def peek():
+        seen["cookie"] = settings.settings().get("BILIBILI_COOKIE")
+        return {}
+
+    alice.get("/api/test-cookie")
+    assert "alice-sess" in seen["cookie"]
+    bob.get("/api/test-cookie")
+    assert seen["cookie"] == ""  # neither alice's nor the server's
+    assert alice.delete("/api/accounts/bilibili").json()["configured"] is False

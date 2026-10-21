@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from modules.settings import ACCOUNTS_FILE, ENV_FILE, parse_assignment, read_env_file, settings
+from modules.settings import ACCOUNTS_FILE, ENV_FILE, overlay, parse_assignment, read_env_file, settings, vault
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
@@ -56,7 +56,12 @@ def _clean(value: str) -> str:
 
 
 def save(values: dict[str, str | None]) -> None:
-    """Set (or with None, remove) keys in .env.accounts, keeping the other lines."""
+    """Set (or with None, remove) keys in .env.accounts, keeping the other lines; in the web demo,
+    in the signed-in person's own store instead (settings.vault)."""
+    keep = vault.get()
+    if keep is not None:
+        keep(values)
+        return
     lines = ACCOUNTS_FILE.read_text().splitlines() if ACCOUNTS_FILE.exists() else []
     out, done = [], set()
     for line in lines:
@@ -75,6 +80,8 @@ def save(values: dict[str, str | None]) -> None:
 
 
 def source(key: str) -> str | None:
+    if (overlay.get() or {}).get(key):
+        return "ui"
     if os.environ.get(key):
         return "environment"
     if read_env_file(ACCOUNTS_FILE).get(key):
@@ -153,6 +160,7 @@ class Login:
     user: str = ""
     created: float = field(default_factory=time.time)
     handle: object = None        # B 站: qrcode_key; 元宝: the browser context
+    owner: str = ""              # the web demo: whose login this is (only they may poll it)
 
     def public(self, qr: bool = True) -> dict:
         out = {"id": self.id, "platform": self.platform, "state": self.state, "message": self.message,
@@ -163,19 +171,21 @@ class Login:
 logins: dict[str, Login] = {}
 
 
-async def start(platform: str) -> Login:
-    for old in [x for x in logins.values() if x.platform == platform or time.time() - x.created > LOGIN_TTL * 2]:
+async def start(platform: str, owner: str = "") -> Login:
+    for old in [x for x in logins.values()
+                if (x.platform == platform and x.owner == owner) or time.time() - x.created > LOGIN_TTL * 2]:
         await cancel(old.id)
     if not PLATFORMS[platform].get("qr", True):
         raise AccountError(f"{PLATFORMS[platform]['label']} 不支持在这里扫码，请手动粘贴 Cookie")
     login = await {"bilibili": _bilibili_start, "yuanbao": _yuanbao_start, "xiaohongshu": _xhs_start}[platform]()
+    login.owner = owner
     logins[login.id] = login
     return login
 
 
-async def poll(login_id: str) -> Login:
+async def poll(login_id: str, owner: str = "") -> Login:
     login = logins.get(login_id)
-    if login is None:
+    if login is None or login.owner != owner:
         raise AccountError("这次登录已经结束，请重新扫码")
     if login.state in ("done", "expired", "error"):
         return login
@@ -192,7 +202,9 @@ async def poll(login_id: str) -> Login:
     return login
 
 
-async def cancel(login_id: str) -> None:
+async def cancel(login_id: str, owner: str | None = None) -> None:
+    if owner is not None and getattr(logins.get(login_id), "owner", owner) != owner:
+        return
     login = logins.pop(login_id, None)
     if login is not None:
         await _close(login)
