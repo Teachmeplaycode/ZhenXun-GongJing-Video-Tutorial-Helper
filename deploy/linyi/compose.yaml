@@ -1,27 +1,27 @@
-# 帧见 on linyi.work/GongJing. The site's Caddy gateway (zhenyan-evidence) owns ports 80/443 and
-# reaches this container as gongjing:8000 on its network; see deploy/linyi/README.md.
-name: gongjing
+# 帧寻 on linyi.work/ZhenXun. The site's Caddy gateway (zhenyan-evidence) owns ports 80/443 and
+# reaches this container as zhenxun:8000 on its network; see deploy/linyi/README.md.
+name: zhenxun
 services:
-  gongjing:
+  zhenxun:
     build:
       context: ../..
       dockerfile: deploy/linyi/Dockerfile
-    image: gongjing:latest
-    container_name: gongjing
+    image: zhenxun:latest
+    container_name: zhenxun
     restart: unless-stopped
     env_file:
       - path: .env          # LLM_* keys and other secrets; never committed
         required: false
     volumes:
-      - gongjing-data:/data
+      - zhenxun-data:/data
     networks:
       edge:
-        aliases: [gongjing]
+        aliases: [zhenxun]
     cpus: 3
     mem_limit: 8g
 
 volumes:
-  gongjing-data:
+  zhenxun-data:
 
 networks:
   edge:
