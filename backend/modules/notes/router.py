@@ -16,7 +16,7 @@ import time
 from urllib.parse import quote
 
 from fastapi import APIRouter, Body, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import HTMLResponse, Response
 
 from modules import log
 from modules.agent.tools import AgentTools
@@ -146,7 +146,8 @@ class NotesService:
         write(job.root, {**board, "saved": time.time()}, BOARD)
         return {"saved": time.time()}
 
-    async def export(self, job_id: str):
+    async def export(self, job_id: str, preview: bool = False):
+        """The note as a zip (笔记.md + images/), or with preview=1 as a page showing what it will read like."""
         job = self.get_job(job_id)
         record = load(job.root) or {}
         if record.get("status") != "done" or not record.get("note"):
@@ -160,6 +161,8 @@ class NotesService:
             root = job.root.resolve()
             return path if path.is_file() and root in path.resolve().parents else None
 
+        if preview:
+            return HTMLResponse(export.to_preview_html(record["note"], load(job.root, BOARD), picture))
         data, title = export.to_zip(record["note"], load(job.root, BOARD), picture)
         name = re.sub(r'[\\/:*?"<>|]+', " ", title).strip()[:60] or "笔记"
         return Response(data, media_type="application/zip",
