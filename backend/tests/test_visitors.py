@@ -2,7 +2,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from modules import visitors
+from modules import members, visitors
 from modules.frames import FrameJob
 from modules.screentext import ScreenText
 from modules.store import SessionStore
@@ -21,6 +21,7 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setenv("PUBLIC_DEMO", "1")
     monkeypatch.setenv("VISITOR_SECRET", "test-secret")
     monkeypatch.setattr(visitors, "_keys", {})
+    monkeypatch.setattr(app.member_service, "limiter", members.Limiter())
     return app, store
 
 
@@ -100,3 +101,49 @@ def test_old_databases_gain_the_owner_column(tmp_path):
     db.commit()
     db.close()
     assert SessionStore(tmp_path / "old.sqlite3").owner("old") == ""
+
+
+def test_the_access_code_lets_a_browser_in(api, monkeypatch):
+    app, _ = api
+    monkeypatch.setenv("ACCESS_CODES", "frame2026, other")
+    client = TestClient(app.app)
+    health = client.get("/api/health").json()
+    assert health["access_required"] and not health["access_granted"] and health["user"] is None
+    r = client.get("/api/sessions")
+    assert r.status_code == 401 and r.json()["code"] == "access_required"
+    assert client.post("/api/access", json={"code": "nope"}).status_code == 403
+    assert client.post("/api/access", json={"code": "frame2026"}).status_code == 200
+    assert client.get("/api/health").json()["access_granted"] is True
+    assert client.get("/api/sessions").status_code == 200
+
+
+def test_wrong_codes_are_limited(api, monkeypatch):
+    app, _ = api
+    monkeypatch.setenv("ACCESS_CODES", "frame2026")
+    client = TestClient(app.app)
+    codes = [client.post("/api/access", json={"code": f"x{i}"}).status_code for i in range(11)]
+    assert codes[:10] == [403] * 10 and codes[10] == 429
+
+
+def test_an_account_carries_its_sessions_to_another_browser(api, monkeypatch):
+    app, store = api
+    monkeypatch.setenv("ACCESS_CODES", "frame2026")
+    laptop, anon = visitor(app)
+    laptop.post("/api/access", json={"code": "frame2026"})
+    session(app, store, "job_a", anon, monkeypatch)
+
+    assert laptop.post("/api/auth/register", json={"name": "评委1", "password": "123"}).status_code == 422
+    r = laptop.post("/api/auth/register", json={"name": "评委1", "password": "secret1"})
+    assert r.status_code == 200 and r.json()["user"]["name"] == "评委1"
+    assert [s["id"] for s in laptop.get("/api/sessions").json()["sessions"]] == ["job_a"]  # moved to the account
+    assert laptop.get("/api/health").json()["user"] == {"name": "评委1"}
+
+    phone = TestClient(app.app)  # no access code: signing in is enough
+    assert phone.post("/api/auth/login", json={"name": "评委1", "password": "wrong!"}).status_code == 403
+    assert phone.post("/api/auth/login", json={"name": "评委1", "password": "secret1"}).status_code == 200
+    assert [s["id"] for s in phone.get("/api/sessions").json()["sessions"]] == ["job_a"]
+    assert phone.get("/api/link-jobs/job_a").status_code == 200
+
+    assert phone.post("/api/auth/logout").status_code == 200
+    assert phone.get("/api/sessions").json()["sessions"] == []  # signed out: a fresh anonymous browser
+    assert laptop.post("/api/auth/register", json={"name": "评委1", "password": "secret2"}).status_code == 409

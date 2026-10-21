@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, log, playback, visitors
+from modules import accounts, archive, log, members, playback, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.notes.router import NotesService
@@ -92,11 +92,14 @@ async def visitor(request: Request, call_next):
     if fresh:
         who = visitors.new()
     token = visitors.current.set(who)
+    access = members.granted.set(member_service.has_access(request, who))
     try:
-        response = await call_next(request)
+        response = member_service.gate(request) or await call_next(request)
     finally:
         visitors.current.reset(token)
-    if fresh:
+        members.granted.reset(access)
+    signed_in = any(c.startswith(f"{visitors.COOKIE}=") for c in response.headers.getlist("set-cookie"))
+    if fresh and not signed_in:  # signing in or out sets the id itself
         response.set_cookie(visitors.COOKIE, visitors.sign(who, key), max_age=visitors.MAX_AGE, path=visitors.cookie_path(),
                             httponly=True, samesite="lax", secure=request.url.scheme == "https")
     return response
@@ -327,7 +330,7 @@ async def health():
     if visitors.enabled():
         platforms = [p for p in platforms if p in visitors.platforms()]
     return {"ok": True, "platforms": platforms, "ffmpeg": bool(shutil.which("ffmpeg")),
-            "model": model, "public": visitors.enabled()}
+            "model": model, "public": visitors.enabled(), **(member_service.status() if visitors.enabled() else {})}
 
 
 @app.post("/api/links/resolve")
@@ -339,6 +342,9 @@ async def resolve_link(body: LinkRequest):
     return video.public()
 
 
+member_service = members.Members(lambda: DATA_ROOT / "members.sqlite3", lambda: visitors.secret(DATA_ROOT),
+                                 lambda old, new: store.reassign(old, new))
+app.include_router(member_service.router)
 chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(), cutting, lambda job: find_cuts(job))
 app.include_router(chapter_service.router)
 suggest_service = SuggestService(lambda job_id: get_job(job_id), spawn, lambda: get_llm())
