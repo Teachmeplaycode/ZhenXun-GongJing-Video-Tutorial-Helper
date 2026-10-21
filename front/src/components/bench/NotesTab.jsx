@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { generateNotes, getNotes, notesExportUrl } from '../../api/client'
+import PreviewDialog from '../PreviewDialog'
 import ExportDialog from '../ExportDialog'
 import { IconBook } from '../Icons'
 
@@ -13,6 +14,7 @@ export default function NotesTab({ video, messages = [] }) {
   const [state, setState] = useState(null) // getNotes() answer
   const [error, setError] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const timer = useRef(0)
 
   const load = useCallback(async () => {
@@ -67,6 +69,7 @@ export default function NotesTab({ video, messages = [] }) {
           </ol>
           <div className="notes-tab__actions">
             <button type="button" className="btn btn--dark" onClick={openEditor}>打开笔记编辑器</button>
+            <button type="button" className="btn btn--ghost" onClick={() => setPreviewOpen(true)}>预览导出</button>
             <a className="btn btn--ghost" href={notesExportUrl(jobId)} download>导出 Markdown（含图）</a>
             <button type="button" className="link-btn" onClick={start}>重新生成</button>
           </div>
@@ -91,6 +94,12 @@ export default function NotesTab({ video, messages = [] }) {
         </button>
       </div>
       {exportOpen ? <ExportDialog sessionId={jobId} messages={messages} onClose={() => setExportOpen(false)} /> : null}
+      {previewOpen ? (
+        <PreviewDialog title="笔记导出预览" src={`${notesExportUrl(jobId)}?preview=1`} onClose={() => setPreviewOpen(false)}>
+          <button type="button" className="btn btn--ghost" onClick={() => setPreviewOpen(false)}>关闭</button>
+          <a className="btn btn--dark" href={notesExportUrl(jobId)} download>导出 Markdown（含图）</a>
+        </PreviewDialog>
+      ) : null}
     </div>
   )
 }

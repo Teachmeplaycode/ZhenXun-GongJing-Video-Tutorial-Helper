@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import PreviewDialog from './PreviewDialog'
 import { createPortal } from 'react-dom'
 import { IconBook, IconClose } from './Icons'
 import { exportSessionUrl, getSession } from '../api/client'
@@ -85,6 +86,7 @@ export default function ExportDialog({ sessionId, messages, onClose }) {
     return next
   })
 
+  const [preview, setPreview] = useState(null) // the print page's address while previewing
   const exportUrl = (format) => {
     const ids = chosen.flatMap((it) => it.ids)
     return exportSessionUrl(sessionId, { format, ids })
@@ -177,10 +179,18 @@ export default function ExportDialog({ sessionId, messages, onClose }) {
         </div>
         <footer className="export-dialog__actions">
           <button type="button" className="btn btn--ghost" onClick={onClose}>取消</button>
+          <button type="button" className="btn btn--ghost" disabled={!canExport} onClick={() => setPreview(exportUrl('pdf'))}>预览</button>
           <button type="button" className="btn btn--ghost" disabled={!canExport} onClick={downloadMarkdown}>导出 Markdown</button>
           <button type="button" className="btn btn--dark" disabled={!canExport} onClick={openPrintPage}>导出 PDF（打印页）</button>
         </footer>
       </div>
+      {preview ? (
+        <PreviewDialog title="导出预览" src={preview} onClose={() => setPreview(null)}>
+          <button type="button" className="btn btn--ghost" onClick={() => setPreview(null)}>返回修改</button>
+          <button type="button" className="btn btn--ghost" onClick={downloadMarkdown}>导出 Markdown</button>
+          <button type="button" className="btn btn--dark" onClick={openPrintPage}>导出 PDF（打印页）</button>
+        </PreviewDialog>
+      ) : null}
     </div>,
     document.body,
   )

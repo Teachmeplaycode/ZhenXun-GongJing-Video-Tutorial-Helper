@@ -98,6 +98,8 @@ def test_export_without_a_board_follows_the_note(tmp_path):
     pic.parent.mkdir()
     pic.write_bytes(b"\xff\xd8jpg")
     data, title = export.to_zip(NOTE, None, lambda src: pic if src.endswith("00001500.jpg") else None)
+    page = export.to_preview_html(NOTE, None, lambda src: pic if src.endswith("00001500.jpg") else None)
+    assert "data:image/jpeg;base64," in page and "images/" not in page  # pictures inlined
     z, md = unzip(data)
     assert title == "数列极限" and md.startswith("# 数列极限\n\n> 摘要")
     assert "## 定义（00:00–02:00）" in md and "$$\n\\lim a_n = a\n$$" in md
@@ -157,6 +159,10 @@ def test_routes_generate_save_the_board_and_export(tmp_path, monkeypatch):
     r = client.get("/api/link-jobs/job1/notes/export")
     assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
     assert unzip(r.content)[1].startswith("# 改名")
+
+    page = client.get("/api/link-jobs/job1/notes/export?preview=1")  # what the export will read like
+    assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
+    assert "<h1>改名</h1>" in page.text
 
 
 def test_a_note_cut_off_by_a_restart_reads_as_failed(tmp_path, monkeypatch):

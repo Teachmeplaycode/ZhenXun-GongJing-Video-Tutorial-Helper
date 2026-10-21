@@ -211,3 +211,15 @@ test('export: print network error keeps the dialog open', async ({ page }) => {
   await expect(dialog.getByRole('alert')).toBeVisible()
   await expect(dialog).toBeVisible()
 })
+
+test('export: 预览 shows the print page of the chosen turns before downloading', async ({ page }) => {
+  const { dialog } = await openExportDialog(page)
+  await dialog.locator('.export-item:not(.export-item--all) input').nth(0).uncheck()
+  await dialog.getByRole('button', { name: '预览' }).click()
+  const preview = page.getByRole('dialog', { name: '导出预览' })
+  await expect(preview.locator('iframe')).toHaveAttribute('src', /\/api\/sessions\/s1\/export\?format=pdf&ids=3%2C4%2C5$/)
+  await expect(preview.frameLocator('iframe').locator('body')).toContainText('打印页') // the mock's print page
+  await preview.getByRole('button', { name: '返回修改' }).click()
+  await expect(preview).toHaveCount(0)
+  await expect(dialog).toBeVisible()
+})
