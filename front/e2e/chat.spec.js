@@ -233,6 +233,7 @@ test('a 视频号 link without a 元宝 login offers to scan', async ({ page }) 
 })
 
 test('the web demo has no platform logins', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1')) // past the first-visit guide
   await start(page, (mock) => {
     mock.publicDemo = true
     mock.member = { name: '评委1', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 3 } }
@@ -248,6 +249,7 @@ test('the web demo has no platform logins', async ({ page }) => {
 })
 
 test('the web demo: importing asks for an account, then shows what is left today', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1')) // past the first-visit guide
   await start(page, (mock) => { mock.publicDemo = true; mock.oauth = ['github'] })
   await page.locator('.import-control__link').fill('https://www.bilibili.com/video/BV1TEST00001')
   await page.locator('.import-control__submit').click()
