@@ -11,18 +11,23 @@
     "render": "remotion render src/index.ts Promo out/zhenxun-promo-1080p.mp4 --codec=h264 --crf=18 --concurrency=4"
   },
   "dependencies": {
+    "@react-three/fiber": "8.17.10",
     "@remotion/cli": "4.0.536",
     "@remotion/google-fonts": "4.0.536",
     "@remotion/paths": "4.0.536",
+    "@remotion/three": "4.0.536",
     "@remotion/transitions": "4.0.536",
+    "@types/three": "0.170.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "remotion": "4.0.536"
+    "remotion": "4.0.536",
+    "three": "0.170.0"
   },
   "devDependencies": {
     "@types/react": "18.3.20",
     "@types/react-dom": "18.3.6",
     "playwright": "1.64.0",
+    "tone": "15.0.4",
     "typescript": "5.8.3"
   }
 }

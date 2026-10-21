@@ -14,7 +14,7 @@ const H = 1080;
 
 export const timing = (frames: number) => linearTiming({durationInFrames: frames, easing: Easing.bezier(0.7, 0, 0.18, 1)});
 
-type Props = {kind: Kind; x?: number; y?: number; sound?: SfxName; angle?: number; seed?: number};
+type Props = {kind: Kind; x?: number; y?: number; at?: () => {x: number; y: number}; sound?: SfxName; angle?: number; seed?: number};
 type Kind = 'plus' | 'cross' | 'diamond' | 'blocks' | 'slashes' | 'chevron' | 'bands' | 'zoom';
 
 const rect = (x: number, y: number, w: number, h: number) => `M${x} ${y}h${w}v${h}h${-w}Z`;
@@ -101,7 +101,9 @@ const Edge: React.FC<{kind: Kind; p: number; x: number; y: number; angle: number
 };
 
 const Presentation: React.FC<TransitionPresentationComponentProps<Props>> = ({children, presentationProgress: p, presentationDirection, passedProps}) => {
-  const {kind, x = W / 2, y = H / 2, sound = 'whoosh', angle = 90, seed = 1} = passedProps;
+  const {kind, sound = 'whoosh', angle = 90, seed = 1} = passedProps;
+  // the opening point, measured while rendering when the scene's layout decides it
+  const {x = W / 2, y = H / 2} = passedProps.at ? passedProps.at() : passedProps;
   if (presentationDirection === 'exiting') {
     // The old scene keeps moving under the reveal: pushed in toward the opening point.
     const scale = kind === 'zoom' ? 1 + Math.pow(p, 2) * 7 : 1 + p * 0.12;

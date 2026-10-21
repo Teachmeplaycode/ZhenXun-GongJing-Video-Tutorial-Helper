@@ -1,0 +1,8 @@
+{
+  "bpm": 128,
+  "bars": 32,
+  "comment": "Bars (1 bar = 112.5 frames at 60 fps) where the film cuts or hits; keep in step with src/pv/PV.tsx PLAN and the scenes' timings.",
+  "cuts": [1.5, 2.5, 5.333, 7.5, 12, 14, 16.5, 19.5, 21, 22.5, 24, 25.5, 27.5],
+  "drops": [4, 30],
+  "hits": [17, 17.5, 18.5, 28]
+}

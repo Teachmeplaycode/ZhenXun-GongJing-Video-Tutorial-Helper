@@ -1,6 +1,7 @@
 import React, {useCallback, useMemo} from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
-import {BG, BLUE, CharField, clamp01, CONSOLE, DIM, easeOut, Fill, Glyphs, hash, LIME, MONO, PIXEL, PixelCursor, pop, SC, Sfx, SILK, stepped, Typed, WHITE, WORDMARK} from './kit';
+import {BG, BLUE, CharField, clamp01, CONSOLE, DIM, easeOut, Fill, Glyphs, hash, LIME, MONO, PIXEL, PixelCursor, pop, SC, Sfx, SILK, stepped, textWidth, Typed, WHITE, WORDMARK} from './kit';
+import {Sculpture} from './Sculpture';
 
 // The first ten seconds — cut into the deck on its own — ending on the name:
 //   Greeting   >( 帧 )=  →  >( 帧, 画面 )={<  … 原声 / 文字 / 证据; then the film zooms into the 帧
@@ -32,8 +33,15 @@ export function textMask(text: string, cols: number, rows: number, font: string,
 
 // ---------------------------------------------------------------- Greeting
 const WORDS = ['', '画面', '原声', '文字', '证据'];
-/** Where 帧 sits in the greeting: the next scene zooms out of this point. */
-export const GREETING_ZHEN = {x: 960, y: 410};
+/** Where 帧 sits in the greeting (the line, at its longest, is centred): the next scene zooms out of
+ *  this point. Measured, so call it while rendering. */
+const GREETING_Y = 410;
+export const greetingZhen = () => {
+  const mono = `800 132px ${MONO}`;
+  const left = textWidth('>(', mono, -2);
+  const right = textWidth(', ', mono, -2) + textWidth('证据', `400 132px ${PIXEL}`) + textWidth(' )={<', mono, -2);
+  return {x: 960 - (left + 152 + right) / 2 + left + 76, y: GREETING_Y};
+};
 
 const Greeting: React.FC = () => {
   const frame = useCurrentFrame();
@@ -54,6 +62,7 @@ const Greeting: React.FC = () => {
     return hash(run, r, 3) < 0.45 ? BLUE : hash(run, r, 4) < 0.5 ? LIME : WHITE;
   }, [frame]);
   const right = word ? `, ${scramble} )={<` : ' )=';
+  const GREETING_ZHEN = greetingZhen();
   const cursorX = GREETING_ZHEN.x + 90 + (word ? (2 + word.length) * 105 : 160) + Math.sin(frame / 9) * 6;
   return (
     <Fill>
@@ -121,14 +130,18 @@ const Stream: React.FC = () => {
 export const RULE = {y: 650, left: 400, width: 1120};
 const TITLE_Y = 470; // centre line of 帧寻 GongJ!ng?
 const TITLE_SIZE = 260;
-/** 帧寻's centre in the lockup (the cut-out in the wall flies to it). */
-const ZX_CENTER = {x: 640, y: TITLE_Y};
+/** 帧寻's centre in the lockup, the whole line centred (the cut-out in the wall flies to it). */
+const zxCenter = () => {
+  const mark = textWidth('GongJ!ng?', `700 136px ${WORDMARK}`, -6);
+  return {x: 960 - (TITLE_SIZE * 2 + 54 + mark) / 2 + TITLE_SIZE, y: TITLE_Y};
+};
 
 export const NameLockup: React.FC<{
   /** frames since the title started settling (0 = the big 帧寻 in the middle) */ t: number;
   /** 0 → 1: the title and the line under it leave upward, the rule stays */ exit?: number;
 }> = ({t, exit = 0}) => {
   const {fps} = useVideoConfig();
+  const ZX_CENTER = zxCenter();
   const settle = pop(t, 0, fps, 120);
   const big = 648 / TITLE_SIZE; // the cut-out in the wall was this much bigger
   const zx = `translate(${(1 - settle) * (960 - ZX_CENTER.x)}px, ${(1 - settle) * (572 - ZX_CENTER.y)}px) scale(${big + (1 - big) * settle})`;
@@ -164,11 +177,11 @@ const ROWS = [
   {lead: '>>>>>>>>>>>>', word: '寻', color: LIME, font: SC},
   {lead: '[[[[[[[[[[[[', word: 'GongJ!ng?', color: WHITE, font: WORDMARK},
 ];
-const WALL_AT = 72; // the wall starts typing over the rows
-const HOLE_AT = 100; // 帧寻 is cut out of it
-const FILL_AT = 118; // the cut-out fills with white characters
-const DRAIN_AT = 150; // the wall drains away; the white 帧寻 becomes the title
-const TITLE_AT = 164;
+const WALL_AT = 86; // the wall starts typing over the rows
+const HOLE_AT = 116; // 帧寻 is cut out of it
+const FILL_AT = 134; // the cut-out fills with white characters
+const DRAIN_AT = 168; // the wall drains away; the white 帧寻 becomes the title
+const TITLE_AT = 185;
 
 const NameWall: React.FC = () => {
   const frame = useCurrentFrame();
@@ -195,7 +208,7 @@ const NameWall: React.FC = () => {
   }, [mask, frame]);
   return (
     <Fill>
-      {frame < WALL_AT + 40 ? (
+      {frame < WALL_AT + 46 ? (
         <AbsoluteFill style={{justifyContent: 'center', paddingLeft: 150, gap: 26}}>
           {ROWS.map((row, i) => {
             const start = 4 + i * 9;
@@ -215,10 +228,11 @@ const NameWall: React.FC = () => {
           })}
         </AbsoluteFill>
       ) : null}
+      {frame >= TITLE_AT - 20 ? <Sculpture phase={1} scale={1.05} y={-0.5} style={{opacity: 0.55}}
+        pose={(i) => ({spread: 1 - easeOut((frame - TITLE_AT + 20) / 70), color: i % 25 === 0 ? LIME : '#59613F'})} /> : null}
       <CharField cell={24} set="han" fps={15} paint={paint} />
       <Sfx name="glitch" at={WALL_AT} volume={0.35} />
       <Sfx name="swish" at={DRAIN_AT - 20} volume={0.4} />
-      <Sfx name="impact" at={TITLE_AT + 8} volume={0.4} />
       {frame >= TITLE_AT ? (
         <div style={{position: 'absolute', inset: 0, opacity: clamp01((frame - TITLE_AT) / 6)}}>
           <NameLockup t={frame - TITLE_AT} />

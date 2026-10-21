@@ -167,3 +167,12 @@ export const Typed: React.FC<{text: string; at: number; cps?: number; style?: Re
 };
 
 export const Fill: React.FC<{children?: React.ReactNode}> = ({children}) => <AbsoluteFill style={{background: BG, overflow: 'hidden'}}>{children}</AbsoluteFill>;
+
+/** Width of `text` in a CSS font (e.g. `900 260px ${SC}`), measured now — call it while rendering a
+ *  frame, after the fonts have loaded, so centred layouts come out centred. */
+export const textWidth = (text: string, font: string, letterSpacing = 0) => {
+  if (typeof document === 'undefined') return text.length * 10;
+  const ctx = document.createElement('canvas').getContext('2d')!;
+  ctx.font = font;
+  return ctx.measureText(text).width + letterSpacing * Array.from(text).length;
+};

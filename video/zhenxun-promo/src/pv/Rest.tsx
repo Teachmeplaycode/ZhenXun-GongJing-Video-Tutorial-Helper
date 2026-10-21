@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {AbsoluteFill, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {BG, BLUE, CharField, clamp01, CONSOLE, DIM, DISPLAY, easeOut, Fill, Glyphs, hash, LIME, MONO, PIXEL, PixelCursor, pop, SC, Sfx, SILK, stepped, Typed, WHITE, WORDMARK} from './kit';
+import {BG, BLUE, CharField, clamp01, CONSOLE, DIM, DISPLAY, easeOut, Fill, Glyphs, hash, LIME, MONO, PIXEL, PixelCursor, pop, SC, Sfx, SILK, stepped, textWidth, Typed, WHITE, WORDMARK} from './kit';
+import {Sculpture} from './Sculpture';
 import {NameLockup, RULE, textMask} from './Opening';
 
 // The PV after the name (10–60 s). Scenes hand over through shapes (see transitions.tsx) or share
@@ -10,7 +11,6 @@ import {NameLockup, RULE, textMask} from './Opening';
 // Type: Noto Sans SC Black for the big words, a Chinese pixel face for captions and labels, a
 // terminal face for code and timecodes, the site's Unbounded for Latin display.
 
-const OLIVE = '#7E8C3C';
 const MUTED = '#8B9171';
 
 const Label: React.FC<{children: React.ReactNode; color?: string; ink?: string; style?: React.CSSProperties}> = ({children, color = LIME, ink = BG, style}) => (
@@ -55,6 +55,8 @@ const Evidence: React.FC = () => {
   return (
     <Fill>
       <CharField cell={20} set="code" fps={15} paint={paint} style={{opacity: 0.85}} />
+      {frame < 44 ? <Sculpture phase={1 + 600 / 60} scale={1.05} y={-0.5} style={{opacity: 0.55 * (1 - clamp01((frame - 20) / 24))}}
+        pose={(i) => ({spread: easeOut(frame / 36), color: i % 25 === 0 ? LIME : '#59613F'})} /> : null}
       {frame < 40 ? <NameLockup t={400} exit={clamp01(frame / 22)} /> : null}
       {/* the rule: one line, then three floors under the columns */}
       {[0, 1, 2].map((i) => {
@@ -230,18 +232,17 @@ const PLUS = (s: number, deg: number) => {
 const Giant: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const a = pop(frame, 0, fps, 200); // 每秒 in
-  const panel = pop(frame, 62, fps, 150); // the blue panel pushes it out
-  const open = easeOut((frame - 128) / 22); // a dark + opens in the blue
-  const grow = Math.pow(clamp01((frame - 188) / 22), 2.4); // the lime + grows to fill the frame
-  const proof = pop(frame, 214, fps, 200);
+  const a = pop(frame, 0, fps, 200); // 每秒 in (fully in on the downbeat, frame 26)
+  const panel = pop(frame, 82, fps, 150); // the blue panel pushes it out
+  const open = easeOut((frame - 138) / 22); // a dark + opens in the blue
+  const grow = Math.pow(clamp01((frame - 196) / 26), 2.4); // the lime + grows to fill the frame
+  const proof = pop(frame, 250, fps, 200);
   return (
     <Fill>
-      <Sfx name="hit" volume={0.35} />
-      <Sfx name="whoosh" at={62} volume={0.5} />
-      <Sfx name="whoosh" at={128} volume={0.45} rate={0.8} />
-      <Sfx name="swish" at={180} volume={0.22} />
-      <Sfx name="impact" at={214} volume={0.35} />
+      <Sfx name="hit" at={26} volume={0.35} />
+      <Sfx name="whoosh" at={78} volume={0.5} />
+      <Sfx name="whoosh" at={136} volume={0.45} rate={0.8} />
+      <Sfx name="swish" at={190} volume={0.22} />
       {/* 每秒 */}
       <div style={{position: 'absolute', left: -60 + (1 - a) * -900 - panel * 1300, top: -170, fontFamily: SC, fontWeight: 900, fontSize: 760, color: WHITE, lineHeight: 1, whiteSpace: 'nowrap'}}>每秒</div>
       <div style={{position: 'absolute', left: 90 - panel * 1300, bottom: 90}}><Label style={{fontSize: 72, fontFamily: SILK, fontWeight: 700}}>{'>>> 01'}</Label></div>
@@ -252,14 +253,14 @@ const Giant: React.FC = () => {
         <div style={{position: 'absolute', left: 90, top: 90, fontFamily: SILK, fontWeight: 700, fontSize: 64, color: BG}}>||| 02</div>
       </div>
       {/* a + opens out of the blue (dark inside) with a lime + turning in it; then the lime + grows over everything */}
-      {frame >= 128 ? (
+      {frame >= 138 ? (
         <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
           <path d={PLUS(60 + open * 1500, 45 * (1 - open))} fill={BG} />
-          <path d={PLUS((230 + grow * 9000) * easeOut((frame - 140) / 14), frame * 1.6)} fill={LIME} />
+          <path d={PLUS((230 + grow * 9000) * easeOut((frame - 150) / 14), frame * 1.6)} fill={LIME} />
         </svg>
       ) : null}
       {/* 证据 > on the lime */}
-      {frame >= 210 ? (
+      {frame >= 244 ? (
         <>
           <div style={{position: 'absolute', left: 80, top: 150, fontFamily: SC, fontWeight: 900, fontSize: 600, color: BG, lineHeight: 1, whiteSpace: 'nowrap',
             transform: `translateX(${(1 - proof) * -700}px)`}}>证据<span style={{fontFamily: MONO, color: BLUE}}>{' >'}</span></div>
@@ -311,7 +312,13 @@ const Burst: React.FC = () => {
 };
 
 // ---------------------------------------------------------------- 猜 × 证据
-export const VERSUS_X = {x: 960, y: 470};
+const GAP = 50;
+const proofWidth = () => textWidth('证据', `900 300px ${SC}`) + textWidth(' >', `800 300px ${MONO}`);
+/** The × in the middle of 猜 × 证据 > (the line centred); the next scene opens from it. Measured. */
+export const versusX = () => {
+  const total = 380 + GAP + 200 + GAP + proofWidth();
+  return {x: 960 - total / 2 + 380 + GAP + 100, y: 470};
+};
 
 const Versus: React.FC = () => {
   const frame = useCurrentFrame();
@@ -319,18 +326,19 @@ const Versus: React.FC = () => {
   const guess = pop(frame, 0, fps, 220);
   const strike = easeOut((frame - 30) / 10);
   const proof = pop(frame, 48, fps, 200);
+  const VERSUS_X = versusX();
   return (
     <Fill>
       <Sfx name="hit" at={30} volume={0.4} />
       <Sfx name="whoosh" at={48} volume={0.45} />
-      <div style={{position: 'absolute', right: 1920 - VERSUS_X.x + 140, top: VERSUS_X.y - 200, fontFamily: SC, fontWeight: 900, fontSize: 380, lineHeight: 1,
+      <div style={{position: 'absolute', right: 1920 - VERSUS_X.x + 100 + GAP, top: VERSUS_X.y - 200, fontFamily: SC, fontWeight: 900, fontSize: 380, lineHeight: 1,
         color: frame > 36 ? '#3A3D33' : WHITE, transform: `scale(${guess})`}}>
         猜
         <div style={{position: 'absolute', left: -30, right: -30, top: '52%', height: 26, background: LIME, transform: `scaleX(${strike}) rotate(-8deg)`, transformOrigin: '0 50%'}} />
       </div>
       <div style={{position: 'absolute', left: VERSUS_X.x - 100, top: VERSUS_X.y - 100, width: 200, height: 200, display: 'grid', placeItems: 'center',
         fontFamily: MONO, fontWeight: 800, fontSize: 220, color: BLUE, transform: `rotate(${frame * 4}deg) scale(${pop(frame, 6, fps)})`, lineHeight: 1}}>×</div>
-      <div style={{position: 'absolute', left: VERSUS_X.x + 140, top: VERSUS_X.y - 160, fontFamily: SC, fontWeight: 900, fontSize: 300, color: LIME, lineHeight: 1,
+      <div style={{position: 'absolute', left: VERSUS_X.x + 100 + GAP, top: VERSUS_X.y - 160, fontFamily: SC, fontWeight: 900, fontSize: 300, color: LIME, lineHeight: 1,
         opacity: frame >= 48 ? 1 : 0, transform: `translateX(${(1 - proof) * 300}px)`, whiteSpace: 'nowrap'}}>
         证据<span style={{fontFamily: MONO, color: WHITE}}>{' >'}</span>
       </div>
@@ -354,10 +362,10 @@ const Speed: React.FC = () => {
     <Fill>
       {Array.from({length: 9}, (_, i) => <Sfx key={i} name="soft" at={30 + Math.round((i / 9) * 50)} volume={0.3} rate={1 + i * 0.04} />)}
       <Sfx name="ping" at={100} volume={0.4} />
-      <div style={{position: 'absolute', left: 170, top: 180, transform: `translateX(${(1 - enter) * -200}px)`}}>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 180, display: 'flex', justifyContent: 'center', transform: `translateY(${(1 - enter) * -100}px)`}}>
         <Caption mark="▲" text="导入一个软件教程" at={4} size={72} />
       </div>
-      <div style={{position: 'absolute', left: 160, top: 300, display: 'flex', alignItems: 'baseline', gap: 36}}>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 300, display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 36}}>
         <span style={{fontFamily: DISPLAY, fontWeight: 900, fontSize: 380, color: done ? LIME : WHITE, lineHeight: 1, letterSpacing: -10,
           fontVariantNumeric: 'tabular-nums', transform: `scale(${done ? 1 + (1 - pop(frame, 100, fps, 260)) * 0.15 : 1})`, transformOrigin: '0 100%'}}>{secs}</span>
         <span style={{fontFamily: PIXEL, fontSize: 120, color: WHITE}}>秒</span>
@@ -366,37 +374,10 @@ const Speed: React.FC = () => {
       {/* the bar shortens with it */}
       <div style={{position: 'absolute', left: 170, top: 780, height: 34, width: 1580 * (secs / 170), background: done ? LIME : WHITE}} />
       <div style={{position: 'absolute', left: 170, top: 780, height: 34, width: 1580, border: '2px solid #3A3F2C', boxSizing: 'border-box'}} />
-      <Caption mark="//" markColor={BLUE} text="文字识别提速，导入快一倍多" at={112} style={{position: 'absolute', left: 170, top: 850}} />
+      <div style={{position: 'absolute', left: 0, right: 0, top: 850, display: 'flex', justifyContent: 'center'}}>
+        <Caption mark="//" markColor={BLUE} text="文字识别提速，导入快一倍多" at={112} />
+      </div>
       <Glyphs count={10} seed={65} />
-    </Fill>
-  );
-};
-
-// ---------------------------------------------------------------- symbol flood
-const Flood: React.FC = () => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const paint = useCallback((c: number, r: number, tick: number, cols: number) => {
-    const band = Math.floor(r / 3);
-    const dir = band % 2 ? 1 : -1;
-    const speed = 3 + (band % 3) * 2;
-    const x = (c + dir * tick * speed + cols * 10) % 40;
-    const cover = clamp01(frame / 18) * 40; // bands fill in
-    if (x > cover * (0.5 + hash(band) * 0.5)) return null;
-    return [BLUE, LIME, WHITE, OLIVE][band % 4];
-  }, [frame]);
-  const k = pop(frame, 14, fps, 220);
-  return (
-    <Fill>
-      <Sfx name="glitch" volume={0.4} />
-      <CharField cell={30} set={'<>+*|◆'} fps={24} paint={paint} />
-      <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-        <div style={{fontFamily: PIXEL, fontSize: 120, color: WHITE, background: BG, padding: '14px 48px', display: 'flex', gap: 36, alignItems: 'center',
-          transform: `scale(${k})`}}>
-          <span>画面</span><span style={{fontFamily: SILK, fontWeight: 700, color: LIME}}>+</span><span>原声</span><span style={{fontFamily: SILK, fontWeight: 700, color: LIME}}>+</span><span>文字</span>
-        </div>
-      </AbsoluteFill>
-      <Glyphs count={6} seed={71} />
     </Fill>
   );
 };
@@ -486,7 +467,7 @@ const Snake: React.FC = () => {
 const WALL = ['B站', '抖音', '小红书', '快手', '视频号', '本地上传', '截图提问', '慢放回看', '笔记长图', '证据标签', '原声转写', '画面文字',
   '关键帧', '时间轴', '卡点分析', '推荐问题', 'Tab 补全', '手机适配', '附图提问', '导出预览'];
 const LIST = ['B站 · 抖音 · 小红书 · 快手 · 视频号', '本地上传，一样能看', '截图提问：我卡在哪一步', '慢放回看，逐帧对照', '笔记一键存成长图'];
-const COLLAPSE_AT = 130;
+const COLLAPSE_AT = 104;
 
 const Wall: React.FC = () => {
   const frame = useCurrentFrame();
@@ -510,7 +491,8 @@ const Wall: React.FC = () => {
           );
         })}
       </div>
-      <AbsoluteFill style={{justifyContent: 'center', paddingLeft: 300, gap: 22}}>
+      <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 22}}>
         {LIST.map((line, i) => {
           const at = COLLAPSE_AT + 22 + i * 16;
           const on = frame >= at;
@@ -523,6 +505,7 @@ const Wall: React.FC = () => {
             </div>
           );
         })}
+        </div>
       </AbsoluteFill>
       <Glyphs count={10} seed={91} />
     </Fill>
@@ -538,16 +521,16 @@ const Mark: React.FC<{size: number}> = ({size}) => (
   </svg>
 );
 
-const FOLD_AT = 250; // the slogan folds into a line…
-const LOCK_AT = 290; // …and the lockup rises out of it
+const FOLD_AT = 268; // the slogan folds into a line…
+const LOCK_AT = 307; // …and the lockup rises out of it
 const LINE_Y = 640;
 
 const Finale: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps, durationInFrames} = useVideoConfig();
   const a = pop(frame, 0, fps, 200);
-  const b = pop(frame, 26, fps, 200);
-  const c = pop(frame, 80, fps);
+  const b = pop(frame, 82, fps, 200);
+  const c = pop(frame, 138, fps);
   const fold = easeOut((frame - FOLD_AT) / 20);
   const squash = (y: number) => `translateY(${(LINE_Y - y) * fold}px) scaleY(${1 - fold})`;
   const t = frame - LOCK_AT;
@@ -562,26 +545,26 @@ const Finale: React.FC = () => {
   const line = easeOut((frame - FOLD_AT - 6) / 18);
   return (
     <Fill>
-      <Sfx name="hit" volume={0.35} />
       <Sfx name="hit" at={26} volume={0.35} />
-      <Sfx name="riser" at={LOCK_AT - 170} startFrom={Math.round(7 * fps)} volume={0.25} />
+      <Sfx name="hit" at={82} volume={0.35} />
       <Sfx name="whoosh" at={FOLD_AT} volume={0.5} rate={0.9} />
-      <Sfx name="swell" at={LOCK_AT - 10} volume={0.45} />
       {frame >= LOCK_AT ? <CharField cell={26} set="marks" fps={8} paint={dots} /> : null}
+      {frame >= LOCK_AT - 10 ? <Sculpture phase={20} scale={1.1} y={-1} style={{opacity: 0.45}}
+        pose={(i) => ({spread: 1 - easeOut((frame - LOCK_AT + 10) / 60), color: i % 25 === 0 ? LIME : '#4E5638'})} /> : null}
       {frame < LOCK_AT ? (
         <>
           <div style={{position: 'absolute', left: 110, top: 120, fontFamily: SC, fontWeight: 900, fontSize: 280, color: WHITE, lineHeight: 1,
             transform: `translateX(${(1 - a) * -700}px) ${squash(260)}`}}>
             <span style={{fontFamily: MONO, color: BLUE}}>*//</span>看见
           </div>
-          <div style={{position: 'absolute', right: 110, top: 420, fontFamily: SC, fontWeight: 900, fontSize: 280, color: LIME, lineHeight: 1, opacity: frame >= 26 ? 1 : 0,
+          <div style={{position: 'absolute', right: 110, top: 420, fontFamily: SC, fontWeight: 900, fontSize: 280, color: LIME, lineHeight: 1, opacity: frame >= 82 ? 1 : 0,
             transform: `translateX(${(1 - b) * 700}px) ${squash(560)}`}}>再求证</div>
-          <div style={{position: 'absolute', left: 300, top: 470, fontFamily: MONO, fontWeight: 800, fontSize: 240, color: BLUE, lineHeight: 1, opacity: frame > 50 ? 1 : 0,
-            transform: `rotate(${(frame - 50) * 3}deg) scale(${pop(frame, 50, fps) * (1 - fold)})`}}>+</div>
-          <div style={{position: 'absolute', left: 0, right: 0, bottom: 110, display: 'flex', justifyContent: 'center', opacity: frame >= 80 ? 1 : 0,
+          <div style={{position: 'absolute', left: 300, top: 470, fontFamily: MONO, fontWeight: 800, fontSize: 240, color: BLUE, lineHeight: 1, opacity: frame > 110 ? 1 : 0,
+            transform: `rotate(${(frame - 110) * 3}deg) scale(${pop(frame, 110, fps) * (1 - fold)})`}}>+</div>
+          <div style={{position: 'absolute', left: 0, right: 0, bottom: 110, display: 'flex', justifyContent: 'center', opacity: frame >= 138 ? 1 : 0,
             transform: `translateY(${(1 - c) * 60}px) ${squash(930)}`}}>
             <div style={{fontFamily: SILK, fontWeight: 700, fontSize: 72, color: LIME, display: 'flex', gap: 24, alignItems: 'center'}}>
-              {'{'}<Typed text="回到原片那一刻" at={86} style={{fontFamily: PIXEL, fontSize: 84, color: WHITE}} />{'}>'}
+              {'{'}<Typed text="回到原片那一刻" at={144} style={{fontFamily: PIXEL, fontSize: 84, color: WHITE}} />{'}>'}
             </div>
           </div>
         </>
@@ -612,4 +595,4 @@ const Finale: React.FC = () => {
   );
 };
 
-export const REST = {Evidence, Clicks, Screenshot, Giant, Burst, Versus, Speed, Flood, Snake, Wall, Finale};
+export const REST = {Evidence, Clicks, Screenshot, Giant, Burst, Versus, Speed, Snake, Wall, Finale};
