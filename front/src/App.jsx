@@ -6,7 +6,9 @@ import BackButton from './components/BackButton'
 import { HistoryDrawer } from './components/SessionList'
 import AccountsDrawer from './components/AccountsDrawer'
 import MemberDialog from './components/MemberDialog'
-import { IconHistory, IconTheme, IconUser } from './components/Icons'
+import GuideDialog from './components/GuideDialog'
+import DocsDialog from './components/DocsDialog'
+import { IconBook, IconHistory, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
@@ -38,6 +40,7 @@ const STEPS = [
   { n: '02', label: '解析时间轴', picturesLabel: '读取图片', stages: ['uploading', 'analyzing', 'ready'] },
   { n: '03', label: '对话分析', stages: ['chat', 'pictures'] }, // pictures: an image post's page, straight from import
 ]
+const GUIDE_SEEN = 'zhenxun.guide.v1' // localStorage: the walkthrough has been shown once
 const SAMPLE_META = { name: '示例素材.mp4', size: 0, type: 'video/mp4', duration: 192, width: 1920, height: 1080, sample: true }
 const EMPTY_ANALYSIS = { meta: false, frames: 0, total: 0, missing: 0, index: false, transcript: null, screentext: null }
 // Frames sampled before chat may start while the rest keep arriving in the background.
@@ -99,6 +102,12 @@ export default function App() {
   // The web demo's account: { user, oauth }; the sign-in dialog when open: { mode, reason }.
   const [member, setMember] = useState(null)
   const [memberDialog, setMemberDialog] = useState(null)
+  const [guideOpen, setGuideOpen] = useState(false) // the mascot's walkthrough; opens by itself on a first visit to the web demo
+  const [docsOpen, setDocsOpen] = useState(false)
+  const closeGuide = useCallback(() => {
+    setGuideOpen(false)
+    try { localStorage.setItem(GUIDE_SEEN, '1') } catch { /* private mode: it shows again next time */ }
+  }, [])
   const [theme, themeChoice, cycleTheme] = useTheme()
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
@@ -109,6 +118,9 @@ export default function App() {
     getHealth().then((health) => {
       setPublicDemo(Boolean(health?.public))
       if (health?.public) setMember({ user: health.user || null, oauth: health.oauth || [] })
+      let seen = false
+      try { seen = localStorage.getItem(GUIDE_SEEN) === '1' } catch { /* show it */ }
+      if (health?.public && !seen && !new URLSearchParams(window.location.search).get('login')) setGuideOpen(true)
       if (health?.public && new URLSearchParams(window.location.search).get('login') === 'failed') {
         setMemberDialog({ mode: 'login', reason: '第三方登录没有成功，请再试一次或用用户名登录。' })
       }
@@ -736,6 +748,9 @@ export default function App() {
             </div>
           ) : null}
           <span className="mono-sm muted">{runId}</span>
+          <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setDocsOpen(true)} aria-haspopup="dialog">
+            <IconBook size={14} /> 文档
+          </button>
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
           </button>
@@ -850,6 +865,14 @@ export default function App() {
         </div>
       </main>
 
+      {guideOpen ? (
+        <GuideDialog signedIn={!publicDemo || Boolean(member?.user)} onClose={closeGuide}
+          onStart={() => {
+            closeGuide()
+            if (publicDemo && !member?.user) setMemberDialog({ mode: 'register', reason: '注册一个账号就能开始：每天可免费导入 3 个视频、提问 10 次。' })
+          }} />
+      ) : null}
+      {docsOpen ? <DocsDialog onClose={() => setDocsOpen(false)} onGuide={() => { setDocsOpen(false); setGuideOpen(true) }} /> : null}
       {memberDialog ? (
         <MemberDialog mode={memberDialog.mode} reason={memberDialog.reason} oauth={member?.oauth || []}
           onDone={() => window.location.reload()} onClose={() => setMemberDialog(null)} />

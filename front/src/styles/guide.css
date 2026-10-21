@@ -1,0 +1,91 @@
+/* ---------- first-visit guide: the mascot as teacher (components/GuideDialog.jsx) ---------- */
+.guide-overlay { z-index: 110; }
+.guide {
+  width: min(680px, 100%); display: flex; flex-direction: column; gap: var(--sp-12);
+  background: var(--bg-canvas); border: var(--border-hairline); border-radius: var(--radius-lg);
+  padding: var(--sp-16) var(--sp-24) var(--sp-20);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--text-primary) 22%, transparent);
+}
+.guide__head { display: flex; align-items: center; justify-content: space-between; }
+.guide__count { font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--text-secondary); letter-spacing: 0.04em; }
+.guide__skip {
+  display: inline-flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4) var(--sp-8);
+  border: 0; background: none; font: inherit; font-size: var(--fs-caption); color: var(--text-secondary); cursor: pointer;
+}
+.guide__skip:hover { color: var(--text-primary); }
+
+/* The stage: a hairline track the snake crawls along, one stop per step. */
+.guide__stage { position: relative; height: 168px; }
+.guide__track { position: absolute; left: 0; right: 0; bottom: 14px; height: 1px; background: var(--border-default); }
+.guide__stop {
+  position: absolute; top: -3px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%;
+  background: var(--bg-canvas); border: 1px solid var(--border-strong);
+}
+.guide__stop.is-reached { background: var(--accent-active); border-color: var(--accent-active-dim); }
+.guide__snake {
+  position: absolute; bottom: 0; width: 168px; height: 168px; transform: translateX(-50%);
+  transition-property: left; transition-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+.guide__img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; user-select: none; }
+.guide__img--crawl { transform: translateY(18px) scale(0.92); }
+
+.guide__bubble {
+  position: relative; display: flex; flex-direction: column; gap: var(--sp-8); padding: var(--sp-16) var(--sp-20);
+  background: var(--bg-surface); border: var(--border-hairline); border-radius: var(--radius-md);
+  transition: opacity 180ms ease;
+}
+.guide__bubble { min-height: 168px; }
+/* The bubble's tail points up at the snake and follows it along the track. */
+.guide__bubble::before {
+  content: ""; position: absolute; top: -7px; left: var(--x); width: 12px; height: 12px; margin-left: -6px;
+  background: var(--bg-surface); border-left: var(--border-hairline); border-top: var(--border-hairline);
+  transform: rotate(45deg); transition: left var(--crawl) cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+.guide__bubble.is-waiting { opacity: 0.55; }
+.guide__bubble h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+.guide__bubble p { margin: 0; color: var(--text-secondary); font-size: var(--fs-body-sm); line-height: 1.75; }
+
+.guide-demo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-8); margin-top: var(--sp-4); font-size: var(--fs-caption); }
+.guide-demo__field {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: var(--sp-8) var(--sp-12); border: var(--border-hairline); border-radius: var(--radius-sm);
+  background: var(--bg-surface-alt); color: var(--text-secondary); font-family: var(--font-mono);
+}
+.guide-demo__button { padding: var(--sp-8) var(--sp-12); border-radius: var(--radius-sm); background: var(--bg-inverse); color: var(--text-inverse); }
+.guide-demo--ask {
+  align-self: flex-end; max-width: 90%; padding: var(--sp-8) var(--sp-12); border-radius: var(--radius-md) var(--radius-md) 2px var(--radius-md);
+  background: var(--bg-inverse); color: var(--text-inverse);
+}
+.guide-demo--evidence > span:first-child { color: var(--text-primary); }
+
+.guide__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-12); }
+.guide__dots { display: flex; gap: var(--sp-6); }
+.guide__dot { width: 8px; height: 8px; padding: 0; border-radius: 50%; border: 1px solid var(--border-strong); background: transparent; cursor: pointer; }
+.guide__dot.is-on { width: 20px; border-radius: 4px; background: var(--text-primary); border-color: var(--text-primary); }
+.guide__nav { display: flex; gap: var(--sp-8); }
+.guide__nav .btn { gap: var(--sp-6); }
+
+@media (max-width: 560px) {
+  .guide { padding: var(--sp-12) var(--sp-16) var(--sp-16); }
+  .guide__stage { height: 132px; }
+  .guide__snake { width: 132px; height: 132px; }
+}
+
+/* ---------- 文档 (components/DocsDialog.jsx) ---------- */
+.docs {
+  width: min(720px, 100%); max-height: min(780px, 90vh); display: flex; flex-direction: column;
+  background: var(--bg-surface); border: var(--border-hairline); border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--text-primary) 22%, transparent);
+}
+.docs__head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-12); padding: var(--sp-16) var(--sp-20); border-bottom: var(--border-hairline); }
+.docs__head strong { display: inline-flex; align-items: center; gap: var(--sp-6); font-size: var(--fs-body); }
+.docs__actions { display: flex; align-items: center; gap: var(--sp-8); }
+.docs__body { overflow-y: auto; padding: var(--sp-8) var(--sp-24) var(--sp-24); }
+.docs__section { padding-top: var(--sp-16); }
+.docs__section h2 { margin: 0 0 var(--sp-8); font-size: 15px; font-weight: 600; }
+.docs__section p, .docs__section li { margin: 0 0 var(--sp-6); color: var(--text-secondary); font-size: var(--fs-body-sm); line-height: 1.75; max-width: 62ch; }
+.docs__section ol { margin: 0; padding-left: 1.4em; }
+.docs__chips { display: grid; gap: var(--sp-6); margin: 0 0 var(--sp-8); }
+.docs__chips > div { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: var(--sp-12); }
+.docs__chips dt, .docs__chips dd { margin: 0; }
+.docs__chips dd { color: var(--text-secondary); font-size: var(--fs-body-sm); }
