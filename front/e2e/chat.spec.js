@@ -239,6 +239,7 @@ test('the web demo has no platform logins', async ({ page }) => {
   })
   await expect(page.locator('.btn--theme')).toBeVisible()
   await expect(page.getByRole('button', { name: '账号' })).toHaveCount(0)
+  await expect(page.locator('.import-entry')).toContainText('网页版支持 B 站链接')
   await page.locator('.import-control__link').fill('https://weixin.qq.com/sph/AbCdEf')
   await page.locator('.import-control__submit').click()
   await expect(page.locator('.field-error')).toBeVisible()
