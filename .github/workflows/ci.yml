@@ -2,6 +2,7 @@
 # (Playwright against the in-browser mock backend). Both run on Ubuntu: macOS runners cost 10x the
 # minutes of a private repo, and the Mac-only pieces (mlx-whisper, Vision OCR) are platform-gated
 # dependencies whose tests skip elsewhere. No secrets are needed: no test calls a model or a platform.
+# A push to main that passes both deploys to linyi.work/ZhenXun (the deploy job, deploy/linyi/receive.sh).
 name: CI
 
 on:
@@ -12,7 +13,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}  # never cut a deploy on main short
 
 permissions:
   contents: read
@@ -67,3 +68,26 @@ jobs:
           name: playwright-results
           path: front/test-results/
           retention-days: 7
+
+  deploy:
+    name: Deploy (linyi.work/ZhenXun)
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-linyi
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send the code to the server
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$KEY" ]; then echo "No DEPLOY_SSH_KEY yet (deploy/linyi/setup-auto-deploy.sh): skipped"; exit 0; fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The key's forced command on the server is receive.sh: it reads this archive and nothing else.
+          git archive --format=tar.gz HEAD backend front deploy | ssh -i ~/.ssh/deploy ubuntu@43.160.195.13
