@@ -12,8 +12,11 @@ services:
     env_file:
       - path: .env          # LLM_* keys and other secrets; never committed
         required: false
+    environment:
+      ARCHIVE_DIR: /archive   # kept uploads go to the COS bucket (modules/archive.py)
     volumes:
       - zhenxun-data:/data
+      - /lhcos-data/zhenxun:/archive   # the bucket, mounted on the host with cosfs
     networks:
       edge:
         aliases: [zhenxun]
