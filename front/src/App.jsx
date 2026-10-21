@@ -765,6 +765,7 @@ export default function App() {
             externalError={importError}
             onClearError={() => setImportError('')}
             onShowAccounts={publicDemo ? null : (platform) => setAccountsOpen(platform || '')}
+            publicDemo={publicDemo}
           />
         </div>
 
