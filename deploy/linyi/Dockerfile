@@ -7,6 +7,10 @@ RUN npm ci --no-audit --no-fund
 COPY front/ ./
 ARG BASE_PATH=/ZhenXun
 RUN VITE_BASE="${BASE_PATH}/" VITE_API_BASE="${BASE_PATH}" npm run build
+# alcedo (github.com/hiyufan/alcedo, MIT): the parser for 抖音, 小红书, 快手, YouTube and 30 more platforms.
+ARG ALCEDO_VERSION=0.2.0
+RUN mkdir -p /opt/alcedo && cd /tmp && npm pack --silent "alcedo-cli-linux-x64@${ALCEDO_VERSION}" \
+    && tar -xzf alcedo-cli-linux-x64-${ALCEDO_VERSION}.tgz -C /opt/alcedo --strip-components=1 && chmod +x /opt/alcedo/bin/alcedo
 
 FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
@@ -17,8 +21,9 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked --extra cloud --no-dev
 COPY backend/ ./
 COPY --from=web /src/front/dist /app/front/dist
+COPY --from=web /opt/alcedo /opt/alcedo
 ARG BASE_PATH=/ZhenXun
-ENV GONGJING_DATA_DIR=/data HF_HOME=/data/models PUBLIC_DEMO=1 PUBLIC_PATH=${BASE_PATH} \
+ENV ALCEDO_BIN=/opt/alcedo/bin/alcedo GONGJING_DATA_DIR=/data HF_HOME=/data/models PUBLIC_DEMO=1 PUBLIC_PATH=${BASE_PATH} \
     ASR_BACKEND=faster-whisper ASR_MODEL=small ASR_CPU_THREADS=3 OCR_BACKEND=rapidocr \
     DECISION=off BROWSER=off OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 PYTHONUNBUFFERED=1
 EXPOSE 8000

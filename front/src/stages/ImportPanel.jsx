@@ -9,7 +9,7 @@ import HomepageMascot from '../components/HomepageMascot'
 import SamplingOptions, { DEFAULT_SAMPLING, customized, presetLabel, samplingSpec } from '../components/SamplingOptions'
 
 const SOURCES = '支持 B 站、视频号、抖音、小红书、YouTube 等平台的分享链接'
-const DEMO_SOURCES = '网页版支持 B 站链接；其他平台的视频请下载后用「上传文件」'
+const DEMO_SOURCES = '网页版支持 B 站、抖音、小红书、快手、YouTube 等平台的分享链接；视频号请下载后用「上传文件」'
 const MAX_PICTURES = 60
 const SAMPLING_KEY = 'import.sampling'
 const loadSampling = () => {

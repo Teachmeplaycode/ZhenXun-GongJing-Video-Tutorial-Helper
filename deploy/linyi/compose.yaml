@@ -15,6 +15,7 @@ services:
     environment:
       ARCHIVE_DIR: /archive   # kept uploads go to the COS bucket (modules/archive.py)
       PUBLIC_URL: https://linyi.work/ZhenXun   # OAuth callbacks come back here
+      PUBLIC_PLATFORMS: bilibili,local,alcedo   # alcedo: 抖音、小红书、快手、YouTube 等
       ASR_BACKEND: paraformer # 百炼 paraformer-v2 (DASHSCOPE_API_KEY in .env); the local whisper is its fallback
     volumes:
       - zhenxun-data:/data

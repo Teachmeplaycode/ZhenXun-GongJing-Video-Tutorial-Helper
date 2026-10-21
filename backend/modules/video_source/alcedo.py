@@ -13,6 +13,9 @@ Two ways to reach it, from settings:
                ../tools/alcedo-*/ when not set (scripts/install-alcedo.sh puts it there)
 Neither available: this resolver matches nothing and the app behaves as before.
 
+CN_PROXY (e.g. http://<a server in mainland China>:43128) becomes alcedo's ALCEDO_PROXY_CN: its
+requests to mainland platforms that turn away overseas addresses (小红书, 快手 …) go out through it.
+
 Logins the app already holds are passed on (BILIBILI_COOKIE → ALCEDO_BILI_COOKIE, and DOUYIN_COOKIE,
 XHS_COOKIE, YOUTUBE_COOKIE when set). ALCEDO_SSRF_DNS (alcedo's private-address check on DNS answers)
 is turned off automatically when the machine resolves public hosts into 198.18.0.0/15 — the fake-IP
@@ -91,6 +94,8 @@ def child_env() -> dict[str, str]:
             env[theirs] = conf[ours].strip()
     if "ALCEDO_SSRF_DNS" not in env and fake_ip_dns():
         env["ALCEDO_SSRF_DNS"] = "0"
+    if (proxy := conf.get("CN_PROXY", "").strip()) and "ALCEDO_PROXY_CN" not in env:
+        env["ALCEDO_PROXY_CN"] = proxy  # alcedo sends only the mainland platforms through it
     return env
 
 
