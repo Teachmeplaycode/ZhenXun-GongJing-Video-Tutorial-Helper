@@ -717,8 +717,8 @@ export default function App() {
         <DockNav className="topbar__right">
           {stage === 'idle' && !mobile ? (
             <div className="home-visual-switch" role="group" aria-label="首页显示效果">
-              <button type="button" aria-pressed={homeVisual === '3d'} onClick={() => selectHomeVisual('3d')}>完整 3D</button>
-              <button type="button" aria-pressed={homeVisual === 'snake'} onClick={() => selectHomeVisual('snake')}>只看小蛇</button>
+              <button type="button" aria-pressed={homeVisual === '3d'} onClick={() => selectHomeVisual('3d')}>ON</button>
+              <button type="button" aria-pressed={homeVisual === 'snake'} onClick={() => selectHomeVisual('snake')}>OFF</button>
             </div>
           ) : null}
           <span className="mono-sm muted">{runId}</span>
