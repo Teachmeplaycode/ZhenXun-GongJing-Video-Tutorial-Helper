@@ -1,7 +1,10 @@
 import React, {useLayoutEffect, useRef} from 'react';
-import {AbsoluteFill, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, continueRender, delayRender, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
 import {loadFont as loadSC} from '@remotion/google-fonts/NotoSansSC';
+import {loadFont as loadDisplay} from '@remotion/google-fonts/Unbounded';
+import {loadFont as loadConsole} from '@remotion/google-fonts/VT323';
+import {loadFont as loadSilk} from '@remotion/google-fonts/Silkscreen';
 
 // The PV's kit: colours (帧寻's lime; the site's 画面 blue; white on near-black), fonts, and the
 // primitives every scene is made of. Everything is drawn from the frame number (no CSS animation),
@@ -14,16 +17,24 @@ export const DIM = '#3A3F2C';
 
 export const MONO = `${loadMono('normal', {weights: ['500', '700', '800']}).fontFamily}, Menlo, monospace`;
 export const SC = `${loadSC('normal', {weights: ['500', '900']}).fontFamily}, "PingFang SC", sans-serif`;
-export const WORDMARK = 'ZXWordmark, Arial, sans-serif';
+/** The site's English title face (Unbounded), used for the wordmark and Latin display type. */
+export const DISPLAY = `${loadDisplay('normal', {weights: ['700', '900']}).fontFamily}, Arial, sans-serif`;
+export const WORDMARK = DISPLAY;
+/** A terminal face for code, timecodes and counters. */
+export const CONSOLE = `${loadConsole('normal', {weights: ['400']}).fontFamily}, Menlo, monospace`;
+/** A pixel face for Latin HUD labels. */
+export const SILK = `${loadSilk('normal', {weights: ['400', '700']}).fontFamily}, Menlo, monospace`;
+/** A Chinese pixel face (Fusion Pixel 12px, OFL — public/fonts/pixel-zh.OFL.txt): crisp at multiples of 12 px. */
+export const PIXEL = 'ZXPixel, "PingFang SC", sans-serif';
 
-const wordmarkReady = (() => {
+const pixelReady = (() => {
   if (typeof document === 'undefined') return;
-  const handle = delayRender('wordmark font');
-  const face = new FontFace('ZXWordmark', `url(${staticFile('fonts/wordmark.woff2')}) format('woff2')`, {weight: '700'});
+  const handle = delayRender('pixel font');
+  const face = new FontFace('ZXPixel', `url(${staticFile('fonts/pixel-zh.woff2')}) format('woff2')`);
   face.load().then((f) => { (document.fonts as unknown as {add: (font: FontFace) => void}).add(f); continueRender(handle); }).catch(() => continueRender(handle));
   return true;
 })();
-void wordmarkReady;
+void pixelReady;
 
 /** Deterministic noise: the same cell and tick always give the same number in [0, 1). */
 export const hash = (a: number, b = 0, c = 0) => {
@@ -36,6 +47,24 @@ export const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 export const easeOut = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
 /** Stepped time: the frame rounded down to `fps` steps a second (the PV's judder). */
 export const stepped = (frame: number, fps: number, steps = 12) => Math.floor(frame / (fps / steps));
+
+/** A snappy spring from 0 to 1 starting at `at` (a little overshoot), for things arriving. */
+export const pop = (frame: number, at: number, fps: number, stiff = 180) =>
+  spring({frame: frame - at, fps, config: {damping: 14, stiffness: stiff, mass: 0.7}});
+
+// Sound effects: Pixabay Content License (public/sfx/CREDITS.md), free for commercial use.
+const SFX = {
+  key: 'key-press', click: 'click', soft: 'click-soft', pop: 'pop', whoosh: 'whoosh-short', swish: 'whoosh-cinematic',
+  impact: 'impact-bass-1', swell: 'impact-bass-2', riser: 'riser', sparkle: 'sparkle', glitch: 'glitch-3', hit: 'glitch-1', ping: 'ping',
+} as const;
+export type SfxName = keyof typeof SFX;
+
+/** One sound starting `at` frames into the current sequence. */
+export const Sfx: React.FC<{name: SfxName; at?: number; volume?: number; rate?: number; startFrom?: number}> = ({name, at = 0, volume = 0.5, rate = 1, startFrom}) => (
+  <Sequence from={Math.max(0, Math.round(at))} layout="none">
+    <Audio src={staticFile(`sfx/${SFX[name]}.mp3`)} volume={volume} playbackRate={rate} startFrom={startFrom} />
+  </Sequence>
+);
 
 const CHARSETS = {
   code: '/\\<>[]{}=+*#:;.-_|01',
@@ -116,18 +145,24 @@ export const PixelCursor: React.FC<{x: number; y: number; hand?: boolean; size?:
   );
 };
 
-/** Text typed in at `cps` characters a second from frame `at`, a block caret after it while typing. */
-export const Typed: React.FC<{text: string; at: number; cps?: number; style?: React.CSSProperties; caret?: string}> = ({text, at, cps = 24, style, caret = LIME}) => {
+/** Text typed in at `cps` characters a second from frame `at`, a block caret after it while typing,
+ *  a key sound on every character. */
+export const Typed: React.FC<{text: string; at: number; cps?: number; style?: React.CSSProperties; caret?: string; sound?: boolean}> = ({text, at, cps = 30, style, caret = LIME, sound = true}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const n = Math.max(0, Math.floor(((frame - at) / fps) * cps));
   const chars = Array.from(text);
-  if (frame < at) return null;
+  const keys = sound ? chars.map((ch, i) => (ch.trim() ? <Sfx key={i} name="key" at={at + (i * fps) / cps} volume={0.22 + hash(i, at) * 0.14} rate={0.92 + hash(i, at, 1) * 0.2} /> : null)) : null;
   return (
-    <span style={style}>
-      {chars.slice(0, n).join('')}
-      {n < chars.length || Math.floor(frame / 15) % 2 === 0 ? <span style={{color: caret}}>▌</span> : null}
-    </span>
+    <>
+      {keys}
+      {frame < at ? null : (
+        <span style={style}>
+          {chars.slice(0, n).join('')}
+          {n < chars.length || Math.floor(frame / 15) % 2 === 0 ? <span style={{color: caret}}>▌</span> : null}
+        </span>
+      )}
+    </>
   );
 };
 
