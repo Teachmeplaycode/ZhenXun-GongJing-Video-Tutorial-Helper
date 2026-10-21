@@ -140,7 +140,7 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
     fps = float(sampling.saved(job.video).get("ocr_fps", FPS))  # the rate chosen on import (modules/frames/sampling)
     if fps <= 0:
         return finish("unavailable", "导入时关闭了画面文字识别，只看抽样画面")
-    recognize = recognize or (ocr.recognize if ocr.available() else None)
+    recognize = recognize or (ocr.recognizer() if ocr.available() else None)  # one reader per video: it remembers boxes
     if recognize is None:
         return finish("unavailable", "本机不支持画面文字识别（需要 macOS），只看抽样画面")
 
