@@ -13,9 +13,15 @@ PLAN_LIMITS overrides the numbers, e.g. {"free": {"questions": 20}}.
   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET   an OAuth app; callback <PUBLIC_URL>/api/auth/github/callback
   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET   an OAuth client; callback <PUBLIC_URL>/api/auth/google/callback
   PUBLIC_URL                                where the app is reached, e.g. https://linyi.work/ZhenXun
+  BIND_PLATFORMS                            platforms a person may link their own login for (bilibili)
+
+Platform logins (B 站 and the like, scanned in the 平台账号 drawer) are each person's own: stored
+encrypted per account and, on each request, laid over the settings so a resolver sees only the
+asker's login — never the server's own nor anyone else's (settings.overlay / settings.vault).
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -34,6 +40,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from modules import visitors
+from modules.accounts import PLATFORMS as PLATFORM_LOGINS
 
 NAME = re.compile(r"^[\w一-鿿-]{2,20}$")
 MIN_PASSWORD = 6
@@ -71,6 +78,13 @@ CREATE TABLE IF NOT EXISTS users (
   password TEXT NOT NULL,          -- scrypt$<salt hex>$<hash hex>; '' for an account made through OAuth
   created REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS platform_logins (
+  user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,              -- BILIBILI_COOKIE, BILIBILI_COOKIE_USER, …
+  value TEXT NOT NULL,             -- Fernet-encrypted
+  updated REAL NOT NULL,
+  PRIMARY KEY (user_id, name)
+);
 CREATE TABLE IF NOT EXISTS usage (
   user_id INTEGER NOT NULL,
   day TEXT NOT NULL,               -- YYYY-MM-DD, Beijing time
@@ -80,6 +94,16 @@ CREATE TABLE IF NOT EXISTS usage (
 );
 """
 COLUMNS = {"plan": "TEXT NOT NULL DEFAULT 'free'", "github_id": "TEXT", "google_id": "TEXT"}
+
+
+# Every setting a platform login lives in, blanked for whoever hasn't linked their own.
+LOGIN_KEYS = [k for p in PLATFORM_LOGINS.values() for k in (p["key"], f"{p['key']}_USER", f"{p['key']}_EXPIRES")]
+LOGIN_KEYS += ["DOUYIN_COOKIE", "YOUTUBE_COOKIE"]
+
+
+def bind_platforms() -> list[str]:
+    raw = os.environ.get("BIND_PLATFORMS", "bilibili")
+    return [p.strip() for p in raw.split(",") if p.strip() in PLATFORM_LOGINS]
 
 
 def plans() -> dict:
@@ -169,6 +193,19 @@ class Users:
     def plan(self, row: sqlite3.Row) -> str:
         return "owner" if row["name"].lower() in owners() else row["plan"]
 
+    def logins(self, user_id: int) -> dict[str, str]:
+        return {r["name"]: r["value"] for r in self.db.execute("SELECT name, value FROM platform_logins WHERE user_id = ?", (user_id,))}
+
+    def keep_logins(self, user_id: int, values: dict[str, str | None]) -> None:
+        with self.db:
+            for name, value in values.items():
+                if value is None:
+                    self.db.execute("DELETE FROM platform_logins WHERE user_id = ? AND name = ?", (user_id, name))
+                else:
+                    self.db.execute("INSERT INTO platform_logins (user_id, name, value, updated) VALUES (?, ?, ?, ?) "
+                                    "ON CONFLICT (user_id, name) DO UPDATE SET value = excluded.value, updated = excluded.updated",
+                                    (user_id, name, value, time.time()))
+
     def used(self, user_id: int, kind: str) -> int:
         row = self.db.execute("SELECT count FROM usage WHERE user_id = ? AND day = ? AND kind = ?",
                               (user_id, today(), kind)).fetchone()
@@ -226,6 +263,34 @@ class Members:
         if path not in self._users:
             self._users[path] = Users(path)
         return self._users[path]
+
+    # ---- each person's own platform logins -------------------------------------------------------
+    def _fernet(self):
+        from cryptography.fernet import Fernet
+
+        return Fernet(base64.urlsafe_b64encode(hashlib.sha256(self.key() + b":platform-logins").digest()))
+
+    def platform_context(self, visitor: str) -> tuple[dict, object | None]:
+        """(settings overlay, vault) for this request: the asker's own logins over blanks for all."""
+        from cryptography.fernet import InvalidToken
+
+        layer = {k: "" for k in LOGIN_KEYS}
+        user_id = account_of(visitor)
+        if user_id is None or self.users.get(user_id) is None:
+            return layer, None
+        fernet = self._fernet()
+        for name, value in self.users.logins(user_id).items():
+            try:
+                layer[name] = fernet.decrypt(value.encode()).decode()
+            except InvalidToken:  # the signing key changed: that login is lost, scan again
+                pass
+
+        def keep(values: dict[str, str | None]) -> None:
+            layer.update({k: v or "" for k, v in values.items()})  # the rest of this request sees it too
+            self.users.keep_logins(user_id, {k: None if v is None else fernet.encrypt(v.encode()).decode()
+                                             for k, v in values.items()})
+
+        return layer, keep
 
     # ---- who, and how much is left -----------------------------------------------------------
     def quota(self, row: sqlite3.Row) -> dict:

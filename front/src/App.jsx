@@ -8,7 +8,7 @@ import AccountsDrawer from './components/AccountsDrawer'
 import MemberDialog from './components/MemberDialog'
 import GuideDialog from './components/GuideDialog'
 import DocsDialog from './components/DocsDialog'
-import { IconBook, IconHistory, IconTheme, IconUser } from './components/Icons'
+import { IconBook, IconHistory, IconLink, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
@@ -758,6 +758,11 @@ export default function App() {
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
           </button>
+          {publicDemo && member?.user ? (
+            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
+              <IconLink size={14} /> 平台账号
+            </button>
+          ) : null}
           {publicDemo ? (member?.user ? (
             <button type="button" className="btn btn--ghost btn--accounts member-chip" title="退出登录"
               onClick={() => signOut().finally(() => window.location.reload())}>
@@ -877,7 +882,8 @@ export default function App() {
         <MemberDialog mode={memberDialog.mode} reason={memberDialog.reason} oauth={member?.oauth || []}
           onDone={() => window.location.reload()} onClose={() => setMemberDialog(null)} />
       ) : null}
-      <AccountsDrawer open={!publicDemo && accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
+      <AccountsDrawer open={(!publicDemo || Boolean(member?.user)) && accountsOpen != null} focus={accountsOpen || null}
+        mine={publicDemo} onClose={() => setAccountsOpen(null)} />
 
       <HistoryDrawer
         open={historyOpen}

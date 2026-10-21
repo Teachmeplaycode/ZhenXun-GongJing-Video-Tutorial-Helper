@@ -240,7 +240,7 @@ test('the web demo has no platform logins', async ({ page }) => {
     mock.linkError = { code: 'login_required', message: '解析视频号需要登录腾讯元宝：点右上角「账号」用微信扫码登录' }
   })
   await expect(page.locator('.btn--theme')).toBeVisible()
-  await expect(page.getByRole('button', { name: '账号' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '账号', exact: true })).toHaveCount(0) // the shared logins; 平台账号 is one's own
   await expect(page.locator('.import-entry')).toContainText('网页版支持 B 站链接')
   await page.locator('.import-control__link').fill('https://weixin.qq.com/sph/AbCdEf')
   await page.locator('.import-control__submit').click()
@@ -294,6 +294,20 @@ test('the web demo greets a first visit with the mascot guide, once; 文档 can 
   if (process.env.GUIDE_SHOTS) await page.screenshot({ path: `${process.env.GUIDE_SHOTS}/docs.png` })
   await docs.getByRole('button', { name: '重新看新手引导' }).click()
   await expect(guide).toBeVisible()
+})
+
+test('the web demo: a signed-in person links their own platform login by QR only', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1'))
+  await start(page, (mock) => {
+    mock.publicDemo = true
+    mock.member = { name: '评委1', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 3 } }
+  })
+  await page.getByRole('button', { name: '平台账号' }).click()
+  const drawer = page.getByRole('dialog', { name: '平台账号' })
+  await expect(drawer).toContainText('只用于你自己导入的视频')
+  const bili = drawer.locator('.account-card', { hasText: 'B 站' })
+  await expect(bili.getByRole('button', { name: '扫码绑定' })).toBeVisible()
+  await expect(drawer.getByRole('button', { name: '手动粘贴 Cookie' })).toHaveCount(0)
 })
 
 test('theme: follows the system, then light, then dark, and is remembered', async ({ page }) => {
