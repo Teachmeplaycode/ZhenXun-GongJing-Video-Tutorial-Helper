@@ -34,7 +34,8 @@ class ParaformerError(RuntimeError):
 
 
 def key() -> str:
-    return os.environ.get("DASHSCOPE_API_KEY", "").strip()
+    """DASHSCOPE_API_KEY, or the same key saved under the model's name (Paraformer=…)."""
+    return (os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("Paraformer") or os.environ.get("PARAFORMER_API_KEY") or "").strip()
 
 
 def base() -> str:
