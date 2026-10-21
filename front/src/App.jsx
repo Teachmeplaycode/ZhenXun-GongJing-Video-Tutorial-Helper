@@ -9,6 +9,7 @@ import MemberDialog from './components/MemberDialog'
 import GuideDialog from './components/GuideDialog'
 import DocsDialog from './components/DocsDialog'
 import ProfileDrawer from './components/ProfileDrawer'
+import FramePicker from './components/FramePicker'
 import { IconBook, IconHistory, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
@@ -105,6 +106,7 @@ export default function App() {
   const [memberDialog, setMemberDialog] = useState(null)
   const [guideOpen, setGuideOpen] = useState(false) // the mascot's walkthrough; opens by itself on a first visit to the web demo
   const [docsOpen, setDocsOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false) // phones pick frames in a big grid (components/FramePicker.jsx)
   const [profileOpen, setProfileOpen] = useState(false) // 我的: the signed-in person's allowance, logins and sign-out
   const closeGuide = useCallback(() => {
     setGuideOpen(false)
@@ -702,7 +704,7 @@ export default function App() {
           if (source.state === 'original') setPlayer({ time, key: Date.now() }) // 回看原片
           else { setTimelineOpen(true); setSeek({ time, key: Date.now() }) } // 查看缓存证据
         }}
-      onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
+      onPickFrames={() => { if (mobile) setPickerOpen(true); else { setTimelineOpen(true); setTimelinePulse(Date.now()) } }}
       selected={selected}
       onClearSelection={() => setSelected([])}
       onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
@@ -866,6 +868,15 @@ export default function App() {
         </div>
       </main>
 
+      {pickerOpen && stage === 'chat' ? (
+        <FramePicker frames={frames} duration={meta?.duration} busy={chatBusy} selected={selected}
+          chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
+          onToggle={toggleFrame} onClear={() => setSelected([])} onClose={() => setPickerOpen(false)}
+          onRange={meta?.kind === 'images' ? null : (start, end, action) => {
+            if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
+            else setClip({ start, end })
+          }} />
+      ) : null}
       <ProfileDrawer open={profileOpen && Boolean(member?.user)} user={member?.user} onClose={() => setProfileOpen(false)}
         onAccounts={() => { setProfileOpen(false); setAccountsOpen('') }}
         onHistory={() => { setProfileOpen(false); setHistoryOpen(true) }}
@@ -921,6 +932,7 @@ export default function App() {
           open={timelineOpen}
           onOpenChange={setTimelineOpen}
           pulse={timelinePulse}
+          onPick={meta?.kind === 'images' ? null : () => setPickerOpen(true)}
         />
       ) : null}
       <ClickSpark />
