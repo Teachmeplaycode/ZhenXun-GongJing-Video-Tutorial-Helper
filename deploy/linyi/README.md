@@ -4,6 +4,7 @@
 
 - **网关**：服务器上 `zhenyan-evidence-gateway`（Caddy）占着 80/443，也服务 mantramcp.cloud 和 aixit.club。`linyi.work` 一个项目一个路径，帧寻是 `/ZhenXun/`，以后的项目照 `linyi.work.caddy` 再加一段 `handle_path /新项目/*`。第一次加路由用 `add-route.sh`（备份、追加、校验、重载，失败自动恢复）。
 - **容器**：`zhenxun`，代码在 `~/projects/zhenxun`，数据在 Docker 卷 `zhenxun_zhenxun-data`。`PUBLIC_DEMO=1`：访客隔离、不开放平台账号、只能导入 B 站和上传。
+- **COS**：存储桶用 cosfs 挂在服务器 `/lhcos-data`。上传的视频处理完后移到 `/lhcos-data/zhenxun/<任务>/`，任务目录里留软链接，回看照常；会话数据库和关键帧留在系统盘（cosfs 读写小文件慢，也不适合 SQLite）。
 - **密钥**：`~/projects/zhenxun/deploy/linyi/.env`（只在服务器上，不进仓库），例如 `DEEPSEEK_API_KEY=…`。改完运行 `cd ~/projects/zhenxun && sudo docker compose -f deploy/linyi/compose.yaml up -d`。
 
 ## 自动部署
