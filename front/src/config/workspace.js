@@ -1,11 +1,11 @@
 // Edit this file to tune copy, quick tasks and the two background animations.
-// Project name: hometown dialect for "真的吗？". URLs and file names use the plain slug.
+// Project name: 帧寻, finding the answer in the frames. The slug stays for stored settings and file names.
 export const BRAND = {
-  name: 'GongJ!ng?',
-  confirmed: 'GongJ!ng!',
+  name: '帧寻',
+  confirmed: '帧寻！',
   slug: 'gongjing',
-  gloss: '真的吗？',
-  tag: '方言',
+  gloss: '逐帧寻证',
+  tag: 'ZhenXun',
   product: '视频 · 图文理解工作台',
 }
 
