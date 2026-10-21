@@ -1,6 +1,7 @@
-"""Local speech recognition: mlx-whisper on Mac, faster-whisper CPU on Linux.
+"""Speech recognition: mlx-whisper on Mac, faster-whisper CPU on Linux, or Model Studio's Paraformer.
 
-  ASR_BACKEND   mlx (Mac default) or faster-whisper (Linux default)
+  ASR_BACKEND   mlx (Mac default), faster-whisper (Linux default), or paraformer (the cloud API,
+                modules/transcript/paraformer.py; falls back to faster-whisper when a call fails)
   ASR_MODEL     mlx-community/whisper-large-v3-turbo on Mac, small on Linux
   ASR_LANGUAGE  default zh; set to `auto` to let Whisper detect the language
 """
@@ -44,6 +45,10 @@ def backend_name() -> str:
 
 
 def available() -> bool:
+    if backend_name() == "paraformer":
+        from . import paraformer
+
+        return bool(paraformer.key())
     try:
         if backend_name() == "faster-whisper":
             import faster_whisper  # noqa: F401
@@ -55,7 +60,7 @@ def available() -> bool:
 
 
 def model_name() -> str:
-    return os.environ.get("ASR_MODEL", "small" if backend_name() == "faster-whisper" else DEFAULT_MODEL)
+    return os.environ.get("ASR_MODEL", "small" if backend_name() in ("faster-whisper", "paraformer") else DEFAULT_MODEL)
 
 
 @lru_cache(maxsize=1)
@@ -86,7 +91,7 @@ def clean(raw: list[dict]) -> list[Segment]:
 
 def _run(path: Path) -> list[Segment]:
     language = os.environ.get("ASR_LANGUAGE", "zh")
-    if backend_name() == "faster-whisper":
+    if backend_name() in ("faster-whisper", "paraformer"):  # paraformer here: its local fallback
         segments, _ = _cpu_model(model_name()).transcribe(
             str(path), language=None if language == "auto" else language,
             initial_prompt=ZH_PROMPT if language == "zh" else None,
@@ -107,6 +112,25 @@ def _run(path: Path) -> list[Segment]:
     return clean(result.get("segments") or [])
 
 
+def _local_whisper() -> bool:
+    try:
+        import faster_whisper  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 async def transcribe(path: Path) -> list[Segment]:
+    if backend_name() == "paraformer":
+        from . import paraformer
+
+        try:  # a cloud call: no need to queue behind the lock
+            return clean(await paraformer.transcribe(path))
+        except Exception as exc:  # noqa: BLE001 — any failure: the local model, if there is one
+            if not _local_whisper():
+                raise
+            from modules import log
+
+            log.event("asr.fallback", error=str(exc)[:160])
     async with _lock:
         return await asyncio.to_thread(_run, path)
