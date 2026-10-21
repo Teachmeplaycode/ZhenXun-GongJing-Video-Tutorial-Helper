@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..settings import mainland_proxy
 from ..video_source import Stream
 
 FRAME_WIDTH = 640
@@ -29,8 +30,9 @@ def input_args(stream: Stream) -> list[str]:
     if "://" not in stream.url:
         return ["-i", stream.url]
     headers = "".join(f"{k}: {v}\r\n" for k, v in stream.headers.items())
+    proxy = mainland_proxy(stream.url)  # 抖音, 小红书 … CDNs read steadier from a mainland address
     return ["-rw_timeout", "15000000",  # µs without data before giving up on the socket
-            "-headers", headers, "-i", stream.url]
+            *(["-http_proxy", proxy] if proxy else []), "-headers", headers, "-i", stream.url]
 
 
 def classify(stderr: str) -> str:

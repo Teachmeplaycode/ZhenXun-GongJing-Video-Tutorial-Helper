@@ -749,7 +749,7 @@ async def job_media(job_id: str, request: Request):
     if playable.kind == "file":
         kind = mimetypes.guess_type(playable.path.name)[0] or "video/mp4"
         return FileResponse(playable.path, media_type=kind)
-    client = playback.http()  # one pool for every seek: no new connection per Range request
+    client = playback.http(playable.stream.url)  # one pool for every seek (through CN_PROXY for 抖音, 小红书 …)
     for attempt in range(2):
         try:
             status, headers, response = await playback.relay(client, playable.stream, request.headers.get("range"))
