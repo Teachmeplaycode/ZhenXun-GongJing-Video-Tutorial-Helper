@@ -241,7 +241,7 @@ test('the web demo has no platform logins', async ({ page }) => {
   })
   await expect(page.locator('.btn--theme')).toBeVisible()
   await expect(page.getByRole('button', { name: '账号', exact: true })).toHaveCount(0) // the shared logins; 平台账号 is one's own
-  await expect(page.locator('.import-entry')).toContainText('网页版支持 B 站链接')
+  await expect(page.locator('.import-entry')).toContainText('网页版支持 B 站、抖音、小红书')
   await page.locator('.import-control__link').fill('https://weixin.qq.com/sph/AbCdEf')
   await page.locator('.import-control__submit').click()
   await expect(page.locator('.field-error')).toBeVisible()

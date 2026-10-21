@@ -367,7 +367,7 @@ async def create_link_job(body: LinkRequest):
             visitors.check_platform(registry.find(extract_url(body.url)).platform)
             member_service.require("imports")
         resolver, video = await registry.resolve(body.url, body.part)
-        visitors.check_platform(video.platform)
+        visitors.check_platform(getattr(resolver, "platform", video.platform))  # alcedo labels videos by site (douyin …)
         member_service.charge("imports")  # counted once the link resolves: a typo costs nothing
     except ResolveError as exc:
         log.event("link.resolve", ok=False, url=body.url[:200], code=exc.code, message=exc.message, ms=timer.ms)
