@@ -343,7 +343,8 @@ export class MockApi {
     if (path === '/api/accounts') return json({ accounts: this.accounts })
     m = path.match(/^\/api\/accounts\/(\w+)\/login$/)
     if (m && req.method() === 'POST') {
-      return json({ id: `login-${m[1]}`, platform: m[1], state: 'waiting', message: '', user: '', expires_in: 180, qr: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><rect width="2" height="2"/></svg>' })
+      return json({ id: `login-${m[1]}`, platform: m[1], state: 'waiting', message: '', user: '', expires_in: 180,
+        link: m[1] === 'bilibili' ? 'https://passport.bilibili.com/h5-app/passport/login/scan?qrcode_key=k1' : '', qr: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"><rect width="2" height="2"/></svg>' })
     }
     m = path.match(/^\/api\/accounts\/login\/login-(\w+)$/)
     if (m && req.method() === 'GET') {
