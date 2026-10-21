@@ -21,7 +21,7 @@ import urllib.parse
 
 import httpx
 
-from ..settings import cn_proxy, settings
+from ..settings import cn_proxy, mainland_proxy, settings
 from .base import ResolveError, ResolvedVideo, Resolver, Stream
 
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -46,7 +46,9 @@ def short_uri(url: str) -> str | None:
 
 async def probe_duration(url: str, headers: dict[str, str], timeout: float = 30) -> float:
     """Read the duration from the MP4 header (a few range requests, no download)."""
-    args = ["ffprobe", "-v", "error", "-headers", "".join(f"{k}: {v}\r\n" for k, v in headers.items()),
+    proxy = mainland_proxy(url)
+    args = ["ffprobe", "-v", "error", *(["-http_proxy", proxy] if proxy else []),
+            "-headers", "".join(f"{k}: {v}\r\n" for k, v in headers.items()),
             "-show_entries", "format=duration", "-of", "json", url]
     try:
         proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
