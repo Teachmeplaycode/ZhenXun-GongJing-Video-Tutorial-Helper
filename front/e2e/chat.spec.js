@@ -263,6 +263,37 @@ test('the web demo: importing asks for an account, then shows what is left today
   await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
 })
 
+test('the web demo greets a first visit with the mascot guide, once; 文档 can replay it', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' }) // let the snake crawl
+  await start(page, (mock) => { mock.publicDemo = true })
+  const guide = page.getByRole('dialog', { name: '新手引导' })
+  await expect(guide).toContainText('你好，我是帧寻的小蛇')
+  if (process.env.GUIDE_SHOTS) await page.screenshot({ path: `${process.env.GUIDE_SHOTS}/guide-1.png` })
+  await guide.getByRole('button', { name: /下一步/ }).click()
+  await expect(guide).toContainText('第一步：导入视频')
+  await expect(guide.locator('.guide__snake img')).toHaveAttribute('src', /crawl-right\.webp$/)
+  if (process.env.GUIDE_SHOTS) await page.screenshot({ path: `${process.env.GUIDE_SHOTS}/guide-2-crawl.png` })
+  await expect(guide.locator('.guide__snake img')).toHaveAttribute('src', /think\.webp$/)
+  await guide.getByRole('button', { name: /下一步/ }).click()
+  await guide.getByRole('button', { name: /下一步/ }).click()
+  await expect(guide.locator('.ev-chip--frame')).toHaveText('画面 00:56')
+  if (process.env.GUIDE_SHOTS) await page.screenshot({ path: `${process.env.GUIDE_SHOTS}/guide-4.png` })
+  await guide.getByRole('button', { name: /下一步/ }).click()
+  await guide.getByRole('button', { name: '注册并开始' }).click()
+  await expect(page.getByRole('dialog', { name: '注册账号' })).toBeVisible()
+  await page.getByRole('dialog', { name: '注册账号' }).getByRole('button', { name: '关闭' }).click()
+
+  await page.reload()
+  await expect(page.locator('.import-control__link')).toBeVisible()
+  await expect(guide).toHaveCount(0) // seen once: not again
+  await page.getByRole('button', { name: '文档' }).click()
+  const docs = page.getByRole('dialog', { name: '使用文档' })
+  await expect(docs).toContainText('证据标签怎么看')
+  if (process.env.GUIDE_SHOTS) await page.screenshot({ path: `${process.env.GUIDE_SHOTS}/docs.png` })
+  await docs.getByRole('button', { name: '重新看新手引导' }).click()
+  await expect(guide).toBeVisible()
+})
+
 test('theme: follows the system, then light, then dark, and is remembered', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
   await start(page)
