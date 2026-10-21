@@ -3,6 +3,10 @@ import { mockAgentRun } from './mock'
 // When VITE_API_BASE is set the UI talks to the real backend; otherwise it runs on mocks.
 const API_BASE = import.meta.env.VITE_API_BASE
 
+// FastAPI errors carry `detail` as text, or as { code, message } (e.g. login_required, quota_exceeded).
+const errorText = (body) => body?.message || (typeof body?.detail === 'object' ? body.detail?.message : body?.detail)
+const errorCode = (body) => body?.code || (typeof body?.detail === 'object' ? body.detail?.code : undefined)
+
 /**
  * Upload a local video to the backend, which then samples frames and transcribes it like a link.
  * Resolves to the same job snapshot as createLinkJob. XHR, for upload progress.
@@ -21,7 +25,8 @@ export function uploadVideo(file, { task = '', sampling = null, onProgress, sign
         body = null
       }
       if (xhr.status < 300 && body) return resolve(body)
-      const err = new Error(body?.message || body?.detail || (xhr.status >= 500 ? '分析服务未启动或暂时不可用' : `上传失败（HTTP ${xhr.status}）`))
+      const err = new Error(errorText(body) || (xhr.status >= 500 ? '分析服务未启动或暂时不可用' : `上传失败（HTTP ${xhr.status}）`))
+      err.code = errorCode(body)
       err.code = body?.code
       return reject(err)
     }
@@ -104,8 +109,8 @@ async function linkRequest(path, init = {}) {
     body = null
   }
   if (!response.ok) {
-    const err = new Error(body?.message || body?.detail || (response.status >= 500 ? '解析服务未启动或暂时不可用' : `请求失败（HTTP ${response.status}）`))
-    err.code = body?.code
+    const err = new Error(errorText(body) || (response.status >= 500 ? '解析服务未启动或暂时不可用' : `请求失败（HTTP ${response.status}）`))
+    err.code = errorCode(body)
     throw err
   }
   return body
@@ -129,7 +134,7 @@ export function uploadImages(files, { task = '', onProgress, signal } = {}) {
         body = null
       }
       if (xhr.status < 300 && body) return resolve(body)
-      return reject(new Error(body?.message || body?.detail || `上传失败（HTTP ${xhr.status}）`))
+      return reject(Object.assign(new Error(errorText(body) || `上传失败（HTTP ${xhr.status}）`), { code: errorCode(body) }))
     }
     xhr.onerror = () => reject(new Error('无法连接分析服务，请确认后端已启动'))
     xhr.onabort = () => reject(new DOMException('aborted', 'AbortError'))
@@ -218,12 +223,13 @@ export function exportSessionUrl(id, { format = 'md', ids = null } = {}) {
  * sessions and platform logins are closed. */
 export const getHealth = () => linkRequest('/api/health')
 
-// ---- Web demo: access code and accounts (backend modules/members.py) --------------------
+// ---- Web demo: accounts and daily allowances (backend modules/members.py) ---------------
 const postJson = (path, body) => linkRequest(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-export const enterAccessCode = (code) => postJson('/api/access', { code })
 export const signUp = (name, password) => postJson('/api/auth/register', { name, password })
 export const signIn = (name, password) => postJson('/api/auth/login', { name, password })
 export const signOut = () => postJson('/api/auth/logout', {})
+/** Full-page link to sign in with GitHub or Google (the backend redirects back to the app). */
+export const oauthUrl = (provider) => `${LINK_BASE}/api/auth/${provider}/start`
 
 // ---- Platform logins (cookies stay in the backend; only status comes back) -------------
 
