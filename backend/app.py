@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, log, playback, visitors
+from modules import accounts, archive, log, playback, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.notes.router import NotesService
@@ -139,6 +139,7 @@ def prune(force: bool = False) -> None:
         saved = store.ids()
         for path in DATA_DIR.iterdir():
             if path.name not in saved:
+                archive.remove_job(path, f"{SOURCE}.*")
                 shutil.rmtree(path, ignore_errors=True)
             else:
                 for source in path.glob(f"{SOURCE}.*"):  # an upload whose processing a restart cut off
@@ -497,6 +498,11 @@ async def upload_video(file: UploadFile = File(...), task: str = Form(""), sampl
         finally:
             if not KEEP_UPLOADS:
                 path.unlink(missing_ok=True)
+            elif archive.root() is not None:
+                try:
+                    await asyncio.to_thread(archive.keep, path, job_id)
+                except OSError as exc:  # the bucket is unreachable: the upload stays on local disk
+                    log.event("archive", ok=False, job_id=job_id, error=str(exc)[:120])
 
     spawn(process())
     warm_decider()
@@ -692,7 +698,7 @@ async def delete_source(job_id: str):
     if job.running:
         raise HTTPException(409, "视频还在处理，处理完再删除原文件")
     for path in (DATA_DIR / job_id).glob(f"{SOURCE}.*"):
-        path.unlink(missing_ok=True)
+        archive.unlink(path)
     job.video.streams, job.video.audio_streams = [], []
     playback.forget(job_id)
     return await playback.state(job)
@@ -945,5 +951,6 @@ async def delete_session(session_id: str):
     chapter_service.remove(session_id)
     jobs.pop(session_id, None)
     store.delete(session_id)
+    archive.remove_job(DATA_DIR / session_id, f"{SOURCE}.*")
     shutil.rmtree(DATA_DIR / session_id, ignore_errors=True)
     return {"ok": True}
