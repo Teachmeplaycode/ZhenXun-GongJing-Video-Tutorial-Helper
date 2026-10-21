@@ -20,3 +20,11 @@
 .member-dialog__provider { justify-content: center; height: 36px; font-size: var(--fs-body-sm); text-decoration: none; color: var(--text-primary); }
 .member-dialog__or { align-self: center; color: var(--text-tertiary); font-size: var(--fs-caption); }
 .member-chip__left { color: var(--text-secondary); }
+.member-dialog__guest {
+  display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-12); text-align: left; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--accent-active) 70%, var(--border-default)); border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent-active) 14%, var(--bg-surface)); color: var(--text-primary); font: inherit;
+}
+.member-dialog__guest:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-active) 26%, var(--bg-surface)); }
+.member-dialog__guest strong { font-size: var(--fs-body-sm); }
+.member-dialog__guest span { color: var(--text-secondary); font-size: var(--fs-caption); line-height: 1.6; }

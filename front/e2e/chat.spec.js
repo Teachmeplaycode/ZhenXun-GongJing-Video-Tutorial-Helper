@@ -258,7 +258,7 @@ test('the web demo: importing asks for an account, then shows what is left today
   await expect(register.getByRole('link', { name: '用 GitHub 登录' })).toHaveAttribute('href', /\/api\/auth\/github\/start$/)
   await register.getByLabel('用户名').fill('评委1')
   await register.getByLabel(/密码/).fill('secret1')
-  await register.getByRole('button', { name: '注册' }).click()
+  await register.getByRole('button', { name: '注册', exact: true }).click()
   await expect(page.locator('.member-chip')).toContainText('评委1')
   await expect(page.locator('.member-chip')).toContainText('今日提问 10/10')
   await page.locator('.member-chip').click()
@@ -308,6 +308,14 @@ test('the web demo: a signed-in person links their own platform login by QR only
   const bili = drawer.locator('.account-card', { hasText: 'B 站' })
   await expect(bili.getByRole('button', { name: '扫码绑定' })).toBeVisible()
   await expect(drawer.getByRole('button', { name: '手动粘贴 Cookie' })).toHaveCount(0)
+})
+
+test('the web demo: one click to try it as a guest', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1'))
+  await start(page, (mock) => { mock.publicDemo = true })
+  await page.getByRole('button', { name: '登录' }).click()
+  await page.getByRole('button', { name: /游客体验/ }).click()
+  await expect(page.locator('.member-chip')).toContainText('游客1234')
 })
 
 test('theme: follows the system, then light, then dark, and is remembered', async ({ page }) => {

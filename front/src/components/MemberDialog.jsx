@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { oauthUrl, signIn, signUp } from '../api/client'
+import { oauthUrl, signIn, signUp, startGuest } from '../api/client'
 import { IconClose } from './Icons'
 import '../styles/members.css'
 
@@ -33,6 +33,17 @@ export default function MemberDialog({ mode: initial = 'login', reason = '', oau
   }
 
   const switchTo = (next) => { setMode(next); setError('') }
+  const guest = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await startGuest()
+      onDone('guest')
+    } catch (err) {
+      setError(err.message)
+      setBusy(false)
+    }
+  }
 
   return createPortal(
     <div className="overlay member-overlay" onClick={(e) => e.target === e.currentTarget && onClose?.()}>
@@ -44,6 +55,10 @@ export default function MemberDialog({ mode: initial = 'login', reason = '', oau
         <p className="member-dialog__hint">
           {reason || (mode === 'register' ? '注册后每天可免费导入和提问；换电脑或手机登录，历史都在。' : '登录后可以看到这个账号导入过的全部视频。')}
         </p>
+        <button type="button" className="member-dialog__guest" onClick={guest} disabled={busy}>
+          <strong>游客体验</strong>
+          <span>不用注册，直接试用：每天解析 5 个链接、上传 1 个视频、提问 10 次。记录只保存在这个浏览器里。</span>
+        </button>
         {oauth.length ? (
           <div className="member-dialog__oauth">
             {oauth.map((p) => <a key={p} className="btn btn--ghost member-dialog__provider" href={oauthUrl(p)}>用 {PROVIDER[p] || p} 登录</a>)}

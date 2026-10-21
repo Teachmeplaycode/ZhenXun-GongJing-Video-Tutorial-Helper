@@ -6,8 +6,10 @@ their client id and secret are set). Signing up or in makes the browser's visito
 "u<account id>", and the sessions that browser made before move to the account, so the same
 history shows wherever the person signs in. Signing out gives the browser a fresh anonymous id.
 
-Each account has a plan, and a plan allows so many questions and so many new videos a day
-(Beijing time). New accounts are on `free`; names in OWNER_ACCOUNTS are on `owner` (no limits).
+Each account has a plan, and a plan allows so many questions, links and uploads a day (Beijing
+time). New accounts are on `free`; names in OWNER_ACCOUNTS are on `owner` (no limits). For a demo
+anyone can start a guest account with one click (`guest`: a generated name, no password, kept by
+this browser only), at most GUESTS_PER_ADDRESS a day from one address.
 PLAN_LIMITS overrides the numbers, e.g. {"free": {"questions": 20}}.
 
   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET   an OAuth app; callback <PUBLIC_URL>/api/auth/github/callback
@@ -48,11 +50,13 @@ TRIES, WINDOW = 10, 600  # wrong passwords per address and name per window (seco
 STATE_COOKIE = "fj_oauth"
 
 PLANS = {
-    "free": {"label": "免费", "questions": 10, "imports": 3},
-    "plus": {"label": "进阶", "questions": 100, "imports": 20},
-    "owner": {"label": "管理员", "questions": None, "imports": None},  # None: no limit
+    "guest": {"label": "游客", "questions": 10, "imports": 5, "uploads": 1},
+    "free": {"label": "免费", "questions": 10, "imports": 3, "uploads": 3},
+    "plus": {"label": "进阶", "questions": 100, "imports": 20, "uploads": 20},
+    "owner": {"label": "管理员", "questions": None, "imports": None, "uploads": None},  # None: no limit
 }
-KINDS = {"questions": "提问", "imports": "导入视频"}
+KINDS = {"questions": "提问", "imports": "解析链接", "uploads": "上传文件"}
+GUESTS_PER_ADDRESS = 3  # guest accounts one address may start a day (a cleared cookie is a new guest)
 
 PROVIDERS = {
     "github": {
@@ -164,8 +168,8 @@ class Users:
             if column not in have:
                 self.db.execute(f"ALTER TABLE users ADD COLUMN {column} {kind}")
 
-    def create(self, name: str, password: str = "", **ids) -> int:
-        plan = "owner" if name.lower() in owners() else "free"
+    def create(self, name: str, password: str = "", plan: str = "", **ids) -> int:
+        plan = "owner" if name.lower() in owners() else (plan or "free")
         with self.db:
             return self.db.execute(
                 "INSERT INTO users (name, password, created, plan, github_id, google_id) VALUES (?, ?, ?, ?, ?, ?)",
@@ -254,6 +258,8 @@ class Members:
         self.router.add_api_route("/api/auth/register", self.register, methods=["POST"])
         self.router.add_api_route("/api/auth/login", self.login, methods=["POST"])
         self.router.add_api_route("/api/auth/logout", self.logout, methods=["POST"])
+        self.router.add_api_route("/api/auth/guest", self.guest, methods=["POST"])
+        self.guests: dict[str, list[float]] = defaultdict(list)
         self.router.add_api_route("/api/auth/{provider}/start", self.oauth_start, methods=["GET"])
         self.router.add_api_route("/api/auth/{provider}/callback", self.oauth_callback, methods=["GET"])
 
@@ -367,6 +373,22 @@ class Members:
             self.limiter.fail(key)
             raise HTTPException(403, "用户名或密码不对")
         return self._signed_in(request, row["id"])
+
+    async def guest(self, request: Request):
+        """A one-click guest account for trying it out; this browser keeps it until it signs out."""
+        self._enabled()
+        current = account_of(visitors.current.get())
+        row = self.users.get(current) if current is not None else None
+        if row is not None and row["plan"] == "guest":
+            return self._signed_in(request, row["id"])
+        if row is not None:
+            raise HTTPException(409, "已经登录了")
+        day_ago, seen = time.time() - 86400, self.guests[address(request)]
+        seen[:] = [t for t in seen if t > day_ago]
+        if len(seen) >= GUESTS_PER_ADDRESS:
+            raise HTTPException(429, "这个网络今天的游客体验次数用完了，注册一个账号继续用吧")
+        seen.append(time.time())
+        return self._signed_in(request, self.users.create(self.users.free_name(f"游客{secrets.randbelow(9000) + 1000}"), plan="guest"))
 
     async def logout(self, request: Request):
         self._enabled()
