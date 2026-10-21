@@ -46,3 +46,7 @@
 .picker__foot:has(> span:only-child) { display: none; }
 .timeline__pick { display: none; }
 @media (max-width: 860px) { .timeline__pick { display: inline-flex; } }
+
+/* Inside the workbench's 画面 tab (phones): fills the panel instead of the screen. */
+.picker--embedded { position: relative; inset: auto; z-index: auto; height: 100%; padding: 0; }
+.picker__tile[data-flash] { border-color: var(--accent-active); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-active) 45%, transparent); }

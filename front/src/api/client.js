@@ -276,6 +276,8 @@ export const saveNoteBoard = (jobId, board) => linkRequest(`/api/link-jobs/${job
   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board),
 })
 export const notesExportUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/notes/export`
+/** The note as one long PNG (a phone keeps it in its photos). */
+export const notesImageUrl = (jobId) => `${notesExportUrl(jobId)}?image=1&t=${Date.now()}`
 
 /** A picture set's text, picture by picture: { status, items: [{ index, lines }] }. */
 export const fetchPictureTexts = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/texts`, { signal })
