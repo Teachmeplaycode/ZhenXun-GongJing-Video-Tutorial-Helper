@@ -262,6 +262,9 @@ test('the web demo: importing asks for an account, then shows what is left today
   await expect(page.locator('.member-chip')).toContainText('评委1')
   await expect(page.locator('.member-chip')).toContainText('今日提问 10/10')
   await page.locator('.member-chip').click()
+  const mine = page.getByRole('dialog', { name: '我的' })
+  await expect(mine).toContainText('今天的额度')
+  await mine.getByRole('button', { name: '退出登录' }).click()
   await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
 })
 
@@ -302,7 +305,8 @@ test('the web demo: a signed-in person links their own platform login by QR only
     mock.publicDemo = true
     mock.member = { name: '评委1', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 3 } }
   })
-  await page.getByRole('button', { name: '平台账号' }).click()
+  await page.locator('.member-chip').click()
+  await page.getByRole('dialog', { name: '我的' }).getByRole('button', { name: /平台账号/ }).click()
   const drawer = page.getByRole('dialog', { name: '平台账号' })
   await expect(drawer).toContainText('只用于你自己导入的视频')
   const bili = drawer.locator('.account-card', { hasText: 'B 站' })

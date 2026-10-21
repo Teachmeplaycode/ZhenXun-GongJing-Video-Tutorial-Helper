@@ -8,7 +8,8 @@ import AccountsDrawer from './components/AccountsDrawer'
 import MemberDialog from './components/MemberDialog'
 import GuideDialog from './components/GuideDialog'
 import DocsDialog from './components/DocsDialog'
-import { IconBook, IconHistory, IconLink, IconTheme, IconUser } from './components/Icons'
+import ProfileDrawer from './components/ProfileDrawer'
+import { IconBook, IconHistory, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
@@ -104,6 +105,7 @@ export default function App() {
   const [memberDialog, setMemberDialog] = useState(null)
   const [guideOpen, setGuideOpen] = useState(false) // the mascot's walkthrough; opens by itself on a first visit to the web demo
   const [docsOpen, setDocsOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false) // 我的: the signed-in person's allowance, logins and sign-out
   const closeGuide = useCallback(() => {
     setGuideOpen(false)
     try { localStorage.setItem(GUIDE_SEEN, '1') } catch { /* private mode: it shows again next time */ }
@@ -758,19 +760,13 @@ export default function App() {
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
           </button>
-          {publicDemo && member?.user ? (
-            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
-              <IconLink size={14} /> 平台账号
-            </button>
-          ) : null}
           {publicDemo ? (member?.user ? (
-            <button type="button" className="btn btn--ghost btn--accounts member-chip" title="退出登录"
-              onClick={() => signOut().finally(() => window.location.reload())}>
+            <button type="button" className="btn btn--ghost btn--accounts member-chip" title="我的：额度、平台账号、退出登录"
+              onClick={() => setProfileOpen(true)} aria-haspopup="dialog">
               <IconUser size={14} /> {member.user.name}
               {member.user.questions?.limit != null ? (
                 <span className="member-chip__left">今日提问 {Math.max(0, member.user.questions.limit - member.user.questions.used)}/{member.user.questions.limit}</span>
               ) : null}
-              · 退出
             </button>
           ) : (
             <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setMemberDialog({ mode: 'login' })} aria-haspopup="dialog">
@@ -870,6 +866,11 @@ export default function App() {
         </div>
       </main>
 
+      <ProfileDrawer open={profileOpen && Boolean(member?.user)} user={member?.user} onClose={() => setProfileOpen(false)}
+        onAccounts={() => { setProfileOpen(false); setAccountsOpen('') }}
+        onHistory={() => { setProfileOpen(false); setHistoryOpen(true) }}
+        onRegister={() => { setProfileOpen(false); setMemberDialog({ mode: 'register', reason: '注册后，游客期间导入的视频会一起保留。' }) }}
+        onSignOut={() => signOut().finally(() => window.location.reload())} />
       {guideOpen ? (
         <GuideDialog signedIn={!publicDemo || Boolean(member?.user)} onClose={closeGuide}
           onStart={() => {
