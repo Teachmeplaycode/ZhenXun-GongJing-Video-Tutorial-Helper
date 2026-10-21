@@ -13,8 +13,8 @@ Two ways to reach it, from settings:
                ../tools/alcedo-*/ when not set (scripts/install-alcedo.sh puts it there)
 Neither available: this resolver matches nothing and the app behaves as before.
 
-CN_PROXY (e.g. http://<a server in mainland China>:43128) sends alcedo's requests out through that
-proxy, so platforms that turn away overseas addresses (抖音, 小红书, 快手 …) see a domestic one.
+CN_PROXY (e.g. http://<a server in mainland China>:43128) becomes alcedo's ALCEDO_PROXY_CN: its
+requests to mainland platforms that turn away overseas addresses (小红书, 快手 …) go out through it.
 
 Logins the app already holds are passed on (BILIBILI_COOKIE → ALCEDO_BILI_COOKIE, and DOUYIN_COOKIE,
 XHS_COOKIE, YOUTUBE_COOKIE when set). ALCEDO_SSRF_DNS (alcedo's private-address check on DNS answers)
@@ -94,9 +94,8 @@ def child_env() -> dict[str, str]:
             env[theirs] = conf[ours].strip()
     if "ALCEDO_SSRF_DNS" not in env and fake_ip_dns():
         env["ALCEDO_SSRF_DNS"] = "0"
-    if proxy := conf.get("CN_PROXY", "").strip():
-        env.update({"HTTPS_PROXY": proxy, "HTTP_PROXY": proxy, "ALL_PROXY": proxy,
-                    "https_proxy": proxy, "http_proxy": proxy, "NO_PROXY": "127.0.0.1,localhost"})
+    if (proxy := conf.get("CN_PROXY", "").strip()) and "ALCEDO_PROXY_CN" not in env:
+        env["ALCEDO_PROXY_CN"] = proxy  # alcedo sends only the mainland platforms through it
     return env
 
 
