@@ -5,13 +5,13 @@ export const BRAND = {
   name: '帧寻 GongJ!ng?',
   confirmed: '帧寻 GongJ!ng!',
   slug: 'gongjing',
-  gloss: '逐帧寻证',
-  tag: '真的吗？',
+  gloss: '真的吗？',
+  tag: '方言',
   product: '视频 · 图文理解工作台',
 }
 
 export const WORKSPACE_CONTENT = {
-  title: ['画面之内。', '答案之间。'],
+  title: ['画面之内，答案之间'], // the closing dot is drawn in the accent colour (workspace.css)
   subtitle: '从视频素材到有据可查的回答',
   description: '视频拆成关键帧，图文读出每一张。画面、字幕与正文，都成为你提问和核查的依据。',
   issue: 'FIELD NOTES / 001',

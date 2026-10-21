@@ -9,6 +9,7 @@ import HomepageMascot from '../components/HomepageMascot'
 import SamplingOptions, { DEFAULT_SAMPLING, customized, presetLabel, samplingSpec } from '../components/SamplingOptions'
 
 const SOURCES = '支持 B 站、视频号、抖音、小红书、YouTube 等平台的分享链接'
+const DEMO_SOURCES = '网页版支持 B 站链接；其他平台的视频请下载后用「上传文件」'
 const MAX_PICTURES = 60
 const SAMPLING_KEY = 'import.sampling'
 const loadSampling = () => {
@@ -21,7 +22,7 @@ const loadSampling = () => {
 
 // slideRef: the glass slide; the sculpture refracts through it and the upload screen grows out of it.
 // externalError: a failure reported by App after the import screen was left (e.g. link resolution).
-export default function ImportPanel({ showMascot = false, active = true, onStart, slideRef, externalError = '', onClearError, onShowAccounts }) {
+export default function ImportPanel({ showMascot = false, active = true, onStart, slideRef, externalError = '', onClearError, onShowAccounts, publicDemo = false }) {
   const [entry, setEntry] = useState('link')
   const [file, setFile] = useState(null)
   const [link, setLink] = useState('')
@@ -92,7 +93,7 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
   const source = mode === 'link' ? linkPlatform(link) : null
   const hint = mode === 'link'
     ? `${source?.name || '链接'} · 已识别，导入后即可提问`
-    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接或分享文案' : SOURCES
+    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接或分享文案' : publicDemo ? DEMO_SOURCES : SOURCES
   const submit = () => {
     if (mode === 'images') onStart({ images: pics, task })
     else if (mode === 'file') onStart({ file, task, sampling: samplingSpec(sampling) })
@@ -120,7 +121,7 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
     }}>
       <div className="home-intro" data-exit>
         <p className="magazine-hero__gloss"><span>{BRAND.gloss}</span><span className="magazine-hero__tag">{BRAND.tag}</span></p>
-        <div className="magazine-hero__brand" aria-hidden="true"><Wordmark stacked /></div>
+        <div className="magazine-hero__brand" aria-hidden="true"><Wordmark /></div>
         <h1 className="magazine-hero__title">{WORKSPACE_CONTENT.title.map((line) => <span key={line}>{line}</span>)}</h1>
         <p className="magazine-hero__description">{WORKSPACE_CONTENT.description}</p>
       </div>
