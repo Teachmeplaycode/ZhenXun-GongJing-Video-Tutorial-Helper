@@ -146,8 +146,9 @@ class NotesService:
         write(job.root, {**board, "saved": time.time()}, BOARD)
         return {"saved": time.time()}
 
-    async def export(self, job_id: str, preview: bool = False):
-        """The note as a zip (笔记.md + images/), or with preview=1 as a page showing what it will read like."""
+    async def export(self, job_id: str, preview: bool = False, image: bool = False):
+        """The note as a zip (笔记.md + images/); with preview=1 as a page showing what it will read like;
+        with image=1 as that page in one long PNG (a phone keeps it in its photos)."""
         job = self.get_job(job_id)
         record = load(job.root) or {}
         if record.get("status") != "done" or not record.get("note"):
@@ -161,8 +162,17 @@ class NotesService:
             root = job.root.resolve()
             return path if path.is_file() and root in path.resolve().parents else None
 
-        if preview:
-            return HTMLResponse(export.to_preview_html(record["note"], load(job.root, BOARD), picture))
+        if preview or image:
+            page = export.to_preview_html(record["note"], load(job.root, BOARD), picture)
+            if not image:
+                return HTMLResponse(page)
+            try:
+                png = await export.to_long_image(page)
+            except export.ImageError as exc:
+                raise HTTPException(503, str(exc))
+            title = (record["note"].get("title") or "笔记")[:60]
+            return Response(png, media_type="image/png",
+                            headers={"Content-Disposition": f"inline; filename=notes.png; filename*=UTF-8''{quote(title)}.png"})
         data, title = export.to_zip(record["note"], load(job.root, BOARD), picture)
         name = re.sub(r'[\\/:*?"<>|]+', " ", title).strip()[:60] or "笔记"
         return Response(data, media_type="application/zip",

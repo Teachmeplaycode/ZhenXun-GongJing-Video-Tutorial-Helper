@@ -6,6 +6,7 @@ import { IconChevron } from './Icons'
 // while hidden, so a fact-check or a note still being generated keeps running when another tab shows.
 // panels: { key: element } in tab order; labels: { key: '章节' }; badges: { key: '3' } (optional).
 export const BENCH_TABS = [
+  { key: 'frames', label: '画面' }, // phones only: the frame grid instead of the timeline
   { key: 'chapters', label: '章节' },
   { key: 'notes', label: '笔记' },
   // 反诈 and 科普 are no longer tabs: they are skills the agent runs in an answer (modules/agent/skills.py).

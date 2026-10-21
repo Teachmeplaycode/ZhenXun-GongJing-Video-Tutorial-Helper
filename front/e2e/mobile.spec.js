@@ -14,7 +14,7 @@ async function start(page, setup) {
   return mock
 }
 
-test('phone: the chat keeps the room — timeline folded, workbench full screen', async ({ page }) => {
+test('phone: the chat keeps the room — no timeline, workbench full screen', async ({ page }) => {
   await start(page)
   await page.locator('.import-control__link').fill('https://www.bilibili.com/video/BV1TEST00001')
   await page.locator('.import-control__submit').click()
@@ -22,7 +22,7 @@ test('phone: the chat keeps the room — timeline folded, workbench full screen'
   await expect(page.locator('.composer__input')).toBeVisible()
   await expect(page.locator('.stepper')).toBeHidden()
   await expect(page.locator('.brand__name .wordmark__en')).toBeHidden()
-  await expect(page.locator('.timeline')).not.toHaveAttribute('data-open', '')
+  await expect(page.locator('.timeline')).toHaveCount(0) // the frames are in the workbench's 画面 tab
   await openBench(page, '章节')
   const bench = await page.locator('.bench').boundingBox()
   expect(Math.round(bench.width)).toBe(390)
@@ -49,7 +49,8 @@ test('phone: frames are picked in a big grid — attach, or frame a stretch to r
   await page.locator('.import-control__submit').click()
   await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
   await page.locator('.composer').getByRole('button', { name: /选帧/ }).click()
-  const picker = page.getByRole('dialog', { name: '选帧' })
+  const picker = page.locator('.bench .picker--embedded') // the 画面 tab
+  await expect(page.getByRole('tab', { name: '画面' })).toHaveAttribute('aria-selected', 'true')
   const tiles = picker.locator('.picker__tile')
   await expect(tiles.first()).toBeVisible()
   const box = await tiles.first().boundingBox()
@@ -59,6 +60,7 @@ test('phone: frames are picked in a big grid — attach, or frame a stretch to r
   await expect(picker).toContainText('已选 2 帧')
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/picker-attach.png` })
   await picker.getByRole('button', { name: '完成' }).click()
+  await expect(page.locator('.bench')).not.toHaveAttribute('data-open', '')
   await expect(page.locator('.composer')).toContainText('F003') // attached to the question
 
   await page.locator('.composer').getByRole('button', { name: /选帧/ }).click()
@@ -68,6 +70,6 @@ test('phone: frames are picked in a big grid — attach, or frame a stretch to r
   await expect(picker.locator('.picker__hint')).toContainText('秒')
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/picker-range.png` })
   await picker.getByRole('button', { name: '慢放这一段' }).click()
-  await expect(picker).toHaveCount(0)
+  await expect(page.locator('.bench')).not.toHaveAttribute('data-open', '')
   await expect.poll(() => mock.requests.some((r) => /\/replay$/.test(r.path))).toBe(true)
 })
