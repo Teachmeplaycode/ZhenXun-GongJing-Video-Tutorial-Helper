@@ -12,6 +12,13 @@ from fastapi.responses import HTMLResponse, Response
 from . import build_markdown, build_print_html, build_zip
 
 
+def public_base(request: Request) -> str:
+    """Where the page's pictures load from: PUBLIC_URL behind a path (linyi.work/ZhenXun), else this server."""
+    import os
+
+    return os.environ.get("PUBLIC_URL", "").strip().rstrip("/") or str(request.base_url).rstrip("/")
+
+
 def create_router(*, store, get_job, data_dir):
     router = APIRouter()
 
@@ -35,7 +42,7 @@ def create_router(*, store, get_job, data_dir):
         video, slots = json.loads(record["video"]), json.loads(record["slots"])
         if format == "pdf":
             page = build_print_html(video, record["task"], messages, job.snapshot()["slots"], session_id,
-                                    str(request.base_url).rstrip("/"), selected, data_dir=data_dir)
+                                    public_base(request), selected, data_dir=data_dir)
             return HTMLResponse(page)
         markdown, refs = build_markdown(video, record["task"], messages, slots, session_id, data_dir, selected)
         return Response(build_zip(markdown, refs), media_type="application/zip", headers={
