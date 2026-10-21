@@ -501,6 +501,9 @@ img { display: block; }
 .browser__entries { margin: 0; padding: 0 var(--sp-12) var(--sp-8) var(--sp-32); font-family: var(--font-mono); font-size: var(--fs-mono-sm); color: var(--text-secondary); }
 .browser__entries span { color: var(--text-primary); }
 .overlay { position: fixed; inset: 0; z-index: 100; background: color-mix(in srgb, var(--bg-inverse) 40%, transparent); display: grid; place-items: center; padding: var(--sp-48); }
+/* A dialog never grows past the screen with its content (a long link, a wide row): the column holds it. */
+.overlay { grid-template-columns: minmax(0, 1fr); }
+.overlay > * { justify-self: center; max-width: 100%; min-width: 0; }
 .browser--expanded { width: min(1280px, 100%); height: 100%; }
 .browser--expanded .browser__screen { flex: 1; height: auto; max-height: none; resize: none; }
 
