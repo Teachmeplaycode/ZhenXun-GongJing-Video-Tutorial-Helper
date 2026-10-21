@@ -132,9 +132,8 @@ export class MockApi {
     this.gate = null // when set, the next agent run waits for gate.release()
     this.linkError = null // when set, POST /api/link-jobs answers 422 with it
     this.publicDemo = false // the web demo: /api/health says public, accounts are closed
-    this.accessCode = null // the web demo's code; when set, /api/health says one is needed until it's entered
-    this.accessGranted = false
-    this.member = null // { name } once signed in
+    this.member = null // { name, questions, imports } once signed in
+    this.oauth = [] // sign-in providers the server offers
     this.frames = 8
     this.cuts = [30, 75] // shot changes the mock reports
     // How cited moments can be looked at again (backend modules/playback); tests set 'original' to get a player.
@@ -226,14 +225,9 @@ export class MockApi {
     const stream = (events) => route.fulfill({ status: 200, contentType: 'text/event-stream', body: sse(events) })
 
     if (path === '/api/health') return json({ ok: true, platforms: this.publicDemo ? ['bilibili', 'local'] : ['bilibili', 'wechat_channels', 'local'], ffmpeg: true, model: 'deepseek-flash', public: this.publicDemo,
-      ...(this.publicDemo ? { access_required: Boolean(this.accessCode), access_granted: this.accessGranted || Boolean(this.member), user: this.member } : {}) })
-    if (path === '/api/access') {
-      if (body?.code !== this.accessCode) return json({ detail: '访问码不对' }, 403)
-      this.accessGranted = true
-      return json({ ok: true })
-    }
+      ...(this.publicDemo ? { user: this.member, oauth: this.oauth } : {}) })
     if (path === '/api/auth/register' || path === '/api/auth/login') {
-      this.member = { name: body.name }
+      this.member = { name: body.name, plan: 'free', label: '免费', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 3 } }
       return json({ ok: true, user: this.member })
     }
     if (path === '/api/auth/logout') { this.member = null; return json({ ok: true }) }

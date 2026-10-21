@@ -92,12 +92,10 @@ async def visitor(request: Request, call_next):
     if fresh:
         who = visitors.new()
     token = visitors.current.set(who)
-    access = members.granted.set(member_service.has_access(request, who))
     try:
-        response = member_service.gate(request) or await call_next(request)
+        response = await call_next(request)
     finally:
         visitors.current.reset(token)
-        members.granted.reset(access)
     signed_in = any(c.startswith(f"{visitors.COOKIE}=") for c in response.headers.getlist("set-cookie"))
     if fresh and not signed_in:  # signing in or out sets the id itself
         response.set_cookie(visitors.COOKIE, visitors.sign(who, key), max_age=visitors.MAX_AGE, path=visitors.cookie_path(),
@@ -362,8 +360,10 @@ async def create_link_job(body: LinkRequest):
     try:
         if visitors.enabled():  # refused before the link is fetched with the owner's logins
             visitors.check_platform(registry.find(extract_url(body.url)).platform)
+            member_service.require("imports")
         resolver, video = await registry.resolve(body.url, body.part)
         visitors.check_platform(video.platform)
+        member_service.charge("imports")  # counted once the link resolves: a typo costs nothing
     except ResolveError as exc:
         log.event("link.resolve", ok=False, url=body.url[:200], code=exc.code, message=exc.message, ms=timer.ms)
         raise
@@ -425,6 +425,7 @@ IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
 async def upload_images(files: list[UploadFile] = File(...), task: str = Form("")):
     """Upload pictures (screenshots, a saved image post): they become an image job, kept on disk."""
     visitors.check_platform(LOCAL)
+    member_service.charge("imports")
     prune()
     if not files or len(files) > images.MAX_IMAGES:
         raise HTTPException(422, f"一次上传 1 到 {images.MAX_IMAGES} 张图片")
@@ -466,6 +467,7 @@ async def upload_images(files: list[UploadFile] = File(...), task: str = Form(""
 async def upload_video(file: UploadFile = File(...), task: str = Form(""), sampling_spec: str = Form("", alias="sampling")):
     """Upload a local video: it then runs exactly like a link job (frames + transcript, then deleted)."""
     visitors.check_platform(LOCAL)
+    member_service.charge("imports")
     prune()
     name = Path(file.filename or "").name or "上传的视频"
     job_id = uuid.uuid4().hex[:12]
@@ -774,6 +776,11 @@ async def agent_run(body: AgentRequest):
         job = find_job(body.video_id)
         if job is None:
             yield sse({"type": "run.error", "run_id": run_id, "code": "job_not_found", "message": "这个会话已被删除，请重新解析链接"})
+            return
+        try:
+            member_service.charge("questions")
+        except HTTPException as exc:  # signed out, or today's questions used up
+            yield sse({"type": "run.error", "run_id": run_id, **exc.detail})
             return
         try:
             client = get_llm()
