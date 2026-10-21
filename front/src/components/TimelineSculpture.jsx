@@ -41,7 +41,7 @@ const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).t
 // replays it now or attaches it to the next question; busy disables 'play' while an answer runs.
 // open / onOpenChange: the track can fold away to give the chat more height; `pulse` (a changing
 // number) flashes the head to show where frames are picked.
-export default function TimelineSculpture({ frames, pictures = false, extras = [], onClearExtras = null, cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
+export default function TimelineSculpture({ frames, pictures = false, extras = [], onClearExtras = null, onPick = null, cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
   const trackRef = useRef(null)
   const sectionRef = useRef(null)
   const deckRef = useRef(null)
@@ -322,6 +322,7 @@ export default function TimelineSculpture({ frames, pictures = false, extras = [
             {typing ? <IntervalForm duration={duration} busy={busy} onRange={onRange} onClose={() => setTyping(false)} /> : null}
           </span>
         ) : null}
+        {onPick ? <button type="button" className="link-btn timeline__pick" onClick={onPick}>大图选帧</button> : null}
         <span className="timeline__spacer" />
         {selected.length ? (
           <>
