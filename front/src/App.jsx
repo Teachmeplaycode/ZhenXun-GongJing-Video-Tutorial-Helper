@@ -443,7 +443,7 @@ export default function App() {
 
   const start = useCallback(async ({ file, task, link, images = null, sampling = null }) => {
     if (publicDemo && member && !member.user) { // the web demo: importing needs an account
-      setMemberDialog({ mode: 'register', reason: '登录后才能导入视频和提问。注册一个账号，每天可免费导入 3 个视频、提问 10 次。' })
+      setMemberDialog({ mode: 'register', reason: '登录后才能导入视频和提问。可以直接点「游客体验」试用，或注册一个账号。' })
       return
     }
     abortRef.current?.abort()
@@ -874,7 +874,7 @@ export default function App() {
         <GuideDialog signedIn={!publicDemo || Boolean(member?.user)} onClose={closeGuide}
           onStart={() => {
             closeGuide()
-            if (publicDemo && !member?.user) setMemberDialog({ mode: 'register', reason: '注册一个账号就能开始：每天可免费导入 3 个视频、提问 10 次。' })
+            if (publicDemo && !member?.user) setMemberDialog({ mode: 'register', reason: '点「游客体验」马上试用，或注册一个账号。' })
           }} />
       ) : null}
       {docsOpen ? <DocsDialog onClose={() => setDocsOpen(false)} onGuide={() => { setDocsOpen(false); setGuideOpen(true) }} /> : null}

@@ -237,3 +237,27 @@ def test_each_account_links_its_own_bilibili_login(api, monkeypatch):
     bob.get("/api/test-cookie")
     assert seen["cookie"] == ""  # neither alice's nor the server's
     assert alice.delete("/api/accounts/bilibili").json()["configured"] is False
+
+
+def test_a_guest_tries_it_with_one_click_and_a_small_allowance(api, monkeypatch):
+    app, _ = api
+    monkeypatch.setattr(app.member_service, "guests", __import__("collections").defaultdict(list))
+    guest = TestClient(app.app)
+    r = guest.post("/api/auth/guest")
+    assert r.status_code == 200 and r.json()["user"]["name"].startswith("游客")
+    me = guest.get("/api/health").json()["user"]
+    assert me["plan"] == "guest" and me["imports"]["limit"] == 5 and me["uploads"]["limit"] == 1
+    assert guest.post("/api/auth/guest").json()["user"]["name"] == me["name"]  # the same guest again, not a new one
+
+    files = {"file": ("a.mp4", b"not really a video", "video/mp4")}
+    monkeypatch.setattr(app, "resolve_file", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("stop")))
+    try:
+        guest.post("/api/videos", files=files)
+    except RuntimeError:
+        pass
+    r = guest.post("/api/videos", files=files)
+    assert r.status_code == 429 and "上传文件" in r.json()["detail"]["message"]
+
+    for _ in range(2):  # two more guests from this address today, then no more
+        assert TestClient(app.app).post("/api/auth/guest").status_code == 200
+    assert TestClient(app.app).post("/api/auth/guest").status_code == 429

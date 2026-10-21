@@ -430,7 +430,7 @@ IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
 async def upload_images(files: list[UploadFile] = File(...), task: str = Form("")):
     """Upload pictures (screenshots, a saved image post): they become an image job, kept on disk."""
     visitors.check_platform(LOCAL)
-    member_service.charge("imports")
+    member_service.charge("uploads")
     prune()
     if not files or len(files) > images.MAX_IMAGES:
         raise HTTPException(422, f"一次上传 1 到 {images.MAX_IMAGES} 张图片")
@@ -472,7 +472,7 @@ async def upload_images(files: list[UploadFile] = File(...), task: str = Form(""
 async def upload_video(file: UploadFile = File(...), task: str = Form(""), sampling_spec: str = Form("", alias="sampling")):
     """Upload a local video: it then runs exactly like a link job (frames + transcript, then deleted)."""
     visitors.check_platform(LOCAL)
-    member_service.charge("imports")
+    member_service.charge("uploads")
     prune()
     name = Path(file.filename or "").name or "上传的视频"
     job_id = uuid.uuid4().hex[:12]

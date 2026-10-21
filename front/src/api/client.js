@@ -228,6 +228,8 @@ const postJson = (path, body) => linkRequest(path, { method: 'POST', headers: { 
 export const signUp = (name, password) => postJson('/api/auth/register', { name, password })
 export const signIn = (name, password) => postJson('/api/auth/login', { name, password })
 export const signOut = () => postJson('/api/auth/logout', {})
+/** A one-click guest account (a small daily allowance, kept by this browser only). */
+export const startGuest = () => postJson('/api/auth/guest', {})
 /** Full-page link to sign in with GitHub or Google (the backend redirects back to the app). */
 export const oauthUrl = (provider) => `${LINK_BASE}/api/auth/${provider}/start`
 
