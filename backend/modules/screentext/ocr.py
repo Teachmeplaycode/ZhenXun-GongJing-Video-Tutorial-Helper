@@ -5,6 +5,8 @@ confidence 1.0; stylized captions ("失败 X5") at 0.3–0.5, sometimes with a w
 """
 from __future__ import annotations
 
+import os
+
 import sys
 from dataclasses import dataclass
 from functools import lru_cache
@@ -48,7 +50,81 @@ def available() -> bool:
 def _rapid_engine():
     from rapidocr_onnxruntime import RapidOCR
 
-    return RapidOCR(intra_op_num_threads=2, inter_op_num_threads=1)
+    threads = int(os.environ.get("OCR_THREADS", "3"))
+    return RapidOCR(intra_op_num_threads=threads, inter_op_num_threads=1)
+
+
+SAME_BOX = 4      # px (in the detector's image): a box this close to one in the frame before is "the same place"
+SAME_PIXELS = 6   # pixels of a box's crop that may differ by more than LEVEL grey levels and still be "unchanged"
+LEVEL = 40
+
+
+class _RapidReader:
+    """RapidOCR for one video, frame after frame: boxes that sit where they sat in the frame before
+    and whose pixels haven't changed (menus, toolbars, a caption that stays up) keep their text
+    instead of being recognised again. Recognition is about two thirds of the time on a screen
+    recording; detection still runs on every frame, so new and moved text is always found."""
+
+    def __init__(self):
+        self.engine = _rapid_engine()
+        self.last: list[tuple] = []  # (box corners, grey crop, text, score) of the frame before
+        self.reused = self.read = 0
+
+    def _same(self, box, grey):
+        for old_box, old_grey, text, score in self.last:
+            if old_grey.shape == grey.shape and abs(old_box - box).max() <= SAME_BOX:
+                import cv2
+                import numpy as np
+
+                if int(np.count_nonzero(cv2.absdiff(old_grey, grey) > LEVEL)) <= SAME_PIXELS:
+                    return text, score
+        return None
+
+    def __call__(self, path: str) -> list[Line]:
+        import cv2
+
+        e = self.engine
+        image = cv2.imread(path)
+        if image is None:
+            return []
+        raw_h, raw_w = image.shape[:2]
+        img, ratio_h, ratio_w = e.preprocess(image)
+        record = {"preprocess": {"ratio_h": ratio_h, "ratio_w": ratio_w}}
+        img, record = e.maybe_add_letterbox(img, record)
+        boxes, _ = e.auto_text_det(img)
+        if boxes is None or len(boxes) == 0:
+            self.last = []
+            return []
+        crops = e.get_crop_img_list(img, boxes)
+        greys = [cv2.cvtColor(c, cv2.COLOR_BGR2GRAY) for c in crops]
+        results: list = [self._same(b, g) for b, g in zip(boxes, greys)]
+        todo = [i for i, r in enumerate(results) if r is None]
+        if todo:
+            fresh, _ = e.text_rec([crops[i] for i in todo])
+            for i, (text, score, *_rest) in zip(todo, fresh):
+                results[i] = (text, score)
+        self.reused += len(boxes) - len(todo)
+        self.read += len(todo)
+        self.last = [(b, g, t, s) for b, g, (t, s) in zip(boxes, greys, results)]
+        points = e._get_origin_points(boxes, record, raw_h, raw_w)
+        lines = []
+        for corners, (text, score) in zip(points, results):
+            if not text or score < e.text_score:
+                continue
+            xs, ys = [p[0] for p in corners], [p[1] for p in corners]
+            x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+            lines.append(Line(str(text), float(score), x0 / raw_w, y0 / raw_h, (x1 - x0) / raw_w, (y1 - y0) / raw_h))
+        return lines
+
+
+def recognizer():
+    """A reader for one video's frames in order: RapidOCR with its box cache, or Vision as is."""
+    if backend_name() == "rapidocr":
+        engine = _rapid_engine()
+        if all(hasattr(engine, n) for n in ("preprocess", "maybe_add_letterbox", "auto_text_det",
+                                             "get_crop_img_list", "text_rec", "_get_origin_points")):
+            return _RapidReader()
+    return recognize
 
 
 def _rapid_recognize(path: str) -> list[Line]:
