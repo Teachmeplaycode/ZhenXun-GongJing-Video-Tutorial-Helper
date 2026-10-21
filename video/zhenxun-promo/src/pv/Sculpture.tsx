@@ -119,7 +119,7 @@ const Slats: React.FC<{time: number; pose: (i: number, u: number) => SlatPose; s
       _s.multiplyScalar(p.size ?? 1);
       _m.compose(_p, _q, _s);
       m.setMatrixAt(i, _m);
-      m.setColorAt(i, color.set(p.color ?? '#F5F3EF'));
+      m.setColorAt(i, color.set(p.color ?? '#F0EDE8')); // --sculpture-light
     });
     m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -143,9 +143,10 @@ export const Sculpture: React.FC<{pose?: (i: number, u: number) => SlatPose; spi
   return (
     <ThreeCanvas width={width} height={height} style={{position: 'absolute', inset: 0, ...style}} camera={{fov: 22, position: [0, 0, 64], near: 1, far: 400}}
       gl={{alpha: true, antialias: true}}>
-      <hemisphereLight args={['#ffffff', '#3A3F2C', 1.4]} />
-      <directionalLight position={[-14, 22, 18]} intensity={1.6} />
-      <directionalLight position={[16, -6, -12]} intensity={0.6} />
+      {/* the site's light field: hemisphere fill, a broad key, a low rim */}
+      <hemisphereLight args={['#ffffff', '#D8D4CE', 1.6]} />
+      <directionalLight position={[-14, 22, 18]} intensity={1.5} />
+      <directionalLight position={[16, -6, -12]} intensity={0.55} />
       <group position={[x, y, 0]} scale={scale}>
         <Slats time={time} pose={pose} spin={spin} />
       </group>

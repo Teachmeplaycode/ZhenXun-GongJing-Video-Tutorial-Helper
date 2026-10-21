@@ -1,25 +1,25 @@
 import React from 'react';
-import {AbsoluteFill, Audio, interpolate, staticFile, useVideoConfig} from 'remotion';
+import {AbsoluteFill} from 'remotion';
 import {TransitionSeries} from '@remotion/transitions';
 import {Hud} from './Hud';
 import {BG} from './kit';
-import {greetingZhen, OPENING} from './Opening';
+import {BOOT_SUMMIT, OPENING} from './Opening';
 import {Pipeline} from './Pipeline';
 import {LAST_CLICK, REST, versusX} from './Rest';
 import {reveal, timing} from './transitions';
 
-// The whole film: sixty seconds at 60 fps, cut to a 128 BPM grid (a bar is 112.5 frames) so the
-// music's downbeats land on the cuts. The first 600 frames are the opening, which ends on the name
+// The whole film: sixty seconds at 60 fps, cut to a 128 BPM grid (a bar is 112.5 frames), which
+// keeps the cuts on a steady pulse (and on the beat, if music is laid under it later). The first 600 frames are the opening, which ends on the name
 // and is also cut into the deck on its own.
 export const BPM = 128;
 export const BAR = (60 / BPM) * 4 * 60; // frames
-const {Greeting, Stream, NameWall} = OPENING;
+const {Boot, Stream, NameWall} = OPENING;
 const {Evidence, Clicks, Screenshot, Giant, Burst, Versus, Speed, Snake, Wall, Finale} = REST;
 
 type Via = Parameters<typeof reveal>[0];
 /** Each scene, and when the next one is fully in (in bars), and how it arrives (none: a match cut). */
 const PLAN: {scene: React.FC; until: number; via?: Via; over?: number}[] = [
-  {scene: Greeting, until: 1.5, via: {kind: 'zoom', at: greetingZhen}, over: 24},
+  {scene: Boot, until: 1.5, via: {kind: 'zoom', ...BOOT_SUMMIT}, over: 24},
   {scene: Stream, until: 2.5, via: {kind: 'slashes', angle: 24}, over: 24},
   {scene: NameWall, until: 600 / BAR}, // the title lands on bar 4; the opening ends at 10 s
   {scene: Evidence, until: 7.5, via: {kind: 'blocks', seed: 1}, over: 30},
@@ -54,16 +54,8 @@ const steps = () => {
   });
 };
 
-/** The score (music/score.js, rendered by music/render.mjs), cut to the same bars; faded out at
- *  the end of whatever is being rendered (the ten-second opening ends mid-phrase). */
-const Music: React.FC = () => {
-  const {durationInFrames} = useVideoConfig();
-  return <Audio src={staticFile('music/zhenxun-pv.wav')} volume={(f) => 0.5 * interpolate(f, [durationInFrames - 40, durationInFrames - 2], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})} />;
-};
-
 export const PV: React.FC = () => (
   <AbsoluteFill style={{background: BG}}>
-    <Music />
     <TransitionSeries>
       {steps().flatMap((s, i) => [
         <TransitionSeries.Sequence key={`s${i}`} durationInFrames={s.frames}><s.scene /></TransitionSeries.Sequence>,
