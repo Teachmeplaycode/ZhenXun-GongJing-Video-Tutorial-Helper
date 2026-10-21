@@ -190,7 +190,9 @@ export default function App() {
   // The chat's timeline can fold away for a taller chat; remembered across visits.
   const [timelineOpen, setTimelineOpenState] = useState(() => {
     try {
-      return localStorage.getItem('timeline.open') !== '0'
+      const saved = localStorage.getItem('timeline.open')
+      if (saved == null) return !window.matchMedia?.('(max-width: 640px)').matches // phones start with it folded
+      return saved !== '0'
     } catch {
       return true
     }

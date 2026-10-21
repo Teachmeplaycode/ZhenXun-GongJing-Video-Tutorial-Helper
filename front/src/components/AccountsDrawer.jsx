@@ -18,7 +18,11 @@ function statusOf(a) {
   return { tone: 'ok', text: `已登录${who}` }
 }
 
-function QrLogin({ account, onDone }) {
+// On a phone the QR is on the very screen that would scan it: B 站 can open its own confirmation page
+// in the B 站 App instead; for WeChat (元宝) the way is to save the QR and pick it in 扫一扫's album.
+const onPhone = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: none) and (max-width: 900px)').matches)
+
+function QrLogin({ account, onDone, mine = false }) {
   const [login, setLogin] = useState(null)
   const [error, setError] = useState('')
   const [left, setLeft] = useState(0)
@@ -92,7 +96,13 @@ function QrLogin({ account, onDone }) {
         </p>
         {!over && state !== 'done' ? <p className="mono-sm muted">{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')} 后过期</p> : null}
         {over ? <button type="button" className="btn btn--ghost" onClick={begin}><IconRefresh size={14} /> 换一个二维码</button> : null}
-        <p className="mono-sm muted">只保存在本机的 backend/.env.accounts，不会显示或上传。</p>
+        {onPhone() && !over && state !== 'done' && account.id === 'bilibili' && login.link ? (
+          <a className="btn btn--dark qr-login__app" href={`bilibili://browser?url=${encodeURIComponent(login.link)}`}>在 B 站 App 里确认</a>
+        ) : null}
+        {onPhone() && !over && state !== 'done' && account.id === 'yuanbao' ? (
+          <p className="qr-login__phone">在这台手机上：长按二维码存到相册，打开微信「扫一扫」，点右上角的相册图标选中它，再确认登录。</p>
+        ) : null}
+        <p className="mono-sm muted">{mine ? '登录凭证加密保存在你的帧寻账号里，只用于你自己导入的视频。' : '只保存在本机的 backend/.env.accounts，不会显示或上传。'}</p>
       </div>
     </div>
   )
@@ -153,7 +163,7 @@ function AccountCard({ account, onChange, mine = false }) {
           {account.expires ? ` · ${day(account.expires)} 到期` : ''}
         </p>
       ) : null}
-      {mode === 'qr' ? <QrLogin account={account} onDone={done} /> : null}
+      {mode === 'qr' ? <QrLogin account={account} onDone={done} mine={mine} /> : null}
       {mode === 'paste' ? <Paste account={account} onDone={done} /> : null}
       {error ? <p className="field-error" role="alert">{error}</p> : null}
       <div className="account-card__actions">
