@@ -6,14 +6,25 @@ import {loadFont as loadDisplay} from '@remotion/google-fonts/Unbounded';
 import {loadFont as loadConsole} from '@remotion/google-fonts/VT323';
 import {loadFont as loadSilk} from '@remotion/google-fonts/Silkscreen';
 
-// The PV's kit: colours (帧寻's lime; the site's 画面 blue; white on near-black), fonts, and the
-// primitives every scene is made of. Everything is drawn from the frame number (no CSS animation),
-// so a frame always renders the same.
-export const BG = '#0B0C09';
-export const LIME = '#C8F04A';
-export const BLUE = '#3B6EFF';
-export const WHITE = '#F5F3EF';
-export const DIM = '#3A3F2C';
+// The PV's kit: the site's day theme (front/src/styles/tokens.css: paper, ink, lime), fonts, and
+// the primitives every scene is made of. Everything is drawn from the frame number (no CSS
+// animation), so a frame always renders the same.
+export const PAPER = '#F5F3EF'; // --bg-canvas
+export const SURFACE = '#FFFFFF'; // --bg-surface
+export const INK = '#1A1A1A'; // --text-primary
+export const INK2 = '#6B6B6B'; // --text-secondary
+export const INK3 = '#9B9B9B'; // --text-tertiary
+export const LINE = '#E0DDD8'; // --border-default
+export const LINE2 = '#C8C4BD'; // --border-strong
+export const SHADE = '#D8D4CE'; // --sculpture-shadow
+export const LIME = '#C8F04A'; // --accent-active
+export const LIME_DIM = '#A8CC3A'; // --accent-active-dim
+export const AMBER = '#F5A623'; // --accent-processing (the contour loader's pen)
+// older names, kept so the scenes read the same: the ground, the foreground, a second ink, faint marks
+export const BG = PAPER;
+export const WHITE = INK;
+export const BLUE = INK;
+export const DIM = LINE2;
 
 export const MONO = `${loadMono('normal', {weights: ['500', '700', '800']}).fontFamily}, Menlo, monospace`;
 export const SC = `${loadSC('normal', {weights: ['500', '900']}).fontFamily}, "PingFang SC", sans-serif`;
@@ -119,7 +130,7 @@ export const Glyphs: React.FC<{count?: number; seed?: number; opacity?: number}>
         const spin = (r(7) < 0.5 ? -1 : 1) * (40 + r(8) * 140); // degrees a second
         const drift = Math.sin(frame / 60 * (0.6 + r(9)) + r(10) * 6) * 14;
         const blink = hash(i, seed, Math.floor(frame / 9)) < 0.08 ? 0.25 : 1;
-        const color = [LIME, BLUE, WHITE][Math.floor(r(11) * 3)];
+        const color = [INK, LIME_DIM, INK3][Math.floor(r(11) * 3)];
         return (
           <div key={i} style={{position: 'absolute', left: x, top: y + drift, fontFamily: MONO, fontWeight: 800, fontSize: size,
             color, opacity: opacity * blink, transform: `rotate(${(frame / 60) * spin + r(12) * 360}deg)`, lineHeight: 1}}>
@@ -131,7 +142,7 @@ export const Glyphs: React.FC<{count?: number; seed?: number; opacity?: number}>
   );
 };
 
-/** A white pixel arrow (or a pointing hand) made of squares, like the reference's cursors. */
+/** An ink pixel arrow (or a pointing hand) made of squares, outlined in paper. */
 export const PixelCursor: React.FC<{x: number; y: number; hand?: boolean; size?: number; press?: number}> = ({x, y, hand = false, size = 5, press = 0}) => {
   const arrow = ['X', 'XX', 'X.X', 'X..X', 'X...X', 'X....X', 'X.....X', 'X..XXXX', 'X.X', 'XX', 'X'];
   const glove = ['...XX', '...X.X', '...X.X', '...X.XXX', 'XX.X.X.XX', 'X.XX.....X', 'X..X.....X', '.X.......X', '..X......X', '...X....X', '....XXXXX'];
@@ -139,15 +150,15 @@ export const PixelCursor: React.FC<{x: number; y: number; hand?: boolean; size?:
   return (
     <svg style={{position: 'absolute', left: x, top: y, transform: `scale(${1 - press * 0.15})`, transformOrigin: '0 0', overflow: 'visible'}}
       width={12 * size} height={12 * size}>
-      {map.flatMap((row, r) => Array.from(row).map((ch, c) => (ch === 'X' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={WHITE} />
-        : ch === '.' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={BG} /> : null)))}
+      {map.flatMap((row, r) => Array.from(row).map((ch, c) => (ch === 'X' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={INK} />
+        : ch === '.' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={PAPER} /> : null)))}
     </svg>
   );
 };
 
 /** Text typed in at `cps` characters a second from frame `at`, a block caret after it while typing,
  *  a key sound on every character. */
-export const Typed: React.FC<{text: string; at: number; cps?: number; style?: React.CSSProperties; caret?: string; sound?: boolean}> = ({text, at, cps = 30, style, caret = LIME, sound = true}) => {
+export const Typed: React.FC<{text: string; at: number; cps?: number; style?: React.CSSProperties; caret?: string; sound?: boolean}> = ({text, at, cps = 30, style, caret = LIME_DIM, sound = true}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const n = Math.max(0, Math.floor(((frame - at) / fps) * cps));
@@ -166,7 +177,43 @@ export const Typed: React.FC<{text: string; at: number; cps?: number; style?: Re
   );
 };
 
-export const Fill: React.FC<{children?: React.ReactNode}> = ({children}) => <AbsoluteFill style={{background: BG, overflow: 'hidden'}}>{children}</AbsoluteFill>;
+export const Fill: React.FC<{children?: React.ReactNode; grid?: boolean}> = ({children, grid = true}) => (
+  <AbsoluteFill style={{background: PAPER, overflow: 'hidden'}}>
+    {grid ? <Paper /> : null}
+    {children}
+  </AbsoluteFill>
+);
+
+/** The ground: a faint dot grid with a + at every fourth crossing, like a survey sheet. */
+export const Paper: React.FC = () => {
+  const {width, height} = useVideoConfig();
+  return (
+    <svg width={width} height={height} style={{position: 'absolute', inset: 0}}>
+      <defs>
+        <pattern id="zx-dots" width={40} height={40} patternUnits="userSpaceOnUse"><circle cx={1} cy={1} r={1.3} fill={LINE2} /></pattern>
+        <pattern id="zx-cross" width={160} height={160} patternUnits="userSpaceOnUse"><path d="M-7 0H7M0 -7V7M153 0H167M160 -7V7M-7 160H7M0 153V167M153 160H167M160 153V167" stroke={INK3} strokeWidth={1.4} /></pattern>
+      </defs>
+      <rect width={width} height={height} fill="url(#zx-dots)" opacity={0.7} />
+      <rect width={width} height={height} fill="url(#zx-cross)" opacity={0.55} />
+    </svg>
+  );
+};
+
+/** A big index numeral in outline (ink stroke, no fill), the section marker of the UI. */
+export const Index: React.FC<{n: string; size?: number; style?: React.CSSProperties}> = ({n, size = 220, style}) => (
+  <span style={{fontFamily: DISPLAY, fontWeight: 900, fontSize: size, lineHeight: 0.8, color: 'transparent', WebkitTextStroke: `2px ${INK}`, letterSpacing: -6, ...style}}>{n}</span>
+);
+
+/** A hairline that draws on from its start (0 → 1). */
+export const Rule: React.FC<{x: number; y: number; w: number; k: number; color?: string; thick?: number; vertical?: boolean}> = ({x, y, w, k, color = INK, thick = 2, vertical = false}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: vertical ? thick : w * clamp01(k), height: vertical ? w * clamp01(k) : thick, background: color}} />
+);
+
+/** Diagonal stripes in a strip: the PV's one hazard-tape accent (lime and ink), used sparingly. */
+export const Hatch: React.FC<{x: number; y: number; w: number; h: number; k?: number; shift?: number}> = ({x, y, w, h, k = 1, shift = 0}) => (
+  <div style={{position: 'absolute', left: x, top: y, width: w * clamp01(k), height: h, overflow: 'hidden',
+    background: `repeating-linear-gradient(-45deg, ${INK} 0 6px, transparent 6px 14px)`, backgroundPosition: `${shift}px 0`, opacity: 0.85}} />
+);
 
 /** Width of `text` in a CSS font (e.g. `900 260px ${SC}`), measured now — call it while rendering a
  *  frame, after the fonts have loaded, so centred layouts come out centred. */
@@ -175,4 +222,25 @@ export const textWidth = (text: string, font: string, letterSpacing = 0) => {
   const ctx = document.createElement('canvas').getContext('2d')!;
   ctx.font = font;
   return ctx.measureText(text).width + letterSpacing * Array.from(text).length;
+};
+
+/** A section header in the UI's manner: an outline index numeral, a title, a hairline drawing on
+ *  under them and a small second line. No box. */
+export const Head: React.FC<{n: string; title: string; sub?: string; at?: number; x?: number; y?: number}> = ({n, title, sub, at = 0, x = 96, y = 82}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const k = pop(frame, at, fps, 200);
+  return (
+    <>
+      <div style={{position: 'absolute', left: x, top: y, display: 'flex', alignItems: 'flex-end', gap: 22, transform: `translateX(${(1 - k) * -60}px)`, opacity: clamp01(k * 2)}}>
+        <Index n={n} size={132} />
+        <div style={{display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 4}}>
+          <span style={{fontFamily: PIXEL, fontSize: 48, color: INK}}>{title}</span>
+          {sub ? <span style={{fontFamily: CONSOLE, fontSize: 32, color: INK2}}>{sub}</span> : null}
+        </div>
+      </div>
+      <Rule x={x} y={y + 128} w={460} k={easeOut((frame - at - 4) / 22)} />
+      <Rule x={x + 470} y={y + 124} w={10} k={frame > at + 20 ? 1 : 0} thick={10} color={LIME} />
+    </>
+  );
 };
