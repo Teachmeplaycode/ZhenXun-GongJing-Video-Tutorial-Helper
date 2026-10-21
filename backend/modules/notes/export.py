@@ -67,8 +67,8 @@ def reading_order(blocks: list[dict]) -> list[dict]:
     return [b for row in rows for b in sorted(row, key=lambda b: float(b.get("x", 0)))]
 
 
-def to_zip(note: dict, board: dict | None, picture: Callable[[str], Path | None]) -> tuple[bytes, str]:
-    """(zip bytes, title). `picture(src)` gives the file behind a picture address, or None."""
+def to_markdown(note: dict, board: dict | None, picture: Callable[[str], Path | None]) -> tuple[str, dict[str, Path], str]:
+    """(markdown, {image name: file} referenced as images/<name>, title)."""
     blocks = reading_order(board["blocks"]) if board and board.get("blocks") else note_blocks(note)
     lines: list[str] = []
     files: dict[str, Path] = {}
@@ -95,9 +95,45 @@ def to_zip(note: dict, board: dict | None, picture: Callable[[str], Path | None]
     video = note.get("video") or {}
     if video.get("title"):
         lines += ["---", f"来源视频：{video['title']}", ""]
+    return "\n".join(lines).rstrip() + "\n", files, note.get("title") or "视频笔记"
+
+
+def to_zip(note: dict, board: dict | None, picture: Callable[[str], Path | None]) -> tuple[bytes, str]:
+    """(zip bytes, title). `picture(src)` gives the file behind a picture address, or None."""
+    markdown, files, title = to_markdown(note, board, picture)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("笔记.md", "\n".join(lines).rstrip() + "\n")
+        z.writestr("笔记.md", markdown)
         for name, path in files.items():
             z.write(path, f"images/{name}")
-    return buf.getvalue(), note.get("title") or "视频笔记"
+    return buf.getvalue(), title
+
+
+PREVIEW_STYLE = """
+body { margin: 0; padding: 28px 32px 48px; background: #fff; color: #1a1a1a; font: 15px/1.8 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+main { max-width: 760px; margin: 0 auto; }
+h1 { font-size: 26px; line-height: 1.3; margin: 0 0 12px; } h2 { font-size: 19px; margin: 28px 0 8px; } h3 { font-size: 16px; }
+blockquote { margin: 0 0 16px; padding: 8px 14px; border-left: 3px solid #c8f04a; background: #f7f6f2; color: #555; }
+img { display: block; max-width: 100%; border-radius: 6px; margin: 8px 0 2px; }
+img + em, p > em:only-child { color: #777; font-size: 13px; }
+code { background: #f2f1ed; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+hr { border: 0; border-top: 1px solid #e3e1db; margin: 28px 0 12px; }
+li { margin: 2px 0; }
+@media (max-width: 600px) { body { padding: 18px 16px 32px; } }
+"""
+
+
+def to_preview_html(note: dict, board: dict | None, picture: Callable[[str], Path | None]) -> str:
+    """The note as the exported Markdown would read, as one self-contained page (pictures inlined)."""
+    import base64
+    import html as html_lib
+
+    from markdown_it import MarkdownIt
+
+    markdown, files, title = to_markdown(note, board, picture)
+    for name, path in files.items():
+        data = base64.b64encode(path.read_bytes()).decode()
+        markdown = markdown.replace(f"(images/{name})", f"(data:image/jpeg;base64,{data})")
+    body = MarkdownIt("commonmark", {"html": False}).enable("table").render(markdown)
+    return (f"<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+            f"<title>{html_lib.escape(title)}</title><style>{PREVIEW_STYLE}</style></head><body><main>{body}</main></body></html>")

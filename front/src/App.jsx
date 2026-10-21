@@ -8,7 +8,9 @@ import AccountsDrawer from './components/AccountsDrawer'
 import MemberDialog from './components/MemberDialog'
 import GuideDialog from './components/GuideDialog'
 import DocsDialog from './components/DocsDialog'
-import { IconBook, IconHistory, IconLink, IconTheme, IconUser } from './components/Icons'
+import ProfileDrawer from './components/ProfileDrawer'
+import FramePicker from './components/FramePicker'
+import { IconBook, IconHistory, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
@@ -104,6 +106,8 @@ export default function App() {
   const [memberDialog, setMemberDialog] = useState(null)
   const [guideOpen, setGuideOpen] = useState(false) // the mascot's walkthrough; opens by itself on a first visit to the web demo
   const [docsOpen, setDocsOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false) // phones pick frames in a big grid (components/FramePicker.jsx)
+  const [profileOpen, setProfileOpen] = useState(false) // 我的: the signed-in person's allowance, logins and sign-out
   const closeGuide = useCallback(() => {
     setGuideOpen(false)
     try { localStorage.setItem(GUIDE_SEEN, '1') } catch { /* private mode: it shows again next time */ }
@@ -137,6 +141,7 @@ export default function App() {
   }, [sourceJob, analysisDone])
   const [pictureFocus, setPictureFocus] = useState(null) // { index, key }: an answer's 「第 n 张」 shows that picture
   const [extraFrames, setExtraFrames] = useState([]) // replayed / closer-look frames from the chat, shown on the timeline
+  const [hiddenExtras, setHiddenExtras] = useState(() => new Set()) // those groups cleared off the timeline
   const [cited, setCited] = useState([]) // times the answers point at, marked on the timeline
   const [cuts, setCuts] = useState([]) // the video's shot changes, marked on the timeline
   const [chapterRevision, setChapterRevision] = useState(0)
@@ -456,7 +461,7 @@ export default function App() {
     setAnalysis(EMPTY_ANALYSIS)
     setFrames([])
     setNotice('')
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
+    setSelected([]); setExtraFrames([]); setHiddenExtras(new Set()); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
     setUploadProgress(0)
     setVideo(null)
     setImportError('')
@@ -597,7 +602,7 @@ export default function App() {
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript, screentext: saved.screentext || null })
       setNotice(saved.running ? '' : [...(v.notes || []), coverageNotice(saved.coverage)].filter(Boolean).join('；'))
       setInitialMessages(restoreMessages(saved.messages, nextFrames))
-      setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
+      setSelected([]); setExtraFrames([]); setHiddenExtras(new Set()); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
       setImportError('')
       setRetrying(false)
       setStage(v.kind === 'images' ? 'pictures' : 'chat')
@@ -640,7 +645,7 @@ export default function App() {
     setStage('idle')
     setMaskMounted(false)
     setFrames([])
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
+    setSelected([]); setExtraFrames([]); setHiddenExtras(new Set()); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
     setMeta(null)
     setVideo(null)
     setAnalysis(EMPTY_ANALYSIS)
@@ -651,10 +656,7 @@ export default function App() {
   }
 
   // Back one level behind the same pixel wipe as going forward: chat → timeline, anything else → import.
-  const goBack = () => {
-    if (stage === 'chat') wipeThrough(() => setStage('ready'))
-    else wipeThrough(() => reset({ midWipe: true }))
-  }
+  const goBack = () => wipeThrough(() => reset({ midWipe: true })) // back to the homepage, from the chat too
 
   const toggleFrame = (frame) =>
     setSelected((list) =>
@@ -702,7 +704,7 @@ export default function App() {
           if (source.state === 'original') setPlayer({ time, key: Date.now() }) // 回看原片
           else { setTimelineOpen(true); setSeek({ time, key: Date.now() }) } // 查看缓存证据
         }}
-      onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
+      onPickFrames={() => { if (mobile) setPickerOpen(true); else { setTimelineOpen(true); setTimelinePulse(Date.now()) } }}
       selected={selected}
       onClearSelection={() => setSelected([])}
       onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
@@ -760,19 +762,13 @@ export default function App() {
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
           </button>
-          {publicDemo && member?.user ? (
-            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
-              <IconLink size={14} /> 平台账号
-            </button>
-          ) : null}
           {publicDemo ? (member?.user ? (
-            <button type="button" className="btn btn--ghost btn--accounts member-chip" title="退出登录"
-              onClick={() => signOut().finally(() => window.location.reload())}>
+            <button type="button" className="btn btn--ghost btn--accounts member-chip" title="我的：额度、平台账号、退出登录"
+              onClick={() => setProfileOpen(true)} aria-haspopup="dialog">
               <IconUser size={14} /> {member.user.name}
               {member.user.questions?.limit != null ? (
                 <span className="member-chip__left">今日提问 {Math.max(0, member.user.questions.limit - member.user.questions.used)}/{member.user.questions.limit}</span>
               ) : null}
-              · 退出
             </button>
           ) : (
             <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setMemberDialog({ mode: 'login' })} aria-haspopup="dialog">
@@ -783,7 +779,7 @@ export default function App() {
               <IconUser size={14} /> 账号
             </button>
           )}
-          {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入'} /> : null}
+          {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination="首页" /> : null}
         </DockNav>
       </header>
 
@@ -872,6 +868,20 @@ export default function App() {
         </div>
       </main>
 
+      {pickerOpen && stage === 'chat' ? (
+        <FramePicker frames={frames} duration={meta?.duration} busy={chatBusy} selected={selected}
+          chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
+          onToggle={toggleFrame} onClear={() => setSelected([])} onClose={() => setPickerOpen(false)}
+          onRange={meta?.kind === 'images' ? null : (start, end, action) => {
+            if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
+            else setClip({ start, end })
+          }} />
+      ) : null}
+      <ProfileDrawer open={profileOpen && Boolean(member?.user)} user={member?.user} onClose={() => setProfileOpen(false)}
+        onAccounts={() => { setProfileOpen(false); setAccountsOpen('') }}
+        onHistory={() => { setProfileOpen(false); setHistoryOpen(true) }}
+        onRegister={() => { setProfileOpen(false); setMemberDialog({ mode: 'register', reason: '注册后，游客期间导入的视频会一起保留。' }) }}
+        onSignOut={() => signOut().finally(() => window.location.reload())} />
       {guideOpen ? (
         <GuideDialog signedIn={!publicDemo || Boolean(member?.user)} onClose={closeGuide}
           onStart={() => {
@@ -900,7 +910,8 @@ export default function App() {
       {stage === 'chat' ? (
         <TimelineSculpture
           frames={frames}
-          extras={extraFrames}
+          extras={extraFrames.filter((g) => !hiddenExtras.has(g.id))}
+          onClearExtras={(kind) => setHiddenExtras((hidden) => new Set([...hidden, ...extraFrames.filter((g) => g.kind === kind).map((g) => g.id)]))}
           cuts={cuts}
           cited={cited}
           chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
@@ -921,6 +932,7 @@ export default function App() {
           open={timelineOpen}
           onOpenChange={setTimelineOpen}
           pulse={timelinePulse}
+          onPick={meta?.kind === 'images' ? null : () => setPickerOpen(true)}
         />
       ) : null}
       <ClickSpark />

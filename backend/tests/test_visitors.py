@@ -261,3 +261,14 @@ def test_a_guest_tries_it_with_one_click_and_a_small_allowance(api, monkeypatch)
     for _ in range(2):  # two more guests from this address today, then no more
         assert TestClient(app.app).post("/api/auth/guest").status_code == 200
     assert TestClient(app.app).post("/api/auth/guest").status_code == 429
+
+
+def test_a_guest_who_signs_up_keeps_what_they_imported(api, monkeypatch):
+    app, store = api
+    monkeypatch.setattr(app.member_service, "guests", __import__("collections").defaultdict(list))
+    browser = TestClient(app.app)
+    guest = browser.post("/api/auth/guest").json()["user"]["name"]
+    gid = app.member_service.users.find(guest)["id"]
+    session(app, store, "job_g", f"u{gid}", monkeypatch)
+    assert browser.post("/api/auth/register", json={"name": "keeper", "password": "secret1"}).status_code == 200
+    assert [s["id"] for s in browser.get("/api/sessions").json()["sessions"]] == ["job_g"]

@@ -41,7 +41,7 @@ const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).t
 // replays it now or attaches it to the next question; busy disables 'play' while an answer runs.
 // open / onOpenChange: the track can fold away to give the chat more height; `pulse` (a changing
 // number) flashes the head to show where frames are picked.
-export default function TimelineSculpture({ frames, pictures = false, extras = [], cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
+export default function TimelineSculpture({ frames, pictures = false, extras = [], onClearExtras = null, onPick = null, cuts = [], cited = [], chapters = [], activeChapter = null, busy = false, onRange = null, duration, selected, onToggle, onClear, onRetry = null, retrying = false, seek = null, open = true, onOpenChange = null, pulse = 0 }) {
   const trackRef = useRef(null)
   const sectionRef = useRef(null)
   const deckRef = useRef(null)
@@ -298,7 +298,10 @@ export default function TimelineSculpture({ frames, pictures = false, extras = [
         <span className="eyebrow">TIMELINE</span>
         <span className="mono-sm muted">{pictures ? `${frames.length} 张图片` : `${frames.length} 帧 · 00:00.0 – ${fmtTime(duration)}`}</span>
         {['replay', 'view'].map((kind) => (extraCount(kind) ? (
-          <span key={kind} className="mono-sm timeline__legend" data-kind={kind}><i aria-hidden="true" />{EXTRA[kind]} {extraCount(kind)} 帧</span>
+          <span key={kind} className="mono-sm timeline__legend" data-kind={kind}><i aria-hidden="true" />{EXTRA[kind]} {extraCount(kind)} 帧
+            {onClearExtras ? <button type="button" className="link-btn timeline__legend-clear" onClick={() => onClearExtras(kind)}
+              title={`从时间轴上去掉${EXTRA[kind]}的帧（对话里的${EXTRA[kind]}结果还在）`}>清除</button> : null}
+          </span>
         ) : null))}
         {chapters.length ? <span className="mono-sm timeline__legend" data-kind="chapter"><i aria-hidden="true" />章节 {chapters.length}</span> : null}
         {cuts.length ? <span className="mono-sm timeline__legend" data-kind="cut"><i aria-hidden="true" />镜头切换 {cuts.length}</span> : null}
@@ -319,6 +322,7 @@ export default function TimelineSculpture({ frames, pictures = false, extras = [
             {typing ? <IntervalForm duration={duration} busy={busy} onRange={onRange} onClose={() => setTyping(false)} /> : null}
           </span>
         ) : null}
+        {onPick ? <button type="button" className="link-btn timeline__pick" onClick={onPick}>大图选帧</button> : null}
         <span className="timeline__spacer" />
         {selected.length ? (
           <>
