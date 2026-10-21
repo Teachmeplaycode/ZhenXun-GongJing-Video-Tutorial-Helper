@@ -120,7 +120,7 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
     }}>
       <div className="home-intro" data-exit>
         <p className="magazine-hero__gloss"><span>{BRAND.gloss}</span><span className="magazine-hero__tag">{BRAND.tag}</span></p>
-        <div className="magazine-hero__brand" aria-hidden="true"><Wordmark /></div>
+        <div className="magazine-hero__brand" aria-hidden="true"><Wordmark stacked /></div>
         <h1 className="magazine-hero__title">{WORKSPACE_CONTENT.title.map((line) => <span key={line}>{line}</span>)}</h1>
         <p className="magazine-hero__description">{WORKSPACE_CONTENT.description}</p>
       </div>
