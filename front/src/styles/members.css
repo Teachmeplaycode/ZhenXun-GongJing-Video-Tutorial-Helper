@@ -16,3 +16,7 @@
 }
 .member-dialog__switch button:hover { color: var(--text-primary); }
 .member-chip { display: inline-flex; align-items: center; gap: var(--sp-6); }
+.member-dialog__oauth { display: flex; flex-direction: column; gap: var(--sp-8); }
+.member-dialog__provider { justify-content: center; height: 36px; font-size: var(--fs-body-sm); text-decoration: none; color: var(--text-primary); }
+.member-dialog__or { align-self: center; color: var(--text-tertiary); font-size: var(--fs-caption); }
+.member-chip__left { color: var(--text-secondary); }

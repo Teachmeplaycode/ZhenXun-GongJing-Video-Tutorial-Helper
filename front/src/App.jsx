@@ -96,7 +96,7 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
   const [publicDemo, setPublicDemo] = useState(false) // the web demo: no platform logins
-  // The web demo's access code and account: { required, granted, user }; the dialog's mode when open.
+  // The web demo's account: { user, oauth }; the sign-in dialog when open: { mode, reason }.
   const [member, setMember] = useState(null)
   const [memberDialog, setMemberDialog] = useState(null)
   const [theme, themeChoice, cycleTheme] = useTheme()
@@ -108,7 +108,10 @@ export default function App() {
   useEffect(() => {
     getHealth().then((health) => {
       setPublicDemo(Boolean(health?.public))
-      if (health?.public) setMember({ required: Boolean(health.access_required), granted: Boolean(health.access_granted), user: health.user || null })
+      if (health?.public) setMember({ user: health.user || null, oauth: health.oauth || [] })
+      if (health?.public && new URLSearchParams(window.location.search).get('login') === 'failed') {
+        setMemberDialog({ mode: 'login', reason: '第三方登录没有成功，请再试一次或用用户名登录。' })
+      }
     }).catch(() => {})
   }, [])
   const sourceJob = video?.jobId
@@ -427,6 +430,10 @@ export default function App() {
   }
 
   const start = useCallback(async ({ file, task, link, images = null, sampling = null }) => {
+    if (publicDemo && member && !member.user) { // the web demo: importing needs an account
+      setMemberDialog({ mode: 'register', reason: '登录后才能导入视频和提问。注册一个账号，每天可免费导入 3 个视频、提问 10 次。' })
+      return
+    }
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -492,7 +499,7 @@ export default function App() {
     } catch (err) {
       if (!signal.aborted && err.name !== 'AbortError') setNotice(err.message)
     }
-  }, [])
+  }, [publicDemo, member])
 
   // Container refresh: pixel cells cover the workspace, `apply` swaps the content behind them at the
   // peak, then the cells release diagonally like extracted video frames. The snake mark either flies
@@ -739,10 +746,14 @@ export default function App() {
           {publicDemo ? (member?.user ? (
             <button type="button" className="btn btn--ghost btn--accounts member-chip" title="退出登录"
               onClick={() => signOut().finally(() => window.location.reload())}>
-              <IconUser size={14} /> {member.user.name} · 退出
+              <IconUser size={14} /> {member.user.name}
+              {member.user.questions?.limit != null ? (
+                <span className="member-chip__left">今日提问 {Math.max(0, member.user.questions.limit - member.user.questions.used)}/{member.user.questions.limit}</span>
+              ) : null}
+              · 退出
             </button>
           ) : (
-            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setMemberDialog('login')} aria-haspopup="dialog">
+            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setMemberDialog({ mode: 'login' })} aria-haspopup="dialog">
               <IconUser size={14} /> 登录
             </button>
           )) : (
@@ -839,10 +850,9 @@ export default function App() {
         </div>
       </main>
 
-      {member?.required && !member.granted ? (
-        <MemberDialog mode="code" gate onDone={() => window.location.reload()} />
-      ) : memberDialog ? (
-        <MemberDialog mode={memberDialog} onDone={() => window.location.reload()} onClose={() => setMemberDialog(null)} />
+      {memberDialog ? (
+        <MemberDialog mode={memberDialog.mode} reason={memberDialog.reason} oauth={member?.oauth || []}
+          onDone={() => window.location.reload()} onClose={() => setMemberDialog(null)} />
       ) : null}
       <AccountsDrawer open={!publicDemo && accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
 

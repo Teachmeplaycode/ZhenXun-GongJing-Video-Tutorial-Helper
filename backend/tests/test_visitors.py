@@ -103,47 +103,90 @@ def test_old_databases_gain_the_owner_column(tmp_path):
     assert SessionStore(tmp_path / "old.sqlite3").owner("old") == ""
 
 
-def test_the_access_code_lets_a_browser_in(api, monkeypatch):
-    app, _ = api
-    monkeypatch.setenv("ACCESS_CODES", "frame2026, other")
-    client = TestClient(app.app)
-    health = client.get("/api/health").json()
-    assert health["access_required"] and not health["access_granted"] and health["user"] is None
-    r = client.get("/api/sessions")
-    assert r.status_code == 401 and r.json()["code"] == "access_required"
-    assert client.post("/api/access", json={"code": "nope"}).status_code == 403
-    assert client.post("/api/access", json={"code": "frame2026"}).status_code == 200
-    assert client.get("/api/health").json()["access_granted"] is True
-    assert client.get("/api/sessions").status_code == 200
-
-
-def test_wrong_codes_are_limited(api, monkeypatch):
-    app, _ = api
-    monkeypatch.setenv("ACCESS_CODES", "frame2026")
-    client = TestClient(app.app)
-    codes = [client.post("/api/access", json={"code": f"x{i}"}).status_code for i in range(11)]
-    assert codes[:10] == [403] * 10 and codes[10] == 429
-
-
 def test_an_account_carries_its_sessions_to_another_browser(api, monkeypatch):
     app, store = api
-    monkeypatch.setenv("ACCESS_CODES", "frame2026")
     laptop, anon = visitor(app)
-    laptop.post("/api/access", json={"code": "frame2026"})
     session(app, store, "job_a", anon, monkeypatch)
 
     assert laptop.post("/api/auth/register", json={"name": "评委1", "password": "123"}).status_code == 422
     r = laptop.post("/api/auth/register", json={"name": "评委1", "password": "secret1"})
     assert r.status_code == 200 and r.json()["user"]["name"] == "评委1"
     assert [s["id"] for s in laptop.get("/api/sessions").json()["sessions"]] == ["job_a"]  # moved to the account
-    assert laptop.get("/api/health").json()["user"] == {"name": "评委1"}
+    me = laptop.get("/api/health").json()["user"]
+    assert me["name"] == "评委1" and me["plan"] == "free" and me["questions"] == {"used": 0, "limit": 10}
 
-    phone = TestClient(app.app)  # no access code: signing in is enough
+    phone = TestClient(app.app)
     assert phone.post("/api/auth/login", json={"name": "评委1", "password": "wrong!"}).status_code == 403
     assert phone.post("/api/auth/login", json={"name": "评委1", "password": "secret1"}).status_code == 200
     assert [s["id"] for s in phone.get("/api/sessions").json()["sessions"]] == ["job_a"]
-    assert phone.get("/api/link-jobs/job_a").status_code == 200
-
     assert phone.post("/api/auth/logout").status_code == 200
     assert phone.get("/api/sessions").json()["sessions"] == []  # signed out: a fresh anonymous browser
     assert laptop.post("/api/auth/register", json={"name": "评委1", "password": "secret2"}).status_code == 409
+
+
+def test_wrong_passwords_are_limited(api):
+    app, _ = api
+    client = TestClient(app.app)
+    client.post("/api/auth/register", json={"name": "someone", "password": "secret1"})
+    other = TestClient(app.app)
+    codes = [other.post("/api/auth/login", json={"name": "someone", "password": f"x{i}xxxxx"}).status_code for i in range(11)]
+    assert codes[:10] == [403] * 10 and codes[10] == 429
+
+
+def test_signed_out_visitors_cannot_import_and_accounts_get_a_daily_allowance(api, monkeypatch):
+    app, _ = api
+    monkeypatch.setenv("PLAN_LIMITS", '{"free": {"imports": 2}}')
+
+    class Bili:
+        platform = "bilibili"
+
+    monkeypatch.setattr(app.registry, "find", lambda url: Bili())
+
+    async def no_network(url, part=None):  # resolves, then stops before any real work
+        raise app.ResolveError("network", "测试里不联网") if "bad" in url else RuntimeError("stop")
+
+    async def resolved(url, part=None):
+        return None, ResolvedVideo("bilibili", "BV1", url, "t", 60.0, [])
+
+    monkeypatch.setattr(app.registry, "resolve", no_network)
+    monkeypatch.setattr(app, "FrameJob", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("stop")))
+    anon = TestClient(app.app)
+    r = anon.post("/api/link-jobs", json={"url": "https://www.bilibili.com/video/BV1"})
+    assert r.status_code == 401 and r.json()["detail"]["code"] == "login_required"
+
+    user = TestClient(app.app)
+    user.post("/api/auth/register", json={"name": "评委2", "password": "secret1"})
+    assert user.post("/api/link-jobs", json={"url": "https://www.bilibili.com/video/bad"}).status_code == 422
+    assert user.get("/api/health").json()["user"]["imports"]["used"] == 0  # a link that doesn't resolve is free
+    for _ in range(2):
+        monkeypatch.setattr(app.registry, "resolve", resolved)
+        with pytest.raises(RuntimeError):
+            user.post("/api/link-jobs", json={"url": "https://www.bilibili.com/video/BV1"})
+    r = user.post("/api/link-jobs", json={"url": "https://www.bilibili.com/video/BV1"})
+    assert r.status_code == 429 and "2 次" in r.json()["detail"]["message"]
+    assert user.get("/api/health").json()["user"]["imports"] == {"used": 2, "limit": 2}
+
+
+def test_owner_accounts_have_no_limit(api, monkeypatch):
+    app, _ = api
+    monkeypatch.setenv("OWNER_ACCOUNTS", "linyi")
+    client = TestClient(app.app)
+    client.post("/api/auth/register", json={"name": "linyi", "password": "secret1"})
+    me = client.get("/api/health").json()["user"]
+    assert me["plan"] == "owner" and me["questions"]["limit"] is None
+
+
+def test_oauth_buttons_show_only_when_configured(api, monkeypatch):
+    app, _ = api
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.setenv("GITHUB_CLIENT_ID", "id")
+    monkeypatch.setenv("GITHUB_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("PUBLIC_URL", "https://linyi.work/ZhenXun")
+    client = TestClient(app.app)
+    assert client.get("/api/health").json()["oauth"] == ["github"]
+    r = client.get("/api/auth/github/start", follow_redirects=False)
+    assert r.status_code == 307 and r.headers["location"].startswith("https://github.com/login/oauth/authorize?")
+    assert "redirect_uri=https%3A%2F%2Flinyi.work%2FZhenXun%2Fapi%2Fauth%2Fgithub%2Fcallback" in r.headers["location"]
+    assert client.get("/api/auth/google/start", follow_redirects=False).status_code == 404
+    bad = client.get("/api/auth/github/callback?code=x&state=forged", follow_redirects=False)
+    assert bad.headers["location"].endswith("?login=failed")
