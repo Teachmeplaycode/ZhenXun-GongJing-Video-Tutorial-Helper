@@ -89,3 +89,18 @@
 .docs__chips > div { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: var(--sp-12); }
 .docs__chips dt, .docs__chips dd { margin: 0; }
 .docs__chips dd { color: var(--text-secondary); font-size: var(--fs-body-sm); }
+
+/* One size for the guide's buttons; on phones the demo row stacks and the buttons share the row. */
+.guide__nav .btn { height: 38px; min-width: 96px; padding: 0 var(--sp-16); justify-content: center; font-size: var(--fs-body-sm); }
+.guide-demo__button { white-space: nowrap; }
+@media (max-width: 640px) {
+  .guide { padding: var(--sp-12) var(--sp-16) var(--sp-16); gap: var(--sp-10, 10px); }
+  .guide-demo--import { flex-direction: column; align-items: stretch; }
+  .guide-demo__field { flex: none; width: 100%; min-width: 0; box-sizing: border-box; }
+  .guide-demo__button { align-self: flex-start; }
+  .guide__foot { flex-direction: column-reverse; align-items: stretch; gap: var(--sp-12); }
+  .guide__dots { justify-content: center; }
+  .guide__nav { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--sp-8); }
+  .guide__nav .btn { min-width: 0; width: 100%; }
+  .guide-demo--evidence .ev-chip { font-size: 11px; }
+}
