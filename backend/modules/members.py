@@ -342,9 +342,11 @@ class Members:
             raise HTTPException(404, "本机版没有账号")
 
     def _sign_in(self, response, request: Request, user_id: int):
-        """Move this browser's anonymous sessions to the account and make it the visitor id."""
+        """Move this browser's anonymous (or guest) sessions to the account and make it the visitor id."""
         current = visitors.current.get()
-        if account_of(current) is None and current:
+        before = account_of(current)
+        was_guest = before is not None and before != user_id and (row := self.users.get(before)) is not None and row["plan"] == "guest"
+        if current and (before is None or was_guest):
             self.claim(current, f"u{user_id}")
         self._cookie(response, request, visitors.COOKIE, f"u{user_id}")
         return response

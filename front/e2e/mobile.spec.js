@@ -35,7 +35,8 @@ test('phone: B 站 is confirmed in the B 站 App, WeChat by a saved QR', async (
     mock.publicDemo = true
     mock.member = { name: '评委1', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 3 } }
   })
-  await page.getByRole('button', { name: '平台账号' }).click()
+  await page.locator('.member-chip').click()
+  await page.getByRole('dialog', { name: '我的' }).getByRole('button', { name: /平台账号/ }).click()
   const bili = page.locator('.account-card', { hasText: 'B 站' })
   await bili.getByRole('button', { name: '扫码绑定' }).click()
   await expect(bili.getByRole('link', { name: '在 B 站 App 里确认' })).toHaveAttribute('href', /^bilibili:\/\/browser\?url=https%3A%2F%2Fpassport\.bilibili\.com/)
