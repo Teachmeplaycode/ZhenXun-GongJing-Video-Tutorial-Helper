@@ -1,5 +1,5 @@
 
-# linyi.work: one path per project. 帧见 (GongJing) runs in ~/projects/gongjing.
+# linyi.work: one path per project. 帧寻 (ZhenXun) runs in ~/projects/zhenxun.
 linyi.work {
     header {
         Strict-Transport-Security "max-age=31536000"
@@ -7,10 +7,10 @@ linyi.work {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 
-    redir /GongJing /GongJing/ 308
+    redir /ZhenXun /ZhenXun/ 308
 
-    handle_path /GongJing/* {
-        reverse_proxy gongjing:8000
+    handle_path /ZhenXun/* {
+        reverse_proxy zhenxun:8000
     }
 
     handle {
