@@ -8,6 +8,7 @@ import { useStaggeredDrawer } from './SessionList'
 
 const POLL_MS = 2000
 const SOURCE = { ui: '扫码登录', env: 'backend/.env', environment: '环境变量' }
+const MINE = { ui: '你的扫码绑定' } // the web demo: each person's own login
 const day = (seconds) => new Date(seconds * 1000).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
 
 function statusOf(a) {
@@ -124,7 +125,7 @@ function Paste({ account, onDone }) {
   )
 }
 
-function AccountCard({ account, onChange }) {
+function AccountCard({ account, onChange, mine = false }) {
   const [mode, setMode] = useState(null) // null | 'qr' | 'paste'
   const [error, setError] = useState('')
   const status = statusOf(account)
@@ -148,7 +149,7 @@ function AccountCard({ account, onChange }) {
       <p className="account-card__purpose">{account.purpose}</p>
       {account.configured ? (
         <p className="mono-sm muted">
-          来自 {SOURCE[account.source] || account.source}
+          来自 {(mine && MINE[account.source]) || SOURCE[account.source] || account.source}
           {account.expires ? ` · ${day(account.expires)} 到期` : ''}
         </p>
       ) : null}
@@ -160,21 +161,25 @@ function AccountCard({ account, onChange }) {
           <button type="button" className="btn btn--ghost" onClick={() => setMode(null)}>取消</button>
         ) : (
           <button type="button" className="btn btn--dark account-card__go" onClick={() => setMode('qr')}>
-            {account.configured ? '重新扫码登录' : '扫码登录'}
+            {account.configured ? (mine ? '重新扫码绑定' : '重新扫码登录') : (mine ? '扫码绑定' : '扫码登录')}
           </button>
         )}
-        <button type="button" className="account-card__link" onClick={() => setMode(mode === 'paste' ? null : 'paste')}>
-          {mode === 'paste' ? '收起' : '手动粘贴 Cookie'}
-        </button>
+        {mine ? null : (
+          <button type="button" className="account-card__link" onClick={() => setMode(mode === 'paste' ? null : 'paste')}>
+            {mode === 'paste' ? '收起' : '手动粘贴 Cookie'}
+          </button>
+        )}
         {account.configured && account.source === 'ui' ? (
-          <button type="button" className="account-card__link" onClick={logout}>退出登录</button>
+          <button type="button" className="account-card__link" onClick={logout}>{mine ? '解除绑定' : '退出登录'}</button>
         ) : null}
       </div>
     </li>
   )
 }
 
-export default function AccountsDrawer({ open, focus = null, onClose }) {
+// `mine`: the web demo, where these are the signed-in person's own logins (scan only, kept encrypted,
+// used only for their own imports).
+export default function AccountsDrawer({ open, focus = null, onClose, mine = false }) {
   const rootRef = useRef(null)
   const [accounts, setAccounts] = useState([])
   const [error, setError] = useState('')
@@ -198,9 +203,14 @@ export default function AccountsDrawer({ open, focus = null, onClose }) {
           <span className="eyebrow">平台账号</span>
           <button type="button" className="icon-btn history__close" aria-label="关闭" onClick={onClose}><IconClose /></button>
         </header>
+        {mine ? (
+          <p className="history__empty account-list__note">
+            绑定你自己的平台账号后，解析时会用你的登录（比如 B 站可以看 1080P 和需要登录的视频）。登录凭证加密保存，只用于你自己导入的视频，随时可以解除绑定。
+          </p>
+        ) : null}
         {error ? <p className="history__empty">{error}</p> : null}
         <ul className="account-list">
-          {open ? ordered.map((a) => <AccountCard key={a.id} account={a} onChange={replace} />) : null}
+          {open ? ordered.map((a) => <AccountCard key={a.id} account={a} onChange={replace} mine={mine} />) : null}
         </ul>
       </aside>
     </div>

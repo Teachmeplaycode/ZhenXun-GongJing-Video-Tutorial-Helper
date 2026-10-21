@@ -32,6 +32,7 @@ from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
 from modules.store import SessionStore
+from modules.settings import overlay as settings_overlay, vault as settings_vault
 from modules.screentext import ScreenText, run_screentext
 from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
@@ -92,10 +93,14 @@ async def visitor(request: Request, call_next):
     if fresh:
         who = visitors.new()
     token = visitors.current.set(who)
+    layer, keep = member_service.platform_context(who)  # only this person's own platform logins
+    tokens = settings_overlay.set(layer), settings_vault.set(keep)
     try:
         response = await call_next(request)
     finally:
         visitors.current.reset(token)
+        settings_overlay.reset(tokens[0])
+        settings_vault.reset(tokens[1])
     signed_in = any(c.startswith(f"{visitors.COOKIE}=") for c in response.headers.getlist("set-cookie"))
     if fresh and not signed_in:  # signing in or out sets the id itself
         response.set_cookie(visitors.COOKIE, visitors.sign(who, key), max_age=visitors.MAX_AGE, path=visitors.cookie_path(),
@@ -866,17 +871,26 @@ LOCAL_ORIGIN = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
 
 
 def local_only(request: Request) -> None:
-    """Login endpoints write credentials: refuse calls made by pages from other sites, and visitors."""
-    visitors.check_accounts()
+    """Login endpoints write credentials: refuse calls made by pages from other sites. In the web demo
+    they act on the signed-in person's own logins, so they need someone signed in."""
+    if visitors.enabled():
+        if members.account_of(visitors.current.get()) is None:
+            raise HTTPException(401, detail={"code": "login_required", "message": "先登录帧寻账号，再绑定平台账号"})
+        return
     origin = request.headers.get("origin")
     if (origin and not LOCAL_ORIGIN.match(origin)) or request.headers.get("sec-fetch-site") == "cross-site":
         raise HTTPException(403, "只能从本机的页面调用")
 
 
 def platform_or_404(platform: str) -> str:
-    if platform not in accounts.PLATFORMS:
+    if platform not in accounts.PLATFORMS or (visitors.enabled() and platform not in members.bind_platforms()):
         raise HTTPException(404, "没有这个平台")
     return platform
+
+
+def login_owner() -> str:
+    """Whose QR logins these are: the signed-in person in the web demo, nobody in particular locally."""
+    return visitors.current.get() if visitors.enabled() else ""
 
 
 class CookieBody(BaseModel):
@@ -886,6 +900,8 @@ class CookieBody(BaseModel):
 @app.get("/api/accounts")
 async def list_accounts(request: Request):
     local_only(request)
+    if visitors.enabled():
+        return {"accounts": [await accounts.status(p) for p in members.bind_platforms()]}
     return {"accounts": await accounts.all_status()}
 
 
@@ -893,7 +909,7 @@ async def list_accounts(request: Request):
 async def start_login(platform: str, request: Request):
     local_only(request)
     try:
-        login = await accounts.start(platform_or_404(platform))
+        login = await accounts.start(platform_or_404(platform), owner=login_owner())
     except accounts.AccountError as exc:
         return JSONResponse({"code": "login_unavailable", "message": str(exc)}, status_code=502)
     return login.public()
@@ -903,7 +919,7 @@ async def start_login(platform: str, request: Request):
 async def poll_login(login_id: str, request: Request):
     local_only(request)
     try:
-        login = await accounts.poll(login_id)
+        login = await accounts.poll(login_id, owner=login_owner())
     except accounts.AccountError as exc:
         return JSONResponse({"code": "login_gone", "message": str(exc)}, status_code=404)
     out = login.public(qr=False)  # the image was sent when the login started
@@ -918,13 +934,15 @@ async def poll_login(login_id: str, request: Request):
 @app.delete("/api/accounts/login/{login_id}")
 async def cancel_login(login_id: str, request: Request):
     local_only(request)
-    await accounts.cancel(login_id)
+    await accounts.cancel(login_id, owner=login_owner())
     return {"ok": True}
 
 
 @app.put("/api/accounts/{platform}")
 async def paste_cookie(platform: str, body: CookieBody, request: Request):
     local_only(request)
+    if visitors.enabled():
+        raise HTTPException(403, "网页版请用扫码绑定")
     try:
         return await accounts.set_cookie(platform_or_404(platform), body.cookie)
     except accounts.AccountError as exc:
