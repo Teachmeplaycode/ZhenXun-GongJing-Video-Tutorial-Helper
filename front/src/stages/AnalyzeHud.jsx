@@ -31,7 +31,7 @@ export function screenStep(t) {
     case 'empty': return { state: 'done', value: '画面没有文字' }
     case 'unavailable': return { state: 'warn', value: '本机不支持' }
     case 'failed': return { state: 'warn', value: '失败' }
-    default: return { state: 'pending', value: '' }
+    default: return { state: 'pending', value: t.message?.startsWith('排队') ? t.message.replace('识别画面文字', '') : '' }
   }
 }
 
