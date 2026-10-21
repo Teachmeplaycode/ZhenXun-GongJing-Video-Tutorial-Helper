@@ -7,6 +7,7 @@ reported as a tool call so the chat shows a trace.
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 import os
 import re
 import time
@@ -307,8 +308,14 @@ def speech_warning(job: FrameJob) -> str:
 MATERIAL_READ = "我已经看过这个视频的资料（标题、语音转写、画面文字和关键帧），请提问。"
 
 
+ATTACHED_NOTE = ("用户随问题附上了 {n} 张自己的图片——不是视频里的画面，常见的是用户跟着教程操作时自己屏幕的截图。"
+                 "对照视频的画面、画面文字和语音来回答；如果是软件界面截图，说清用户现在大概到了视频的哪一步（给出时间），"
+                 "截图和视频画面哪里不一样，下一步该点什么。引用视频证据照常标注；说到用户的图片时写「你的截图」，不要当成视频画面引用。")
+
+
 def build_messages(job: FrameJob, frames: list, question: str, history: list[dict], scope_all: bool,
-                   transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], "")) -> list[dict]:
+                   transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], ""),
+                   images: list | None = None) -> list[dict]:
     video = job.video
     coverage = job.coverage()
     pictures = picture_sets.is_images(video)
@@ -364,7 +371,21 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
             {"role": "user", "content": content},
             {"role": "assistant", "content": MATERIAL_READ},
             *past,
-            {"role": "user", "content": [{"type": "text", "text": scope}, {"type": "text", "text": f"问题：{question}"}]}]
+            {"role": "user", "content": [{"type": "text", "text": scope}, {"type": "text", "text": f"问题：{question}"},
+                                         *attached_parts(images or [])]}]
+
+
+def attached_parts(images: list) -> list[dict]:
+    """The person's own pictures, after the question: the note on what they are, then each one."""
+    parts = []
+    readable = [p for p in images if Path(p).is_file()]
+    if readable:
+        parts.append({"type": "text", "text": ATTACHED_NOTE.format(n=len(readable))})
+    for i, path in enumerate(readable, 1):
+        data = base64.b64encode(Path(path).read_bytes()).decode()
+        parts.append({"type": "text", "text": f"你的截图 {i}"})
+        parts.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}})
+    return parts
 
 
 async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
@@ -380,7 +401,8 @@ async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
 
 async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: str, *,
                     frames: list[int] | None = None, history: list[dict] | None = None, decider=None,
-                    web: bool = True, papers: bool = True, framed: list[tuple[float, float]] | None = None) -> AsyncIterator[dict]:
+                    web: bool = True, papers: bool = True, framed: list[tuple[float, float]] | None = None,
+                    images: list | None = None) -> AsyncIterator[dict]:
     """`web` / `papers`: the composer's switches for this question (both still subject to LLM_WEB).
     `framed`: stretches the user replayed by hand on the timeline right before asking (oldest first)."""
     """Yield §9.2 events. Errors end the stream with `run.error` instead of raising."""
@@ -430,7 +452,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     rounds = tool_rounds()
     tools = AgentTools(job, decider=decider, llm=client)
     audience = tools.audience()
-    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen)
+    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
+                              images=images)
 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.

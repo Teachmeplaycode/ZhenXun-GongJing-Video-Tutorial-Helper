@@ -183,6 +183,18 @@ export const deleteSource = (jobId) => linkRequest(`/api/link-jobs/${jobId}/sour
 export const mediaUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/media`
 /** Questions worth asking about this video: { status: waiting | running | done | failed, questions: [{ question, kind, label, hint }] } */
 export const fetchSuggestions = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/suggestions`, { signal })
+
+/** A picture added to the next question (a screenshot of where one is stuck): { id, url, width, height }. */
+export function uploadAttachment(jobId, file) {
+  const form = new FormData()
+  form.append('file', file)
+  return linkRequest(`/api/link-jobs/${jobId}/attachments`, { method: 'POST', body: form })
+}
+
+/** The rest of the question being typed, for the composer's grey Tab completion ('' when unsure). */
+export const completeQuestion = (jobId, text, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/complete`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal,
+}).then((body) => body?.completion || '')
 export const linkFrameUrl = (jobId, index) => `${LINK_BASE}/api/link-jobs/${jobId}/frames/${index}.jpg`
 
 /** Follow a job's events (frame / missing / status / done) from `since` until its run is done. */
