@@ -1,6 +1,7 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 import ContourLoader from '../components/ContourLoader'
+import FlatSculpture from '../components/FlatSculpture'
 import BackButton from '../components/BackButton'
 import { fmtBytes } from '../lib/format'
 
@@ -9,7 +10,10 @@ import { fmtBytes } from '../lib/format'
 export default function UploadMask({ maskRef, contourRef, progress, name, size, link = false, onBack }) {
   return createPortal(
     <div ref={maskRef} className="upload-mask">
-      <div ref={contourRef} className="upload-mask__contour"><ContourLoader /></div>
+      <div ref={contourRef} className="upload-mask__contour">
+        {/* Phones: the sculpture drawn flat; the terrain would be stretched on a tall screen. */}
+        {window.matchMedia?.('(max-width: 760px)').matches ? <FlatSculpture /> : <ContourLoader />}
+      </div>
       {/* Outline of the window that opens out of the import slide; App drives its geometry. */}
       <div className="upload-mask__frame" aria-hidden="true">
         <i /><i /><i /><i />
