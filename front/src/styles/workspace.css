@@ -582,3 +582,39 @@
   .home-companion--hero { width: clamp(156px, 45vw, 200px); margin: 0 auto; }
   .home-companion--hero .home-companion__caption { display: none; }
 }
+
+/* Phones, round two: one-line top bar outside the homepage, the evidence state as a dot, a slimmer
+   workbench tab that opens a full-screen workbench, and a shorter empty chat. */
+@media (max-width: 640px) {
+  .brand__name { white-space: nowrap; }
+  .app:not(.app--idle) .brand__name .wordmark__en, .app:not(.app--idle) .brand__sub { display: none; }
+  .app:not(.app--idle) .stepper { display: none; }
+
+  .evidence-badge { top: var(--sp-2); left: var(--sp-2); right: auto; padding: 4px; gap: 0; font-size: 0; }
+  .evidence-badge > :not(.evidence-badge__dot) { display: none; }
+
+  .bench[data-open] { width: 100vw; }
+  .bench__handle { width: 20px; padding: var(--sp-10) 0; }
+  .bench__handle-label { display: none; }
+  .bench[data-open] .bench__handle {
+    right: auto; left: var(--sp-8); top: calc(var(--sp-6) + env(safe-area-inset-top, 0px)); transform: none;
+    width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: var(--radius-sm); box-shadow: none; margin: 0;
+  }
+  .bench[data-open] .bench__tabs { padding-left: 48px; }
+
+  .chat__empty { padding: var(--sp-12) 0 var(--sp-16); gap: var(--sp-10); }
+  .chat__empty .eyebrow, .chat__empty > p.body-sm { display: none; }
+  .chat__empty .h1 { font-size: 22px; line-height: 1.35; }
+  .chat-task .workspace-card__description { display: none; }
+  .chat-task button { min-height: 0; gap: var(--sp-6); padding: var(--sp-12) var(--sp-16); }
+  .chat__suggest { gap: var(--sp-8); }
+
+  .guide__stage { height: 120px; }
+  .guide__snake { width: 120px; height: 120px; }
+  .guide__bubble { min-height: 196px; padding: var(--sp-12) var(--sp-16); }
+  .guide__bubble h2 { font-size: 16px; }
+}
+
+/* A phone confirming its own login (components/AccountsDrawer.jsx). */
+.qr-login__app { align-self: flex-start; text-decoration: none; }
+.qr-login__phone { margin: 0; color: var(--text-secondary); font-size: var(--fs-caption); line-height: 1.6; }
