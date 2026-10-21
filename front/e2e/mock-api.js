@@ -315,6 +315,16 @@ export class MockApi {
         headers: { 'accept-ranges': 'bytes', ...(range ? { 'content-range': `bytes ${first}-${last}/${CLIP.length}` } : {}) },
       })
     }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/attachments$/)
+    if (m && req.method() === 'POST') {
+      this.attached = (this.attached || 0) + 1
+      const id = `a${String(this.attached).padStart(11, '0')}`
+      return json({ id, url: `/api/link-jobs/${m[1]}/attachments/${id}.jpg`, width: 800, height: 450 })
+    }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/attachments\/\w+\.jpg$/)
+    if (m) return route.fulfill({ status: 200, contentType: 'image/jpeg', body: FRAME })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/complete$/)
+    if (m) return json({ completion: this.completion ?? '' }) // the grey Tab completion (backend modules/complete.py)
     m = path.match(/^\/api\/link-jobs\/(\w+)\/suggestions$/)
     if (m) return json(this.suggestions) // backend modules/suggest.py; tests set questions to see them
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
