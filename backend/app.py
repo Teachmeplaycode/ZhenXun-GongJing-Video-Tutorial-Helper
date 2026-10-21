@@ -212,14 +212,44 @@ async def transcribe(job: FrameJob) -> None:
                   message=(t.message if t and t.status != "done" else ""), ms=timer.ms)
 
 
+# Reading on-screen text is the import's CPU-heavy part: OCR_SLOTS videos at a time (one on the web
+# demo's 4-core server); the rest wait their turn, told where they stand. Frames, speech and
+# questions don't wait for it.
+OCR_SLOTS = max(1, int(os.environ.get("OCR_SLOTS", "1")))
+ocr_queue: list[str] = []  # job ids waiting for a slot, oldest first
+ocr_slots: asyncio.Semaphore | None = None
+
+
+def announce_queue() -> None:
+    for ahead, job_id in enumerate(ocr_queue, start=OCR_SLOTS):
+        job = jobs.get(job_id)
+        if job is not None:
+            job.screentext.message = f"排队等待识别画面文字（前面还有 {ahead} 个视频）"
+            job.emit({"type": "screentext", **job.screentext.summary(), "queued": ahead})
+
+
 async def read_screen(job: FrameJob) -> None:
+    global ocr_slots
+    if ocr_slots is None:
+        ocr_slots = asyncio.Semaphore(OCR_SLOTS)
     timer = log.Timer()
+    busy = ocr_slots.locked()
+    if busy:
+        ocr_queue.append(job.id)
+        announce_queue()
     try:
-        await run_screentext(job)
+        async with ocr_slots:
+            if job.id in ocr_queue:
+                ocr_queue.remove(job.id)
+                announce_queue()
+            await run_screentext(job)
     except Exception as exc:
         log.error("screentext", exc, job_id=job.id)
         raise
     finally:
+        if job.id in ocr_queue:  # cancelled while waiting
+            ocr_queue.remove(job.id)
+            announce_queue()
         store.save_screentext(job)
         t = job.screentext
         log.event("screentext", job_id=job.id, status=t.status, segments=len(t.segments), skipped=t.skipped,
