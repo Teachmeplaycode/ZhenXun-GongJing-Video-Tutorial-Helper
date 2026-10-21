@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from modules import accounts, archive, log, members, playback, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
+from modules.complete import CompleteService
 from modules.notes.router import NotesService
 from modules.agent import browser, run_agent
 from modules.agent.evidence import with_evidence
@@ -122,6 +123,7 @@ class AgentRequest(BaseModel):
     web: bool = True     # composer switch: may the model search the web for this question
     papers: bool = True  # composer switch: may it search papers
     history: bool = True  # send earlier turns along; the eval runner turns it off so questions don't influence each other
+    images: list[str] = []  # pictures the person attached (POST /api/link-jobs/{id}/attachments), by id
 
 
 @app.exception_handler(ResolveError)
@@ -382,6 +384,18 @@ chapter_service = ChapterService(lambda job_id: get_job(job_id), spawn, lambda: 
 app.include_router(chapter_service.router)
 suggest_service = SuggestService(lambda job_id: get_job(job_id), spawn, lambda: get_llm())
 app.include_router(suggest_service.router)
+def last_question(job_id: str) -> str:
+    return next((m["content"] for m in reversed(store.messages(job_id)) if m["role"] == "user"), "")
+
+
+def suggested(job) -> list[str]:
+    from modules.suggest import load as load_suggestions
+
+    return [q["question"] for q in (load_suggestions(job.root) or {}).get("questions") or []]
+
+
+complete_service = CompleteService(lambda job_id: get_job(job_id), lambda: get_llm(), last_question, suggested)
+app.include_router(complete_service.router)
 notes_service = NotesService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(),
                              chapters_busy=lambda job_id: job_id in chapter_service.running)
 app.include_router(notes_service.router)
@@ -639,6 +653,7 @@ REPLAY_KEY = re.compile(r"^\d{7}-\d{7}-\d{3}$")
 @app.get("/api/link-jobs/{job_id}/replay/{key}/{name}")
 async def replay_frame(job_id: str, key: str, name: str):
     """A frame of a slow-motion replay (modules/frames/replay.py), for the chat's frame strip."""
+    get_job(job_id)  # 404 for a session that isn't the asker's (public demo)
     if not REPLAY_KEY.match(key) or not re.fullmatch(r"\d{2}\.jpg", name):
         raise HTTPException(404, "没有这张画面")
     path = DATA_DIR / job_id / "replay" / key / name
@@ -647,9 +662,53 @@ async def replay_frame(job_id: str, key: str, name: str):
     return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
 
 
+# Pictures a person adds to a question (a screenshot of where they're stuck in a tutorial, a photo):
+# at most ATTACH_MAX a question, each re-encoded as a JPEG no longer than ATTACH_EDGE on a side.
+ATTACH_MAX = 4
+ATTACH_BYTES = 8 << 20
+ATTACH_EDGE = 1600
+ATTACH_ID = re.compile(r"[0-9a-f]{12}")
+
+
+@app.post("/api/link-jobs/{job_id}/attachments")
+async def upload_attachment(job_id: str, file: UploadFile = File(...)):
+    import cv2
+    import numpy as np
+
+    job = get_job(job_id)
+    data = await file.read(ATTACH_BYTES + 1)
+    if len(data) > ATTACH_BYTES:
+        raise HTTPException(413, "图片不能超过 8 MB")
+    image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        raise HTTPException(415, "只能附加图片（PNG、JPG、WebP）")
+    h, w = image.shape[:2]
+    if max(h, w) > ATTACH_EDGE:
+        scale = ATTACH_EDGE / max(h, w)
+        image = cv2.resize(image, (round(w * scale), round(h * scale)), interpolation=cv2.INTER_AREA)
+    folder = DATA_DIR / job.id / "attachments"
+    folder.mkdir(parents=True, exist_ok=True)
+    attachment_id = uuid.uuid4().hex[:12]
+    cv2.imwrite(str(folder / f"{attachment_id}.jpg"), image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return {"id": attachment_id, "url": f"/api/link-jobs/{job.id}/attachments/{attachment_id}.jpg",
+            "width": image.shape[1], "height": image.shape[0]}
+
+
+@app.get("/api/link-jobs/{job_id}/attachments/{name}")
+async def attachment(job_id: str, name: str):
+    get_job(job_id)
+    if not re.fullmatch(r"[0-9a-f]{12}\.jpg", name):
+        raise HTTPException(404, "没有这张图片")
+    path = DATA_DIR / job_id / "attachments" / name
+    if not path.is_file():
+        raise HTTPException(404, "没有这张图片")
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
+
+
 @app.get("/api/link-jobs/{job_id}/extra/{name}")
 async def extra_frame(job_id: str, name: str):
     """A frame read on demand by view_frames (补看), for the timeline and the zoom view."""
+    get_job(job_id)  # 404 for a session that isn't the asker's (public demo)
     if not re.fullmatch(r"\d{8}\.jpg", name):
         raise HTTPException(404, "没有这张画面")
     path = DATA_DIR / job_id / "extra" / name
@@ -779,6 +838,7 @@ MOTION_KEY = re.compile(r"^\d{7}-\d{7}$")
 @app.get("/api/link-jobs/{job_id}/motion/{key}/{name}")
 async def motion_image(job_id: str, key: str, name: str):
     """A picture from measure_motion (heat map or trail), for the chat's step detail."""
+    get_job(job_id)  # 404 for a session that isn't the asker's (public demo)
     if not MOTION_KEY.match(key) or name not in ("heat.jpg", "trail.jpg"):
         raise HTTPException(404, "没有这张图")
     path = DATA_DIR / job_id / "motion" / key / "out" / name
@@ -825,7 +885,9 @@ async def agent_run(body: AgentRequest):
         frames = body.scope.get("frames") if body.scope.get("type") == "frames" else None
         history = store.history(job.id) if body.history else []
         framed = store.framed(job.id)  # read before the question is saved: it ends the run of hand replays
-        store.add_message(job.id, "user", body.question, data={"frames": frames or []})
+        attached = [i for i in body.images[:ATTACH_MAX] if ATTACH_ID.fullmatch(i) and (DATA_DIR / job.id / "attachments" / f"{i}.jpg").is_file()]
+        store.add_message(job.id, "user", body.question, data={"frames": frames or [], "images": [
+            {"id": i, "url": f"/api/link-jobs/{job.id}/attachments/{i}.jpg"} for i in attached]})
         # The answer is saved as its text plus its events in order, consecutive text deltas merged,
         # so the UI can replay where text fell between tool calls. `t` is seconds since the question.
         # A disconnect (the user pressed stop) saves what arrived so far.
@@ -835,7 +897,8 @@ async def agent_run(body: AgentRequest):
         final: dict = {}
         try:
             async for event in with_evidence(run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
-                                         web=body.web, papers=body.papers, framed=framed), job, body.question):
+                                         web=body.web, papers=body.papers, framed=framed,
+                                         images=[DATA_DIR / job.id / "attachments" / f"{i}.jpg" for i in attached]), job, body.question):
                 event = {**event, "t": round(time.perf_counter() - started, 2)}
                 if event["type"] == "assistant.message.delta":
                     text.append(event["delta"])

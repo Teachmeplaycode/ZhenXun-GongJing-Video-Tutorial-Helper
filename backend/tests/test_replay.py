@@ -74,6 +74,7 @@ def test_replay_frames_are_served_only_from_their_folder(tmp_path, monkeypatch):
     folder.mkdir(parents=True)
     (folder / "01.jpg").write_bytes(b"\xff\xd8jpg")
     monkeypatch.setattr(app, "DATA_DIR", tmp_path / "jobs")
+    monkeypatch.setitem(app.jobs, "job1", job_for(tmp_path, "local"))  # only a session's own pictures are served
     client = TestClient(app.app)
     assert client.get("/api/link-jobs/job1/replay/0011400-0011600-080/01.jpg").content == b"\xff\xd8jpg"
     assert client.get("/api/link-jobs/job1/replay/..%2F..%2Fx/01.jpg").status_code == 404
@@ -87,6 +88,7 @@ def test_extra_frames_are_served_only_from_their_folder(tmp_path, monkeypatch):
     folder.mkdir(parents=True)
     (folder / "00013000.jpg").write_bytes(b"\xff\xd8jpg")
     monkeypatch.setattr(app, "DATA_DIR", tmp_path / "jobs")
+    monkeypatch.setitem(app.jobs, "job1", job_for(tmp_path, "local"))
     client = TestClient(app.app)
     assert client.get("/api/link-jobs/job1/extra/00013000.jpg").content == b"\xff\xd8jpg"
     assert client.get("/api/link-jobs/job1/extra/..%2Fsecret.jpg").status_code == 404

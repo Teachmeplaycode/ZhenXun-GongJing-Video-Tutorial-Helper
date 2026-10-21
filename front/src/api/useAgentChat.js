@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { manualReplay, streamAgentRun } from './client'
+import { apiUrl, manualReplay, streamAgentRun } from './client'
 
 let seq = 0
 const nextId = () => `m${(seq += 1)}`
@@ -90,7 +90,8 @@ export function restoreMessages(saved, frames) {
   for (const m of saved) {
     if (m.role === 'user') {
       const attachments = (m.frames || []).map((i) => frames.find((f) => f.index === i)).filter(Boolean)
-      out.push({ id: nextId(), role: 'user', text: m.content, attachments, savedId: m.id })
+      const images = (m.images || []).map((image) => ({ ...image, url: apiUrl(image.url) }))
+      out.push({ id: nextId(), role: 'user', text: m.content, attachments, images, savedId: m.id })
       continue
     }
     const events = m.events || []
@@ -115,7 +116,7 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
   // options: { web, papers } — the composer's switches for this question.
   const send = useCallback(async (question, selected, options = {}) => {
     const scope = selected.length ? { type: 'frames', frames: selected.map((f) => f.index) } : { type: 'all' }
-    const userMsg = { id: nextId(), role: 'user', text: question, attachments: selected, options }
+    const userMsg = { id: nextId(), role: 'user', text: question, attachments: selected, images: options.images || [], options }
     const aiId = nextId()
     const aiMsg = { ...emptyAnswer(), id: aiId }
     setMessages((list) => [...list, userMsg, aiMsg])
@@ -131,6 +132,7 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
           scope,
           web: options.web ?? true,
           papers: options.papers ?? true,
+          images: (options.images || []).map((image) => image.id), // pictures the person attached
           // Only frames that actually arrived; placeholders and gaps are described by `coverage`.
           frames: (selected.length ? selected : frames.filter((f) => f.src && (!f.status || f.status === 'ok'))).map(({ index, time }) => ({ index, time })),
           coverage: coverage && { ok: coverage.ok, total: coverage.total, missing_ranges: coverage.missing_ranges },

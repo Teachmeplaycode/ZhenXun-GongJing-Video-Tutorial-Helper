@@ -618,3 +618,12 @@
 /* A phone confirming its own login (components/AccountsDrawer.jsx). */
 .qr-login__app { align-self: flex-start; text-decoration: none; }
 .qr-login__phone { margin: 0; color: var(--text-secondary); font-size: var(--fs-caption); line-height: 1.6; }
+
+/* Phones: the composer's tool buttons as icons, so 发送 always fits on the row. */
+@media (max-width: 640px) {
+  .composer__bar { flex-wrap: nowrap; }
+  .composer__bar .chip-btn { font-size: 0; gap: 0; padding: 0 var(--sp-8); min-width: 32px; justify-content: center; }
+  .composer__bar .chip-btn svg { width: 15px; height: 15px; }
+  .composer__bar .composer__scope { display: none; }
+  .composer__bar .btn--icon { margin-left: auto; flex: none; }
+}
