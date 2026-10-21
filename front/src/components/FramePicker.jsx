@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { fmtTime, frameNo } from '../lib/format'
 import { IconCheck, IconClose } from './Icons'
@@ -9,10 +9,13 @@ import '../styles/picker.css'
 //   选作附件  tap tiles to attach them to the next question (and tap again to drop them)
 //   框选慢放  tap where a stretch starts and where it ends; then replay it, or attach it to the question
 // The stretch is capped at MAX_RANGE seconds like the timeline's (backend modules/frames/replay.py).
+// `embedded`: inside the workbench's 画面 tab on phones (no own header); `seek` scrolls to a moment.
 
 const MAX_RANGE = 10
 
-export default function FramePicker({ frames, chapters = [], selected, duration, busy = false, onToggle, onClear, onRange, onClose }) {
+export default function FramePicker({ frames, chapters = [], selected, duration, busy = false, onToggle, onClear, onRange, onClose, embedded = false, seek = null }) {
+  const gridRef = useRef(null)
+  const [flash, setFlash] = useState(null)
   const [mode, setMode] = useState('attach')
   const [ends, setEnds] = useState([]) // the stretch's tapped frames, in tap order (at most two)
   const ready = frames.filter((f) => f.src)
@@ -38,6 +41,16 @@ export default function FramePicker({ frames, chapters = [], selected, duration,
     return { start: Math.round(start * 10) / 10, end: Math.round(end * 10) / 10, clipped, complete: ends.length > 1 }
   }, [ends, duration])
 
+  // Looking at a moment (a cited time with only cached frames): the nearest tile, scrolled to and lit.
+  useEffect(() => {
+    if (!seek || !ready.length) return
+    const near = ready.reduce((best, f) => (Math.abs(f.time - seek.time) < Math.abs(best.time - seek.time) ? f : best), ready[0])
+    setFlash(near.index)
+    requestAnimationFrame(() => gridRef.current?.querySelector(`[data-index="${near.index}"]`)?.scrollIntoView({ block: 'center' }))
+    const t = setTimeout(() => setFlash(null), 1600)
+    return () => clearTimeout(t)
+  }, [seek?.key]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const tap = (frame) => {
     if (mode === 'attach') return onToggle(frame)
     setEnds((list) => (list.length >= 2 ? [frame] : [...list, frame]))
@@ -49,14 +62,17 @@ export default function FramePicker({ frames, chapters = [], selected, duration,
     onClose()
   }
 
-  return createPortal(
-    <div className="picker" role="dialog" aria-modal="true" aria-label="选帧">
+  const modes = (
+    <div className="picker__modes" role="tablist" aria-label="怎么选">
+      <button type="button" role="tab" aria-selected={mode === 'attach'} onClick={() => setMode('attach')}>选作附件</button>
+      {onRange ? <button type="button" role="tab" aria-selected={mode === 'range'} onClick={() => { setMode('range'); setEnds([]) }}>框选慢放</button> : null}
+    </div>
+  )
+  const body = (
+    <>
       <header className="picker__head">
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭"><IconClose size={16} /></button>
-        <div className="picker__modes" role="tablist" aria-label="怎么选">
-          <button type="button" role="tab" aria-selected={mode === 'attach'} onClick={() => setMode('attach')}>选作附件</button>
-          {onRange ? <button type="button" role="tab" aria-selected={mode === 'range'} onClick={() => { setMode('range'); setEnds([]) }}>框选慢放</button> : null}
-        </div>
+        {embedded ? null : <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭"><IconClose size={16} /></button>}
+        {modes}
         <button type="button" className="btn btn--dark picker__done" onClick={onClose}>完成</button>
       </header>
       <p className="picker__hint">
@@ -65,7 +81,7 @@ export default function FramePicker({ frames, chapters = [], selected, duration,
           : range?.complete ? `${fmtTime(range.start)} – ${fmtTime(range.end)} · ${(range.end - range.start).toFixed(1)} 秒${range.clipped ? '（最长 10 秒，已截短）' : ''}`
             : range ? '再点一帧，作为这一段的结尾。' : '先点这一段开始的画面，再点结尾的画面（最长 10 秒）。'}
       </p>
-      <div className="picker__grid-wrap">
+      <div ref={gridRef} className="picker__grid-wrap">
         {groups.map((g) => (
           <section key={`${g.title}-${g.start ?? 0}`} className="picker__group">
             {g.title ? <h3 className="picker__chapter"><span className="mono-sm">{fmtTime(g.start)}</span> {g.title}</h3> : null}
@@ -75,6 +91,7 @@ export default function FramePicker({ frames, chapters = [], selected, duration,
                 const edge = mode === 'range' && ends.some((e) => e.index === f.index)
                 return (
                   <button key={f.index} type="button" className="picker__tile" data-on={on || undefined} data-edge={edge || undefined}
+                    data-index={f.index} data-flash={flash === f.index || undefined}
                     aria-pressed={on} onClick={() => tap(f)} aria-label={`${frameNo(f.index)} ${fmtTime(f.time)}`}>
                     <img src={f.src} alt="" loading="lazy" draggable="false" />
                     <span className="picker__time mono-sm">{fmtTime(f.time)}</span>
@@ -97,7 +114,8 @@ export default function FramePicker({ frames, chapters = [], selected, duration,
           </>
         )}
       </footer>
-    </div>,
-    document.body,
+    </>
   )
+  if (embedded) return <div className="picker picker--embedded" aria-label="选帧">{body}</div>
+  return createPortal(<div className="picker" role="dialog" aria-modal="true" aria-label="选帧">{body}</div>, document.body)
 }

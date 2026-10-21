@@ -164,6 +164,14 @@ def test_routes_generate_save_the_board_and_export(tmp_path, monkeypatch):
     assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
     assert "<h1>改名</h1>" in page.text
 
+    async def shot(page):
+        assert "<h1>改名</h1>" in page
+        return b"\x89PNG fake"
+
+    monkeypatch.setattr(export, "to_long_image", shot)  # the real one needs Chromium
+    image = client.get("/api/link-jobs/job1/notes/export?image=1")
+    assert image.status_code == 200 and image.headers["content-type"] == "image/png" and image.content.startswith(b"\x89PNG")
+
 
 def test_a_note_cut_off_by_a_restart_reads_as_failed(tmp_path, monkeypatch):
     app, job = api(tmp_path, monkeypatch)

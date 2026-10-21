@@ -45,3 +45,7 @@
   .preview-overlay { padding: var(--sp-8); }
   .preview-dialog { height: 94vh; padding: var(--sp-12); }
 }
+.preview-dialog__frame--image { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.preview-dialog__frame--image img { display: block; width: 100%; height: auto; -webkit-touch-callout: default; }
+.preview-dialog__wait { margin: 0; padding: var(--sp-24); text-align: center; }
+.preview-dialog__tip { margin: 0; font-size: var(--fs-caption); }

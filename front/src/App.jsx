@@ -704,7 +704,16 @@ export default function App() {
           if (source.state === 'original') setPlayer({ time, key: Date.now() }) // 回看原片
           else { setTimelineOpen(true); setSeek({ time, key: Date.now() }) } // 查看缓存证据
         }}
-      onPickFrames={() => { if (mobile) setPickerOpen(true); else { setTimelineOpen(true); setTimelinePulse(Date.now()) } }}
+      onPickFrames={() => { setTimelineOpen(true); setTimelinePulse(Date.now()) }}
+      framesPanel={mobile && meta?.kind !== 'images' ? (
+        <FramePicker embedded frames={frames} duration={meta?.duration} busy={chatBusy} selected={selected} seek={seek}
+          chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
+          onToggle={toggleFrame} onClear={() => setSelected([])}
+          onRange={(start, end, action) => {
+            if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
+            else setClip({ start, end })
+          }} />
+      ) : null}
       selected={selected}
       onClearSelection={() => setSelected([])}
       onRemoveFrame={(index) => setSelected((l) => l.filter((f) => f.index !== index))}
@@ -907,7 +916,7 @@ export default function App() {
         onClose={() => setHistoryOpen(false)}
       />
 
-      {stage === 'chat' ? (
+      {stage === 'chat' && !(mobile && meta?.kind !== 'images') ? ( // phones: the 画面 tab in the workbench instead
         <TimelineSculpture
           frames={frames}
           extras={extraFrames.filter((g) => !hiddenExtras.has(g.id))}

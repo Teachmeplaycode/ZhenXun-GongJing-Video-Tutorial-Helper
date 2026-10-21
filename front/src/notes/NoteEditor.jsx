@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { getNotes, notesExportUrl, saveNoteBoard } from '../api/client'
+import { getNotes, notesExportUrl, notesImageUrl, saveNoteBoard } from '../api/client'
+import PreviewDialog from '../components/PreviewDialog'
 import { BlockEdit, BlockView } from './blocks'
 import { bounds, defaultBoard, flow, readingOrder } from './layout'
 import './notes.css'
@@ -269,6 +270,11 @@ export default function NoteEditor({ jobId }) {
     await save()
     window.location.href = notesExportUrl(jobId)
   }
+  const [shown, setShown] = useState(null) // { kind: 'page' | 'image', src } — the export previewed
+  const previewExport = async (kind) => {
+    await save() // the export reads the saved board
+    setShown({ kind, src: kind === 'image' ? notesImageUrl(jobId) : `${notesExportUrl(jobId)}?preview=1&t=${Date.now()}` })
+  }
   const print = async () => {
     await save()
     window.print()
@@ -296,9 +302,20 @@ export default function NoteEditor({ jobId }) {
             <button type="button" className="icon-btn" onClick={() => zoomCenter(1.2)} aria-label="放大">+</button>
           </span>
           <button type="button" className="btn btn--ghost" onClick={print}>打印 / PDF</button>
+          <button type="button" className="btn btn--ghost" onClick={() => previewExport('page')}>预览</button>
+          <button type="button" className="btn btn--ghost" onClick={() => previewExport('image')}>存为长图</button>
           <button type="button" className="btn btn--dark" onClick={exportMarkdown}>导出 Markdown</button>
         </div>
       </header>
+
+      {shown ? (
+        <PreviewDialog title={shown.kind === 'image' ? '笔记长图' : '导出预览'} src={shown.src} image={shown.kind === 'image'} onClose={() => setShown(null)}>
+          <button type="button" className="btn btn--ghost" onClick={() => setShown(null)}>关闭</button>
+          {shown.kind === 'image'
+            ? <a className="btn btn--dark" href={shown.src} download="笔记.png">下载长图</a>
+            : <button type="button" className="btn btn--dark" onClick={exportMarkdown}>导出 Markdown</button>}
+        </PreviewDialog>
+      ) : null}
 
       <div ref={canvasRef} className="nb-canvas" style={{ '--grid': `${24 * v.zoom}px`, backgroundPosition: `${v.x}px ${v.y}px` }}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
