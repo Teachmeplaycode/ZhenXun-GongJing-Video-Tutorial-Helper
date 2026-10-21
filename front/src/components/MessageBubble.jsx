@@ -148,6 +148,16 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
       <div className="msg msg--user">
         <div className="bubble bubble--user">
           <Attachments frames={message.attachments} />
+          {message.images?.length ? (
+            <div className="attach-row">
+              {message.images.map((image, i) => (
+                <figure key={image.id} className="attach-thumb attach-thumb--mine">
+                  <img src={image.url} alt={`你的截图 ${i + 1}`} />
+                  <figcaption>你的截图</figcaption>
+                </figure>
+              ))}
+            </div>
+          ) : null}
           <div className="bubble__text">{message.text}</div>
           {message.options && (message.options.web === false || message.options.papers === false) ? (
             <div className="bubble__options mono-sm">

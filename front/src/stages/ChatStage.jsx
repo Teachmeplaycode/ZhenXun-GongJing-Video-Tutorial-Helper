@@ -3,10 +3,9 @@ import gsap from 'gsap'
 import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
 import ChaptersPanel from '../components/ChaptersPanel'
-import { IconArrowDown, IconArrowRight } from '../components/Icons'
+import { IconArrowDown } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
-import { fetchSuggestions } from '../api/client'
-import SpotlightCard from '../components/react-bits/SpotlightCard'
+import { completeQuestion, fetchSuggestions, uploadAttachment } from '../api/client'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
 import { WORKSPACE_CONTENT } from '../config/workspace'
 import { prefersReducedMotion } from '../lib/motion'
@@ -143,6 +142,13 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Suggested questions as pills above the input: the ones written for this video, else general ones,
+  // less those already asked. They also seed the grey Tab completion, with the questions asked before.
+  const asked = messages.filter((m) => m.role === 'user').map((m) => m.text)
+  const suggestions = (tailored.length ? tailored : pictures ? WORKSPACE_CONTENT.pictureSuggestions : WORKSPACE_CONTENT.suggestions)
+    .filter((s) => !asked.includes(s.question))
+  const hints = [...suggestions.map((s) => s.question), ...asked]
+
   const ask = (question, switches) => {
     if ((!question && !clip) || running) return
     followRef.current = true
@@ -187,19 +193,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
               <p className="body-sm muted">
                 {pictures
                   ? '默认理解全部图片；在左边把某几张「选作附件」，就只针对它们提问。'
-                  : '在下方时间轴中点选薄片，可将对应关键帧作为附件带入提问；未选择时默认理解整段视频。输入 / 可以选择常用任务。'}
+                  : '直接提问就会理解整段视频；可以在时间轴上选几帧，或附上你自己的截图（比如跟着教程卡住的地方）。输入框上方是为这个视频推荐的问题。'}
               </p>
-              {tailored.length ? <p className="chat__suggest-label mono-sm">为这个视频推荐的问题</p> : null}
-              <div className="chat__suggest">
-                {(tailored.length ? tailored : pictures ? WORKSPACE_CONTENT.pictureSuggestions : WORKSPACE_CONTENT.suggestions).map((s) => (
-                  <SpotlightCard key={s.question} theme="light" spotlightColor="var(--accent-active)" intensity={0.7} className={`workspace-card chat-task${s.tailored ? ' chat-task--tailored' : ''}`}>
-                    <button type="button" onClick={() => ask(s.question, loadSwitches())}>
-                      <strong>{s.title}</strong><span className="workspace-card__description">{s.description}</span>
-                      <span className="workspace-card__action">{s.question} <IconArrowRight size={14} /></span>
-                    </button>
-                  </SpotlightCard>
-                ))}
-              </div>
             </AnimatedContent>
           ) : (
             messages.map((m) => (
@@ -228,6 +223,11 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         clip={clip}
         onClearClip={onClearClip}
         scopeNote={scopeNote}
+        suggestions={suggestions}
+        onSuggest={(question) => ask(question, loadSwitches())}
+        onUpload={video?.jobId ? (file) => uploadAttachment(video.jobId, file) : null}
+        complete={video?.jobId && !pictures ? (text, signal) => completeQuestion(video.jobId, text, { signal }) : null}
+        hints={hints}
       />
     </div>
     <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters'] : []), ...(framesPanel ? [] : ['frames'])]}
