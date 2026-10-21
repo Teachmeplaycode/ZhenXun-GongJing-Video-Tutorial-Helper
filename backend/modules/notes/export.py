@@ -137,3 +137,38 @@ def to_preview_html(note: dict, board: dict | None, picture: Callable[[str], Pat
     body = MarkdownIt("commonmark", {"html": False}).enable("table").render(markdown)
     return (f"<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             f"<title>{html_lib.escape(title)}</title><style>{PREVIEW_STYLE}</style></head><body><main>{body}</main></body></html>")
+
+
+class ImageError(RuntimeError):
+    pass
+
+
+IMAGE_WIDTH = 720       # CSS px: a phone screen's reading width
+IMAGE_SCALE = 1.5       # device pixels per CSS px
+MAX_IMAGE_PX = 16000    # Chromium can't capture a taller page in one go: shrink the scale to fit
+
+
+async def to_long_image(page: str) -> bytes:
+    """The preview page as one long PNG, through the shared headless Chromium."""
+    from modules.agent import browser
+
+    if not browser.installed():
+        raise ImageError("生成长图需要浏览器：在 backend 里运行 uv run playwright install --only-shell chromium")
+    try:
+        chromium = await browser.browser()
+        context = await chromium.new_context(viewport={"width": IMAGE_WIDTH, "height": 900}, device_scale_factor=IMAGE_SCALE)
+    except Exception as exc:  # noqa: BLE001 — most often the browser was never downloaded
+        raise ImageError("浏览器启动失败，暂时不能生成长图") from exc
+    try:
+        tab = await context.new_page()
+        await tab.set_content(page, wait_until="load")
+        height = await tab.evaluate("document.documentElement.scrollHeight")
+        if height * IMAGE_SCALE > MAX_IMAGE_PX:
+            await context.close()
+            context = await chromium.new_context(viewport={"width": IMAGE_WIDTH, "height": 900},
+                                                 device_scale_factor=max(0.5, MAX_IMAGE_PX / height))
+            tab = await context.new_page()
+            await tab.set_content(page, wait_until="load")
+        return await tab.screenshot(full_page=True, type="png")
+    finally:
+        await context.close()

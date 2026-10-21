@@ -30,7 +30,7 @@ const fineClock = (t) => {
 // onCited the times the answers point at; onBusy whether an answer (or a replay) is in progress.
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
-export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null, framesPanel = null }) {
   const { messages, send, regenerate, stop, running, replay, cancelReplay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   // The workbench sidebar: open or not and which tab, remembered across visits.
   const [bench, setBench] = useState(() => {
@@ -42,6 +42,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   })
   const setBenchOpen = useCallback((open) => setBench((b) => ({ ...b, open })), [])
   const setBenchTab = useCallback((tab) => setBench((b) => ({ ...b, tab, open: true })), [])
+  const seekKey = framesPanel?.props.seek?.key
+  useEffect(() => { if (seekKey) setBenchTab('frames') }, [seekKey, setBenchTab])
   useEffect(() => {
     try {
       localStorage.setItem('bench.open', bench.open ? '1' : '0')
@@ -159,6 +161,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
 
   const chapterList = chapters?.status === 'done' ? chapters.chapters || [] : []
   const panels = {
+    // Phones: the frame grid lives here (the timeline is gone); a choice made in it closes the workbench.
+    ...(framesPanel ? { frames: React.cloneElement(framesPanel, { onClose: () => setBenchOpen(false) }) } : {}),
     chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
       onSelect={onChapterSelect} onHover={onChapterHover} />,
     notes: <NotesTab video={video} messages={messages} />,
@@ -220,13 +224,13 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         selected={selected}
         onRemoveFrame={onRemoveFrame}
         onClearSelection={onClearSelection}
-        onPickFrames={pictures ? null : onPickFrames}
+        onPickFrames={pictures ? null : framesPanel ? () => setBenchTab('frames') : onPickFrames}
         clip={clip}
         onClearClip={onClearClip}
         scopeNote={scopeNote}
       />
     </div>
-    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={pictures ? ['chapters'] : []}
+    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters'] : []), ...(framesPanel ? [] : ['frames'])]}
       badges={{ chapters: chapterList.length || null }} />
     </div>
   )
