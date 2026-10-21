@@ -1,11 +1,12 @@
 // Edit this file to tune copy, quick tasks and the two background animations.
-// Project name: 帧寻, finding the answer in the frames. The slug stays for stored settings and file names.
+// Project name: 帧寻 (finding the answer in the frames), English GongJ!ng? (dialect for "真的吗？").
+// URLs and file names use the plain slug.
 export const BRAND = {
-  name: '帧寻',
-  confirmed: '帧寻！',
+  name: '帧寻 GongJ!ng?',
+  confirmed: '帧寻 GongJ!ng!',
   slug: 'gongjing',
   gloss: '逐帧寻证',
-  tag: 'ZhenXun',
+  tag: '真的吗？',
   product: '视频 · 图文理解工作台',
 }
 
