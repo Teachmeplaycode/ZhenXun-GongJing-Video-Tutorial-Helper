@@ -246,6 +246,30 @@ test('the web demo has no platform logins', async ({ page }) => {
   await expect(page.locator('.field-error__action')).toHaveCount(0)
 })
 
+test('the web demo asks for the access code, then offers an account', async ({ page }) => {
+  await start(page, (mock) => { mock.publicDemo = true; mock.accessCode = 'frame2026' })
+  const gate = page.getByRole('dialog', { name: '输入访问码' })
+  await expect(gate).toBeVisible()
+  await expect(gate.getByRole('button', { name: '关闭' })).toHaveCount(0) // no way round it
+  await gate.locator('input').fill('wrong')
+  await gate.getByRole('button', { name: '进入' }).click()
+  await expect(gate.getByRole('alert')).toHaveText('访问码不对')
+  await gate.locator('input').fill('frame2026')
+  await gate.getByRole('button', { name: '进入' }).click()
+  await expect(gate).toHaveCount(0)
+
+  await page.getByRole('button', { name: '登录' }).click()
+  const dialog = page.getByRole('dialog', { name: '登录' })
+  await dialog.getByRole('button', { name: '没有账号？注册' }).click()
+  const register = page.getByRole('dialog', { name: '注册账号' })
+  await register.getByLabel('用户名').fill('评委1')
+  await register.getByLabel(/密码/).fill('secret1')
+  await register.getByRole('button', { name: '注册' }).click()
+  await expect(page.locator('.member-chip')).toHaveText(/评委1 · 退出/)
+  await page.locator('.member-chip').click()
+  await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
+})
+
 test('theme: follows the system, then light, then dark, and is remembered', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
   await start(page)

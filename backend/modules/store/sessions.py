@@ -103,6 +103,11 @@ class SessionStore:
         row = self.db.execute("SELECT owner FROM sessions WHERE id = ?", (session_id,)).fetchone()
         return None if row is None else row[0]
 
+    def reassign(self, old: str, new: str) -> int:
+        """Give `old`'s sessions to `new` (a browser signing in to an account); how many moved."""
+        with self.db:
+            return self.db.execute("UPDATE sessions SET owner = ? WHERE owner = ?", (new, old)).rowcount
+
     def ids(self) -> set[str]:
         return {row[0] for row in self.db.execute("SELECT id FROM sessions")}
 
