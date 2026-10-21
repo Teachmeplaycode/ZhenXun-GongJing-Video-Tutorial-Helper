@@ -37,7 +37,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from ..settings import settings
+from ..settings import mainland_proxy, settings
 from . import post_text, xhs_comments
 from .base import CommentPage, ResolveError, ResolvedVideo, Resolver, Stream
 
@@ -174,6 +174,8 @@ async def probe_duration(stream: Stream) -> float:
     args = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1"]
     if stream.headers:
         args += ["-headers", "".join(f"{k}: {v}\r\n" for k, v in stream.headers.items())]
+    if proxy := mainland_proxy(stream.url):
+        args += ["-http_proxy", proxy]
     try:
         proc = await asyncio.create_subprocess_exec(*args, stream.url, stdout=asyncio.subprocess.PIPE,
                                                     stderr=asyncio.subprocess.DEVNULL)

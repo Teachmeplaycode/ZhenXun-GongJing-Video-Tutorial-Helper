@@ -42,6 +42,33 @@ def cn_proxy() -> str | None:
     return settings().get("CN_PROXY", "").strip() or None
 
 
+# Hosts of mainland platforms whose pages, APIs and video CDNs are steadier from a mainland address:
+# with CN_PROXY set, requests to them (resolving, ffmpeg reading streams, playback relay) go through it.
+# B 站 is left out: it serves the overseas server well, and the proxy's bandwidth is better spent
+# elsewhere. CN_PROXY_HOSTS (comma-separated domains) replaces the list.
+MAINLAND_HOSTS = (
+    "douyin.com", "iesdouyin.com", "douyinvod.com", "douyinpic.com", "douyinstatic.com", "zjcdn.com", "snssdk.com",
+    "amemv.com", "bytecdn.cn", "byteimg.com", "ixigua.com",
+    "xiaohongshu.com", "xhscdn.com", "xhslink.com",
+    "kuaishou.com", "kwaicdn.com", "yximgs.com", "gifshow.com", "chenzhongtech.com", "kuaishouzt.com",
+    "weixin.qq.com", "finder.video.qq.com", "channels.weixin.qq.com",
+    "weibo.com", "weibo.cn", "sinaimg.cn", "miaopai.com", "youku.com", "iqiyi.com", "acfun.cn", "zhihu.com",
+)
+
+
+def mainland_proxy(url: str) -> str | None:
+    """CN_PROXY when `url` is on a mainland platform's host (and the proxy is set), else None."""
+    proxy = cn_proxy()
+    if not proxy or "://" not in (url or ""):
+        return None
+    from urllib.parse import urlsplit
+
+    host = (urlsplit(url).hostname or "").lower()
+    custom = settings().get("CN_PROXY_HOSTS", "").strip()
+    hosts = [h.strip().lower() for h in custom.split(",") if h.strip()] if custom else MAINLAND_HOSTS
+    return proxy if any(host == h or host.endswith("." + h) for h in hosts) else None
+
+
 def settings() -> dict[str, str]:
     """Read on every call so an edited .env applies to the next request.
 
