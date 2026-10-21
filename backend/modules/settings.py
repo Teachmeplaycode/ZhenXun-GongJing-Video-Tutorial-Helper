@@ -36,6 +36,12 @@ overlay: ContextVar[dict | None] = ContextVar("settings_overlay", default=None)
 vault: ContextVar[object | None] = ContextVar("settings_vault", default=None)
 
 
+def cn_proxy() -> str | None:
+    """CN_PROXY: an HTTP proxy in mainland China for the platforms that turn away overseas servers
+    (小红书, 元宝 / 视频号 …); None when unset, e.g. on a machine that is in mainland China already."""
+    return settings().get("CN_PROXY", "").strip() or None
+
+
 def settings() -> dict[str, str]:
     """Read on every call so an edited .env applies to the next request.
 

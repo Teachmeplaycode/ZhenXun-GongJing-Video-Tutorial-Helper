@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from modules.settings import ACCOUNTS_FILE, ENV_FILE, overlay, parse_assignment, read_env_file, settings, vault
+from modules.settings import ACCOUNTS_FILE, ENV_FILE, cn_proxy, overlay, parse_assignment, read_env_file, settings, vault
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
@@ -286,9 +286,10 @@ YUANBAO = "https://yuanbao.tencent.com/chat"
 async def _yuanbao_start() -> Login:
     from modules.agent import browser
 
-    if not browser.available():
+    if not browser.installed():
         raise AccountError("元宝扫码需要浏览器：在 backend 里运行 uv run playwright install --only-shell chromium")
-    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 800}, locale="zh-CN", user_agent=UA)
+    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 800}, locale="zh-CN", user_agent=UA,
+                                                         **browser.mainland())
     try:
         page = await context.new_page()
         await page.goto(YUANBAO, wait_until="domcontentloaded", timeout=20_000)
@@ -303,7 +304,8 @@ async def _yuanbao_start() -> Login:
                     break
         if not src:
             raise AccountError("元宝没有显示微信登录二维码，请稍后再试")
-        async with httpx.AsyncClient(timeout=10, transport=transport, headers={"User-Agent": UA, "Referer": "https://open.weixin.qq.com/"}) as c:
+        async with httpx.AsyncClient(timeout=10, transport=transport, proxy=None if transport else cn_proxy(),
+                                     headers={"User-Agent": UA, "Referer": "https://open.weixin.qq.com/"}) as c:
             image = await c.get(src)
         if image.status_code != 200:
             raise AccountError("微信登录二维码下载失败，请稍后再试")
@@ -351,9 +353,10 @@ XHS_QR_WAIT = 60  # seconds for the login dialog to draw its QR
 async def _xhs_start() -> Login:
     from modules.agent import browser
 
-    if not browser.available():
+    if not browser.installed():
         raise AccountError("小红书扫码需要浏览器：在 backend 里运行 uv run playwright install --only-shell chromium")
-    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 800}, locale="zh-CN", user_agent=UA)
+    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 800}, locale="zh-CN", user_agent=UA,
+                                                         **browser.mainland())
     seen = {"status": None}
 
     async def on_response(resp):
