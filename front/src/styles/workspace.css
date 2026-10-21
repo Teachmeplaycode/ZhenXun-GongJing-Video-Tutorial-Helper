@@ -195,8 +195,13 @@
   .ornament-dots--top { top: 0; right: 4%; width: var(--sp-40); height: var(--sp-24); }
 }
 
-/* Wordmark: "帧寻?" in the display face, punctuation in the active accent. */
-.wordmark { display: inline-flex; align-items: baseline; }
+/* Wordmark: 帧寻 and "GongJ!ng?" in the display face, punctuation in the active accent. Stacked on
+   the homepage (English under the Chinese), side by side in the top bar. */
+.wordmark { display: inline-flex; align-items: baseline; gap: 0.4em; }
+.wordmark__en { display: inline-flex; align-items: baseline; }
+.wordmark--stacked { flex-direction: column; align-items: flex-start; gap: 0.12em; }
+.wordmark--stacked .wordmark__en { font-size: 0.42em; letter-spacing: -0.02em; }
+.brand__name.wordmark .wordmark__en { opacity: 0.72; }
 .wordmark__mark, .wordmark__end { color: var(--accent-active); }
 .wordmark__end { display: inline-grid; }
 .wordmark__q, .wordmark__x { grid-area: 1 / 1; }
