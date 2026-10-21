@@ -7,6 +7,8 @@ const apiPort = process.env.API_PORT || 8000
 const webPort = Number(process.env.WEB_PORT || 5173)
 
 export default defineConfig({
+  // VITE_BASE puts the built app under a path, e.g. /GongJing/ on linyi.work; set VITE_API_BASE to the same path.
+  base: process.env.VITE_BASE || '/',
   plugins: [react()],
   server: {
     port: webPort,

@@ -1,0 +1,23 @@
+
+# linyi.work: one path per project. 帧见 (GongJing) runs in ~/projects/gongjing.
+linyi.work {
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    redir /GongJing /GongJing/ 308
+
+    handle_path /GongJing/* {
+        reverse_proxy gongjing:8000
+    }
+
+    handle {
+        respond "linyi.work" 200
+    }
+}
+
+www.linyi.work {
+    redir https://linyi.work{uri} permanent
+}
