@@ -199,8 +199,10 @@
    the homepage (English under the Chinese), side by side in the top bar. */
 .wordmark { display: inline-flex; align-items: baseline; gap: 0.4em; }
 .wordmark__en { display: inline-flex; align-items: baseline; }
-.wordmark--stacked { flex-direction: column; align-items: flex-start; gap: 0.12em; }
-.wordmark--stacked .wordmark__en { font-size: 0.42em; letter-spacing: -0.02em; }
+.wordmark--stacked { display: flex; flex-direction: column; align-items: flex-start; gap: 0.06em; }
+/* The two lines together take the height the one-line wordmark had, so the homepage still fits one screen. */
+.wordmark--stacked .wordmark__cn { font-size: 0.66em; line-height: 1; }
+.wordmark--stacked .wordmark__en { font-size: 0.3em; line-height: 1; letter-spacing: -0.02em; }
 .brand__name.wordmark .wordmark__en { opacity: 0.72; }
 .wordmark__mark, .wordmark__end { color: var(--accent-active); }
 .wordmark__end { display: inline-grid; }
