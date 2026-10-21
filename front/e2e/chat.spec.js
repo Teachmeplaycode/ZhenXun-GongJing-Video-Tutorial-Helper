@@ -235,6 +235,7 @@ test('a 视频号 link without a 元宝 login offers to scan', async ({ page }) 
 test('the web demo has no platform logins', async ({ page }) => {
   await start(page, (mock) => {
     mock.publicDemo = true
+    mock.member = { name: '评委1', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 3 } }
     mock.linkError = { code: 'login_required', message: '解析视频号需要登录腾讯元宝：点右上角「账号」用微信扫码登录' }
   })
   await expect(page.locator('.btn--theme')).toBeVisible()
@@ -246,26 +247,18 @@ test('the web demo has no platform logins', async ({ page }) => {
   await expect(page.locator('.field-error__action')).toHaveCount(0)
 })
 
-test('the web demo asks for the access code, then offers an account', async ({ page }) => {
-  await start(page, (mock) => { mock.publicDemo = true; mock.accessCode = 'frame2026' })
-  const gate = page.getByRole('dialog', { name: '输入访问码' })
-  await expect(gate).toBeVisible()
-  await expect(gate.getByRole('button', { name: '关闭' })).toHaveCount(0) // no way round it
-  await gate.locator('input').fill('wrong')
-  await gate.getByRole('button', { name: '进入' }).click()
-  await expect(gate.getByRole('alert')).toHaveText('访问码不对')
-  await gate.locator('input').fill('frame2026')
-  await gate.getByRole('button', { name: '进入' }).click()
-  await expect(gate).toHaveCount(0)
-
-  await page.getByRole('button', { name: '登录' }).click()
-  const dialog = page.getByRole('dialog', { name: '登录' })
-  await dialog.getByRole('button', { name: '没有账号？注册' }).click()
+test('the web demo: importing asks for an account, then shows what is left today', async ({ page }) => {
+  await start(page, (mock) => { mock.publicDemo = true; mock.oauth = ['github'] })
+  await page.locator('.import-control__link').fill('https://www.bilibili.com/video/BV1TEST00001')
+  await page.locator('.import-control__submit').click()
   const register = page.getByRole('dialog', { name: '注册账号' })
+  await expect(register).toContainText('登录后才能导入视频和提问')
+  await expect(register.getByRole('link', { name: '用 GitHub 登录' })).toHaveAttribute('href', /\/api\/auth\/github\/start$/)
   await register.getByLabel('用户名').fill('评委1')
   await register.getByLabel(/密码/).fill('secret1')
   await register.getByRole('button', { name: '注册' }).click()
-  await expect(page.locator('.member-chip')).toHaveText(/评委1 · 退出/)
+  await expect(page.locator('.member-chip')).toContainText('评委1')
+  await expect(page.locator('.member-chip')).toContainText('今日提问 10/10')
   await page.locator('.member-chip').click()
   await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
 })
