@@ -137,6 +137,7 @@ export default function App() {
   }, [sourceJob, analysisDone])
   const [pictureFocus, setPictureFocus] = useState(null) // { index, key }: an answer's 「第 n 张」 shows that picture
   const [extraFrames, setExtraFrames] = useState([]) // replayed / closer-look frames from the chat, shown on the timeline
+  const [hiddenExtras, setHiddenExtras] = useState(() => new Set()) // those groups cleared off the timeline
   const [cited, setCited] = useState([]) // times the answers point at, marked on the timeline
   const [cuts, setCuts] = useState([]) // the video's shot changes, marked on the timeline
   const [chapterRevision, setChapterRevision] = useState(0)
@@ -456,7 +457,7 @@ export default function App() {
     setAnalysis(EMPTY_ANALYSIS)
     setFrames([])
     setNotice('')
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
+    setSelected([]); setExtraFrames([]); setHiddenExtras(new Set()); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
     setUploadProgress(0)
     setVideo(null)
     setImportError('')
@@ -597,7 +598,7 @@ export default function App() {
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript, screentext: saved.screentext || null })
       setNotice(saved.running ? '' : [...(v.notes || []), coverageNotice(saved.coverage)].filter(Boolean).join('；'))
       setInitialMessages(restoreMessages(saved.messages, nextFrames))
-      setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
+      setSelected([]); setExtraFrames([]); setHiddenExtras(new Set()); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
       setImportError('')
       setRetrying(false)
       setStage(v.kind === 'images' ? 'pictures' : 'chat')
@@ -640,7 +641,7 @@ export default function App() {
     setStage('idle')
     setMaskMounted(false)
     setFrames([])
-    setSelected([]); setExtraFrames([]); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
+    setSelected([]); setExtraFrames([]); setHiddenExtras(new Set()); setCited([]); setClip(null); setActiveChapter(null); setHoverChapter(null); setPictureFocus(null)
     setMeta(null)
     setVideo(null)
     setAnalysis(EMPTY_ANALYSIS)
@@ -651,10 +652,7 @@ export default function App() {
   }
 
   // Back one level behind the same pixel wipe as going forward: chat → timeline, anything else → import.
-  const goBack = () => {
-    if (stage === 'chat') wipeThrough(() => setStage('ready'))
-    else wipeThrough(() => reset({ midWipe: true }))
-  }
+  const goBack = () => wipeThrough(() => reset({ midWipe: true })) // back to the homepage, from the chat too
 
   const toggleFrame = (frame) =>
     setSelected((list) =>
@@ -783,7 +781,7 @@ export default function App() {
               <IconUser size={14} /> 账号
             </button>
           )}
-          {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination={stage === 'chat' ? '解析时间轴' : '导入'} /> : null}
+          {stage !== 'idle' && !maskMounted ? <BackButton onClick={goBack} destination="首页" /> : null}
         </DockNav>
       </header>
 
@@ -900,7 +898,8 @@ export default function App() {
       {stage === 'chat' ? (
         <TimelineSculpture
           frames={frames}
-          extras={extraFrames}
+          extras={extraFrames.filter((g) => !hiddenExtras.has(g.id))}
+          onClearExtras={(kind) => setHiddenExtras((hidden) => new Set([...hidden, ...extraFrames.filter((g) => g.kind === kind).map((g) => g.id)]))}
           cuts={cuts}
           cited={cited}
           chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
