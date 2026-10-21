@@ -1,0 +1,26 @@
+{
+  "name": "zhenxun-promo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record/record.mjs",
+    "studio": "remotion studio src/index.ts --port=5310",
+    "typecheck": "tsc --noEmit",
+    "render:sample": "remotion render src/index.ts Sample out/sample.mp4 --codec=h264 --crf=18 --concurrency=4",
+    "render": "remotion render src/index.ts Promo out/zhenxun-promo-1080p.mp4 --codec=h264 --crf=18 --concurrency=4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.536",
+    "@remotion/google-fonts": "4.0.536",
+    "remotion": "4.0.536",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.20",
+    "@types/react-dom": "18.3.6",
+    "playwright": "1.64.0",
+    "typescript": "5.8.3"
+  }
+}
