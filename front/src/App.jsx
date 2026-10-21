@@ -5,6 +5,7 @@ import TimelineSculpture from './components/TimelineSculpture'
 import BackButton from './components/BackButton'
 import { HistoryDrawer } from './components/SessionList'
 import AccountsDrawer from './components/AccountsDrawer'
+import MemberDialog from './components/MemberDialog'
 import { IconHistory, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
@@ -19,7 +20,7 @@ import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
 import PictureStage from './stages/PictureStage'
-import { createLinkJob, deleteSession, deleteSource, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, deleteSource, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, signOut, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
 import SourcePlayer from './components/SourcePlayer'
 import EvidenceBadge from './components/EvidenceBadge'
 import { EvidenceContext } from './lib/evidence'
@@ -95,6 +96,9 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
   const [publicDemo, setPublicDemo] = useState(false) // the web demo: no platform logins
+  // The web demo's access code and account: { required, granted, user }; the dialog's mode when open.
+  const [member, setMember] = useState(null)
+  const [memberDialog, setMemberDialog] = useState(null)
   const [theme, themeChoice, cycleTheme] = useTheme()
   // A time clicked in an answer: the timeline points at the nearest frame. `key` re-triggers the same time.
   const [seek, setSeek] = useState(null)
@@ -102,7 +106,10 @@ export default function App() {
   const [source, setSource] = useState({ state: 'cache' })
   const [player, setPlayer] = useState(null) // { time, key }
   useEffect(() => {
-    getHealth().then((health) => setPublicDemo(Boolean(health?.public))).catch(() => {})
+    getHealth().then((health) => {
+      setPublicDemo(Boolean(health?.public))
+      if (health?.public) setMember({ required: Boolean(health.access_required), granted: Boolean(health.access_granted), user: health.user || null })
+    }).catch(() => {})
   }, [])
   const sourceJob = video?.jobId
   const analysisDone = analysis.index
@@ -729,7 +736,16 @@ export default function App() {
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
           </button>
-          {publicDemo ? null : (
+          {publicDemo ? (member?.user ? (
+            <button type="button" className="btn btn--ghost btn--accounts member-chip" title="退出登录"
+              onClick={() => signOut().finally(() => window.location.reload())}>
+              <IconUser size={14} /> {member.user.name} · 退出
+            </button>
+          ) : (
+            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setMemberDialog('login')} aria-haspopup="dialog">
+              <IconUser size={14} /> 登录
+            </button>
+          )) : (
             <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
               <IconUser size={14} /> 账号
             </button>
@@ -823,6 +839,11 @@ export default function App() {
         </div>
       </main>
 
+      {member?.required && !member.granted ? (
+        <MemberDialog mode="code" gate onDone={() => window.location.reload()} />
+      ) : memberDialog ? (
+        <MemberDialog mode={memberDialog} onDone={() => window.location.reload()} onClose={() => setMemberDialog(null)} />
+      ) : null}
       <AccountsDrawer open={!publicDemo && accountsOpen != null} focus={accountsOpen || null} onClose={() => setAccountsOpen(null)} />
 
       <HistoryDrawer

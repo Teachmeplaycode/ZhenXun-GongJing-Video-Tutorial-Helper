@@ -218,6 +218,13 @@ export function exportSessionUrl(id, { format = 'md', ids = null } = {}) {
  * sessions and platform logins are closed. */
 export const getHealth = () => linkRequest('/api/health')
 
+// ---- Web demo: access code and accounts (backend modules/members.py) --------------------
+const postJson = (path, body) => linkRequest(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+export const enterAccessCode = (code) => postJson('/api/access', { code })
+export const signUp = (name, password) => postJson('/api/auth/register', { name, password })
+export const signIn = (name, password) => postJson('/api/auth/login', { name, password })
+export const signOut = () => postJson('/api/auth/logout', {})
+
 // ---- Platform logins (cookies stay in the backend; only status comes back) -------------
 
 /** [{ id, label, purpose, app, configured, source, user, expires, valid }] */
