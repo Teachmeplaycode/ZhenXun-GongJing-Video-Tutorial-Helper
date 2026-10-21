@@ -19,6 +19,9 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.9 /uv /usr/local/bin/uv
 WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked --extra cloud --no-dev
+# Headless Chromium for the 小红书 / 元宝 QR logins and 小红书 comments (not for agent browsing: BROWSER=off).
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN .venv/bin/playwright install --with-deps --only-shell chromium && rm -rf /var/lib/apt/lists/*
 COPY backend/ ./
 COPY --from=web /src/front/dist /app/front/dist
 COPY --from=web /opt/alcedo /opt/alcedo
