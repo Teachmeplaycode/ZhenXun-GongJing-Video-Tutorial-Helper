@@ -48,6 +48,19 @@ def available() -> bool:
     return importlib.util.find_spec("playwright") is not None
 
 
+def installed() -> bool:
+    """Playwright is there, whether or not browsing is on: platform QR logins need it either way."""
+    return importlib.util.find_spec("playwright") is not None
+
+
+def mainland() -> dict:
+    """Context options sending a page out through CN_PROXY (QR logins to mainland platforms)."""
+    from modules.settings import cn_proxy
+
+    proxy = cn_proxy()
+    return {"proxy": {"server": proxy}} if proxy else {}
+
+
 def max_steps() -> int:
     return max(2, int(settings().get("BROWSER_MAX_STEPS", "12")))
 

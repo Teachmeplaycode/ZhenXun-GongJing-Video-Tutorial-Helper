@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from ..settings import settings
+from ..settings import cn_proxy, settings
 
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
               "(KHTML, like Gecko) Version/18.0 Safari/605.1.15")
@@ -83,7 +83,7 @@ async def fetch(url: str) -> dict | None:
     if cookie:
         headers["Cookie"] = cookie
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, proxy=cn_proxy()) as client:
             r = await client.get(url, headers=headers)
         return parse_note(r.text) if r.status_code == 200 else None
     except httpx.HTTPError:
