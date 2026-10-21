@@ -161,9 +161,10 @@ class Login:
     created: float = field(default_factory=time.time)
     handle: object = None        # B 站: qrcode_key; 元宝: the browser context
     owner: str = ""              # the web demo: whose login this is (only they may poll it)
+    link: str = ""               # B 站: the address inside the QR, so a phone can open it in the B 站 App
 
     def public(self, qr: bool = True) -> dict:
-        out = {"id": self.id, "platform": self.platform, "state": self.state, "message": self.message,
+        out = {"id": self.id, "platform": self.platform, "state": self.state, "message": self.message, "link": self.link,
                "user": self.user, "expires_in": max(0, round(self.created + LOGIN_TTL - time.time()))}
         return out | {"qr": self.qr} if qr else out
 
@@ -242,7 +243,7 @@ async def _bilibili_start() -> Login:
             raise AccountError("连不上 B 站，请检查网络") from None
     if not data.get("url"):
         raise AccountError("B 站没有返回二维码，请稍后再试")
-    return Login(secrets.token_urlsafe(9), "bilibili", _qr_svg(data["url"]), handle=data["qrcode_key"])
+    return Login(secrets.token_urlsafe(9), "bilibili", _qr_svg(data["url"]), handle=data["qrcode_key"], link=data["url"])
 
 
 def raw_query(url: str) -> dict[str, str]:
