@@ -199,10 +199,14 @@
    the homepage (English under the Chinese), side by side in the top bar. */
 .wordmark { display: inline-flex; align-items: baseline; gap: 0.4em; }
 .wordmark__en { display: inline-flex; align-items: baseline; }
+/* Homepage: 帧寻 and GongJ!ng? on one line, the English smaller on the same baseline. */
+.magazine-hero__brand .wordmark { gap: 0.28em; }
+.magazine-hero__brand .wordmark__en { font-size: 0.5em; letter-spacing: -0.03em; }
 .wordmark--stacked { display: flex; flex-direction: column; align-items: flex-start; gap: 0.06em; }
-/* The two lines together take the height the one-line wordmark had, so the homepage still fits one screen. */
 .wordmark--stacked .wordmark__cn { font-size: 0.66em; line-height: 1; }
 .wordmark--stacked .wordmark__en { font-size: 0.3em; line-height: 1; letter-spacing: -0.02em; }
+/* 画面之内，答案之间 ends in an accent dot instead of a full stop. */
+.magazine-hero__title > span:last-child::after { content: "."; color: var(--accent-active-dim); }
 .brand__name.wordmark .wordmark__en { opacity: 0.72; }
 .wordmark__mark, .wordmark__end { color: var(--accent-active); }
 .wordmark__end { display: inline-grid; }
@@ -390,10 +394,14 @@
   display: block;
   padding: clamp(56px, 8vh, 88px) clamp(28px, 3.8vw, 56px) var(--sp-32);
 }
-.home-intro { width: min(480px, 100%); }
+.home-intro { width: min(640px, 100%); } /* as wide as the import card below it */
+/* Above the sculpture where they overlap, with a soft canvas-coloured halo so the words stay legible. */
+.app--idle .home-intro { position: relative; z-index: 1; }
+.app--idle .home-intro .wordmark, .app--idle .magazine-hero__title, .app--idle .magazine-hero__description {
+  text-shadow: 0 0 6px var(--bg-canvas), 0 0 14px var(--bg-canvas), 0 0 24px var(--bg-canvas); }
 .app--idle .magazine-hero__brand { font-size: clamp(72px, 7.8vw, 112px); margin-bottom: var(--sp-24); }
 .app--idle .magazine-hero__title { font-size: clamp(26px, 2.3vw, 34px); }
-.app--idle .magazine-hero__description { max-width: 400px; font-size: 15px; }
+.app--idle .magazine-hero__description { max-width: 620px; font-size: 15px; }
 .app--idle .import-entry { width: min(640px, 56%); margin: var(--sp-24) 0 0; min-width: 0; }
 .app--idle .import-slide {
   border: 1px solid color-mix(in srgb, var(--border-strong) 80%, transparent); border-radius: 12px;
