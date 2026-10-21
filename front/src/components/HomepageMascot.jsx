@@ -130,7 +130,7 @@ export default function HomepageMascot({ state = 'idle', active = true, placemen
   const live = !reduced && renderer === 'live'
   return (
     <figure className={`home-companion${placement === 'hero' ? ' home-companion--hero' : ''}`} data-exit={placement === 'hero' ? '' : undefined} data-state={state} data-renderer={live ? 'live' : 'static'}>
-      <div ref={hostRef} className="home-companion__portrait" role="img" aria-label="GongJ!ng? 小蛇吉祥物">
+      <div ref={hostRef} className="home-companion__portrait" role="img" aria-label="帧寻 小蛇吉祥物">
         <img className="home-companion__still" src={TEXTURE} width="1254" height="1254" alt="" aria-hidden="true" decoding="async" />
         <canvas ref={canvasRef} className="home-companion__canvas" aria-hidden="true" />
       </div>

@@ -22,4 +22,4 @@ if ! sudo docker exec "$GATEWAY" caddy validate --config /etc/caddy/Caddyfile --
 fi
 sudo docker exec "$GATEWAY" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 echo "已添加 linyi.work 并重载网关；原文件备份在 $BACKUP"
-echo "证书签发需要几十秒，之后打开 https://linyi.work/GongJing/"
+echo "证书签发需要几十秒，之后打开 https://linyi.work/ZhenXun/"

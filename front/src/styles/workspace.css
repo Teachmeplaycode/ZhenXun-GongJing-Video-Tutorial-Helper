@@ -195,7 +195,7 @@
   .ornament-dots--top { top: 0; right: 4%; width: var(--sp-40); height: var(--sp-24); }
 }
 
-/* Wordmark: "GongJ!ng?" in the display face, punctuation in the active accent. */
+/* Wordmark: "帧寻?" in the display face, punctuation in the active accent. */
 .wordmark { display: inline-flex; align-items: baseline; }
 .wordmark__mark, .wordmark__end { color: var(--accent-active); }
 .wordmark__end { display: inline-grid; }

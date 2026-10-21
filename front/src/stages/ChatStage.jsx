@@ -174,7 +174,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
               <div className="chat__agent">
                 <Avatar role="assistant" animated />
                 <span className="chat__agent-copy">
-                  <strong>GongJ!ng Agent</strong>
+                  <strong>帧寻 Agent</strong>
                   <span>视频理解与事实核验</span>
                 </span>
               </div>
