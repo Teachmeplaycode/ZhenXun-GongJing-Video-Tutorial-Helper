@@ -9,6 +9,7 @@ and only the platforms in PUBLIC_PLATFORMS (default: Bilibili and uploads) can b
   PUBLIC_DEMO        1 / true / on turns the demo mode on
   PUBLIC_PLATFORMS   comma-separated platforms visitors may import (bilibili,local)
   VISITOR_SECRET     key signing the cookie; without it one is made and kept in the data folder
+  PUBLIC_PATH        the path the app is served under (e.g. /GongJing), so the cookie stays with it
 """
 from __future__ import annotations
 
@@ -31,6 +32,10 @@ current: ContextVar[str] = ContextVar("visitor", default="")
 
 def enabled() -> bool:
     return os.environ.get("PUBLIC_DEMO", "").strip().lower() in ("1", "true", "on", "yes")
+
+
+def cookie_path() -> str:
+    return "/" + os.environ.get("PUBLIC_PATH", "").strip("/ ")
 
 
 def platforms() -> set[str]:

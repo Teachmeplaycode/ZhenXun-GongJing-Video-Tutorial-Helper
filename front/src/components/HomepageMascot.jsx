@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
 
-const TEXTURE = '/brand/mascot-full-body.png'
+const TEXTURE = `${import.meta.env.BASE_URL}brand/mascot-full-body.png`
 const BLEND_SECONDS = 0.2
 
 /** The approved mascot, with live motion and a still image on the first paint. */

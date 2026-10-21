@@ -73,7 +73,7 @@ void main(){
  r*=uRays;
  gl_FragColor=vec4(c.rgb*c.a*(1.0-r)+vec3(.784,.941,.290)*r,c.a+r*(1.0-c.a));
 }`;
-export async function createMascot(canvas,{size=768,textureUrl='/brand/mascot-full-body.png'}={}){
+export async function createMascot(canvas,{size=768,textureUrl=`${import.meta.env.BASE_URL}brand/mascot-full-body.png`}={}){
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,premultipliedAlpha:true,preserveDrawingBuffer:false,powerPreference:'low-power'});
  renderer.setPixelRatio(1);renderer.setSize(size,size,false);renderer.setClearColor(0x000000,0);
  const texture=await new THREE.TextureLoader().loadAsync(textureUrl).catch(error=>{renderer.dispose();throw error});
