@@ -346,7 +346,7 @@ test('replayed and closer-look frames: on the timeline in their colours, enlarge
   // the timeline gains the 4 + 2 frames, each kind with its legend and band
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(4)
   await expect(page.locator('.tl-sheet.is-extra[data-kind="view"]')).toHaveCount(2)
-  await expect(page.locator('.timeline__legend[data-kind="replay"], .timeline__legend[data-kind="view"]')).toHaveText(['慢放 4 帧', '补看 2 帧'])
+  await expect(page.locator('.timeline__legend[data-kind="replay"], .timeline__legend[data-kind="view"]')).toHaveText(['慢放 4 帧清除', '补看 2 帧清除'])
   await expect(page.locator('.tl-band')).toHaveCount(2)
   await expect(page.locator('.timeline__head')).toContainText('8 帧') // the keyframe count is unchanged
 
@@ -444,24 +444,23 @@ test('a hand-framed replay comes back with its session', async ({ page }) => {
   await expect(page.locator('.msg--manual .manual-replay__head')).toContainText('01:00.0 – 01:01.0')
   await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(3)
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(3)
+  await page.locator('.timeline__legend[data-kind="replay"] .timeline__legend-clear').click()
+  await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(0) // off the timeline
+  await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(3) // the replay itself stays in the chat
 })
 
-test('back goes up one level behind the pixel wipe: chat → timeline → import', async ({ page }) => {
+test('back goes straight to the homepage behind the pixel wipe, from the chat too', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' }) // the suite turns motion off; this test is about it
   await start(page)
   await enterChat(page)
   await expect(page.locator('.wipe')).toBeHidden()
+  await expect(page.locator('.btn--back')).toHaveText(/返回首页/)
   await page.locator('.btn--back').click()
   await expect(page.locator('.wipe')).toBeVisible() // the cells cover the switch
   await expect(page.locator('.wipe')).toBeHidden()
-  await expect(page.locator('.btn--next:not(.btn--early)')).toBeVisible() // the analysed timeline again
-  await expect(page.locator('.composer__input')).toBeHidden()
-
-  await page.locator('.btn--back').click()
-  await expect(page.locator('.wipe')).toBeVisible()
-  await expect(page.locator('.wipe')).toBeHidden()
   await expect(page.locator('.import-control__link')).toBeVisible()
   await expect(page.locator('.import-control__link')).toHaveValue(LINK) // kept, to adjust and parse again
+  await expect(page.locator('.composer__input')).toBeHidden()
 })
 
 test('a replay framed on one video is not replayed again when the next one opens', async ({ page }) => {
