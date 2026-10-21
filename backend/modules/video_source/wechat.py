@@ -21,7 +21,7 @@ import urllib.parse
 
 import httpx
 
-from ..settings import settings
+from ..settings import cn_proxy, settings
 from .base import ResolveError, ResolvedVideo, Resolver, Stream
 
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -61,6 +61,7 @@ class WeChatChannelsResolver(Resolver):
 
     def __init__(self, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 15, probe=probe_duration) -> None:
         self._client = httpx.AsyncClient(transport=transport, timeout=timeout, follow_redirects=False,
+                                         proxy=None if transport else cn_proxy(),  # 元宝 from a mainland address
                                          headers={"User-Agent": USER_AGENT})
         self.probe = probe
         self.headers = {"User-Agent": USER_AGENT, "Referer": "https://channels.weixin.qq.com/"}

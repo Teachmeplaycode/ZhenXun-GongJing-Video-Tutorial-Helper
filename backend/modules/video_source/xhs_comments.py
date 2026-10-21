@@ -74,9 +74,10 @@ def to_pages(raw: list[dict], total: int | None) -> list[CommentPage]:
 async def _visit(url: str, cookie: str) -> list[CommentPage]:
     from ..agent import browser
 
-    if not browser.available():
+    if not browser.installed():
         raise ResolveError("unsupported", "读小红书评论需要浏览器：在 backend 里运行 uv run playwright install --only-shell chromium")
-    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 900}, locale="zh-CN", user_agent=UA)
+    context = await (await browser.browser()).new_context(viewport={"width": 1280, "height": 900}, locale="zh-CN", user_agent=UA,
+                                                         **browser.mainland())
     raw: list[dict] = []
     arrived = asyncio.Event()
 
