@@ -231,6 +231,10 @@ export class MockApi {
       return json({ ok: true, user: this.member })
     }
     if (path === '/api/auth/logout') { this.member = null; return json({ ok: true }) }
+    if (path === '/api/auth/guest') {
+      this.member = { name: '游客1234', plan: 'guest', label: '游客', questions: { used: 0, limit: 10 }, imports: { used: 0, limit: 5 }, uploads: { used: 0, limit: 1 } }
+      return json({ ok: true, user: this.member })
+    }
     if (path === '/api/sessions' && req.method() === 'GET') return json({ sessions: this.sessions.map((s) => s.summary) })
     let m = path.match(/^\/api\/sessions\/(\w+)\/export$/)
     if (m) {
