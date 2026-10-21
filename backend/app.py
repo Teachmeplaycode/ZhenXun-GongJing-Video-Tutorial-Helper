@@ -97,7 +97,7 @@ async def visitor(request: Request, call_next):
     finally:
         visitors.current.reset(token)
     if fresh:
-        response.set_cookie(visitors.COOKIE, visitors.sign(who, key), max_age=visitors.MAX_AGE,
+        response.set_cookie(visitors.COOKIE, visitors.sign(who, key), max_age=visitors.MAX_AGE, path=visitors.cookie_path(),
                             httponly=True, samesite="lax", secure=request.url.scheme == "https")
     return response
 
