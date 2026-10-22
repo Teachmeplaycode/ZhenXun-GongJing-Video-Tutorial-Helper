@@ -1,6 +1,7 @@
 import React, {useCallback} from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {clamp01, CONSOLE, easeOut, Fill, Glyphs, Head, INK, INK2, INK3, LIME, LINE2, PIXEL, pop, Sfx, SILK, SURFACE, Typed} from './kit';
+import {Glitch} from './Glitch';
 import {FLOOR_VIEW, floorSlat, project, Sculpture, SITE_VIEW, SlatPose} from './Sculpture';
 
 // 02 解析 → 切分 → 问答, played by the homepage's sculpture in its own colour (never tinted), the
@@ -75,9 +76,11 @@ export const Pipeline: React.FC = () => {
       {CUTS.map((_, k) => <React.Fragment key={k}><Sfx name="whoosh" at={CUT_AT(k) - 3} volume={0.3} rate={1.4} /><Sfx name="click" at={CUT_AT(k)} volume={0.55} rate={1 + k * 0.05} /></React.Fragment>)}
       <Sfx name="whoosh" at={PULL[0]} volume={0.35} rate={0.8} />
       <Sfx name="ping" at={ASK_AT + 70} volume={0.35} />
-      <Sculpture pose={pose} phase={3} view={view} spin={frame < ASSEMBLE[1] ? 0 : (frame - ASSEMBLE[1]) * 0.0008}
+      <Glitch frame={frame} starts={[ASSEMBLE[1] + 4, ASK_AT + 66]} id="pipe">
+        <Sculpture pose={pose} phase={3} view={view} spin={frame < ASSEMBLE[1] ? 0 : (frame - ASSEMBLE[1]) * 0.0008}
         scale={lerp(1, 0.8, easeOut((frame - PULL[0]) / 30))} x={lerp(0, -6.5, easeOut((frame - PULL[0]) / 30))} y={lerp(-0.6, -0.8, viewK)}
         focus={{u: focusU, zoom: 2.1, mix: push}} />
+      </Glitch>
       <Head n="02" title="一条视频怎么被读懂" sub="解析 → 切分 → 问答" />
       <div style={{position: 'absolute', right: 110, top: 112, display: 'flex', gap: 30, alignItems: 'center', background: 'rgba(245,243,239,0.85)', padding: '4px 12px'}}>
         {steps.map((s, i) => (
