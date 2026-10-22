@@ -7,7 +7,7 @@ import { Replay } from './StepDetail'
 import { IconCheck, IconCopy, IconRefresh } from './Icons'
 import { fmtElapsed, fmtTime, frameNo } from '../lib/format'
 import { host, isVisibleStep } from '../lib/steps'
-import EvidenceSummary from './EvidenceSummary'
+import EvidenceSummary, { useCiteChips } from './EvidenceSummary'
 import SkillReports, { skillReports } from './SkillReports'
 
 const MAX_THUMBS = 5
@@ -174,10 +174,11 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
   const parts = message.parts
   const lastText = parts.map((p) => p.kind).lastIndexOf('text')
   const settled = message.status !== 'running'
+  const [cites, setCites] = useCiteChips()
   return (
     <div className="msg msg--assistant">
       <Avatar role="assistant" />
-      <div className="bubble bubble--assistant">
+      <div className={`bubble bubble--assistant${cites ? '' : ' bubble--cites-off'}`}>
         {parts.map((part, i) => (part.kind === 'steps' ? (
           <StepGroup key={part.id} part={part} working={streaming && i === parts.length - 1}
             progress={message.progress?.step} onSeek={onTime} />
@@ -191,7 +192,7 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
         {message.browser ? <BrowserViewport session={message.browser} onStop={onStop} /> : null}
         {message.error ? <div className="bubble__error">{message.error}</div> : null}
         {settled ? <SkillReports reports={skillReports(message)} onSeek={onTime} /> : null}
-        {settled && message.evidence ? <EvidenceSummary evidence={message.evidence} /> : null}
+        {settled && message.evidence ? <EvidenceSummary evidence={message.evidence} cites={cites} onCites={setCites} /> : null}
         {settled ? <Sources sources={collectSources(message)} /> : null}
         {settled ? <Footer message={message} onRegenerate={onRegenerate} /> : null}
       </div>

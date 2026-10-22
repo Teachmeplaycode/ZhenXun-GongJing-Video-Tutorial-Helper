@@ -1,0 +1,50 @@
+import asyncio
+import shutil
+import subprocess
+
+import pytest
+
+from modules import clip
+from modules.frames import FrameJob
+from modules.video_source import ResolvedVideo, Stream
+from modules.video_source.local import PLATFORM as LOCAL
+
+
+def test_span_clamps_to_the_video_and_the_format_limit():
+    assert clip.span(5, 30, 100, "gif") == (5, 15)  # a GIF is at most 10 s
+    assert clip.span(5, 30, 100, "mp4") == (5, 30)
+    assert clip.span(95, 120, 100, "mp4") == (95, 100)  # not past the end
+    assert clip.span(20, 10, 100, "mp4") == (10, 20)  # either order
+    with pytest.raises(clip.ClipError):
+        clip.span(3, 3.1, 100, "gif")  # too short
+    with pytest.raises(clip.ClipError):
+        clip.span(1, 4, 100, "webm")
+
+
+def test_names_carry_the_title_and_the_stretch():
+    assert clip._name("VLOOKUP 函数/详解", 63.2, 70.9, "gif") == "帧寻_VLOOKUP_函数_详解_0103-0110.gif"
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs ffmpeg")
+def test_cuts_a_local_upload_into_gif_and_mp4_and_reuses_them(tmp_path):
+    src = tmp_path / "upload.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25", "-f", "lavfi", "-i", "sine=frequency=440",
+                    "-t", "6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(src)], check=True)
+    video = ResolvedVideo(LOCAL, "u1", "file", "测试 视频", 6.0, [Stream(str(src), {}, "原文件", 360)])
+    job = FrameJob("job1", video, None, tmp_path / "job1", count=2)
+
+    gif = asyncio.run(clip.make(job, 1, 3, "gif"))
+    assert gif.path.read_bytes()[:6] in (b"GIF89a", b"GIF87a")
+    assert gif.filename == "帧寻_测试_视频_0001-0003.gif"
+    mp4 = asyncio.run(clip.make(job, 1, 4, "mp4"))
+    assert mp4.media_type == "video/mp4" and mp4.path.stat().st_size > 1000
+    before = mp4.path.stat().st_mtime
+    assert asyncio.run(clip.make(job, 1, 4, "mp4")).path.stat().st_mtime == before  # the same stretch is not cut again
+
+
+def test_a_deleted_upload_says_so(tmp_path):
+    video = ResolvedVideo(LOCAL, "u1", "file", "t", 6.0, [Stream(str(tmp_path / "gone.mp4"), {}, "原文件", 360)])
+    job = FrameJob("job1", video, None, tmp_path / "job1", count=2)
+    with pytest.raises(clip.ClipError) as e:
+        asyncio.run(clip.make(job, 1, 3, "gif"))
+    assert e.value.status == 404

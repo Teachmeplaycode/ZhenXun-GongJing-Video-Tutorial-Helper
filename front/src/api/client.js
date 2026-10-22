@@ -181,6 +181,27 @@ export const fetchSource = (jobId, { signal } = {}) => linkRequest(`/api/link-jo
 export const deleteSource = (jobId) => linkRequest(`/api/link-jobs/${jobId}/source`, { method: 'DELETE' })
 /** The original video for <video src>: a kept upload, or the platform's MP4 relayed by the backend. */
 export const mediaUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/media`
+
+/** A stretch of the original cut out as a GIF (≤10 s) or an MP4 (≤60 s) and saved as a file. */
+export async function downloadClip(jobId, start, end, format) {
+  const url = `${LINK_BASE}/api/link-jobs/${jobId}/clip?start=${start.toFixed(2)}&end=${end.toFixed(2)}&format=${format}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail || '截取失败，请稍后再试')
+  }
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const name = decodeURIComponent((disposition.match(/filename\*=utf-8''([^;]+)/i) || [])[1] || '') || `帧寻片段.${format}`
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000)
+  return name
+}
 /** Questions worth asking about this video: { status: waiting | running | done | failed, questions: [{ question, kind, label, hint }] } */
 export const fetchSuggestions = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/suggestions`, { signal })
 
