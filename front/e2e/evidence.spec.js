@@ -32,6 +32,12 @@ test('evidence: citations show their kind, play their moment, and failed ones ar
   await expect(answer.locator('.ev-summary')).toContainText('2 条引用缺少可回看的证据')
   await expect(answer.locator('.ev-summary__item')).toHaveText(['画面 2', '原声 1', '画面文字 1', '资料 2', '推断 1'])
 
+  // The chips in the text are hidden until asked for; the choice is remembered for later answers.
+  await expect(answer.locator('.streaming-text .ev-chip').first()).toBeHidden()
+  await answer.getByRole('button', { name: '显示时间标签' }).click()
+  await expect(answer.locator('.streaming-text .ev-chip').first()).toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('zhenxun.cites.v1'))).toBe('1')
+
   // A checked moment is a button and opens the cached frames at its start (no original in this mock).
   await answer.getByRole('button', { name: '原声 00:30-00:40' }).click()
   await expect(page.locator('.tl-sheet.is-seeking')).toHaveCount(1)
