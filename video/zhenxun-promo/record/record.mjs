@@ -24,6 +24,10 @@ const H = 1080
 const ZOOM = 2
 // An Excel VLOOKUP tutorial from the held-out tutorial set (tut-vlookup): the film's software-tutorial case.
 const LINK = process.env.ZX_LINK || 'https://www.bilibili.com/video/BV1M34y1C7HZ'
+const TUTORIAL = /vlookup/i // its session's title, so the tutorial scenes open it whatever was imported last
+// The GIF scene's video: something worth a reaction image.
+const MEME_LINK = 'https://www.bilibili.com/video/BV1KiWA6UEHG'
+const MEME_RANGE = process.env.ZX_MEME_RANGE || '00:02 到 00:06' // the turn to the camera, into the close-up
 const ENV = Object.fromEntries((await readFile(new URL('../.env', import.meta.url), 'utf8').catch(() => '')).split('\n')
   .filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]))
 
@@ -137,12 +141,18 @@ async function scene(name, act, { width = W, height = H, mobile = false, zoom = 
       const steps = Math.max(10, Math.round(ms / 30))
       for (let i = 0; i < steps; i += 1) { await page.mouse.wheel(0, dy / steps); await page.waitForTimeout(ms / steps) }
     },
-    /** Open the newest session from 历史 (the one `import` made). */
-    async openLatest() {
+    /** Open the newest session from 历史 whose title matches (the tutorial by default). */
+    async openLatest(title = TUTORIAL) {
       await cam.click('.btn--history')
       await page.waitForSelector('.session-item__open', { timeout: 15000 })
       await cam.wait(500)
-      await cam.click('.session-item__open')
+      const items = page.locator('.session-item__open')
+      const n = await items.count()
+      let pick = items.first()
+      for (let i = 0; i < n; i += 1) {
+        if (title.test(await items.nth(i).innerText())) { pick = items.nth(i); break }
+      }
+      await cam.click(pick)
       await page.waitForSelector('.composer__input', { timeout: 60000 })
       await cam.wait(1200)
     },
@@ -323,11 +333,22 @@ Object.assign(SCENES, {
     await cam.answered()
     await cam.wait(1500)
   },
-  // "把 02:03 到 02:08 做成 GIF": the clip studio — nudge the end, set the frame rate, make it, see it
+  // the reaction-image video, imported once (not in the film): `node record/record.mjs meme`
+  async meme(cam) {
+    await cam.wait(1500)
+    await cam.click('.import-control__link')
+    await cam.type(MEME_LINK, { delay: 20 })
+    await cam.click('.import-control__submit')
+    await cam.page.locator('.btn--next:not(.btn--early)').waitFor({ state: 'visible', timeout: 600000 })
+    await cam.click('.btn--next:not(.btn--early)')
+    await cam.page.waitForSelector('.composer__input', { timeout: 60000 })
+    await cam.wait(1000)
+  },
+  // "把 … 做成表情包 GIF" on the reaction video: the clip studio — nudge the end, set the frame rate, make it, see it
   async gif(cam) {
-    await cam.openLatest()
+    await cam.openLatest(/./) // the newest session: the reaction video (record `meme` first)
     await cam.click('.composer__input')
-    await cam.type('把 02:03 到 02:08 做成 GIF', { delay: 110 })
+    await cam.type(`把 ${MEME_RANGE} 做成表情包 GIF`, { delay: 110 })
     await cam.wait(400)
     await cam.press('Enter')
     const card = cam.page.locator('.clip-studio').last()

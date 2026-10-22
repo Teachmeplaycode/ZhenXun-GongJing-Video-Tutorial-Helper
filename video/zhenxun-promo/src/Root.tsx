@@ -5,6 +5,7 @@ import {OPENING_FRAMES, PV, PV_FRAMES} from './pv/PV';
 import {FPS} from './theme';
 import {DEMO_FRAMES, DemoCut} from './films/DemoCut';
 import {PRODUCT_FRAMES, ProductFilm} from './films/ProductFilm';
+import {REEL_FRAMES, Reel} from './films/Reel';
 
 export const Root: React.FC = () => (
   <>
@@ -17,5 +18,7 @@ export const Root: React.FC = () => (
     <Composition id="DemoCut" component={DemoCut} durationInFrames={DEMO_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* A quiet product film in the manner of the Claude / Codex launch films. */}
     <Composition id="ProductFilm" component={ProductFilm} durationInFrames={PRODUCT_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* Every feature from the recordings, in the field-manual layout, moved by graphic means only. */}
+    <Composition id="Reel" component={Reel} durationInFrames={REEL_FRAMES} fps={FPS} width={1920} height={1080} />
   </>
 );
