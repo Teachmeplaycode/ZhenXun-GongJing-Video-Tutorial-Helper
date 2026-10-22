@@ -1,12 +1,13 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {AbsoluteFill, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {CharField, clamp01, CONSOLE, DISPLAY, easeOut, Fill, Glyphs, hash, Head, INK, INK2, INK3, LIME, LIME_DIM, LINE, LINE2, MONO, PAPER, PIXEL, PixelCursor, pop, Rule,
-  SC, Sfx, SILK, stepped, SURFACE, textWidth, Typed, WORDMARK} from './kit';
+import {Blob, CharField, clamp01, CONSOLE, CREAM, DARK, DISPLAY, easeOut, Fill, Glyphs, hash, Head, INK, INK2, INK3, LIME, LIME_DIM, LINE, LINE2, MONO, NIGHT, PAPER, PIXEL, PixelCursor, pop, Rule,
+  SC, Sfx, SILK, stepped, SURFACE, textWidth, Typed, useTone, WORDMARK} from './kit';
 import {Topo} from './Contour';
-import {NameLockup, RULE} from './Opening';
 import {Sculpture} from './Sculpture';
 
-// The PV after the name (10–60 s), in the site's day theme: paper, ink, a little lime. Scenes hand
+// The PV from the click scene on (about 23–60 s). From the click to the slogan it runs on the night
+// side (warm black, cream, lime; GSAP-like grainy colour shapes), and the slogan folds into a line
+// that opens back onto paper for the closing lockup. Scenes hand
 // over through shapes (see transitions.tsx) or share an element across the change: the lockup's
 // rule drops and splits into the evidence columns; 每秒 is pushed off by an ink panel carrying
 // 读一帧, a + opens out of it and grows until its lime fills the frame for 证据 >; the slogan folds
@@ -17,76 +18,19 @@ import {Sculpture} from './Sculpture';
 /** Lime as a highlighter stroke under ink text (lime text alone is too pale on paper). */
 const marker = (k = 1): React.CSSProperties => ({backgroundImage: `linear-gradient(${LIME}, ${LIME})`, backgroundRepeat: 'no-repeat',
   backgroundSize: `${clamp01(k) * 100}% 38%`, backgroundPosition: '0 88%'});
+/** On the night side lime text is bright enough by itself (a highlighter under cream would muddy it). */
+const nightMarker = (k = 1): React.CSSProperties => (k > 0.5 ? {color: LIME} : {});
+/** Inside a night scene: the same colour names, night values. */
+const night = () => ({INK: DARK.fg, INK2: DARK.fg2, INK3: DARK.fg3, LINE: DARK.line, LINE2: DARK.line2, PAPER: DARK.bg, SURFACE: '#17191A', LIME_DIM: LIME, marker: nightMarker});
 
 const Caption: React.FC<{mark: string; text: string; at: number; size?: number; style?: React.CSSProperties}> = ({mark, text, at, size = 60, style}) => {
   const frame = useCurrentFrame();
+  const tone = useTone();
   return (
-    <div style={{fontFamily: PIXEL, fontSize: size, color: INK, display: 'flex', gap: 22, alignItems: 'center', ...style}}>
-      <span style={{fontFamily: SILK, fontWeight: 700, color: INK3, fontSize: size * 0.8, opacity: frame >= at - 4 ? 1 : 0}}>{mark}</span>
+    <div style={{fontFamily: PIXEL, fontSize: size, color: tone.fg, display: 'flex', gap: 22, alignItems: 'center', ...style}}>
+      <span style={{fontFamily: SILK, fontWeight: 700, color: tone.fg3, fontSize: size * 0.8, opacity: frame >= at - 4 ? 1 : 0}}>{mark}</span>
       <Typed text={text} at={at} />
     </div>
-  );
-};
-
-// ---------------------------------------------------------------- 01 三路证据 (from the lockup's rule)
-const LANES = [
-  {word: '画面', mark: '◆', color: INK},
-  {word: '原声', mark: '|||', color: LIME_DIM},
-  {word: '画面文字', mark: '[ ]', color: INK3},
-];
-const FLOOR = 1010;
-
-const Evidence: React.FC = () => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const drop = easeOut((frame - 22) / 18);
-  const split = easeOut((frame - 36) / 14);
-  const ruleY = RULE.y + (FLOOR - RULE.y) * drop;
-  const paint = useCallback((c: number, r: number, tick: number, cols: number, rows: number) => {
-    const third = Math.floor(cols / 3);
-    const lane = Math.min(2, Math.floor(c / third));
-    const inLane = c % third > 4 && c % third < third - 4;
-    if (!inLane) return null;
-    const level = easeOut((frame - 44 - lane * 12) / 34) * 0.56 + Math.sin(tick * 0.7 + c * 0.9) * 0.02 + hash(c, tick) * 0.04;
-    const fromBottom = FLOOR / 1080 - r / rows;
-    if (fromBottom < 0) return null;
-    if (fromBottom > level) return hash(c, r, tick) < 0.02 ? LINE : null;
-    return hash(c, r, tick) < 0.78 ? LANES[lane].color : LINE2;
-  }, [frame]);
-  return (
-    <Fill>
-      <Topo opacity={0.35 * clamp01((frame - 20) / 30)} turn={0.3} />
-      <CharField cell={20} set="code" fps={15} paint={paint} />
-      {frame < 44 ? <Sculpture phase={11} scale={1.05} y={-0.5} style={{opacity: 1 - clamp01((frame - 16) / 28)}} pose={() => ({spread: easeOut(frame / 36)})} /> : null}
-      {frame < 40 ? <NameLockup t={400} exit={clamp01(frame / 22)} /> : null}
-      {[0, 1, 2].map((i) => {
-        const from = {l: RULE.left + (RULE.width / 3) * i, w: RULE.width / 3};
-        const to = {l: 640 * i + 48, w: 640 - 96};
-        return <div key={i} style={{position: 'absolute', top: ruleY - 4, height: 8, background: LIME,
-          left: from.l + (to.l - from.l) * split, width: from.w + (to.w - from.w) * split + (1 - split)}} />;
-      })}
-      <Sfx name="whoosh" at={20} volume={0.4} rate={0.8} />
-      {frame >= 40 ? <Head n="01" title="三路证据" sub="画面 · 原声 · 画面文字" at={44} /> : null}
-      {LANES.map((lane, i) => {
-        const at = 56 + i * 14;
-        const k = pop(frame, at, fps);
-        return (
-          <React.Fragment key={i}>
-            <Sfx name="soft" at={at} volume={0.5} />
-            <div style={{position: 'absolute', left: 640 * i, width: 640, top: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-              opacity: frame >= at ? 1 : 0, transform: `translateY(${(1 - k) * 60}px)`}}>
-              <span style={{fontFamily: MONO, fontWeight: 800, fontSize: 40, color: INK2, transform: `rotate(${(1 - k) * 90}deg)`}}>{lane.mark}</span>
-              <span style={{fontFamily: SC, fontWeight: 900, fontSize: lane.word.length > 2 ? 120 : 150, color: INK, lineHeight: 1.2, whiteSpace: 'nowrap', background: PAPER,
-                padding: '0 22px', clipPath: `inset(0 ${(1 - clamp01(k)) * 100}% 0 0)`}}>{lane.word}</span>
-            </div>
-          </React.Fragment>
-        );
-      })}
-      <div style={{position: 'absolute', left: 0, right: 0, bottom: 150, display: 'flex', justifyContent: 'center'}}>
-        <div style={{background: PAPER, padding: '8px 28px'}}><Caption mark=">>>" text="每一句回答，都有出处" at={124} size={72} /></div>
-      </div>
-      <Glyphs count={8} seed={21} opacity={0.6} />
-    </Fill>
   );
 };
 
@@ -101,6 +45,7 @@ export const LAST_CLICK = CLICKS[CLICKS.length - 1];
 
 const Clicks: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const {fps} = useVideoConfig();
   const at = (i: number) => 26 + i * 38;
   const leg = Math.min(CLICKS.length - 1, Math.max(0, Math.floor((frame - 8) / 38)));
@@ -109,7 +54,8 @@ const Clicks: React.FC = () => {
   const k = easeOut((frame - (at(leg) - 18)) / 16);
   const press = clamp01(1 - Math.abs(frame - at(leg)) / 4);
   return (
-    <Fill>
+    <Fill dark>
+      <Blob x={1700} y={180} r={150} turn={frame * 0.6} opacity={0.9} />
       <Head n="03" title="一点回看" sub="时间点 → 原片" />
       {/* a timeline across the bottom; each click marks its place on it */}
       <Rule x={160} y={930} w={1600} k={easeOut(frame / 24)} color={LINE2} thick={3} />
@@ -148,22 +94,30 @@ const Clicks: React.FC = () => {
 
 // ---------------------------------------------------------------- 04 截图提问
 // The site's own look: white panels, hairline borders, a lime button.
-const Window: React.FC<{w: number; h: number}> = ({w, h}) => (
+const Window: React.FC<{w: number; h: number}> = ({w, h}) => {
+  const tone = useTone();
+  const INK = tone.fg;
+  const LINE = tone.line2;
+  const LINE2 = tone.fg3;
+  const SURFACE = tone.dark ? '#17191A' : '#FFFFFF';
+  return (
   <svg width={w} height={h} viewBox="0 0 760 470">
     <rect x="1" y="1" width="758" height="468" rx="10" fill={SURFACE} stroke={LINE2} strokeWidth="2" />
     <path d="M1 41H759" stroke={LINE} strokeWidth="2" />
     {[24, 46, 68].map((x, i) => <circle key={x} cx={x} cy="21" r="7" fill={i === 2 ? LIME : LINE} />)}
-    <rect x="16" y="56" width="150" height="398" rx="6" fill="#FAF8F5" />
+    <rect x="16" y="56" width="150" height="398" rx="6" fill={tone.dark ? '#1D2021' : '#FAF8F5'} />
     {[0, 1, 2, 3, 4, 5].map((i) => <rect key={i} x="30" y={74 + i * 34} width={i === 2 ? 110 : 90 + (i % 2) * 20} height="12" rx="4" fill={i === 2 ? INK : LINE} />)}
-    {[0, 1, 2, 3, 4].map((i) => <rect key={i} x={186 + i * 74} y="58" width="62" height="30" rx="5" fill={i === 3 ? LIME : '#FAF8F5'} stroke={i === 3 ? 'none' : LINE} />)}
-    <rect x="186" y="104" width="556" height="350" rx="6" fill="#FAF8F5" stroke={LINE} />
+    {[0, 1, 2, 3, 4].map((i) => <rect key={i} x={186 + i * 74} y="58" width="62" height="30" rx="5" fill={i === 3 ? LIME : tone.dark ? '#1D2021' : '#FAF8F5'} stroke={i === 3 ? 'none' : LINE} />)}
+    <rect x="186" y="104" width="556" height="350" rx="6" fill={tone.dark ? '#1D2021' : '#FAF8F5'} stroke={LINE} />
     {Array.from({length: 7}, (_, i) => <line key={i} x1="186" x2="742" y1={104 + (i + 1) * 44} y2={104 + (i + 1) * 44} stroke={LINE} />)}
     <rect x="300" y="190" width="240" height="150" rx="8" fill="none" stroke={INK} strokeWidth="3" strokeDasharray="10 8" />
   </svg>
-);
+  );
+};
 
 const Screenshot: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const {fps} = useVideoConfig();
   const enter = pop(frame, 0, fps, 160);
   const scan = clamp01((frame - 26) / 34);
@@ -176,7 +130,7 @@ const Screenshot: React.FC = () => {
     : {x: box.x + 80 + (box.w - 150) * easeOut((frame - 116) / 18), y: box.y + 40};
   const pressing = (frame >= 70 && frame < 108) || Math.abs(frame - 136) < 4;
   return (
-    <Fill>
+    <Fill dark>
       <Sfx name="whoosh" volume={0.35} />
       <Sfx name="glitch" at={26} volume={0.2} />
       <Sfx name="soft" at={72} volume={0.5} />
@@ -187,7 +141,7 @@ const Screenshot: React.FC = () => {
       <div style={{position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, borderRadius: 48, border: `2px solid ${frame > 100 ? INK : LINE2}`,
         background: SURFACE, transform: `translateY(${(1 - pop(frame, 40, fps)) * 200}px)`}}>
         <span style={{position: 'absolute', left: 150, top: 24, fontFamily: PIXEL, fontSize: 48, color: INK3}}>{frame > 136 ? '' : '我卡在哪一步？'}</span>
-        <span style={{position: 'absolute', right: 12, top: 10, width: 72, height: 72, borderRadius: 36, background: LIME, color: INK, display: 'grid', placeItems: 'center',
+        <span style={{position: 'absolute', right: 12, top: 10, width: 72, height: 72, borderRadius: 36, background: LIME, color: NIGHT, display: 'grid', placeItems: 'center',
           fontFamily: SILK, fontWeight: 700, fontSize: 40, transform: `scale(${1 - clamp01(1 - Math.abs(frame - 136) / 4) * 0.15})`}}>{'>'}</span>
       </div>
       {frame < 140 ? (
@@ -229,6 +183,7 @@ const PLUS = (s: number, deg: number) => {
 
 const Giant: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const {fps} = useVideoConfig();
   const a = pop(frame, 0, fps, 200);
   const panel = pop(frame, 82, fps, 150);
@@ -236,7 +191,7 @@ const Giant: React.FC = () => {
   const grow = Math.pow(clamp01((frame - 196) / 26), 2.4);
   const proof = pop(frame, 250, fps, 200);
   return (
-    <Fill>
+    <Fill dark>
       <Sfx name="hit" at={26} volume={0.35} />
       <Sfx name="whoosh" at={78} volume={0.5} />
       <Sfx name="whoosh" at={136} volume={0.45} rate={0.8} />
@@ -248,7 +203,7 @@ const Giant: React.FC = () => {
       <div style={{position: 'absolute', inset: 0, transform: `translateX(${(1 - panel) * 1920}px)`}}>
         <div style={{position: 'absolute', inset: 0, background: INK}} />
         <div style={{position: 'absolute', right: -140 - (1 - panel) * 300, top: 120, fontFamily: SC, fontWeight: 900, fontSize: 640, color: PAPER, lineHeight: 1, whiteSpace: 'nowrap'}}>读一帧</div>
-        <div style={{position: 'absolute', left: 96, top: 96, fontFamily: SILK, fontWeight: 700, fontSize: 64, color: LIME}}>||| 02</div>
+        <div style={{position: 'absolute', left: 96, top: 96, fontFamily: SILK, fontWeight: 700, fontSize: 64, color: NIGHT}}>||| 02</div>
       </div>
       {frame >= 138 ? (
         <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
@@ -258,9 +213,9 @@ const Giant: React.FC = () => {
       ) : null}
       {frame >= 244 ? (
         <>
-          <div style={{position: 'absolute', left: 80, top: 150, fontFamily: SC, fontWeight: 900, fontSize: 600, color: INK, lineHeight: 1, whiteSpace: 'nowrap',
+          <div style={{position: 'absolute', left: 80, top: 150, fontFamily: SC, fontWeight: 900, fontSize: 600, color: NIGHT, lineHeight: 1, whiteSpace: 'nowrap',
             transform: `translateX(${(1 - proof) * -700}px)`}}>证据<span style={{fontFamily: MONO}}>{' >'}</span></div>
-          <div style={{position: 'absolute', right: 96, top: 96, fontFamily: SILK, fontWeight: 700, fontSize: 64, color: INK, opacity: proof}}>◆ 03</div>
+          <div style={{position: 'absolute', right: 96, top: 96, fontFamily: SILK, fontWeight: 700, fontSize: 64, color: NIGHT, opacity: proof}}>◆ 03</div>
         </>
       ) : null}
       <Glyphs count={8} seed={41} opacity={0.7} />
@@ -271,6 +226,7 @@ const Giant: React.FC = () => {
 // ---------------------------------------------------------------- star burst, 看到哪，问到哪
 const Burst: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const texture = useCallback((c: number, r: number, tick: number, cols: number) => {
     const dir = r % 2 ? 1 : -1;
     const shifted = (c + dir * tick * 2 + cols * 8) % 11;
@@ -279,7 +235,7 @@ const Burst: React.FC = () => {
   }, []);
   const bursts = [4, 96];
   return (
-    <Fill grid={false}>
+    <Fill grid={false} dark>
       <CharField cell={46} set="帧" fps={12} paint={texture} />
       {bursts.map((b) => <Sfx key={b} name="sparkle" at={b} volume={0.28} />)}
       {bursts.flatMap((start, b) => frame < start ? [] : Array.from({length: 70}, (_, i) => {
@@ -317,14 +273,16 @@ export const versusX = () => {
 
 const Versus: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const {fps} = useVideoConfig();
   const guess = pop(frame, 0, fps, 220);
   const strike = easeOut((frame - 30) / 10);
   const proof = pop(frame, 48, fps, 200);
   const X = versusX();
   return (
-    <Fill>
-      <Topo opacity={0.3} turn={1.2} scale={1.3} />
+    <Fill dark>
+      <Topo opacity={0.18} turn={1.2} scale={1.3} />
+      <Blob x={260} y={880} r={190} turn={-frame * 0.5} opacity={0.85} />
       <Sfx name="hit" at={30} volume={0.4} />
       <Sfx name="whoosh" at={48} volume={0.45} />
       <div style={{position: 'absolute', right: 1920 - X.x + 100 + GAP, top: X.y - 200, fontFamily: SC, fontWeight: 900, fontSize: 380, lineHeight: 1,
@@ -349,13 +307,14 @@ const Versus: React.FC = () => {
 // ---------------------------------------------------------------- 05 170 秒 → 80 秒
 const Speed: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const {fps} = useVideoConfig();
   const run = easeOut((frame - 30) / 70);
   const secs = Math.round(170 - 90 * run);
   const done = frame > 100;
   return (
-    <Fill>
-      <Topo opacity={0.3} turn={2.1} />
+    <Fill dark>
+      <Topo opacity={0.18} turn={2.1} />
       {Array.from({length: 9}, (_, i) => <Sfx key={i} name="soft" at={30 + Math.round((i / 9) * 50)} volume={0.3} rate={1 + i * 0.04} />)}
       <Sfx name="ping" at={100} volume={0.4} />
       <Head n="05" title="导入一个软件教程" sub="文字识别提速" />
@@ -408,6 +367,7 @@ const useImageGrid = (src: string, cols: number, rows: number) => {
 
 const Snake: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const {fps} = useVideoConfig();
   const grid = useImageGrid('mascot.png', 104, 64);
   const reveal = easeOut(frame / 40);
@@ -425,10 +385,10 @@ const Snake: React.FC = () => {
   const eyes = useCallback((c: number, r: number, tick: number) => {
     const cell = at(c, r, tick);
     if (cell < 3 || frame < 34) return null;
-    return frame % 130 > 121 ? null : cell === 3 ? SURFACE : LIME;
+    return frame % 130 > 121 ? null : cell === 3 ? CREAM : LIME;
   }, [at, frame]);
   return (
-    <Fill>
+    <Fill dark>
       <Sfx name="soft" at={34} volume={0.5} />
       <CharField cell={16} set="digits" fps={12} paint={paint} />
       <CharField cell={16} set="█" fps={12} paint={eyes} />
@@ -451,15 +411,17 @@ const Snake: React.FC = () => {
 const WALL = ['B站', '抖音', '小红书', '快手', '视频号', '本地上传', '截图提问', '慢放回看', '笔记长图', '证据标签', '原声转写', '画面文字',
   '关键帧', '时间轴', '卡点分析', '推荐问题', 'Tab 补全', '手机适配', '附图提问', '导出预览'];
 const LIST = ['B站 · 抖音 · 小红书 · 快手 · 视频号', '本地上传，一样能看', '截图提问：我卡在哪一步', '慢放回看，逐帧对照', '笔记一键存成长图'];
-const COLLAPSE_AT = 104;
+const COLLAPSE_AT = 80;
 
 const Wall: React.FC = () => {
   const frame = useCurrentFrame();
+  const {INK, INK2, INK3, LINE, LINE2, PAPER, SURFACE, LIME_DIM, marker} = night(); // the night side
   const collapse = easeOut((frame - COLLAPSE_AT) / 24);
   const cols = 5;
   return (
-    <Fill>
+    <Fill dark>
       <Sfx name="swish" at={COLLAPSE_AT - 16} volume={0.35} />
+      <Blob x={1640} y={820} r={220} turn={frame * 0.4} opacity={0.85 * clamp01((frame - COLLAPSE_AT) / 20)} />
       <div style={{position: 'absolute', inset: 0, opacity: 1 - collapse * 0.85}}>
         {Array.from({length: 9 * cols}, (_, i) => {
           const col = i % cols;
@@ -505,72 +467,86 @@ const Mark: React.FC<{size: number}> = ({size}) => (
   </svg>
 );
 
-const FOLD_AT = 268;
-const LOCK_AT = 307;
+const FOLD_AT = 200; // the slogan folds into a line…
+const OPEN = [222, 250]; // …which opens out into paper…
+const LOCK_AT = 240; // …and the lockup rises from it
 const LINE_Y = 640;
 
 const Finale: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps, durationInFrames} = useVideoConfig();
   const a = pop(frame, 0, fps, 200);
-  const b = pop(frame, 82, fps, 200);
-  const c = pop(frame, 138, fps);
+  const b = pop(frame, 60, fps, 200);
+  const c = pop(frame, 110, fps);
   const fold = easeOut((frame - FOLD_AT) / 20);
   const squash = (y: number) => `translateY(${(LINE_Y - y) * fold}px) scaleY(${1 - fold})`;
   const t = frame - LOCK_AT;
   const rise = easeOut(t / 24);
+  const open = easeOut((frame - OPEN[0]) / (OPEN[1] - OPEN[0]));
   const out = clamp01((frame - (durationInFrames - 36)) / 36);
   const steps = stepped(frame, 60, 12);
-  const line = easeOut((frame - FOLD_AT - 6) / 18);
+  const line = easeOut((frame - FOLD_AT - 6) / 16);
+  const N = night();
   return (
-    <Fill>
-      <Sfx name="hit" at={26} volume={0.35} />
-      <Sfx name="hit" at={82} volume={0.35} />
-      <Sfx name="riser" at={LOCK_AT - 170} startFrom={Math.round(7 * fps)} volume={0.25} />
+    <Fill dark>
+      <Sfx name="hit" at={20} volume={0.35} />
+      <Sfx name="hit" at={60} volume={0.35} />
+      <Sfx name="riser" at={LOCK_AT - 150} startFrom={Math.round(7.4 * fps)} volume={0.25} />
       <Sfx name="whoosh" at={FOLD_AT} volume={0.5} rate={0.9} />
-      <Sfx name="swell" at={LOCK_AT - 10} volume={0.5} />
-      {frame >= LOCK_AT - 10 ? <Sculpture phase={20} scale={1.1} y={-1} pose={() => ({spread: 1 - easeOut((frame - LOCK_AT + 10) / 60)})} /> : null}
-      {frame < LOCK_AT ? (
+      <Sfx name="swish" at={OPEN[0] - 6} volume={0.4} />
+      <Sfx name="swell" at={LOCK_AT - 6} volume={0.5} />
+      <Blob x={1620} y={250} r={200} turn={frame * 0.5} opacity={0.85 * (1 - fold)} />
+      {/* the slogan, on the night side */}
+      {frame < OPEN[1] ? (
         <>
-          <div style={{position: 'absolute', left: 110, top: 120, fontFamily: SC, fontWeight: 900, fontSize: 280, color: INK, lineHeight: 1,
+          <div style={{position: 'absolute', left: 110, top: 120, fontFamily: SC, fontWeight: 900, fontSize: 280, color: N.INK, lineHeight: 1,
             transform: `translateX(${(1 - a) * -700}px) ${squash(260)}`}}>
-            <span style={{fontFamily: MONO, color: INK3}}>*//</span>看见
+            <span style={{fontFamily: MONO, color: N.INK3}}>*//</span>看见
           </div>
-          <div style={{position: 'absolute', right: 110, top: 420, fontFamily: SC, fontWeight: 900, fontSize: 280, color: INK, lineHeight: 1, opacity: frame >= 82 ? 1 : 0,
-            transform: `translateX(${(1 - b) * 700}px) ${squash(560)}`, ...marker(easeOut((frame - 92) / 14))}}>再求证</div>
-          <div style={{position: 'absolute', left: 300, top: 470, fontFamily: MONO, fontWeight: 800, fontSize: 240, color: LIME_DIM, lineHeight: 1, opacity: frame > 110 ? 1 : 0,
-            transform: `rotate(${(frame - 110) * 3}deg) scale(${pop(frame, 110, fps) * (1 - fold)})`}}>+</div>
-          <div style={{position: 'absolute', left: 0, right: 0, bottom: 110, display: 'flex', justifyContent: 'center', opacity: frame >= 138 ? 1 : 0,
+          <div style={{position: 'absolute', right: 110, top: 420, fontFamily: SC, fontWeight: 900, fontSize: 280, color: LIME, lineHeight: 1, opacity: frame >= 60 ? 1 : 0,
+            transform: `translateX(${(1 - b) * 700}px) ${squash(560)}`}}>再求证</div>
+          <div style={{position: 'absolute', left: 300, top: 470, fontFamily: MONO, fontWeight: 800, fontSize: 240, color: LIME, lineHeight: 1, opacity: frame > 80 ? 1 : 0,
+            transform: `rotate(${(frame - 80) * 3}deg) scale(${pop(frame, 80, fps) * (1 - fold)})`}}>+</div>
+          <div style={{position: 'absolute', left: 0, right: 0, bottom: 110, display: 'flex', justifyContent: 'center', opacity: frame >= 110 ? 1 : 0,
             transform: `translateY(${(1 - c) * 60}px) ${squash(930)}`}}>
-            <div style={{fontFamily: SILK, fontWeight: 700, fontSize: 72, color: INK3, display: 'flex', gap: 24, alignItems: 'center'}}>
-              {'{'}<Typed text="回到原片那一刻" at={144} style={{fontFamily: PIXEL, fontSize: 84, color: INK}} />{'}>'}
+            <div style={{fontFamily: SILK, fontWeight: 700, fontSize: 72, color: N.INK3, display: 'flex', gap: 24, alignItems: 'center'}}>
+              {'{'}<Typed text="回到原片那一刻" at={116} style={{fontFamily: PIXEL, fontSize: 84, color: N.INK}} />{'}>'}
             </div>
           </div>
         </>
       ) : null}
+      {/* the line opens out into paper: the night ends, the day theme comes back for the name */}
+      {frame >= OPEN[0] ? (
+        <div style={{position: 'absolute', left: 0, right: 0, top: LINE_Y - (LINE_Y + 10) * open, bottom: (1080 - LINE_Y) - (1080 - LINE_Y + 10) * open, background: PAPER}} />
+      ) : null}
       {frame >= FOLD_AT ? <div style={{position: 'absolute', top: LINE_Y - 4, height: 8, background: LIME, left: 960 - 620 * line, width: 1240 * line}} /> : null}
+      {frame >= LOCK_AT - 10 ? (
+        <AbsoluteFill style={{clipPath: `inset(${LINE_Y - (LINE_Y + 10) * open}px 0 ${(1080 - LINE_Y) - (1080 - LINE_Y + 10) * open}px 0)`}}>
+          <Sculpture phase={20} scale={1.1} y={-1} pose={() => ({spread: 1 - easeOut((frame - LOCK_AT + 10) / 60)})} />
+        </AbsoluteFill>
+      ) : null}
       {frame >= LOCK_AT ? (
         <>
           <div style={{position: 'absolute', left: 0, right: 0, top: LINE_Y - 330, height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 50, transform: `translateY(${(1 - rise) * 330}px)`}}>
               <div style={{transform: `scale(${pop(t, 10, fps)})`}}><Mark size={190} /></div>
-              <span style={{fontFamily: SC, fontWeight: 900, fontSize: 230, color: INK, lineHeight: 1}}>帧寻</span>
+              <span style={{fontFamily: SC, fontWeight: 900, fontSize: 230, color: INK, lineHeight: 1}}><span style={{color: LIME, textShadow: `6px 6px 0 ${INK}`}}>帧</span>寻</span>
               <span style={{fontFamily: WORDMARK, fontWeight: 700, fontSize: 124, color: INK, letterSpacing: -5, lineHeight: 1}}>
-                GongJ<span style={{color: LIME_DIM}}>!</span>ng<span style={{color: LIME_DIM}}>{steps % 10 < 7 ? '?' : '!'}</span>
+                GongJ<span style={{color: '#9CC229'}}>!</span>ng<span style={{color: '#9CC229'}}>{steps % 10 < 7 ? '?' : '!'}</span>
               </span>
             </div>
           </div>
           <div style={{position: 'absolute', left: 0, right: 0, top: LINE_Y + 40, display: 'flex', justifyContent: 'center', gap: 40, alignItems: 'center'}}>
-            <span style={{fontFamily: PIXEL, fontSize: 60, color: INK}}><Typed text="看见，再求证。" at={LOCK_AT + 30} cps={20} /></span>
-            <span style={{fontFamily: SILK, fontWeight: 700, fontSize: 48, color: LINE2, opacity: t > 60 ? 1 : 0}}>|||</span>
-            <span style={{fontFamily: DISPLAY, fontWeight: 700, fontSize: 44, color: INK}}><Typed text="linyi.work/ZhenXun" at={LOCK_AT + 66} cps={34} /></span>
+            <span style={{fontFamily: PIXEL, fontSize: 60, color: INK}}><Typed text="看见，再求证。" at={LOCK_AT + 26} cps={22} /></span>
+            <span style={{fontFamily: SILK, fontWeight: 700, fontSize: 48, color: LINE2, opacity: t > 50 ? 1 : 0}}>|||</span>
+            <span style={{fontFamily: DISPLAY, fontWeight: 700, fontSize: 44, color: INK}}><Typed text="linyi.work/ZhenXun" at={LOCK_AT + 54} cps={34} /></span>
           </div>
         </>
       ) : null}
-      <Glyphs count={frame >= LOCK_AT ? 12 : 10} seed={101} opacity={0.6} />
+      <Glyphs count={10} seed={101} opacity={0.6} />
       <AbsoluteFill style={{background: PAPER, opacity: out}} />
     </Fill>
   );
 };
 
-export const REST = {Evidence, Clicks, Screenshot, Giant, Burst, Versus, Speed, Snake, Wall, Finale};
+export const REST = {Clicks, Screenshot, Giant, Burst, Versus, Speed, Snake, Wall, Finale};

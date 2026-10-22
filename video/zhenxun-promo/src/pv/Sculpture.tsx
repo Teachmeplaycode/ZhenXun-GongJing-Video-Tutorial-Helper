@@ -63,7 +63,12 @@ export type SlatPose = {
   /** pulled out of the band toward the camera, in world units */ lift?: number;
   color?: string;
   /** 0 hides the slat (scaled away) */ size?: number;
+  /** a pose of its own (world units, radians), blended in by `mix` */
+  to?: {x: number; y: number; z: number; rx?: number; ry?: number; rz?: number; sx?: number; sy?: number; sz?: number};
+  mix?: number;
 };
+const _e3 = new THREE.Euler();
+const _q2 = new THREE.Quaternion();
 
 const ribbonMatrix = (sheet: Sheet, time: number, out: THREE.Matrix4) => {
   const {u} = sheet;
@@ -91,7 +96,8 @@ const ribbonMatrix = (sheet: Sheet, time: number, out: THREE.Matrix4) => {
   return out;
 };
 
-const Slats: React.FC<{time: number; pose: (i: number, u: number) => SlatPose; spin: number}> = ({time, pose, spin}) => {
+type View = [number, number, number];
+const Slats: React.FC<{time: number; pose: (i: number, u: number) => SlatPose; spin: number; view: View}> = ({time, pose, spin, view}) => {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const sheets = useMemo(() => sampleSheets(SHEETS), []);
   const color = useMemo(() => new THREE.Color(), []);
@@ -115,6 +121,13 @@ const Slats: React.FC<{time: number; pose: (i: number, u: number) => SlatPose; s
         _q.slerp(_strip, strip);
         _s.lerp(_tmp.set(0.42, 0.4, 1), strip);
       }
+      if (p.to && (p.mix ?? 1) > 0) {
+        const k = p.mix ?? 1;
+        const o = p.to;
+        _p.lerp(_tmp.set(o.x, o.y, o.z), k);
+        _q.slerp(_q2.setFromEuler(_e3.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0)), k);
+        _s.lerp(_tmp.set(o.sx ?? 1, o.sy ?? 1, o.sz ?? 1), k);
+      }
       if (p.lift) _p.z += p.lift;
       _s.multiplyScalar(p.size ?? 1);
       _m.compose(_p, _q, _s);
@@ -125,7 +138,7 @@ const Slats: React.FC<{time: number; pose: (i: number, u: number) => SlatPose; s
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
   });
   return (
-    <group rotation={[VIEW.x, VIEW.y + spin, VIEW.z]}>
+    <group rotation={[view[0], view[1] + spin, view[2]]}>
       <instancedMesh ref={mesh} args={[undefined, undefined, SHEETS]}>
         <boxGeometry args={[SHEET.width, SHEET.height, SHEET.thickness]} />
         <meshStandardMaterial color="#ffffff" roughness={0.5} metalness={0.05} />
@@ -134,12 +147,24 @@ const Slats: React.FC<{time: number; pose: (i: number, u: number) => SlatPose; s
   );
 };
 
-/** The sculpture over the whole frame (transparent around it). World units: about 43 px each at scale 1. */
+/** The sculpture over the whole frame (transparent around it). World units: about 43 px each at
+ *  scale 1. `view` turns the whole piece (the site's view by default); `focus` is the camera
+ *  following a point on the ribbon (its u), pushed in to `zoom`, blended in by `mix`. */
 export const Sculpture: React.FC<{pose?: (i: number, u: number) => SlatPose; spin?: number; scale?: number; x?: number; y?: number; style?: React.CSSProperties;
-  /** seconds offset, so different scenes don't show the same phase */ phase?: number}> = ({pose = () => ({}), spin = 0, scale = 1, x = 0, y = 0, style, phase = 0}) => {
+  phase?: number; view?: View; focus?: {u: number; zoom: number; mix: number}}> = ({pose = () => ({}), spin = 0, scale = 1, x = 0, y = 0, style, phase = 0,
+  view = [VIEW.x, VIEW.y, VIEW.z], focus}) => {
   const frame = useCurrentFrame();
   const {width, height, fps} = useVideoConfig();
   const time = frame / fps + phase;
+  let pos: [number, number, number] = [x, y, 0];
+  let s = scale;
+  if (focus && focus.mix > 0) {
+    // where that point of the ribbon is after the view's turn, so it can be brought to the centre
+    const p = loopPoint(focus.u).applyEuler(new THREE.Euler(view[0], view[1] + spin, view[2]));
+    const z = scale + (focus.zoom - scale) * focus.mix;
+    pos = [x + (-p.x * z - x) * focus.mix, y + (-p.y * z - y) * focus.mix, -p.z * z * focus.mix];
+    s = z;
+  }
   return (
     <ThreeCanvas width={width} height={height} style={{position: 'absolute', inset: 0, ...style}} camera={{fov: 22, position: [0, 0, 64], near: 1, far: 400}}
       gl={{alpha: true, antialias: true}}>
@@ -147,9 +172,41 @@ export const Sculpture: React.FC<{pose?: (i: number, u: number) => SlatPose; spi
       <hemisphereLight args={['#ffffff', '#D8D4CE', 1.6]} />
       <directionalLight position={[-14, 22, 18]} intensity={1.5} />
       <directionalLight position={[16, -6, -12]} intensity={0.55} />
-      <group position={[x, y, 0]} scale={scale}>
-        <Slats time={time} pose={pose} spin={spin} />
+      <group position={pos} scale={s}>
+        <Slats time={time} pose={pose} spin={spin} view={view} />
       </group>
     </ThreeCanvas>
   );
+};
+
+export const SITE_VIEW: View = [VIEW.x, VIEW.y, VIEW.z];
+
+// ---------------------------------------------------------------- the timeline on the floor
+/** The view for the floor scenes: looking down at a timeline laid on the ground, receding. */
+export const FLOOR_VIEW: View = [0.78, -0.42, 0.02];
+const REST = (-68 * Math.PI) / 180; // the site's timeline: slats stand obliquely, like a deck seen from the side
+export const FLOOR_Y = -4.5;
+/** Slat `u` standing on a curving, undulating floor timeline (as in the site's TimelineSculpture):
+ *  `head` is the slat being read — it and its neighbours rise and turn along a cosine bell. */
+export const floorSlat = (u: number, time: number, head = -1, length = 50) => {
+  const a = u * TAU * 0.85 + 0.9;
+  const x = (u - 0.5) * length;
+  const z = -2 + 7 * Math.sin(a);
+  const tx = length;
+  const tz = 7 * TAU * 0.85 * Math.cos(a);
+  const d = Math.abs(u - head) * SHEETS;
+  const bell = head >= 0 && d < 7 ? 0.5 + 0.5 * Math.cos((Math.PI * d) / 7) : 0;
+  const sy = 0.5 + 0.24 * Math.sin(u * TAU * 2.6 - time * 1.3) + 0.12 * bell; // the heights roll like a wave
+  return {
+    x, z, y: FLOOR_Y + (SHEET.height * sy) / 2 + bell * 4.2,
+    ry: Math.atan2(tx, tz) + REST + bell * 0.9, rx: 0, rz: 0,
+    sx: 1.1, sy, sz: 4, bell,
+  };
+};
+/** Where a world point (inside a group turned by `view`) lands on the 1920×1080 frame, and how
+ *  many px one unit is there. */
+export const project = (p: {x: number; y: number; z: number}, view: View) => {
+  const v = new THREE.Vector3(p.x, p.y, p.z).applyEuler(new THREE.Euler(view[0], view[1], view[2]));
+  const f = 540 / Math.tan((11 * Math.PI) / 180) / (64 - v.z);
+  return {x: 960 + v.x * f, y: 540 - v.y * f, unit: f};
 };
