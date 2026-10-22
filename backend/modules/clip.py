@@ -2,7 +2,7 @@
 the one step of a tutorial — from the same original the player shows (playback.find): a kept
 upload, or the platform's MP4 relayed with its headers. GIFs are short and small (a palette made
 from the clip itself); MP4s keep the sound. A finished cut is kept in the job's folder, so asking
-again is instant.
+again is instant. A GIF is made from the MP4 of the same stretch (cut first, and kept).
 """
 from __future__ import annotations
 
@@ -91,13 +91,26 @@ async def make(job: FrameJob, start: float, end: float, fmt: str) -> Clip:
     clip = Clip(out, _name(job.video.title, start, end, fmt), "image/gif" if fmt == "gif" else "video/mp4")
     if out.is_file() and out.stat().st_size > 0:
         return clip
+    if fmt == "gif":
+        # Cut the stretch as an MP4 first (one quick seek into the original, and kept), then make the
+        # GIF from that local file: reading the remote original straight into the palette filters is
+        # many times slower.
+        mp4 = await make(job, start, end, "mp4")
+        tmp = out.with_suffix(".part.gif")
+        async with _slots:
+            code, _ = await _run(_args(["-i", str(mp4.path)], 0, end - start, "gif", tmp), timeout=60)
+        if code != 0 or not tmp.is_file() or tmp.stat().st_size == 0:
+            tmp.unlink(missing_ok=True)
+            raise ClipError(502, "GIF 生成失败，请稍后再试")
+        tmp.rename(out)
+        return clip
     playable = await playback.find(job)
     if playable is None:
         raise ClipError(404, "原视频不可用（链接已失效或上传的文件已删除），截不了片段")
     source = ["-i", str(playable.path)] if playable.kind == "file" else input_args(playable.stream)
     tmp = out.with_suffix(f".part.{fmt}")
     async with _slots:
-        code, err = await _run(_args(source, start, end, fmt, tmp), timeout=90 if fmt == "gif" else 150)
+        code, err = await _run(_args(source, start, end, fmt, tmp), timeout=40 if playable.kind == "stream" else 150)
         if code != 0 and playable.kind == "stream":  # the platform address may have expired: once more, fresh
             playable = await playback.find(job, fresh=True)
             if playable is not None and playable.stream is not None:
