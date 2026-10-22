@@ -1,4 +1,4 @@
-import React, {useLayoutEffect, useRef} from 'react';
+import React, {createContext, useContext, useLayoutEffect, useRef} from 'react';
 import {AbsoluteFill, Audio, continueRender, delayRender, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {loadFont as loadMono} from '@remotion/google-fonts/JetBrainsMono';
 import {loadFont as loadSC} from '@remotion/google-fonts/NotoSansSC';
@@ -20,6 +20,18 @@ export const SHADE = '#D8D4CE'; // --sculpture-shadow
 export const LIME = '#C8F04A'; // --accent-active
 export const LIME_DIM = '#A8CC3A'; // --accent-active-dim
 export const AMBER = '#F5A623'; // --accent-processing (the contour loader's pen)
+// the night side (from the click scene to the slogan): GSAP-style warm black and cream
+export const NIGHT = '#0E100F';
+export const CREAM = '#FFFCE1';
+export const GREEN = '#7FE36A'; // the lime's partner in gradients
+
+/** The current side — light (paper) or dark (night) — so the shared pieces draw in its colours. */
+export type Tone = {dark: boolean; bg: string; fg: string; fg2: string; fg3: string; line: string; line2: string};
+export const LIGHT: Tone = {dark: false, bg: '#F5F3EF', fg: '#1A1A1A', fg2: '#6B6B6B', fg3: '#9B9B9B', line: '#E0DDD8', line2: '#C8C4BD'};
+export const DARK: Tone = {dark: true, bg: NIGHT, fg: CREAM, fg2: '#BDBAA6', fg3: '#7D7E72', line: '#24272A', line2: '#3B3F3C'};
+const ToneCtx = createContext<Tone>(LIGHT);
+export const useTone = () => useContext(ToneCtx);
+export const ToneProvider = ToneCtx.Provider;
 // older names, kept so the scenes read the same: the ground, the foreground, a second ink, faint marks
 export const BG = PAPER;
 export const WHITE = INK;
@@ -117,6 +129,7 @@ export const CharField: React.FC<{cell?: number; set?: keyof typeof CHARSETS | s
 /** The HUD: X, + and * glyphs drifting and turning all the time, in the corners and margins. */
 export const Glyphs: React.FC<{count?: number; seed?: number; opacity?: number}> = ({count = 14, seed = 1, opacity = 0.9}) => {
   const frame = useCurrentFrame();
+  const tone = useTone();
   const {width, height} = useVideoConfig();
   const glyphs = ['×', '+', '*', '×', '+'];
   return (
@@ -130,7 +143,7 @@ export const Glyphs: React.FC<{count?: number; seed?: number; opacity?: number}>
         const spin = (r(7) < 0.5 ? -1 : 1) * (40 + r(8) * 140); // degrees a second
         const drift = Math.sin(frame / 60 * (0.6 + r(9)) + r(10) * 6) * 14;
         const blink = hash(i, seed, Math.floor(frame / 9)) < 0.08 ? 0.25 : 1;
-        const color = [INK, LIME_DIM, INK3][Math.floor(r(11) * 3)];
+        const color = [tone.fg, tone.dark ? LIME : LIME_DIM, tone.fg3][Math.floor(r(11) * 3)];
         return (
           <div key={i} style={{position: 'absolute', left: x, top: y + drift, fontFamily: MONO, fontWeight: 800, fontSize: size,
             color, opacity: opacity * blink, transform: `rotate(${(frame / 60) * spin + r(12) * 360}deg)`, lineHeight: 1}}>
@@ -144,14 +157,15 @@ export const Glyphs: React.FC<{count?: number; seed?: number; opacity?: number}>
 
 /** An ink pixel arrow (or a pointing hand) made of squares, outlined in paper. */
 export const PixelCursor: React.FC<{x: number; y: number; hand?: boolean; size?: number; press?: number}> = ({x, y, hand = false, size = 5, press = 0}) => {
+  const tone = useTone();
   const arrow = ['X', 'XX', 'X.X', 'X..X', 'X...X', 'X....X', 'X.....X', 'X..XXXX', 'X.X', 'XX', 'X'];
   const glove = ['...XX', '...X.X', '...X.X', '...X.XXX', 'XX.X.X.XX', 'X.XX.....X', 'X..X.....X', '.X.......X', '..X......X', '...X....X', '....XXXXX'];
   const map = hand ? glove : arrow;
   return (
     <svg style={{position: 'absolute', left: x, top: y, transform: `scale(${1 - press * 0.15})`, transformOrigin: '0 0', overflow: 'visible'}}
       width={12 * size} height={12 * size}>
-      {map.flatMap((row, r) => Array.from(row).map((ch, c) => (ch === 'X' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={INK} />
-        : ch === '.' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={PAPER} /> : null)))}
+      {map.flatMap((row, r) => Array.from(row).map((ch, c) => (ch === 'X' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={tone.fg} />
+        : ch === '.' ? <rect key={`${r}-${c}`} x={c * size} y={r * size} width={size} height={size} fill={tone.bg} /> : null)))}
     </svg>
   );
 };
@@ -177,37 +191,70 @@ export const Typed: React.FC<{text: string; at: number; cps?: number; style?: Re
   );
 };
 
-export const Fill: React.FC<{children?: React.ReactNode; grid?: boolean}> = ({children, grid = true}) => (
-  <AbsoluteFill style={{background: PAPER, overflow: 'hidden'}}>
-    {grid ? <Paper /> : null}
-    {children}
-  </AbsoluteFill>
-);
+export const Fill: React.FC<{children?: React.ReactNode; grid?: boolean; dark?: boolean}> = ({children, grid = true, dark = false}) => {
+  const tone = dark ? DARK : LIGHT;
+  return (
+    <ToneProvider value={tone}>
+      <AbsoluteFill style={{background: tone.bg, overflow: 'hidden'}}>
+        {grid ? <Paper /> : null}
+        {children}
+      </AbsoluteFill>
+    </ToneProvider>
+  );
+};
 
 /** The ground: a faint dot grid with a + at every fourth crossing, like a survey sheet. */
 export const Paper: React.FC = () => {
   const {width, height} = useVideoConfig();
+  const tone = useTone();
+  const id = tone.dark ? 'd' : 'l';
   return (
     <svg width={width} height={height} style={{position: 'absolute', inset: 0}}>
       <defs>
-        <pattern id="zx-dots" width={40} height={40} patternUnits="userSpaceOnUse"><circle cx={1} cy={1} r={1.3} fill={LINE2} /></pattern>
-        <pattern id="zx-cross" width={160} height={160} patternUnits="userSpaceOnUse"><path d="M-7 0H7M0 -7V7M153 0H167M160 -7V7M-7 160H7M0 153V167M153 160H167M160 153V167" stroke={INK3} strokeWidth={1.4} /></pattern>
+        <pattern id={`zx-dots-${id}`} width={40} height={40} patternUnits="userSpaceOnUse"><circle cx={1} cy={1} r={1.3} fill={tone.line2} /></pattern>
+        <pattern id={`zx-cross-${id}`} width={160} height={160} patternUnits="userSpaceOnUse"><path d="M-7 0H7M0 -7V7M153 0H167M160 -7V7M-7 160H7M0 153V167M153 160H167M160 153V167" stroke={tone.fg3} strokeWidth={1.4} /></pattern>
       </defs>
-      <rect width={width} height={height} fill="url(#zx-dots)" opacity={0.7} />
-      <rect width={width} height={height} fill="url(#zx-cross)" opacity={0.55} />
+      <rect width={width} height={height} fill={`url(#zx-dots-${id})`} opacity={0.7} />
+      <rect width={width} height={height} fill={`url(#zx-cross-${id})`} opacity={0.5} />
     </svg>
   );
 };
 
-/** A big index numeral in outline (ink stroke, no fill), the section marker of the UI. */
-export const Index: React.FC<{n: string; size?: number; style?: React.CSSProperties}> = ({n, size = 220, style}) => (
-  <span style={{fontFamily: DISPLAY, fontWeight: 900, fontSize: size, lineHeight: 0.8, color: 'transparent', WebkitTextStroke: `2px ${INK}`, letterSpacing: -6, ...style}}>{n}</span>
+/** Film grain over everything (the frosted, printed feel): fresh noise every other frame. */
+export const Grain: React.FC<{opacity?: number}> = ({opacity = 0.11}) => {
+  const frame = useCurrentFrame();
+  const {width, height} = useVideoConfig();
+  const seed = Math.floor(frame / 2) % 24;
+  return (
+    <svg width={width} height={height} style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity, mixBlendMode: 'overlay'}}>
+      <filter id={`zx-grain-${seed}`}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed={seed} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+      <rect width={width} height={height} filter={`url(#zx-grain-${seed})`} />
+    </svg>
+  );
+};
+
+/** A soft gradient shape with grain, like the GSAP site's: lime into green, drifting. */
+export const Blob: React.FC<{x: number; y: number; r: number; from?: string; to?: string; opacity?: number; turn?: number}> = ({x, y, r, from = LIME, to = '#2FE0A8', opacity = 0.9, turn = 0}) => (
+  <div style={{position: 'absolute', left: x - r, top: y - r, width: r * 2, height: r * 2, borderRadius: '42% 58% 55% 45% / 48% 40% 60% 52%', opacity,
+    background: `radial-gradient(circle at 30% 28%, #F4FFB8 0%, ${from} 32%, ${to} 100%)`, transform: `rotate(${turn}deg)`}}>
+    <svg width={r * 2} height={r * 2} style={{position: 'absolute', inset: 0, borderRadius: 'inherit', mixBlendMode: 'overlay', opacity: 0.6}}>
+      <filter id={`zx-blob-${Math.round(r)}`}><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed={3} /><feColorMatrix type="saturate" values="0" /></filter>
+      <rect width={r * 2} height={r * 2} filter={`url(#zx-blob-${Math.round(r)})`} />
+    </svg>
+  </div>
 );
 
+/** A big index numeral in outline (ink stroke, no fill), the section marker of the UI. */
+export const Index: React.FC<{n: string; size?: number; style?: React.CSSProperties}> = ({n, size = 220, style}) => {
+  const tone = useTone();
+  return <span style={{fontFamily: DISPLAY, fontWeight: 900, fontSize: size, lineHeight: 0.8, color: 'transparent', WebkitTextStroke: `2px ${tone.fg}`, letterSpacing: -6, ...style}}>{n}</span>;
+};
+
 /** A hairline that draws on from its start (0 → 1). */
-export const Rule: React.FC<{x: number; y: number; w: number; k: number; color?: string; thick?: number; vertical?: boolean}> = ({x, y, w, k, color = INK, thick = 2, vertical = false}) => (
-  <div style={{position: 'absolute', left: x, top: y, width: vertical ? thick : w * clamp01(k), height: vertical ? w * clamp01(k) : thick, background: color}} />
-);
+export const Rule: React.FC<{x: number; y: number; w: number; k: number; color?: string; thick?: number; vertical?: boolean}> = ({x, y, w, k, color, thick = 2, vertical = false}) => {
+  const tone = useTone();
+  return <div style={{position: 'absolute', left: x, top: y, width: vertical ? thick : w * clamp01(k), height: vertical ? w * clamp01(k) : thick, background: color ?? tone.fg}} />;
+};
 
 /** Diagonal stripes in a strip: the PV's one hazard-tape accent (lime and ink), used sparingly. */
 export const Hatch: React.FC<{x: number; y: number; w: number; h: number; k?: number; shift?: number}> = ({x, y, w, h, k = 1, shift = 0}) => (
@@ -230,13 +277,14 @@ export const Head: React.FC<{n: string; title: string; sub?: string; at?: number
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const k = pop(frame, at, fps, 200);
+  const tone = useTone();
   return (
     <>
       <div style={{position: 'absolute', left: x, top: y, display: 'flex', alignItems: 'flex-end', gap: 22, transform: `translateX(${(1 - k) * -60}px)`, opacity: clamp01(k * 2)}}>
         <Index n={n} size={132} />
         <div style={{display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 4}}>
-          <span style={{fontFamily: PIXEL, fontSize: 48, color: INK}}>{title}</span>
-          {sub ? <span style={{fontFamily: CONSOLE, fontSize: 32, color: INK2}}>{sub}</span> : null}
+          <span style={{fontFamily: PIXEL, fontSize: 48, color: tone.fg}}>{title}</span>
+          {sub ? <span style={{fontFamily: CONSOLE, fontSize: 32, color: tone.fg2}}>{sub}</span> : null}
         </div>
       </div>
       <Rule x={x} y={y + 128} w={460} k={easeOut((frame - at - 4) / 22)} />

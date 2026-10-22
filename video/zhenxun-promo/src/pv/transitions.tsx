@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, Easing} from 'remotion';
 import {linearTiming} from '@remotion/transitions';
 import type {TransitionPresentation, TransitionPresentationComponentProps} from '@remotion/transitions';
-import {BLUE, hash, LIME, Sfx, SfxName} from './kit';
+import {BLUE, hash, LIME, NIGHT, Sfx, SfxName} from './kit';
 
 // The PV's transitions. The next scene arrives through a shape — a + or × opening from a point,
 // a ◆ from where the hand clicked, blocks, slashes, a > sweeping across, bands sliding in — while
@@ -14,8 +14,9 @@ const H = 1080;
 
 export const timing = (frames: number) => linearTiming({durationInFrames: frames, easing: Easing.bezier(0.7, 0, 0.18, 1)});
 
-type Props = {kind: Kind; x?: number; y?: number; at?: () => {x: number; y: number}; sound?: SfxName; angle?: number; seed?: number};
-type Kind = 'plus' | 'cross' | 'diamond' | 'blocks' | 'slashes' | 'chevron' | 'bands' | 'zoom';
+type Props = {kind: Kind; x?: number; y?: number; at?: () => {x: number; y: number}; sound?: SfxName; angle?: number; seed?: number;
+  /** the colour that leads the reveal (blocks, slashes, bars), so scenes on the same ground still read as a change */ tint?: string};
+type Kind = 'plus' | 'cross' | 'diamond' | 'blocks' | 'slashes' | 'chevron' | 'bands' | 'zoom' | 'bars';
 
 const rect = (x: number, y: number, w: number, h: number) => `M${x} ${y}h${w}v${h}h${-w}Z`;
 const poly = (pts: [number, number][]) => `M${pts.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}Z`;
@@ -77,6 +78,43 @@ const chevronShape = (p: number) => {
   return poly([[-10, -10], [x - 420, -10], [x, H / 2], [x - 420, H + 10], [-10, H + 10]]);
 };
 
+/** Staggered horizontal bars ("pulled strips"): each bar is led across by a band of `tint`, the new
+ *  picture following it, in a few judder steps with a glitch offset — the strips of a torn frame. */
+export const Bars: React.FC<{p: number; tint?: string; seed?: number; children: React.ReactNode; old?: React.ReactNode}> = ({p, tint = LIME, seed = 7, children, old}) => {
+  const bars: {y: number; h: number; d: number; dir: number}[] = [];
+  let y = 0;
+  for (let i = 0; y < H; i += 1) {
+    const h = 36 + Math.floor(hash(i, seed) * 6) * 26;
+    bars.push({y, h, d: hash(i, seed, 2) * 0.45, dir: hash(i, seed, 3) < 0.5 ? 1 : -1});
+    y += h;
+  }
+  const BAND = 260;
+  return (
+    <AbsoluteFill>
+      {old}
+      {bars.map((b, i) => {
+        const k = Math.min(1, Math.max(0, (p - b.d) / 0.55));
+        const steps = Math.floor(k * 9) / 9; // a judder: the bar moves in steps
+        const e = (k < 1 ? steps : 1) * (W + BAND);
+        const glitch = k > 0 && k < 1 && hash(i, Math.floor(p * 40)) < 0.25 ? (hash(i, Math.floor(p * 40), 1) - 0.5) * 80 : 0;
+        const from = b.dir > 0 ? 0 : W - Math.max(0, e - BAND);
+        const shown = Math.max(0, e - BAND);
+        const bandX = b.dir > 0 ? Math.max(0, e - BAND) : W - e;
+        return (
+          <React.Fragment key={i}>
+            {shown > 0 ? (
+              <AbsoluteFill style={{clipPath: `polygon(${from}px ${b.y}px, ${from + shown}px ${b.y}px, ${from + shown}px ${b.y + b.h + 0.5}px, ${from}px ${b.y + b.h + 0.5}px)`,
+                transform: `translateX(${glitch}px)`}}>{children}</AbsoluteFill>
+            ) : null}
+            {k > 0 && k < 1 ? <div style={{position: 'absolute', left: bandX, top: b.y, width: Math.min(BAND, e), height: b.h, background: tint,
+              opacity: 0.92, transform: `translateX(${glitch * 0.5}px)`}} /> : null}
+          </React.Fragment>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
 const Edge: React.FC<{kind: Kind; p: number; x: number; y: number; angle: number}> = ({kind, p, x, y, angle}) => {
   // A thin lime/blue rim riding the shape's edge, so the reveal reads as a drawn line, not a cut.
   if (p <= 0.02 || p >= 0.98) return null;
@@ -100,8 +138,24 @@ const Edge: React.FC<{kind: Kind; p: number; x: number; y: number; angle: number
   return null;
 };
 
+const BlockTint: React.FC<{p: number; seed: number; tint: string}> = ({p, seed, tint}) => {
+  const cells: React.ReactNode[] = [];
+  const cols = W / CELL;
+  const rows = H / CELL;
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const t = 0.62 * ((c + r) / (cols + rows)) + 0.26 * hash(c, r, seed);
+      const k = (p - t) / 0.12;
+      if (k <= 0 || k >= 1.6) continue;
+      const s = CELL * Math.min(1, k) * (k > 1 ? 1 - (k - 1) / 0.6 : 1);
+      cells.push(<div key={`${r}-${c}`} style={{position: 'absolute', left: c * CELL + (CELL - s) / 2, top: r * CELL + (CELL - s) / 2, width: s, height: s, background: tint}} />);
+    }
+  }
+  return <AbsoluteFill>{cells}</AbsoluteFill>;
+};
+
 const Presentation: React.FC<TransitionPresentationComponentProps<Props>> = ({children, presentationProgress: p, presentationDirection, passedProps}) => {
-  const {kind, sound = 'whoosh', angle = 90, seed = 1} = passedProps;
+  const {kind, sound = 'whoosh', angle = 90, seed = 1, tint = LIME} = passedProps;
   // the opening point, measured while rendering when the scene's layout decides it
   const {x = W / 2, y = H / 2} = passedProps.at ? passedProps.at() : passedProps;
   if (presentationDirection === 'exiting') {
@@ -123,6 +177,16 @@ const Presentation: React.FC<TransitionPresentationComponentProps<Props>> = ({ch
   else if (kind === 'chevron') clip = chevronShape(p);
   else if (kind === 'zoom') style = {transform: `scale(${0.35 + p * 0.65})`, transformOrigin: `${x}px ${y}px`, opacity: Math.min(1, p * 2.2)};
   const sfx = <Sfx name={sound} volume={0.55} />;
+  const push: React.CSSProperties = kind === 'zoom' ? {} : {transform: `scale(${1.1 - 0.1 * p})`, transformOrigin: `${x}px ${y}px`};
+  if (kind === 'bars') {
+    return (
+      <AbsoluteFill>
+        {sfx}
+        <Sfx name="glitch" volume={0.3} />
+        <Bars p={p} tint={tint} seed={seed}><AbsoluteFill style={push}>{children}</AbsoluteFill></Bars>
+      </AbsoluteFill>
+    );
+  }
   if (kind === 'bands') {
     // Six bands of the new scene slide in from alternate sides, one after another.
     const n = 6;
@@ -145,7 +209,8 @@ const Presentation: React.FC<TransitionPresentationComponentProps<Props>> = ({ch
   return (
     <AbsoluteFill>
       {sfx}
-      <AbsoluteFill style={{clipPath: clip ? `path('${clip}')` : undefined, ...style}}>{children}</AbsoluteFill>
+      <AbsoluteFill style={{clipPath: clip ? `path('${clip}')` : undefined, ...style}}><AbsoluteFill style={push}>{children}</AbsoluteFill></AbsoluteFill>
+      {kind === 'blocks' ? <BlockTint p={p} seed={seed} tint={tint} /> : null}
       <Edge kind={kind} p={p} x={x} y={y} angle={angle} />
     </AbsoluteFill>
   );

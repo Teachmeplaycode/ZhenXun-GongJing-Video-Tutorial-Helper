@@ -1,11 +1,14 @@
 import React from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
-import {CONSOLE, hash, INK, INK3, LIME} from './kit';
+import {CONSOLE, CREAM, hash, INK as DAY_INK, INK3 as DAY_INK3, LIME} from './kit';
 
 // A HUD over the whole film: corner brackets, a progress hairline, a scrolling frame ruler, a
 // turning dashed ring and a shifting barcode. Quiet (it frames the picture, it isn't the picture).
-export const Hud: React.FC<{opacity?: number}> = ({opacity = 0.55}) => {
+export const Hud: React.FC<{opacity?: number; night?: [number, number]}> = ({opacity = 0.55, night = [0, 0]}) => {
   const frame = useCurrentFrame();
+  const dark = frame >= night[0] && frame < night[1];
+  const INK = dark ? CREAM : DAY_INK;
+  const INK3 = dark ? '#7D7E72' : DAY_INK3;
   const {width, height, durationInFrames} = useVideoConfig();
   const m = 34; // margin
   const corner = (x: number, y: number, sx: number, sy: number) => (
