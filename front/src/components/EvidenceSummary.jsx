@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 const ORDER = [['frame', '画面'], ['speech', '原声'], ['screentext', '画面文字'], ['moment', '时间点'], ['source', '资料'], ['inference', '推断']]
 
@@ -7,13 +7,20 @@ const readCites = () => {
   try { return localStorage.getItem(CITES_KEY) === '1' } catch { return false }
 }
 
-/** Whether an answer shows its evidence chips (画面 01:32 …) inline. Off by default — readers said
- *  they get in the way of reading — and the choice made under one answer carries to the next ones. */
+/** Whether answers show their evidence chips (画面 01:32 …) inline. Off by default — readers said they
+ *  get in the way of reading. One switch for every answer: turning it on under one answer turns it
+ *  on under all of them (and for the answers to come). */
+const CITES_EVENT = 'zhenxun:cites'
 export function useCiteChips() {
   const [on, setOn] = useState(readCites)
+  useEffect(() => {
+    const sync = (e) => setOn(Boolean(e.detail))
+    window.addEventListener(CITES_EVENT, sync)
+    return () => window.removeEventListener(CITES_EVENT, sync)
+  }, [])
   const set = (v) => {
-    setOn(v)
     try { localStorage.setItem(CITES_KEY, v ? '1' : '0') } catch { /* fine */ }
+    window.dispatchEvent(new CustomEvent(CITES_EVENT, { detail: v }))
   }
   return [on, set]
 }
