@@ -12,6 +12,8 @@ import { prefersReducedMotion } from '../lib/motion'
 import { screenStep, speechStep } from './AnalyzeHud'
 import Avatar from '../components/Avatar'
 import { collectCited, collectExtras } from '../lib/extraFrames'
+import { clipIntent, rangeIn } from '../lib/clipIntent'
+import ClipStudio from '../components/ClipStudio'
 import Workbench from '../components/Workbench'
 import NotesTab from '../components/bench/NotesTab'
 
@@ -30,7 +32,7 @@ const fineClock = (t) => {
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
 export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null, framesPanel = null }) {
-  const { messages, send, regenerate, stop, running, replay, cancelReplay } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
+  const { messages, send, regenerate, stop, running, replay, cancelReplay, studio } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   // The workbench sidebar: open or not and which tab, remembered across visits.
   const [bench, setBench] = useState(() => {
     try {
@@ -153,6 +155,18 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     if ((!question && !clip) || running) return
     followRef.current = true
     setFollowing(true)
+    // "我要这段的 GIF": the clip studio, not the model. Its stretch: the times written, else the
+    // stretch framed on the timeline, else around the last time an answer cited, else the start.
+    const wants = !pictures && question ? clipIntent(question) : null
+    if (wants && video?.jobId) {
+      const last = cited.length ? cited[cited.length - 1].time : null
+      const range = rangeIn(question, duration ?? Infinity) || (clip ? [clip.start, clip.end] : null)
+        || (last !== null ? [Math.max(0, last - 1), last + 2] : [0, Math.min(3, duration || 3)])
+      studio(question, range, wants.format)
+      setDraft('')
+      onClearClip?.()
+      return
+    }
     // A framed stretch: say so in the question, which makes the agent replay it before answering.
     const q = clip ? `慢放 ${fineClock(clip.start)} 到 ${fineClock(clip.end)}：${question || '这段发生了什么？'}` : question
     send(q, selected, switches)
@@ -199,6 +213,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
           ) : (
             messages.map((m) => (
               <MessageBubble key={m.id} message={m} onStop={stop} onTime={onSeek} duration={duration} pictures={pictures}
+                renderStudio={(msg) => <ClipStudio jobId={video?.jobId} title={video?.title} duration={duration} frames={frames} range={msg.range} format={msg.format} />}
                 onRegenerate={m.role === 'assistant' && !running ? () => { followRef.current = true; regenerate(m.id) } : null} />
             ))
           )}
