@@ -27,6 +27,8 @@ const isAvailable = (f) => Boolean(f.src) && (!f.status || f.status === 'ok')
 // Frames read on demand in the chat (see lib/extraFrames): slotted in by time, tinted by kind,
 // with a band under the stretch they cover. They can't be attachments; a click enlarges them.
 const EXTRA = { replay: '慢放', view: '补看' }
+// A friend's site for what this one doesn't do — whole no-watermark videos, original pictures, live photos.
+export const REF_URL = 'https://ynvan.com/?ref=zhenxun'
 const MAX_RANGE = 10 // s, the longest stretch one replay covers (backend modules/frames/replay.py)
 const MIN_RANGE = 0.5 // s, a shorter drag is widened around its middle
 const DRAG_START = 6 // px of movement before a press on the track becomes a drag
@@ -432,6 +434,13 @@ export default function TimelineSculpture({ frames, pictures = false, extras = [
             <button type="button" role="menuitem" onClick={() => choose('ask')}>
               <span className="tl-range__icon" aria-hidden="true">✎</span>带着这段提问
             </button>
+            <button type="button" role="menuitem" onClick={() => choose('gif')} title="从原片截出这一段做成 GIF（最长 10 秒，无声），比如表情包">
+              <span className="tl-range__icon" aria-hidden="true">◆</span>截成 GIF
+            </button>
+            <button type="button" role="menuitem" onClick={() => choose('mp4')} title="从原片截出这一段存成 MP4（最长 60 秒，带声音）">
+              <span className="tl-range__icon" aria-hidden="true">▣</span>截成 MP4
+            </button>
+            <a role="menuitem" className="tl-range__ref" href={REF_URL} target="_blank" rel="noopener noreferrer">要整段无水印视频、原图或实况照片？去「求原图」↗</a>
             <button type="button" role="menuitem" className="tl-range__cancel" onClick={() => setRange(null)}>取消</button>
           </div>
         ) : null}

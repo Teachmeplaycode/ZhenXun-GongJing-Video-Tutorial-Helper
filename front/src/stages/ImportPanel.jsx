@@ -250,6 +250,8 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
         ) : null}
         <div className="import-entry__footer" data-exit>
           <button type="button" className="import-entry__sample" onClick={() => onStart({ file: null, task })}>先用示例视频体验 <i aria-hidden="true" /><IconArrowRight size={14} /></button>
+          <a className="import-entry__ref" href="https://ynvan.com/?ref=zhenxun" target="_blank" rel="noopener noreferrer"
+            title="「求原图」：免登录下载无水印视频、原图，转 GIF 和实况照片">只想下载视频、原图或做 GIF？去「求原图」↗</a>
         </div>
       </div>
     </section>

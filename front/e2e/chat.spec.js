@@ -433,6 +433,25 @@ test('frame a stretch on the timeline: replay it now, or ask about it', async ({
   await expect(page.locator('.clip-chip')).toHaveCount(0)
 })
 
+test('a framed stretch can be cut out as a GIF, and points to 求原图 for whole videos', async ({ page }) => {
+  await start(page)
+  await enterChat(page)
+  const asked = []
+  await page.route('**/clip?**', (route) => {
+    asked.push(new URL(route.request().url()).searchParams)
+    return route.fulfill({ status: 200, contentType: 'image/gif', body: Buffer.from('GIF89a'),
+      headers: { 'content-disposition': "attachment; filename*=utf-8''%E5%B8%A7%E5%AF%BB_%E6%B5%8B%E8%AF%95_0054-0058.gif" } })
+  })
+  const menu = await frame(page, 0.45, 0.55)
+  await expect(menu.getByRole('menuitem', { name: /求原图/ })).toHaveAttribute('href', /ynvan\.com/)
+  const download = page.waitForEvent('download')
+  await menu.getByRole('menuitem', { name: '截成 GIF' }).click()
+  expect((await download).suggestedFilename()).toBe('帧寻_测试_0054-0058.gif')
+  await expect(page.locator('.clip-toast')).toContainText('已保存 帧寻_测试_0054-0058.gif')
+  expect(asked[0].get('format')).toBe('gif')
+  expect(Number(asked[0].get('end'))).toBeGreaterThan(Number(asked[0].get('start')))
+})
+
 test('a hand-framed replay comes back with its session', async ({ page }) => {
   const data = { start: 60, end: 61, fps: 3, times: [60, 60.33, 60.67], frames: ['00', '01', '02'].map((n) => `/api/link-jobs/s1/replay/0006000-0006100-030/${n}.jpg`) }
   await start(page, (m) => m.addSession('s1', {
