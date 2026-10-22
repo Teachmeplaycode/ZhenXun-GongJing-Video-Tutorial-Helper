@@ -16,7 +16,7 @@
 | `replay.mp4` | 25s | 3840×2160 | 在时间轴上拖一段 → 直接慢放，逐帧展开 | 6.4s click；8.7s click；15.7s click；15.8s replay |
 | `screenshot.mp4` | 27s | 3840×2160 | 附一张卡住时的截图、不写字发送 → 回答第几步 | 5.5s click；7.8s click；15.5s attached；18.0s click；18.1s press |
 | `tab.mp4` | 19s | 3840×2160 | 打几个字，灰字补全，按 Tab 采纳 | 5.6s click；8.0s click；11.5s click；16.4s press；16.4s completed |
-| `notes.mp4` | 135s | 3840×2160 | 工作台 → 笔记 → 生成（约 100 秒等待，可加速）→ 预览导出 | 5.9s click；7.8s click；11.4s click；13.2s click；15.1s click；25.6s notes；28.1s click；35.7s press |
+| `notes.mp4` | 135s | 3840×2160 | 工作台 → 笔记 → 生成 → 预览导出（约 40 秒后是空等，可剪掉） | 5.9s click；7.8s click；11.4s click；13.2s click；15.1s click；25.6s notes；28.1s click；35.7s press |
 | `history.mp4` | 13s | 3840×2160 | 历史会话面板 | 7.8s click |
 | `profile.mp4` | 12s | 3840×2160 | 「我的」：套餐、今日用量、平台账号 | 7.0s click |
 | `docs.mp4` | 15s | 3840×2160 | 文档弹窗，滚动 | 7.0s click |
@@ -24,5 +24,5 @@
 
 剪辑提示：
 - 每段开头一两秒是页面加载，可以裁掉；import 输入链接时会短暂出现红字「没有识别到链接」（输入未完成），可剪掉。
-- notes 的等待段（生成笔记约 100 秒）建议加速；桌面端「存为长图」没录上，长图效果用 phone 镜头。
+- notes：笔记在 25 秒左右生成好，28 秒打开导出预览；约 40 秒之后画面不再变化（脚本在等长图），剪掉即可。桌面端「存为长图」没录上，长图效果用 phone 镜头。
 - 导入用的是服务器上已有缓存的视频，所以解析只用了半分钟左右；真实首次导入大约 80 秒。
