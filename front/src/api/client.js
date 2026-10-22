@@ -182,10 +182,14 @@ export const deleteSource = (jobId) => linkRequest(`/api/link-jobs/${jobId}/sour
 /** The original video for <video src>: a kept upload, or the platform's MP4 relayed by the backend. */
 export const mediaUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/media`
 
-/** A stretch of the original cut out as a GIF (≤10 s) or an MP4 (≤60 s) and saved as a file. */
-export async function downloadClip(jobId, start, end, format) {
-  const url = `${LINK_BASE}/api/link-jobs/${jobId}/clip?start=${start.toFixed(2)}&end=${end.toFixed(2)}&format=${format}`
-  const res = await fetch(url)
+/** A stretch of the original cut out as a GIF (≤30 s) or an MP4 (≤60 s): { blob, name, fps, width, note }.
+ *  look: { fps, width, speed, dither: 'bayer' | 'sierra' | 'none', maxMb } (GIF; an MP4 uses speed). */
+export async function fetchClip(jobId, start, end, format, look = {}, { signal } = {}) {
+  const q = new URLSearchParams({ start: start.toFixed(2), end: end.toFixed(2), format })
+  for (const [k, v] of Object.entries({ fps: look.fps, width: look.width, speed: look.speed, dither: look.dither, max_mb: look.maxMb })) {
+    if (v !== undefined && v !== null) q.set(k, String(v))
+  }
+  const res = await fetch(`${LINK_BASE}/api/link-jobs/${jobId}/clip?${q}`, { signal })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.detail || '截取失败，请稍后再试')
@@ -193,6 +197,12 @@ export async function downloadClip(jobId, start, end, format) {
   const blob = await res.blob()
   const disposition = res.headers.get('content-disposition') || ''
   const name = decodeURIComponent((disposition.match(/filename\*=utf-8''([^;]+)/i) || [])[1] || '') || `帧寻片段.${format}`
+  return { blob, name, fps: Number(res.headers.get('x-clip-fps')) || null, width: Number(res.headers.get('x-clip-width')) || null,
+    note: decodeURIComponent(res.headers.get('x-clip-note') || '') }
+}
+
+/** Save a blob as a file under `name`. */
+export function saveBlob(blob, name) {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = name
@@ -200,6 +210,12 @@ export async function downloadClip(jobId, start, end, format) {
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(a.href), 30000)
+}
+
+/** Cut and save in one go (the timeline's range menu). */
+export async function downloadClip(jobId, start, end, format) {
+  const { blob, name } = await fetchClip(jobId, start, end, format)
+  saveBlob(blob, name)
   return name
 }
 /** Questions worth asking about this video: { status: waiting | running | done | failed, questions: [{ question, kind, label, hint }] } */

@@ -1420,3 +1420,54 @@ span.ev-chip { cursor: help; }
   background: var(--bg-inverse); color: var(--text-inverse); font-size: var(--fs-body-sm); box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
 .clip-toast[data-error] { background: var(--accent-error); }
+
+/* The clip studio (components/ClipStudio.jsx): a stretch made into a GIF / MP4, in the chat */
+.msg--studio .bubble { max-width: min(980px, 100%); width: 100%; }
+.clip-studio { display: flex; flex-direction: column; gap: var(--sp-12); }
+.clip-studio__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-12); }
+.clip-studio__title { margin: 0; font-size: var(--fs-h2); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.clip-studio__formats { display: flex; gap: 2px; padding: 3px; border-radius: var(--radius-pill); background: var(--bg-surface-alt); }
+.clip-studio__formats button { border: 0; background: none; padding: 6px 14px; border-radius: var(--radius-pill); font: inherit; font-size: var(--fs-body-sm); color: var(--text-secondary); cursor: pointer; }
+.clip-studio__formats button[aria-selected='true'] { background: var(--bg-surface); color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.clip-studio__hint { margin: 0; color: var(--text-secondary); font-size: var(--fs-body-sm); }
+.clip-studio__body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--sp-24); }
+@media (max-width: 860px) { .clip-studio__body { grid-template-columns: minmax(0, 1fr); } }
+.clip-studio__left { display: flex; flex-direction: column; gap: var(--sp-10, 10px); min-width: 0; }
+.clip-studio__player { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-md); overflow: hidden; background: #000; }
+.clip-studio__player video, .clip-studio__player img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.clip-studio__play { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 0; border-radius: 50%;
+  background: color-mix(in srgb, #000 60%, transparent); color: #fff; font-size: 24px; cursor: pointer; }
+.clip-studio__strip { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); height: 64px; border-radius: var(--radius-md); overflow: hidden;
+  background: var(--bg-surface-alt); touch-action: none; user-select: none; }
+.clip-studio__thumb { background: center / cover no-repeat var(--bg-surface-alt); opacity: 0.45; }
+.clip-studio__sel { position: absolute; top: 0; bottom: 0; border: 3px solid var(--accent-active); border-radius: var(--radius-sm); cursor: grab;
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--bg-canvas) 30%, transparent); background: color-mix(in srgb, #fff 4%, transparent); }
+.clip-studio__sel:active { cursor: grabbing; }
+.clip-studio__handle { position: absolute; top: 50%; width: 14px; height: 40px; margin-top: -20px; border-radius: 7px; background: var(--text-primary);
+  border: 2px solid var(--bg-surface); cursor: ew-resize; }
+.clip-studio__handle--start { left: -9px; } .clip-studio__handle--end { right: -9px; }
+.clip-studio__readout { display: flex; justify-content: space-between; gap: var(--sp-8); color: var(--text-secondary); flex-wrap: wrap; }
+.clip-studio__readout b { color: var(--text-primary); font-weight: 600; }
+.clip-studio__right { display: flex; flex-direction: column; gap: var(--sp-14, 14px); min-width: 0; }
+.clip-studio__slider { display: flex; flex-direction: column; gap: var(--sp-6); font-size: var(--fs-body-sm); color: var(--text-secondary); }
+.clip-studio__slider-head { display: flex; justify-content: space-between; }
+.clip-studio__slider-head b { color: var(--text-primary); }
+.clip-studio__slider input[type='range'] { appearance: none; width: 100%; height: 8px; border-radius: 4px; cursor: pointer;
+  background: linear-gradient(to right, var(--text-primary) var(--fill), var(--border-default) var(--fill)); }
+.clip-studio__slider input[type='range']::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-surface);
+  border: 1px solid var(--border-strong); box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 25%, transparent); }
+.clip-studio__field { display: flex; flex-direction: column; gap: var(--sp-6); font-size: var(--fs-body-sm); color: var(--text-secondary); }
+.clip-studio__field select { font: inherit; color: var(--text-primary); padding: 8px 10px; border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-surface); }
+.clip-studio__check { display: flex; gap: var(--sp-10, 10px); align-items: flex-start; font-size: var(--fs-body-sm); cursor: pointer; }
+.clip-studio__check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--text-primary); }
+.clip-studio__check span { display: flex; flex-direction: column; gap: 2px; }
+.clip-studio__check small { color: var(--text-secondary); font-size: var(--fs-caption); line-height: 1.5; }
+.clip-studio__note { margin: 0; font-size: var(--fs-caption); color: var(--text-tertiary); }
+.clip-studio__make { height: 48px; border-radius: var(--radius-pill); font-size: var(--fs-body); }
+.clip-studio__error { margin: 0; color: var(--accent-error); font-size: var(--fs-body-sm); }
+.clip-studio__result { display: flex; flex-wrap: wrap; gap: var(--sp-16); align-items: flex-start; padding-top: var(--sp-12); border-top: var(--border-hairline); }
+.clip-studio__result img, .clip-studio__result video { max-width: min(420px, 100%); max-height: 320px; border-radius: var(--radius-sm); background: #000; }
+.clip-studio__result-meta { display: flex; flex-direction: column; gap: var(--sp-6); align-items: flex-start; min-width: 0; }
+.clip-studio__result-meta p { margin: 0; word-break: break-all; }
+.clip-studio__ref { font-size: var(--fs-caption); color: var(--text-secondary); text-decoration: none; align-self: flex-start; }
+.clip-studio__ref:hover { color: var(--text-primary); }
