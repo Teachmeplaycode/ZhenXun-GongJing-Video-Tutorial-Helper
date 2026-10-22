@@ -109,6 +109,7 @@ export default function FramePicker({ frames, chapters = [], selected, duration,
           selected.length ? <button type="button" className="btn btn--ghost" onClick={onClear}>清除已选</button> : <span />
         ) : (
           <>
+            <button type="button" className="btn btn--ghost" disabled={!range?.complete} onClick={() => act('gif')}>截成 GIF</button>
             <button type="button" className="btn btn--ghost" disabled={!range?.complete} onClick={() => act('ask')}>附加到提问</button>
             <button type="button" className="btn btn--dark" disabled={!range?.complete || busy} onClick={() => act('play')}>慢放这一段</button>
           </>

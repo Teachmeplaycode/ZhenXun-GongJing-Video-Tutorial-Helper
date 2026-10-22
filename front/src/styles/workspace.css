@@ -643,3 +643,5 @@
   .docs__body { padding: var(--sp-4) var(--sp-16) var(--sp-20); }
   .docs__chips > div { grid-template-columns: 104px 1fr; }
 }
+.import-entry__ref { margin-left: auto; color: var(--text-tertiary); text-decoration: none; }
+.import-entry__ref:hover { color: var(--text-primary); }

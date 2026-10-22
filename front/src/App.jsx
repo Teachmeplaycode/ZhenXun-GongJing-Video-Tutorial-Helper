@@ -24,7 +24,7 @@ import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
 import PictureStage from './stages/PictureStage'
-import { createLinkJob, deleteSession, deleteSource, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, signOut, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, deleteSource, downloadClip, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, signOut, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
 import SourcePlayer from './components/SourcePlayer'
 import EvidenceBadge from './components/EvidenceBadge'
 import { EvidenceContext } from './lib/evidence'
@@ -91,6 +91,7 @@ export default function App() {
   const [analysis, setAnalysis] = useState(EMPTY_ANALYSIS)
   const [frames, setFrames] = useState([])
   const [notice, setNotice] = useState('')
+  const [clipToast, setClipToast] = useState(null) // cutting a GIF / MP4: { text, error }
   const [selected, setSelected] = useState([])
   const [importError, setImportError] = useState('')
   const [coverage, setCoverage] = useState(null)
@@ -151,6 +152,25 @@ export default function App() {
   const [chatBusy, setChatBusy] = useState(false) // an answer or a replay in progress: no new replay meanwhile
   const [clip, setClip] = useState(null) // { start, end } framed on the timeline to ask about
   const [replayRequest, setReplayRequest] = useState(null) // { start, end, key } framed to replay now
+  // A stretch framed on the timeline (or the phone's picker): replay it, ask about it, or cut it out.
+  const onRangeAction = (start, end, action) => {
+    if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
+    else if (action === 'gif' || action === 'mp4') cutClip(start, end, action)
+    else setClip({ start, end })
+  }
+  const cutClip = async (start, end, format) => {
+    const jobId = video?.jobId
+    if (!jobId) return
+    const long = format === 'gif' ? end - start > 10 : end - start > 60
+    setClipToast({ text: `正在截取 ${format.toUpperCase()}${long ? `（只取前 ${format === 'gif' ? 10 : 60} 秒）` : ''}…` })
+    try {
+      const name = await downloadClip(jobId, start, end, format)
+      setClipToast({ text: `已保存 ${name}` })
+    } catch (err) {
+      setClipToast({ text: err.message, error: true })
+    }
+    setTimeout(() => setClipToast(null), 4000)
+  }
   // Shot changes: detected in the background since the import; ask until they're ready (marks are optional).
   const inChat = stage === 'chat'
   useEffect(() => {
@@ -709,10 +729,7 @@ export default function App() {
         <FramePicker embedded frames={frames} duration={meta?.duration} busy={chatBusy} selected={selected} seek={seek}
           chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
           onToggle={toggleFrame} onClear={() => setSelected([])}
-          onRange={(start, end, action) => {
-            if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
-            else setClip({ start, end })
-          }} />
+          onRange={onRangeAction} />
       ) : null}
       selected={selected}
       onClearSelection={() => setSelected([])}
@@ -881,11 +898,9 @@ export default function App() {
         <FramePicker frames={frames} duration={meta?.duration} busy={chatBusy} selected={selected}
           chapters={chaptersData?.status === 'done' ? chaptersData.chapters : []}
           onToggle={toggleFrame} onClear={() => setSelected([])} onClose={() => setPickerOpen(false)}
-          onRange={meta?.kind === 'images' ? null : (start, end, action) => {
-            if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
-            else setClip({ start, end })
-          }} />
+          onRange={meta?.kind === 'images' ? null : onRangeAction} />
       ) : null}
+      {clipToast ? <div className="clip-toast" role="status" data-error={clipToast.error || undefined}>{clipToast.text}</div> : null}
       <ProfileDrawer open={profileOpen && Boolean(member?.user)} user={member?.user} onClose={() => setProfileOpen(false)}
         onAccounts={() => { setProfileOpen(false); setAccountsOpen('') }}
         onHistory={() => { setProfileOpen(false); setHistoryOpen(true) }}
@@ -927,10 +942,7 @@ export default function App() {
           activeChapter={hoverChapter ?? activeChapter}
           busy={chatBusy}
           pictures={meta?.kind === 'images'}
-          onRange={meta?.kind === 'images' ? null : (start, end, action) => {
-            if (action === 'play') setReplayRequest({ start, end, key: Date.now() })
-            else setClip({ start, end })
-          }}
+          onRange={meta?.kind === 'images' ? null : onRangeAction}
           duration={meta?.duration}
           selected={selected}
           onToggle={toggleFrame}
