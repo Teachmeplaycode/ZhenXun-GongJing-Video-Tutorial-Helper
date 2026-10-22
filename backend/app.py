@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, log, members, playback, visitors
+from modules import accounts, archive, clip, log, members, playback, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -736,6 +736,18 @@ async def job_cuts(job_id: str):
 async def job_source(job_id: str):
     """Whether a cited moment can be played in the original, or only seen in the cached frames."""
     return await playback.state(get_job(job_id))
+
+
+@app.get("/api/link-jobs/{job_id}/clip")
+async def job_clip(job_id: str, start: float, end: float, format: str = "gif"):
+    """A stretch of the original cut out as a GIF (≤10 s, no sound) or an MP4 (≤60 s, with sound),
+    downloaded as a file: a reaction image, or the one step of a tutorial worth keeping."""
+    job = get_job(job_id)
+    try:
+        made = await clip.make(job, start, end, format.lower())
+    except clip.ClipError as e:
+        raise HTTPException(e.status, e.message) from None
+    return FileResponse(made.path, media_type=made.media_type, filename=made.filename)
 
 
 @app.get("/api/link-jobs/{job_id}/media")

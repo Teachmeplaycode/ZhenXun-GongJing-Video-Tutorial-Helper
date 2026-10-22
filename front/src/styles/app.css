@@ -1359,6 +1359,9 @@ span.ev-chip { cursor: help; }
 }
 .ev-summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-6); margin-top: var(--sp-8); font-size: var(--fs-caption); color: var(--text-secondary); }
 .ev-summary__label { color: var(--text-primary); font-weight: 500; }
+.ev-summary__toggle { margin-left: auto; font-size: var(--fs-caption); }
+/* Evidence chips in the text are off until the reader asks for them (EvidenceSummary's toggle). */
+.bubble--cites-off .streaming-text .ev-chip { display: none; }
 .ev-summary__item { padding: 0 var(--sp-6); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--ev) 12%, transparent); }
 .ev-summary__failed { color: var(--accent-error, #c03a2b); cursor: help; }
 .ev-summary__ok { color: var(--text-tertiary, var(--text-secondary)); }
@@ -1407,3 +1410,13 @@ span.ev-chip { cursor: help; }
   font-family: var(--font-mono); font-size: 10px; color: var(--text-secondary); vertical-align: 2px;
 }
 .attach-thumb--mine figcaption { color: var(--accent-active-dim, var(--text-secondary)); }
+
+/* Cutting a stretch out as a GIF / MP4 (the timeline's range menu) */
+.tl-range__ref { display: block; padding: var(--sp-6) var(--sp-10, 10px); font-size: var(--fs-caption); color: var(--text-secondary); text-decoration: none; border-top: var(--border-hairline); }
+.tl-range__ref:hover { color: var(--text-primary); }
+.clip-toast {
+  position: fixed; left: 50%; bottom: calc(var(--sp-24) + env(safe-area-inset-bottom, 0px)); z-index: 120; transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px)); padding: var(--sp-10, 10px) var(--sp-16); border-radius: var(--radius-pill);
+  background: var(--bg-inverse); color: var(--text-inverse); font-size: var(--fs-body-sm); box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+.clip-toast[data-error] { background: var(--accent-error); }
