@@ -1,11 +1,10 @@
 import React, {useMemo} from 'react';
-import {AbsoluteFill, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {clamp01, CONSOLE, DISPLAY, easeOut, Fill, Glyphs, hash, Index, INK, INK2, INK3, LIME, LINE, LINE2, MONO, NIGHT, PIXEL, pop, Rule, SC, Sfx, SILK, stepped,
   textWidth, Typed, WORDMARK} from './kit';
 import {Contour} from './Contour';
 import {FLOOR_VIEW, floorSlat, project, Sculpture, SHEETS} from './Sculpture';
 import {Bars} from './transitions';
-import {svgAt} from './crawl-rig.js';
 
 // The first ten seconds — cut into the deck on its own — as one continuous shot, ending on the name:
 //   0    the site's contour loader builds its terrain, the camera easing in, the reads ticking off
@@ -16,8 +15,7 @@ import {svgAt} from './crawl-rig.js';
 //        it fills the frame
 //   316  帧 / 寻 / GongJ!ng? fly in across it from the left
 //   372  the floor of tiles flips over to night, wave by wave; the tiles under 帧寻 flip back in lime
-//   470  the tiles shatter and fall away onto the lockup: the sculpture, 帧寻 GongJ!ng?, the
-//        slogan, and the snake crawling along the bottom
+//   470  the tiles shatter and fall away onto the lockup: the sculpture, 帧寻 GongJ!ng?, the slogan
 
 /** Cells covered by `text` drawn big in the middle of a cols×rows grid (true = inside a stroke).
  *  `aspect` is a cell's width over its height (character cells are 0.62; tiles are square). */
@@ -280,23 +278,13 @@ export const NameLockup: React.FC<{t: number; exit?: number}> = ({t, exit = 0}) 
   );
 };
 
-/** The snake crawling along the bottom of the frame (the brand's crawl rig, the mascot's own head). */
-export const SNAKE_SPEED = 4.2; // px a frame
-export const Crawler: React.FC<{x: number; time: number; y?: number; scale?: number}> = ({x, time, y = 700, scale = 0.8}) => {
-  const markup = useMemo(() => svgAt(time, 'crawl-right', staticFile('mascot.png')), [time]);
-  return <div style={{position: 'absolute', left: x, top: y, width: 768, height: 512, transform: `scale(${scale})`, transformOrigin: '0 0'}} dangerouslySetInnerHTML={{__html: markup}} />;
-};
-export const SNAKE_AT = LOCK_AT + 10;
-export const snakeX = (globalFrame: number) => -480 + (globalFrame - SNAKE_AT) * SNAKE_SPEED;
-
 const Lockup: React.FC<{frame: number}> = ({frame}) => {
-  const {fps} = useVideoConfig();
   const t = frame - LOCK_AT;
   return (
     <Fill>
-      <Sculpture phase={1} scale={1.05} y={-0.5} pose={() => ({spread: 1 - easeOut((t + 10) / 60)})} />
+      {/* the sculpture is simply there, whole, rising a little into place (no scatter: it shouldn't glitter) */}
+      <Sculpture phase={1} scale={1.05} y={-0.5 - 1.2 * (1 - easeOut((t + 6) / 40))} style={{opacity: clamp01((t + 6) / 24)}} />
       <NameLockup t={t - 8} />
-      {frame >= SNAKE_AT ? <Crawler x={snakeX(frame)} time={(frame - SNAKE_AT) / fps} /> : null}
       <Glyphs count={12} seed={11} opacity={0.6} />
     </Fill>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import {useCurrentFrame, useVideoConfig} from 'remotion';
 import {clamp01, CONSOLE, easeOut, Fill, Glyphs, hash, Head, INK, INK2, INK3, LIME, LINE, LINE2, PIXEL, pop, SC, Sfx, SILK, SURFACE, Typed} from './kit';
 import {Topo} from './Contour';
-import {Crawler, NameLockup, RULE, snakeX, SNAKE_AT} from './Opening';
+import {NameLockup, RULE} from './Opening';
 import {Sculpture} from './Sculpture';
 
 // 01 三路证据 — what one frame gives up, each shown as a small working model rather than a word:
@@ -12,7 +12,7 @@ import {Sculpture} from './Sculpture';
 //   画面文字   a frame lying flat on the floor; the words printed on it lift off, one by one, and line
 //             up in the air above it
 // It opens from the name: the title leaves upward, the lockup's lime rule drops and splits into
-// three floors, one under each model, and the snake crawls on out of the frame.
+// three floors, one under each model,.
 
 const COLS = [340, 960, 1580]; // column centres
 const BOX = {w: 440, h: 300, top: 330};
@@ -152,7 +152,8 @@ export const Evidence: React.FC = () => {
   return (
     <Fill>
       <Topo opacity={0.3 * clamp01((frame - 20) / 30)} turn={0.3} />
-      {frame < 44 ? <Sculpture phase={11} scale={1.05} y={-0.5} style={{opacity: 1 - clamp01((frame - 16) / 28)}} pose={() => ({spread: easeOut(frame / 36)})} /> : null}
+      {/* the sculpture behind the name rises away with it, whole */}
+      {frame < 30 ? <Sculpture phase={11} scale={1.05} y={-0.5 + 6 * easeOut(frame / 26) ** 2} style={{opacity: 1 - clamp01(frame / 24)}} /> : null}
       {frame < 40 ? <NameLockup t={400} exit={clamp01(frame / 22)} /> : null}
       {[0, 1, 2].map((i) => {
         const from = {l: RULE.left + (RULE.width / 3) * i, w: RULE.width / 3};
@@ -186,8 +187,6 @@ export const Evidence: React.FC = () => {
       <Sfx name="click" at={60 + 54} volume={0.4} />
       <Sfx name="glitch" at={72} volume={0.18} />
       {Array.from({length: 5}, (_, i) => <Sfx key={i} name="soft" at={98 + i * 9} volume={0.3} rate={1 + i * 0.05} />)}
-      {/* the snake keeps crawling, then hurries off to the right */}
-      {frame < 110 ? <Crawler x={snakeX(600 + frame) + frame * frame * 0.15} time={(600 + frame - SNAKE_AT) / fps * (1 + frame / 60)} /> : null}
       <Glyphs count={8} seed={21} opacity={0.5} />
     </Fill>
   );
