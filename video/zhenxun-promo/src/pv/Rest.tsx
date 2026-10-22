@@ -1,12 +1,12 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {AbsoluteFill, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {Blob, CharField, clamp01, CONSOLE, CREAM, DARK, DISPLAY, easeOut, Fill, Glyphs, hash, Head, INK, INK2, INK3, LIME, LIME_DIM, LINE, LINE2, MONO, NIGHT, PAPER, PIXEL, PixelCursor, pop, Rule,
+import {CharField, clamp01, CONSOLE, CREAM, DARK, DISPLAY, easeOut, Fill, Glyphs, hash, Head, INK, INK2, INK3, LIME, LIME_DIM, LINE, LINE2, MONO, NIGHT, PAPER, PIXEL, PixelCursor, pop, Rule,
   SC, Sfx, SILK, stepped, SURFACE, textWidth, Typed, useTone, WORDMARK} from './kit';
 import {Topo} from './Contour';
 import {Sculpture} from './Sculpture';
 
 // The PV from the click scene on (about 23–60 s). From the click to the slogan it runs on the night
-// side (warm black, cream, lime; GSAP-like grainy colour shapes), and the slogan folds into a line
+// side (warm black, cream, lime), and the slogan folds into a line
 // that opens back onto paper for the closing lockup. Scenes hand
 // over through shapes (see transitions.tsx) or share an element across the change: the lockup's
 // rule drops and splits into the evidence columns; 每秒 is pushed off by an ink panel carrying
@@ -55,7 +55,6 @@ const Clicks: React.FC = () => {
   const press = clamp01(1 - Math.abs(frame - at(leg)) / 4);
   return (
     <Fill dark>
-      <Blob x={1700} y={180} r={150} turn={frame * 0.6} opacity={0.9} />
       <Head n="03" title="一点回看" sub="时间点 → 原片" />
       {/* a timeline across the bottom; each click marks its place on it */}
       <Rule x={160} y={930} w={1600} k={easeOut(frame / 24)} color={LINE2} thick={3} />
@@ -282,7 +281,6 @@ const Versus: React.FC = () => {
   return (
     <Fill dark>
       <Topo opacity={0.18} turn={1.2} scale={1.3} />
-      <Blob x={260} y={880} r={190} turn={-frame * 0.5} opacity={0.85} />
       <Sfx name="hit" at={30} volume={0.4} />
       <Sfx name="whoosh" at={48} volume={0.45} />
       <div style={{position: 'absolute', right: 1920 - X.x + 100 + GAP, top: X.y - 200, fontFamily: SC, fontWeight: 900, fontSize: 380, lineHeight: 1,
@@ -421,7 +419,6 @@ const Wall: React.FC = () => {
   return (
     <Fill dark>
       <Sfx name="swish" at={COLLAPSE_AT - 16} volume={0.35} />
-      <Blob x={1640} y={820} r={220} turn={frame * 0.4} opacity={0.85 * clamp01((frame - COLLAPSE_AT) / 20)} />
       <div style={{position: 'absolute', inset: 0, opacity: 1 - collapse * 0.85}}>
         {Array.from({length: 9 * cols}, (_, i) => {
           const col = i % cols;
@@ -495,7 +492,6 @@ const Finale: React.FC = () => {
       <Sfx name="whoosh" at={FOLD_AT} volume={0.5} rate={0.9} />
       <Sfx name="swish" at={OPEN[0] - 6} volume={0.4} />
       <Sfx name="swell" at={LOCK_AT - 6} volume={0.5} />
-      <Blob x={1620} y={250} r={200} turn={frame * 0.5} opacity={0.85 * (1 - fold)} />
       {/* the slogan, on the night side */}
       {frame < OPEN[1] ? (
         <>

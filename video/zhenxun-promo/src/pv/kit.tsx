@@ -233,17 +233,6 @@ export const Grain: React.FC<{opacity?: number}> = ({opacity = 0.11}) => {
   );
 };
 
-/** A soft gradient shape with grain, like the GSAP site's: lime into green, drifting. */
-export const Blob: React.FC<{x: number; y: number; r: number; from?: string; to?: string; opacity?: number; turn?: number}> = ({x, y, r, from = LIME, to = '#2FE0A8', opacity = 0.9, turn = 0}) => (
-  <div style={{position: 'absolute', left: x - r, top: y - r, width: r * 2, height: r * 2, borderRadius: '42% 58% 55% 45% / 48% 40% 60% 52%', opacity,
-    background: `radial-gradient(circle at 30% 28%, #F4FFB8 0%, ${from} 32%, ${to} 100%)`, transform: `rotate(${turn}deg)`}}>
-    <svg width={r * 2} height={r * 2} style={{position: 'absolute', inset: 0, borderRadius: 'inherit', mixBlendMode: 'overlay', opacity: 0.6}}>
-      <filter id={`zx-blob-${Math.round(r)}`}><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed={3} /><feColorMatrix type="saturate" values="0" /></filter>
-      <rect width={r * 2} height={r * 2} filter={`url(#zx-blob-${Math.round(r)})`} />
-    </svg>
-  </div>
-);
-
 /** A big index numeral in outline (ink stroke, no fill), the section marker of the UI. */
 export const Index: React.FC<{n: string; size?: number; style?: React.CSSProperties}> = ({n, size = 220, style}) => {
   const tone = useTone();
