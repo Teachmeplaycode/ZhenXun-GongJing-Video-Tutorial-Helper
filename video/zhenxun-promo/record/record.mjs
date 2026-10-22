@@ -55,7 +55,10 @@ async function scene(name, act, { width = W, height = H, mobile = false, zoom = 
     locale: 'zh-CN', reducedMotion: 'no-preference', colorScheme: 'light',
   })
   await context.addInitScript(() => {
-    try { localStorage.setItem('zhenxun.guide.v1', '1') } catch { /* fine */ }
+    try {
+      localStorage.setItem('zhenxun.guide.v1', '1')
+      localStorage.setItem('zhenxun.cites.v1', '0') // answers start without their time tags; a scene turns them on
+    } catch { /* fine */ }
   })
   await context.addInitScript(CURSOR)
   const page = await context.newPage()
@@ -152,6 +155,34 @@ async function scene(name, act, { width = W, height = H, mobile = false, zoom = 
       await cam.click(`button.bench__tab:has-text("${tab}")`)
       await cam.wait(800)
     },
+    /** Turn the answers' time tags on (the button under the newest answer), if they are off. */
+    async showCites() {
+      // the toggle under an answer that has clickable evidence (each answer keeps its own switch)
+      const btn = page.locator('.msg--assistant:has(button.ev-chip) button:has-text("显示时间标签")').last()
+      if (await btn.count()) {
+        await btn.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+        await cam.wait(400)
+        await cam.click(btn)
+        await cam.wait(700)
+      }
+    },
+    /** Click an evidence chip and wait until the original really plays (time moving); a failed or
+     *  stuck load is closed and tried again. Marks 'playing' once it does. */
+    async playEvidence(nth = 0) {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await page.locator('button.ev-chip:visible').nth(nth).evaluate((el) => el.scrollIntoView({ block: 'center' }))
+        await cam.wait(300)
+        await cam.click(page.locator('button.ev-chip:visible').nth(nth))
+        const ok = await page.waitForFunction(() => {
+          const v = document.querySelector('.source-player__video')
+          return v && v.readyState >= 3 && v.currentTime > 0.3 && !v.paused
+        }, null, { timeout: 25000 }).then(() => true).catch(() => false)
+        if (ok && !(await page.locator('.source-player__failed').count())) { cam.mark('playing'); return true }
+        await page.locator('button[aria-label="关闭原片"]').click().catch(() => {})
+        await cam.wait(1500)
+      }
+      return false
+    },
     /** Wait until the agent has finished answering (the stop button is gone). */
     async answered({ timeout = 180000 } = {}) {
       await page.waitForSelector('button[aria-label="停止"]', { timeout: 15000 }).catch(() => {})
@@ -228,6 +259,9 @@ Object.assign(SCENES, {
     await cam.press('Enter')
     cam.mark('asked')
     await cam.answered()
+    await cam.wait(1500)
+    await cam.showCites()
+    cam.mark('cites')
     await cam.moveTo('.ev-chip', { ms: 900 })
     await cam.wait(1800)
   },
@@ -236,9 +270,8 @@ Object.assign(SCENES, {
     await cam.openLatest()
     await cam.page.locator('.chat__scroll').evaluate((el) => { el.scrollTop = el.scrollHeight })
     await cam.wait(800)
-    await cam.click('button.ev-chip')
-    cam.mark('seek')
-    await cam.page.waitForSelector('.source-player', { timeout: 20000 })
+    await cam.showCites()
+    if (!(await cam.playEvidence())) throw new Error('the original would not play')
     await cam.wait(7000)
     await cam.click('button[aria-label="关闭原片"]').catch(() => {})
     await cam.wait(800)
@@ -274,9 +307,9 @@ Object.assign(SCENES, {
   async screenshot(cam) {
     await cam.openLatest()
     // the screenshot: a frame of the tutorial itself, taken from the original player
-    await cam.page.locator('button.ev-chip').first().click()
-    await cam.page.waitForSelector('.source-player__video', { timeout: 20000 })
-    await cam.page.waitForTimeout(3000)
+    await cam.showCites()
+    if (!(await cam.playEvidence(0))) throw new Error('the original would not play')
+    await cam.page.waitForTimeout(2500)
     const shot = `${OUT}stuck.png`
     await cam.page.locator('.source-player__video').screenshot({ path: shot })
     await cam.page.locator('button[aria-label="关闭原片"]').click().catch(() => {})
@@ -289,6 +322,40 @@ Object.assign(SCENES, {
     await cam.press('Enter')
     await cam.answered()
     await cam.wait(1500)
+  },
+  // "把 02:03 到 02:08 做成 GIF": the clip studio — nudge the end, set the frame rate, make it, see it
+  async gif(cam) {
+    await cam.openLatest()
+    await cam.click('.composer__input')
+    await cam.type('把 02:03 到 02:08 做成 GIF', { delay: 110 })
+    await cam.wait(400)
+    await cam.press('Enter')
+    const card = cam.page.locator('.clip-studio').last()
+    await card.waitFor({ timeout: 20000 })
+    cam.mark('studio')
+    await cam.wait(1500)
+    await card.locator('.clip-studio__play').click().catch(() => {})
+    await cam.wait(1500)
+    // drag the end handle a little to the right
+    const end = await card.locator('.clip-studio__handle--end').boundingBox()
+    await cam.moveTo({ x: end.x + end.width / 2, y: end.y + end.height / 2 })
+    await cam.page.mouse.down()
+    await cam.moveTo({ x: end.x + end.width / 2 + 40, y: end.y + end.height / 2 }, { ms: 700 })
+    await cam.page.mouse.up()
+    await cam.wait(800)
+    // frame rate up to about 15
+    const fps = await card.locator('.clip-studio__slider input').first().boundingBox()
+    await cam.click({ x: fps.x + fps.width * 0.4, y: fps.y + fps.height / 2 })
+    await cam.wait(900)
+    await cam.click(card.getByRole('button', { name: '生成 GIF' }))
+    cam.mark('making')
+    await card.locator('.clip-studio__result img').waitFor({ timeout: 120000 })
+    cam.mark('made')
+    await cam.wait(1200)
+    await cam.page.locator('.chat__scroll').evaluate((el) => { el.scrollTop = el.scrollHeight })
+    await cam.wait(800)
+    await cam.moveTo(card.getByRole('button', { name: '下载' }), { ms: 800 })
+    await cam.wait(2200)
   },
   // Tab completion: a few letters typed, the rest of the question offered in grey, Tab takes it
   async tab(cam) {
@@ -360,6 +427,12 @@ const MOBILE = {
     await cam.click(cam.page.locator('.picker__tile').nth(3))
     await cam.wait(1200)
     await cam.bench('笔记')
+    if (await cam.page.locator('.notes-tab__done').count() === 0) {
+      await cam.click('button:has-text("生成笔记")')
+      await cam.page.waitForSelector('.notes-tab__done', { timeout: 420000 })
+      cam.mark('notes')
+      await cam.wait(1200)
+    }
     await cam.click('button:has-text("存为长图")')
     await cam.page.waitForSelector('.preview-dialog img', { timeout: 60000 })
     await cam.wait(1500)
