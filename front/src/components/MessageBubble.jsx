@@ -142,7 +142,7 @@ function ManualReplay({ message, onTime, onStop }) {
 
 // onTime(seconds): a time in the answer was clicked; duration bounds which times count.
 // onRegenerate: ask the same question again (null while another answer is running).
-export default function MessageBubble({ message, onStop, onTime = null, duration = null, onRegenerate = null, pictures = false }) {
+export default function MessageBubble({ message, onStop, onTime = null, duration = null, onRegenerate = null, pictures = false, renderStudio = null }) {
   if (message.role === 'user') {
     return (
       <div className="msg msg--user">
@@ -170,6 +170,14 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
     )
   }
   if (message.manual === 'replay') return <ManualReplay message={message} onTime={onTime} onStop={onStop} />
+  if (message.manual === 'clip') {
+    return (
+      <div className="msg msg--assistant msg--studio">
+        <Avatar role="assistant" />
+        <div className="bubble bubble--assistant">{renderStudio?.(message)}</div>
+      </div>
+    )
+  }
   const streaming = message.status === 'running'
   const parts = message.parts
   const lastText = parts.map((p) => p.kind).lastIndexOf('text')

@@ -120,7 +120,7 @@ test('"/" opens the task menu and fills the chosen task', async ({ page }) => {
   await enterChat(page)
   const input = page.locator('.composer__input')
   await input.fill('/')
-  await expect(page.locator('.slash-menu__item')).toHaveCount(9)
+  await expect(page.locator('.slash-menu__item')).toHaveCount(10)
   await input.press('ArrowDown')
   await input.press('Enter')
   await expect(input).toHaveValue('按时间顺序列出视频里的关键事件和画面变化，每条注明时间点。')
@@ -450,6 +450,46 @@ test('a framed stretch can be cut out as a GIF, and points to 求原图 for whol
   await expect(page.locator('.clip-toast')).toContainText('已保存 帧寻_测试_0054-0058.gif')
   expect(asked[0].get('format')).toBe('gif')
   expect(Number(asked[0].get('end'))).toBeGreaterThan(Number(asked[0].get('start')))
+})
+
+test('"我要片段的 GIF" opens the clip studio, not the model: pick, tune, make, keep', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  const asked = []
+  await page.route('**/clip?**', (route) => {
+    asked.push(Object.fromEntries(new URL(route.request().url()).searchParams))
+    return route.fulfill({ status: 200, contentType: 'image/gif', body: Buffer.from('GIF89a'),
+      headers: { 'content-disposition': "attachment; filename*=utf-8''%E5%B8%A7%E5%AF%BB_t_0054-0058.gif", 'x-clip-fps': '9', 'x-clip-width': '384',
+        'x-clip-note': encodeURIComponent('为了压到 1 MB 以内，降到了 9 fps、384 px') } })
+  })
+  await page.locator('.composer__input').fill('把 00:54 到 00:58 做成表情包 GIF')
+  await page.locator('.composer__input').press('Enter')
+  const card = page.locator('.clip-studio')
+  await expect(card).toBeVisible()
+  await expect(card.locator('.clip-studio__readout')).toContainText('起点 00:54.0')
+  await expect(card.locator('.clip-studio__readout')).toContainText('终点 00:58.0')
+  await expect(card.getByRole('tab', { name: 'GIF 动图' })).toHaveAttribute('aria-selected', 'true')
+  expect(mock.runsSent()).toEqual([]) // no model involved
+
+  await card.locator('.clip-studio__slider input').first().fill('20') // 帧率
+  await card.getByRole('button', { name: '生成 GIF' }).click()
+  await expect(card.locator('.clip-studio__result img')).toBeVisible()
+  await expect(card.locator('.clip-studio__result')).toContainText('9 fps · 384 px')
+  await expect(card.locator('.clip-studio__result')).toContainText('降到了 9 fps')
+  expect(asked[0]).toMatchObject({ start: '54.00', end: '58.00', format: 'gif', fps: '20', width: '480', dither: 'bayer', max_mb: '1' })
+  const download = page.waitForEvent('download')
+  await card.getByRole('button', { name: '下载' }).click()
+  expect((await download).suggestedFilename()).toBe('帧寻_t_0054-0058.gif')
+  await expect(card.getByRole('link', { name: /求原图/ })).toHaveAttribute('href', /ynvan\.com/)
+  await page.screenshot({ path: 'test-results/clip-studio.png', fullPage: false })
+
+  // "/GIF" is in the task menu; MP4 asks for sound
+  await page.locator('.composer__input').fill('/GIF')
+  await expect(page.locator('.slash-menu__item', { hasText: '/GIF' })).toBeVisible()
+  await page.locator('.composer__input').fill('截一段 00:10-00:20 的视频片段 mp4')
+  await page.locator('.composer__input').press('Enter')
+  await expect(page.locator('.clip-studio').last().getByRole('tab', { name: /MP4/ })).toHaveAttribute('aria-selected', 'true')
+  expect(mock.runsSent()).toEqual([])
 })
 
 test('a hand-framed replay comes back with its session', async ({ page }) => {

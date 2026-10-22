@@ -180,5 +180,12 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
     }
   }, [video])
 
-  return { messages, send, regenerate, stop, running, replay, cancelReplay }
+  // "我要这段的 GIF": the clip studio card, no model; the person's words stay above it.
+  const studio = useCallback((text, range, format) => {
+    const user = { id: nextId(), role: 'user', text, attachments: [], images: [] }
+    const card = { ...emptyAnswer(), status: 'done', manual: 'clip', range, format }
+    setMessages((list) => [...list, user, card])
+  }, [])
+
+  return { messages, send, regenerate, stop, running, replay, cancelReplay, studio }
 }

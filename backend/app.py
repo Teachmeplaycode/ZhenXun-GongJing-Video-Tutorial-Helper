@@ -9,6 +9,7 @@ import re
 import shutil
 import time
 import uuid
+from urllib.parse import quote
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -739,15 +740,19 @@ async def job_source(job_id: str):
 
 
 @app.get("/api/link-jobs/{job_id}/clip")
-async def job_clip(job_id: str, start: float, end: float, format: str = "gif"):
-    """A stretch of the original cut out as a GIF (≤10 s, no sound) or an MP4 (≤60 s, with sound),
-    downloaded as a file: a reaction image, or the one step of a tutorial worth keeping."""
+async def job_clip(job_id: str, start: float, end: float, format: str = "gif", fps: float = 12, width: float = 480,
+                   speed: float = 1.0, dither: str = "bayer", max_mb: float = 0.0):
+    """A stretch of the original cut out as a GIF (≤30 s, no sound; frame rate, width, speed, dithering
+    and a size cap are the caller's) or an MP4 (≤60 s, with sound), downloaded as a file. The GIF's
+    final frame rate and width come back in X-Clip-Fps / X-Clip-Width, and why they changed in
+    X-Clip-Note (URL-encoded)."""
     job = get_job(job_id)
     try:
-        made = await clip.make(job, start, end, format.lower())
+        made = await clip.make(job, start, end, format.lower(), clip.Look.of(fps, width, speed, dither, max_mb))
     except clip.ClipError as e:
         raise HTTPException(e.status, e.message) from None
-    return FileResponse(made.path, media_type=made.media_type, filename=made.filename)
+    headers = {"X-Clip-Fps": str(made.fps), "X-Clip-Width": str(made.width), "X-Clip-Note": quote("；".join(made.notes))}
+    return FileResponse(made.path, media_type=made.media_type, filename=made.filename, headers=headers)
 
 
 @app.get("/api/link-jobs/{job_id}/media")
