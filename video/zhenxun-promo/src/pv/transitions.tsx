@@ -89,28 +89,30 @@ export const Bars: React.FC<{p: number; tint?: string; seed?: number; children: 
     y += h;
   }
   const BAND = 260;
+  // The new picture is drawn once, through one clip made of every bar's revealed part (copying it
+  // per bar would multiply its WebGL canvases past Chrome's limit); the glitch shifts the clip.
+  let clip = '';
+  const bands: React.ReactNode[] = [];
+  bars.forEach((b, i) => {
+    const k = Math.min(1, Math.max(0, (p - b.d) / 0.55));
+    const steps = Math.floor(k * 9) / 9;
+    const e = (k < 1 ? steps : 1) * (W + BAND);
+    const glitch = k > 0 && k < 1 && hash(i, Math.floor(p * 40)) < 0.25 ? (hash(i, Math.floor(p * 40), 1) - 0.5) * 80 : 0;
+    const shown = Math.max(0, e - BAND);
+    if (shown > 0) {
+      const from = (b.dir > 0 ? 0 : W - shown) + glitch;
+      clip += `M${from.toFixed(1)} ${b.y}h${shown.toFixed(1)}v${b.h + 0.5}h${(-shown).toFixed(1)}Z`;
+    }
+    if (k > 0 && k < 1) {
+      const bandX = b.dir > 0 ? Math.max(0, e - BAND) : W - e;
+      bands.push(<div key={i} style={{position: 'absolute', left: bandX + glitch * 0.5, top: b.y, width: Math.min(BAND, e), height: b.h, background: tint, opacity: 0.92}} />);
+    }
+  });
   return (
     <AbsoluteFill>
       {old}
-      {bars.map((b, i) => {
-        const k = Math.min(1, Math.max(0, (p - b.d) / 0.55));
-        const steps = Math.floor(k * 9) / 9; // a judder: the bar moves in steps
-        const e = (k < 1 ? steps : 1) * (W + BAND);
-        const glitch = k > 0 && k < 1 && hash(i, Math.floor(p * 40)) < 0.25 ? (hash(i, Math.floor(p * 40), 1) - 0.5) * 80 : 0;
-        const from = b.dir > 0 ? 0 : W - Math.max(0, e - BAND);
-        const shown = Math.max(0, e - BAND);
-        const bandX = b.dir > 0 ? Math.max(0, e - BAND) : W - e;
-        return (
-          <React.Fragment key={i}>
-            {shown > 0 ? (
-              <AbsoluteFill style={{clipPath: `polygon(${from}px ${b.y}px, ${from + shown}px ${b.y}px, ${from + shown}px ${b.y + b.h + 0.5}px, ${from}px ${b.y + b.h + 0.5}px)`,
-                transform: `translateX(${glitch}px)`}}>{children}</AbsoluteFill>
-            ) : null}
-            {k > 0 && k < 1 ? <div style={{position: 'absolute', left: bandX, top: b.y, width: Math.min(BAND, e), height: b.h, background: tint,
-              opacity: 0.92, transform: `translateX(${glitch * 0.5}px)`}} /> : null}
-          </React.Fragment>
-        );
-      })}
+      {clip ? <AbsoluteFill style={{clipPath: `path('${clip}')`}}>{children}</AbsoluteFill> : null}
+      {bands}
     </AbsoluteFill>
   );
 };

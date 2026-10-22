@@ -5,6 +5,7 @@ import {clamp01, CONSOLE, DISPLAY, easeOut, Fill, Glyphs, hash, Index, INK, INK2
 import {Contour} from './Contour';
 import {FLOOR_VIEW, floorSlat, project, Sculpture, SHEETS} from './Sculpture';
 import {Bars} from './transitions';
+import {Glitch} from './Glitch';
 
 // The first ten seconds — cut into the deck on its own — as one continuous shot, ending on the name:
 //   0    the site's contour loader builds its terrain, the camera easing in, the reads ticking off
@@ -283,7 +284,10 @@ const Lockup: React.FC<{frame: number}> = ({frame}) => {
   return (
     <Fill>
       {/* the sculpture is simply there, whole, rising a little into place (no scatter: it shouldn't glitter) */}
-      <Sculpture phase={1} scale={1.05} y={-0.5 - 1.2 * (1 - easeOut((t + 6) / 40))} style={{opacity: clamp01((t + 6) / 24)}} />
+      {/* one burst of the homepage's model glitch, once it has settled */}
+      <Glitch frame={t} starts={[62]} id="lock">
+        <Sculpture phase={1} scale={1.05} y={-0.5 - 1.2 * (1 - easeOut((t + 6) / 40))} style={{opacity: clamp01((t + 6) / 24)}} />
+      </Glitch>
       <NameLockup t={t - 8} />
       <Glyphs count={12} seed={11} opacity={0.6} />
     </Fill>

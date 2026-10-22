@@ -1,4 +1,4 @@
-import React, {useLayoutEffect, useMemo, useRef} from 'react';
+import React, {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {useCurrentFrame, useVideoConfig} from 'remotion';
 import {ThreeCanvas} from '@remotion/three';
 import * as THREE from 'three';
@@ -165,9 +165,16 @@ export const Sculpture: React.FC<{pose?: (i: number, u: number) => SlatPose; spi
     pos = [x + (-p.x * z - x) * focus.mix, y + (-p.y * z - y) * focus.mix, -p.z * z * focus.mix];
     s = z;
   }
+  // Free the WebGL context when the scene ends: a long render mounts many sculptures, and Chrome
+  // drops the oldest context once too many are alive — the sculpture then vanishes from frames.
+  const gl = useRef<THREE.WebGLRenderer | null>(null);
+  useEffect(() => () => {
+    gl.current?.dispose();
+    gl.current?.forceContextLoss();
+  }, []);
   return (
     <ThreeCanvas width={width} height={height} style={{position: 'absolute', inset: 0, ...style}} camera={{fov: 22, position: [0, 0, 64], near: 1, far: 400}}
-      gl={{alpha: true, antialias: true}}>
+      gl={{alpha: true, antialias: true, preserveDrawingBuffer: true}} onCreated={(state) => { gl.current = state.gl; }}>
       {/* the site's light field: hemisphere fill, a broad key, a low rim */}
       <hemisphereLight args={['#ffffff', '#D8D4CE', 1.6]} />
       <directionalLight position={[-14, 22, 18]} intensity={1.5} />
