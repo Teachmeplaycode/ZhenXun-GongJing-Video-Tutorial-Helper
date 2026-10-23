@@ -13,6 +13,28 @@ const KINDS = [
   ['uploads', '上传文件'],
 ]
 
+// Owners only: what the whole site has spent on model calls and transcription today, against the
+// daily cap that pauses new imports and questions for everyone else (backend modules/spend.py).
+function Spend({ spend }) {
+  const capped = spend.limit > 0
+  const kinds = [['llm', '模型'], ['asr', '语音识别']].filter(([k]) => spend.kinds?.[k])
+  return (
+    <section className="profile__section">
+      <h3>网站今日花费 <span className="mono-sm muted">仅管理员可见</span></h3>
+      <div className="profile__meter">
+        <div className="profile__meter-head">
+          <span>{kinds.map(([k, l]) => `${l} ¥${spend.kinds[k].yuan.toFixed(2)}`).join(' · ') || '还没有花费'}</span>
+          <span className="mono-sm">¥{spend.yuan.toFixed(2)}{capped ? ` / ¥${spend.limit}` : ' · 不设上限'}</span>
+        </div>
+        {capped ? (
+          <span className="profile__bar" aria-hidden="true"><span style={{ transform: `scaleX(${Math.min(1, spend.yuan / spend.limit)})` }} /></span>
+        ) : null}
+      </div>
+      {capped && spend.yuan >= spend.limit ? <p className="caption">已到上限：其他人今天不能再导入和提问，你不受影响。</p> : null}
+    </section>
+  )
+}
+
 function Meter({ label, quota }) {
   if (!quota) return null
   const unlimited = quota.limit == null
@@ -58,6 +80,7 @@ export default function ProfileDrawer({ open, user, onClose, onAccounts, onHisto
               <h3>今天的额度 <span className="mono-sm muted">北京时间 0 点重置</span></h3>
               {KINDS.map(([kind, label]) => <Meter key={kind} label={label} quota={user[kind]} />)}
             </section>
+            {user.spend ? <Spend spend={user.spend} /> : null}
             {guest ? (
               <section className="profile__section profile__guest">
                 <p>游客记录只保存在这个浏览器里，退出或换设备就找不回了。注册一个账号，刚才导入的视频会一起保留。</p>

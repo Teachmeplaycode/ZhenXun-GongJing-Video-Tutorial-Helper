@@ -41,7 +41,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
-from modules import visitors
+from modules import spend, visitors
 from modules.accounts import PLATFORMS as PLATFORM_LOGINS
 
 NAME = re.compile(r"^[\w一-鿿-]{2,20}$")
@@ -309,7 +309,8 @@ class Members:
         """What /api/health adds: who is signed in, what's left today, which sign-in buttons to show."""
         user_id = account_of(visitors.current.get())
         row = self.users.get(user_id) if user_id is not None else None
-        return {"user": {"name": row["name"], **self.quota(row)} if row else None,
+        owner = row is not None and self.users.plan(row) == "owner"
+        return {"user": {"name": row["name"], **self.quota(row), **({"spend": spend.status()} if owner else {})} if row else None,
                 "oauth": [p for p in PROVIDERS if provider_keys(p)]}
 
     def require(self, kind: str) -> None:
@@ -328,6 +329,8 @@ class Members:
         if quota["limit"] is not None and quota["used"] >= quota["limit"]:
             raise HTTPException(429, detail={"code": "quota_exceeded",
                                              "message": f"今天的{KINDS[kind]}次数（{quota['limit']} 次）已用完，明天 0 点（北京时间）恢复"})
+        if self.users.plan(row) != "owner":  # the site's daily spend cap; owners can still demo
+            spend.check()
         if count:
             self.users.add(row["id"], kind)
 

@@ -18,9 +18,12 @@ import re
 import subprocess
 import tempfile
 import time
+import wave
 from pathlib import Path
 
 import httpx
+
+from .. import spend
 
 MODEL = "paraformer-v2"
 MAX_SECONDS = 12.0   # longer sentences are cut at punctuation
@@ -133,4 +136,15 @@ async def transcribe(wav: Path) -> list[dict]:
         small = await asyncio.to_thread(squeeze, wav, Path(tmp) / "audio.opus")
         async with httpx.AsyncClient(timeout=60, headers={"Authorization": f"Bearer {key()}"}) as client:
             url = await _upload(client, small)
-            return segments(await _transcribe(client, url))
+            result = segments(await _transcribe(client, url))
+    spend.asr(_seconds(wav))  # priced against the day's budget
+    return result
+
+
+def _seconds(wav: Path) -> float:
+    """The length of a WAV (0 when it can't be read: then nothing is priced)."""
+    try:
+        with wave.open(str(wav)) as w:
+            return w.getnframes() / float(w.getframerate())
+    except (OSError, wave.Error, ZeroDivisionError):
+        return 0.0
