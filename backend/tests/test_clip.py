@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from modules import clip
+from modules import archive, clip
 from modules.frames import FrameJob
 from modules.video_source import ResolvedVideo, Stream
 from modules.video_source.local import PLATFORM as LOCAL
@@ -85,3 +85,28 @@ def test_old_cuts_are_dropped_beyond_the_limit(tmp_path, monkeypatch):
         last = asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=fps, width=160)))
     kept = sorted(p.name for p in (tmp_path / "job1" / "clips").iterdir() if p.suffix in (".gif", ".mp4"))
     assert len(kept) == 3 and last.path.name in kept and any(n.endswith(".mp4") for n in kept)
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs ffmpeg")
+def test_cuts_go_to_the_bucket_and_leave_with_it(tmp_path, monkeypatch):
+    bucket = tmp_path / "bucket"
+    monkeypatch.setenv("ARCHIVE_DIR", str(bucket))
+    monkeypatch.setattr(clip, "KEEP_FILES", 2)
+    src = tmp_path / "upload.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=320x180:rate=10", "-t", "4",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", str(src)], check=True)
+    video = ResolvedVideo(LOCAL, "u1", "file", "t", 4.0, [Stream(str(src), {}, "原文件", 180)])
+    job = FrameJob("job1", video, None, tmp_path / "job1", count=2)
+
+    gif = asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=6, width=160)))
+    assert gif.path.is_symlink() and gif.path.resolve().parent == bucket / "job1" / "clips"
+    assert gif.path.read_bytes()[:3] == b"GIF"  # served through the symlink
+    again = asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=6, width=160)))
+    assert again.path == gif.path  # cached
+
+    asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=8, width=160)))  # a third file: the oldest goes, from the bucket too
+    in_bucket = sorted(p.name for p in (bucket / "job1" / "clips").iterdir())
+    assert len(in_bucket) == 2 and gif.path.name not in in_bucket
+
+    archive.remove_job(tmp_path / "job1", "clips/*")  # deleting the session empties its part of the bucket
+    assert not (bucket / "job1" / "clips").exists() or not any((bucket / "job1" / "clips").iterdir())
