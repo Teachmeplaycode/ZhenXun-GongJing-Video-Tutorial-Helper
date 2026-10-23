@@ -1,4 +1,5 @@
 import React from 'react'
+import { useEscape } from '../lib/useEscape'
 import { createPortal } from 'react-dom'
 import { IconBook, IconClose } from './Icons'
 import '../styles/guide.css'
@@ -60,6 +61,7 @@ const SECTIONS = [
 ]
 
 export default function DocsDialog({ onClose, onGuide }) {
+  useEscape(onClose)
   return createPortal(
     <div className="overlay guide-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <section className="docs" role="dialog" aria-modal="true" aria-label="使用文档">

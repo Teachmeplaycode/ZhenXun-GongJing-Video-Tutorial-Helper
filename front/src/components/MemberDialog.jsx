@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useEscape } from '../lib/useEscape'
 import { createPortal } from 'react-dom'
 import { oauthUrl, signIn, signUp, startGuest } from '../api/client'
 import { IconClose } from './Icons'
@@ -11,6 +12,7 @@ const TITLE = { login: '登录', register: '注册账号' }
 const PROVIDER = { github: 'GitHub', google: 'Google' }
 
 export default function MemberDialog({ mode: initial = 'login', reason = '', oauth = [], onDone, onClose }) {
+  useEscape(onClose)
   const [mode, setMode] = useState(initial)
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')

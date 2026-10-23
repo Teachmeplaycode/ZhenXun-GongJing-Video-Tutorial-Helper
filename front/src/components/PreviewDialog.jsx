@@ -1,4 +1,5 @@
 import React from 'react'
+import { useEscape } from '../lib/useEscape'
 import { createPortal } from 'react-dom'
 import { IconClose } from './Icons'
 import '../styles/export.css'
@@ -6,6 +7,7 @@ import '../styles/export.css'
 // What an export will look like, before it's downloaded: the page the backend renders, in a frame —
 // or, with `image`, the long picture of it (long-press to keep it on a phone).
 export default function PreviewDialog({ title, src, image = false, onClose, children }) {
+  useEscape(onClose)
   const [state, setState] = React.useState(image ? 'loading' : 'ready')
   return createPortal(
     <div className="overlay preview-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>

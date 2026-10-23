@@ -71,3 +71,17 @@ def test_a_size_cap_brings_the_frame_rate_and_width_down(tmp_path):
     assert capped.fps < 25 and capped.width < 640 and capped.notes
     again = asyncio.run(clip.make(job, 0, 4, "gif", clip.Look.of(fps=25, width=640, dither="sierra", max_mb=0.3)))
     assert (again.fps, again.width) == (capped.fps, capped.width)  # kept, with what it ended up as
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs ffmpeg")
+def test_old_cuts_are_dropped_beyond_the_limit(tmp_path, monkeypatch):
+    monkeypatch.setattr(clip, "KEEP_FILES", 3)
+    src = tmp_path / "upload.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=320x180:rate=10", "-t", "4",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", str(src)], check=True)
+    video = ResolvedVideo(LOCAL, "u1", "file", "t", 4.0, [Stream(str(src), {}, "原文件", 180)])
+    job = FrameJob("job1", video, None, tmp_path / "job1", count=2)
+    for fps in (6, 8, 10):
+        last = asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=fps, width=160)))
+    kept = sorted(p.name for p in (tmp_path / "job1" / "clips").iterdir() if p.suffix in (".gif", ".mp4"))
+    assert len(kept) == 3 and last.path.name in kept and any(n.endswith(".mp4") for n in kept)
