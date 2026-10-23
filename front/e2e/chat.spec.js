@@ -492,6 +492,15 @@ test('"我要片段的 GIF" opens the clip studio, not the model: pick, tune, ma
   expect(mock.runsSent()).toEqual([])
 })
 
+test('a question about cutting or GIFs in the video is answered, not taken for a clip request', async ({ page }) => {
+  const mock = await start(page)
+  await enterChat(page)
+  await page.locator('.composer__input').fill('剪映里怎么导出这一段片段？')
+  await page.locator('.composer__input').press('Enter')
+  await expect.poll(() => mock.runsSent().map((r) => r.question)).toEqual(['剪映里怎么导出这一段片段？'])
+  await expect(page.locator('.clip-studio')).toHaveCount(0)
+})
+
 test('a hand-framed replay comes back with its session', async ({ page }) => {
   const data = { start: 60, end: 61, fps: 3, times: [60, 60.33, 60.67], frames: ['00', '01', '02'].map((n) => `/api/link-jobs/s1/replay/0006000-0006100-030/${n}.jpg`) }
   await start(page, (m) => m.addSession('s1', {
