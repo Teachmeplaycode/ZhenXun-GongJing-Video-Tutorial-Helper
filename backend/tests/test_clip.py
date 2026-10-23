@@ -136,3 +136,27 @@ def test_a_cropped_gif_and_mp4_are_that_rectangle(tmp_path):
     assert size(whole.path) == "640,360" and whole.path != gif.path
     mp4 = asyncio.run(clip.make(job, 0, 2, "mp4", clip.Look.of(crop="0,0,0.5,0.5")))
     assert size(mp4.path) == "320,180"
+
+def test_a_clip_studio_card_is_kept_with_its_session_but_not_as_a_turn(tmp_path, monkeypatch):
+    import app
+    from fastapi.testclient import TestClient
+    from modules.export.markdown import select_messages
+    from modules.store import SessionStore
+
+    store = SessionStore(tmp_path / "db.sqlite3")
+    monkeypatch.setattr(app, "store", store)
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path / "jobs")
+    video = ResolvedVideo(LOCAL, "u1", "file", "t", 60.0, [Stream(str(tmp_path / "x.mp4"), {}, "原文件", 360)])
+    job = FrameJob("job1", video, None, tmp_path / "jobs" / "job1", count=2)
+    monkeypatch.setitem(app.jobs, "job1", job)
+    store.create(job, "上传：t")
+    store.add_message("job1", "user", "第几步按 F4？")
+    store.add_message("job1", "assistant", "第 2 步。")
+
+    client = TestClient(app.app)
+    assert client.post("/api/link-jobs/job1/studio", json={"text": "把 2:03 到 2:08 做成 GIF", "start": 123, "end": 128}).json() == {"ok": True}
+    assert client.post("/api/link-jobs/job1/studio", json={"text": "x", "start": 1, "end": 2, "format": "webm"}).status_code == 400
+    card = store.messages("job1")[-1]
+    assert card["manual"] == "clip" and card["request"] == "把 2:03 到 2:08 做成 GIF" and card["range"] == [123, 128] and card["format"] == "gif"
+    assert store.history("job1") == [{"role": "user", "content": "第几步按 F4？"}, {"role": "assistant", "content": "第 2 步。"}]
+    assert all(m.get("manual") != "clip" for m in select_messages(store.messages("job1"), None))  # not in notes

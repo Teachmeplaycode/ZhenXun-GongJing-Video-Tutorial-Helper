@@ -212,6 +212,13 @@ export function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 30000)
 }
 
+/** Keep a clip studio card with its session (backend /studio). */
+export async function saveStudio(jobId, text, [start, end], format) {
+  const res = await fetch(`${LINK_BASE}/api/link-jobs/${jobId}/studio`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, start, end, format }) })
+  if (!res.ok) throw new Error('保存截取卡片失败')
+}
+
 /** Cut and save in one go (the timeline's range menu). */
 export async function downloadClip(jobId, start, end, format) {
   const { blob, name } = await fetchClip(jobId, start, end, format)

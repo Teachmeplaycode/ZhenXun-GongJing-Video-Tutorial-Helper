@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { apiUrl, manualReplay, streamAgentRun } from './client'
+import { apiUrl, manualReplay, saveStudio, streamAgentRun } from './client'
 
 let seq = 0
 const nextId = () => `m${(seq += 1)}`
@@ -94,6 +94,11 @@ export function restoreMessages(saved, frames) {
       out.push({ id: nextId(), role: 'user', text: m.content, attachments, images, savedId: m.id })
       continue
     }
+    if (m.manual === 'clip') { // a clip studio card: the request, then the card
+      out.push({ id: nextId(), role: 'user', text: m.request || '', attachments: [], images: [] })
+      out.push({ ...emptyAnswer(), status: 'done', manual: 'clip', range: m.range, format: m.format, savedId: m.id })
+      continue
+    }
     const events = m.events || []
     let msg = events.reduce(applyEvent, emptyAnswer())
     if (m.content && !events.some((e) => e.type === 'assistant.message.delta')) {
@@ -185,7 +190,8 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
     const user = { id: nextId(), role: 'user', text, attachments: [], images: [] }
     const card = { ...emptyAnswer(), status: 'done', manual: 'clip', range, format }
     setMessages((list) => [...list, user, card])
-  }, [])
+    if (video?.jobId) saveStudio(video.jobId, text, range, format).catch(() => {}) // kept with the session; the card works either way
+  }, [video])
 
   return { messages, send, regenerate, stop, running, replay, cancelReplay, studio }
 }
