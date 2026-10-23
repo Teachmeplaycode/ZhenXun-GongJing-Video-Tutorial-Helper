@@ -23,6 +23,8 @@ MAX = {"gif": 30.0, "mp4": 60.0}  # seconds a cut may be
 MP4_WIDTH = 1280
 DITHERS = {"bayer": "dither=bayer:bayer_scale=4", "sierra": "dither=sierra2_4a", "none": "dither=none"}
 _slots = asyncio.Semaphore(2)  # cuts at once: ffmpeg on the original is heavy
+KEEP_FILES = 40  # cuts kept per video (every look of a GIF is its own file)…
+KEEP_BYTES = 200 * 1024 * 1024  # …and at most this much of them: the oldest go first
 
 
 class ClipError(Exception):
@@ -133,6 +135,21 @@ async def _cut(job: FrameJob, start: float, end: float, speed: float, out: Path)
     tmp.rename(out)
 
 
+def _trim(folder: Path, keep: set[Path]) -> None:
+    """Drop the least recently made cuts beyond the limits (never the ones in `keep`)."""
+    files = sorted((p for p in folder.iterdir() if p.suffix in (".gif", ".mp4") and ".part" not in p.name), key=lambda p: p.stat().st_mtime)
+    total = sum(p.stat().st_size for p in files)
+    for p in files:
+        if len(files) <= KEEP_FILES and total <= KEEP_BYTES:
+            break
+        if p in keep:
+            continue
+        total -= p.stat().st_size
+        files.remove(p)
+        p.unlink(missing_ok=True)
+        p.with_suffix(".txt").unlink(missing_ok=True)
+
+
 async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | None = None) -> Clip:
     look = look or Look()
     start, end = span(start, end, job.video.duration or 0, fmt)
@@ -143,6 +160,7 @@ async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | N
     if not (mp4.is_file() and mp4.stat().st_size > 0):
         await _cut(job, start, end, look.speed, mp4)
     if fmt == "mp4":
+        _trim(folder, {mp4})
         return Clip(mp4, name, "video/mp4")
     out = folder / f"{start:.2f}-{end:.2f}-{look.key()}.gif"
     meta = out.with_suffix(".txt")
@@ -169,4 +187,5 @@ async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | N
         notes.append(f"已经降到最低还是超过 {look.max_mb:g} MB，可以再截短一点")
     tmp.rename(out)
     meta.write_text(f"{fps} {width}")
+    _trim(folder, {mp4, out})
     return Clip(out, name, "image/gif", fps, width, notes)

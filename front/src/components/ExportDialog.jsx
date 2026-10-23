@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useEscape } from '../lib/useEscape'
 import PreviewDialog from './PreviewDialog'
 import { createPortal } from 'react-dom'
 import { IconBook, IconClose } from './Icons'
@@ -52,6 +53,7 @@ export function exportItems(messages) {
 
 /** Pick the turns and the format, then download the Markdown bundle or open the PDF print page. */
 export default function ExportDialog({ sessionId, messages, onClose }) {
+  useEscape(onClose)
   const [saved, setSaved] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

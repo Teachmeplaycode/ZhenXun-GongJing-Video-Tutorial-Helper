@@ -58,6 +58,18 @@ test('export: the dialog lists the turns, checked by default', async ({ page }) 
   for (const box of await turns.locator('input').all()) await expect(box).toBeChecked()
 })
 
+test('export: Esc closes the preview first, then the dialog under it', async ({ page }) => {
+  const { dialog } = await openExportDialog(page)
+  await dialog.getByRole('button', { name: '预览' }).click()
+  const preview = page.locator('.preview-dialog')
+  await expect(preview).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(preview).toHaveCount(0)
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+})
+
 test('export: unchecked turns are left out of the markdown download', async ({ page }) => {
   const { mock, dialog } = await openExportDialog(page)
   // Leave out the first Q&A (backend rows 1–2): the note keeps the second pair and the replay.

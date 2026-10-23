@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useEscape } from '../lib/useEscape'
 import { cancelLogin, listAccounts, logoutAccount, pasteCookie, pollLogin, startLogin } from '../api/client'
 import { IconClose, IconRefresh } from './Icons'
 import { useStaggeredDrawer } from './SessionList'
@@ -190,6 +191,7 @@ function AccountCard({ account, onChange, mine = false }) {
 // `mine`: the web demo, where these are the signed-in person's own logins (scan only, kept encrypted,
 // used only for their own imports).
 export default function AccountsDrawer({ open, focus = null, onClose, mine = false }) {
+  useEscape(onClose, open)
   const rootRef = useRef(null)
   const [accounts, setAccounts] = useState([])
   const [error, setError] = useState('')
