@@ -29,10 +29,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install ffmpeg
-        # a static build from GitHub releases: apt on the runner has taken 8–20 minutes on a slow mirror
-        uses: FedericoCarboni/setup-ffmpeg@v3
-        with:
-          ffmpeg-version: release
+        # A static build straight from GitHub releases (retried), apt only as a fallback: apt has taken
+        # 8–20 minutes on a slow mirror, and the setup-ffmpeg action fails when its upstream readme does.
+        timeout-minutes: 8
+        run: |
+          url=https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz
+          if curl -fsSL --retry 4 --retry-delay 5 -o /tmp/ffmpeg.tar.xz "$url" && tar -xf /tmp/ffmpeg.tar.xz -C /tmp; then
+            sudo cp /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/
+          else
+            sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version | head -1
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
