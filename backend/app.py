@@ -831,6 +831,25 @@ class ReplayRequest(BaseModel):
     end: float
 
 
+class StudioRequest(BaseModel):
+    text: str
+    start: float
+    end: float
+    format: str = "gif"
+
+
+@app.post("/api/link-jobs/{job_id}/studio")
+async def save_studio(job_id: str, body: StudioRequest):
+    """Keep a clip studio card (\"我要这段的 GIF\") with its session, so it comes back on reopening.
+    One row: the request, the stretch and the format; it is not a question for the model's history."""
+    job = get_job(job_id)
+    if body.format not in ("gif", "mp4"):
+        raise HTTPException(400, "格式只能是 gif 或 mp4")
+    store.add_message(job.id, "assistant", "", data={"manual": "clip", "request": body.text[:500],
+                                                    "range": [round(body.start, 2), round(body.end, 2)], "format": body.format})
+    return {"ok": True}
+
+
 @app.post("/api/link-jobs/{job_id}/replay")
 async def manual_replay(job_id: str, body: ReplayRequest):
     """A slow-motion replay the user framed on the timeline: no model involved. It is saved in the

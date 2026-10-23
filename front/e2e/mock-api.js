@@ -139,6 +139,7 @@ export class MockApi {
     // How cited moments can be looked at again (backend modules/playback); tests set 'original' to get a player.
     this.source = { state: 'cache', label: '缓存证据', message: '平台没有提供可播放的原视频，时间点只能查看抽取的画面和文字' }
     this.replayDelay = 0 // ms before /replay answers
+    this.studios = [] // clip studio cards saved with their session (POST /studio)
     this.mediaBroken = false // /media answers 502 (an expired platform link)
     this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
@@ -338,6 +339,12 @@ export class MockApi {
       status: this.chaptersStatus, chapters: this.chapters, summary: "整段视频介绍柚子与药物相互作用的原理。",
       message: this.chaptersMessage || (this.chaptersStatus === 'done' ? `已生成 ${this.chapters.length} 个章节` : ''),
     })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/studio$/)
+    if (m && req.method() === 'POST') {
+      const body = req.postDataJSON()
+      this.studios.push({ job: m[1], ...body })
+      return json({ ok: true })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/replay$/)
     if (m && this.replayDelay) await new Promise((r) => setTimeout(r, this.replayDelay)) // a slow read, to cancel
     if (m && req.method() === 'POST') {

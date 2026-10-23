@@ -378,7 +378,9 @@ def collect_sources(events: list[dict], text: str = "") -> list[dict]:
 
 
 def select_messages(messages: list[dict], selected_ids: set[int] | None) -> list[dict]:
-    """None means all; an explicit empty set means no messages. Order is preserved."""
+    """None means all; an explicit empty set means no messages. Order is preserved. Clip studio
+    cards (a GIF / MP4 cut, manual='clip') are tools, not notes: never exported."""
+    messages = [m for m in messages if m.get("manual") != "clip"]
     if selected_ids is None:
         return list(messages)
     return [m for m in messages if m.get("id") in selected_ids]
