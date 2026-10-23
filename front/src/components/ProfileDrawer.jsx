@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { useEscape } from '../lib/useEscape'
 import { IconClose, IconHistory, IconLink } from './Icons'
 import { useStaggeredDrawer } from './SessionList'
 
@@ -30,6 +31,7 @@ function Meter({ label, quota }) {
 }
 
 export default function ProfileDrawer({ open, user, onClose, onAccounts, onHistory, onRegister, onSignOut }) {
+  useEscape(onClose, open)
   const rootRef = useRef(null)
   useStaggeredDrawer(rootRef, open)
   const guest = user?.plan === 'guest'

@@ -4,6 +4,7 @@ import { IconClose } from './Icons'
 import { linkFrameUrl } from '../api/client'
 import { fmtAgo, fmtClock } from '../lib/format'
 import { prefersReducedMotion } from '../lib/motion'
+import { useEscape } from '../lib/useEscape'
 import { platformName } from '../lib/platforms'
 
 // One saved session: cover frame, title, and a mono line of identifiers and counts.
@@ -88,6 +89,7 @@ export function useStaggeredDrawer(rootRef, open) {
 
 // Right-side drawer listing every saved session; available from the top bar at any stage.
 export function HistoryDrawer({ open, sessions, error, currentId, onOpen, onDelete, onClose }) {
+  useEscape(onClose, open)
   const rootRef = useRef(null)
   useStaggeredDrawer(rootRef, open)
   return (
