@@ -140,6 +140,7 @@ export class MockApi {
     this.source = { state: 'cache', label: '缓存证据', message: '平台没有提供可播放的原视频，时间点只能查看抽取的画面和文字' }
     this.replayDelay = 0 // ms before /replay answers
     this.studios = [] // clip studio cards saved with their session (POST /studio)
+    this.steps = null // the step cards once built (POST /steps); null: not yet
     this.samples = [] // ids of saved sessions offered as samples (public site)
     this.mediaBroken = false // /media answers 502 (an expired platform link)
     this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
@@ -332,6 +333,16 @@ export class MockApi {
     if (m) return json(this.suggestions) // backend modules/suggest.py; tests set questions to see them
     m = path.match(/^\/api\/link-jobs\/(\w+)\/cuts$/)
     if (m) return json({ status: 'done', cuts: this.cuts, message: '' })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/steps$/)
+    if (m) {
+      if (req.method() === 'POST') {
+        this.steps = [
+          { n: 1, time: 12, action: '点「数据」选项卡里的「数据验证」', detail: '', frame: 1 },
+          { n: 2, time: 40.5, action: '把「允许」改成「序列」', detail: '来源选 A1:D1', frame: 3 },
+        ]
+      }
+      return json(this.steps ? { status: 'done', steps: this.steps, message: `${this.steps.length} 步` } : { status: 'none', steps: [], message: '' })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)
     if (m && this.chapterFailureCount > 0) {
       this.chapterFailureCount -= 1
