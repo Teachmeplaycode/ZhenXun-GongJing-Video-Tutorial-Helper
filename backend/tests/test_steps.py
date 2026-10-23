@@ -45,6 +45,7 @@ def test_parse_keeps_steps_inside_the_video():
     assert steps.parse("无", 300) == []
     assert [s["time"] for s in steps.parse("04:22|双击精确匹配|\n1:02:03|太晚了|", 400)] == [262.0]  # mm:ss too
     assert steps.parse("1|点单元格|\n2|输入公式|\n3|按回车|", 400) == []  # numbers, not times
+    assert [s["time"] for s in steps.parse("18:00|双击安装包|\n136:00|输入命令|", 193)] == [18.0, 136.0]  # seconds written as mm:00
 
 
 def test_build_numbers_steps_puts_each_on_its_nearest_frame_and_caches(tmp_path):
