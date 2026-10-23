@@ -26,7 +26,7 @@ const TAILORED = { status: 'done', questions: [
 test('suggestions: pills above the input, written for this video; one click asks; asked ones go', async ({ page }) => {
   const mock = await chat(page, (m) => { m.suggestions = TAILORED })
   await expect(page.locator('.chat-task')).toHaveCount(0) // no big cards any more
-  const pills = page.locator('.composer__pill')
+  const pills = page.locator('.composer__pill:not(.composer__pill--stuck)')
   await expect(pills).toHaveCount(3)
   await expect(pills.first()).toHaveText('数据透视表是在哪一步改成表格形式的？')
   await pills.first().click()
@@ -39,14 +39,18 @@ test('suggestions: pills above the input, written for this video; one click asks
 
 test('suggestions: without written ones the general questions show as pills', async ({ page }) => {
   await chat(page)
-  await expect(page.locator('.composer__pill')).toHaveCount(3)
+  await expect(page.locator('.composer__pill:not(.composer__pill--stuck)')).toHaveCount(3)
+  await expect(page.locator('.composer__pill').first()).toHaveText(/卡住了？发截图/) // a tutorial's own question leads
 })
 
 test('a picture rides with the question; alone it asks where one is stuck', async ({ page }) => {
   const mock = await chat(page)
-  await page.locator('.composer input[type=file]').setInputFiles({ name: 'shot.png', mimeType: 'image/png', buffer: Buffer.from(
+  const picker = page.waitForEvent('filechooser')
+  await page.locator('.composer__pill--stuck').click() // the lead pill opens the picture picker
+  await (await picker).setFiles({ name: 'shot.png', mimeType: 'image/png', buffer: Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') })
   await expect(page.locator('.image-chip')).toHaveAttribute('data-state', 'ready')
+  await expect(page.locator('.composer__pill--stuck')).toHaveCount(0)
   await page.locator('.composer button[aria-label="发送"]').click()
   await expect.poll(() => mock.runsSent()[0]?.images).toEqual(['a00000000001'])
   expect(mock.runsSent()[0].question).toContain('卡在这一步')

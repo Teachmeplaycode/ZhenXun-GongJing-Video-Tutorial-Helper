@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, clip, log, members, playback, spend, visitors
+from modules import accounts, archive, backup, clip, log, members, playback, spend, steps, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -32,7 +32,7 @@ from modules.frames import images, sampling
 from modules.frames.job import MAX_FRAMES, shot_fill
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
-from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, create_client
+from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, create_client
 from modules.store import SessionStore
 from modules.settings import overlay as settings_overlay, vault as settings_vault
 from modules.screentext import ScreenText, run_screentext
@@ -755,6 +755,44 @@ async def job_cuts(job_id: str):
         return cuts.save(job.root, "unavailable", message="上传的视频处理完已删除，无法检测镜头切换")
     spawn(find_cuts(job))
     return {"status": "running", "cuts": [], "message": ""}
+
+
+steps_building: set[str] = set()
+
+
+@app.get("/api/link-jobs/{job_id}/steps")
+async def job_steps(job_id: str):
+    """The tutorial's step cards, once built (modules/steps.py); {status: 'none'} before."""
+    job = get_job(job_id)
+    if job.id in steps_building:
+        return {"status": "running", "steps": [], "message": ""}
+    return steps.load(job.root) or {"status": "none", "steps": [], "message": ""}
+
+
+@app.post("/api/link-jobs/{job_id}/steps")
+async def build_steps(job_id: str):
+    """Build the step cards with one model call; counts as a question."""
+    job = own_job(job_id)
+    if job.id in steps_building:
+        raise HTTPException(409, "步骤正在整理中")
+    member_service.charge("questions")
+    try:
+        client = get_llm()
+    except LLMError as err:
+        raise HTTPException(503, err.message) from err
+
+    async def complete(messages):
+        return "".join([d async for d in client.stream(messages, Usage(), max_tokens=2048)])
+
+    steps_building.add(job.id)
+    try:
+        record = await steps.build(job, complete)
+    except LLMError as err:
+        raise HTTPException(502, f"整理步骤失败：{err.message}") from err
+    finally:
+        steps_building.discard(job.id)
+    log.event("steps", job_id=job.id, status=record["status"], count=len(record["steps"]))
+    return record
 
 
 @app.get("/api/link-jobs/{job_id}/source")
