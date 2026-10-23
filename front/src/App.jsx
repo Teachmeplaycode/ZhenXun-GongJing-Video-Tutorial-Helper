@@ -24,7 +24,7 @@ import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
 import PictureStage from './stages/PictureStage'
-import { createLinkJob, deleteSession, deleteSource, downloadClip, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, signOut, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
+import { createLinkJob, deleteSession, deleteSource, downloadClip, listSamples, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, signOut, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
 import SourcePlayer from './components/SourcePlayer'
 import EvidenceBadge from './components/EvidenceBadge'
 import { EvidenceContext } from './lib/evidence'
@@ -102,6 +102,7 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
   const [publicDemo, setPublicDemo] = useState(false) // the web demo: no platform logins
+  const [samples, setSamples] = useState([]) // finished tutorials to open at once (public site)
   // The web demo's account: { user, oauth }; the sign-in dialog when open: { mode, reason }.
   const [member, setMember] = useState(null)
   const [memberDialog, setMemberDialog] = useState(null)
@@ -122,6 +123,7 @@ export default function App() {
   useEffect(() => {
     getHealth().then((health) => {
       setPublicDemo(Boolean(health?.public))
+      if (health?.public) listSamples().then(setSamples)
       if (health?.public) setMember({ user: health.user || null, oauth: health.oauth || [] })
       let seen = false
       try { seen = localStorage.getItem(GUIDE_SEEN) === '1' } catch { /* show it */ }
@@ -837,6 +839,8 @@ export default function App() {
             onClearError={() => setImportError('')}
             onShowAccounts={publicDemo ? null : (platform) => setAccountsOpen(platform || '')}
             publicDemo={publicDemo}
+            samples={samples}
+            onOpenSample={openSession}
           />
         </div>
 

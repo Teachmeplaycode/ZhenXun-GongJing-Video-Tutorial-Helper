@@ -354,6 +354,22 @@ test('the web demo: an owner sees the site\'s spend today against its cap; other
   await expect(mine).toContainText('已到上限')
 })
 
+test('the web demo: 先用示例视频体验 lists finished tutorials and opens one at once', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1'))
+  await start(page, (mock) => {
+    mock.publicDemo = true
+    mock.addSession('tut1', { title: 'Excel VLOOKUP 教程', messages: [] })
+    mock.addSession('tut2', { title: 'PS 抠图教程', messages: [] })
+    mock.samples = ['tut1', 'tut2']
+  })
+  await page.getByRole('button', { name: /先用示例视频体验/ }).click()
+  const list = page.getByRole('list', { name: '示例视频' })
+  await expect(list.locator('.sample-card__title')).toHaveText(['Excel VLOOKUP 教程', 'PS 抠图教程'])
+  await list.getByRole('button', { name: /PS 抠图教程/ }).click()
+  await expect(page.locator('.composer__input')).toBeVisible()
+  await expect(page.locator('.header__title, .app-header, body')).toContainText('PS 抠图教程')
+})
+
 test('the web demo: one click to try it as a guest', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1'))
   await start(page, (mock) => { mock.publicDemo = true })
