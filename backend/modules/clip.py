@@ -6,7 +6,9 @@ The stretch is first cut as an MP4 (one quick seek into the original; kept), and
 that local file — reading the remote original straight into the palette filters is many times
 slower. A GIF's look is the caller's: frame rate, width, speed, dithering, and an optional size cap
 (WeChat won't autoplay a GIF over 1 MB): over the cap, frame rate and width come down step by step.
-Every finished file is kept in the job's folder under its settings, so asking again is instant.
+Every finished file is kept under its settings, so asking again is instant: in the COS bucket when
+the server has one (ARCHIVE_DIR, modules/archive.py; the job folder keeps a symlink), else in the
+job folder — at most KEEP_FILES / KEEP_BYTES per video, the least recently made dropped first.
 """
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ from pathlib import Path
 
 from .frames import FrameJob
 from .frames.grabber import input_args
-from . import playback
+from . import archive, playback
 
 MAX = {"gif": 30.0, "mp4": 60.0}  # seconds a cut may be
 MP4_WIDTH = 1280
@@ -135,6 +137,12 @@ async def _cut(job: FrameJob, start: float, end: float, speed: float, out: Path)
     tmp.rename(out)
 
 
+async def _keep(job: FrameJob, path: Path) -> None:
+    """Move a finished cut into the bucket (a symlink stays); without a bucket it stays put."""
+    if archive.root() is not None and not path.is_symlink():
+        await asyncio.to_thread(archive.keep, path, f"{job.id}/clips")
+
+
 def _trim(folder: Path, keep: set[Path]) -> None:
     """Drop the least recently made cuts beyond the limits (never the ones in `keep`)."""
     files = sorted((p for p in folder.iterdir() if p.suffix in (".gif", ".mp4") and ".part" not in p.name), key=lambda p: p.stat().st_mtime)
@@ -146,7 +154,7 @@ def _trim(folder: Path, keep: set[Path]) -> None:
             continue
         total -= p.stat().st_size
         files.remove(p)
-        p.unlink(missing_ok=True)
+        archive.unlink(p)  # the bucket copy behind the symlink too
         p.with_suffix(".txt").unlink(missing_ok=True)
 
 
@@ -160,6 +168,7 @@ async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | N
     if not (mp4.is_file() and mp4.stat().st_size > 0):
         await _cut(job, start, end, look.speed, mp4)
     if fmt == "mp4":
+        await _keep(job, mp4)
         _trim(folder, {mp4})
         return Clip(mp4, name, "video/mp4")
     out = folder / f"{start:.2f}-{end:.2f}-{look.key()}.gif"
@@ -187,5 +196,7 @@ async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | N
         notes.append(f"已经降到最低还是超过 {look.max_mb:g} MB，可以再截短一点")
     tmp.rename(out)
     meta.write_text(f"{fps} {width}")
+    await _keep(job, out)
+    await _keep(job, mp4)  # after the GIF was made from it locally: the bucket mount is slow to read
     _trim(folder, {mp4, out})
     return Clip(out, name, "image/gif", fps, width, notes)

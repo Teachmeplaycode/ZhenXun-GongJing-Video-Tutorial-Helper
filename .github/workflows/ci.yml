@@ -29,7 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install ffmpeg
-        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+        # ffmpeg alone: its recommended packages (VA drivers, pocketsphinx's 27 MB model …) once took
+        # the whole 20-minute job on a slow mirror; give up early instead of waiting that out
+        timeout-minutes: 8
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
