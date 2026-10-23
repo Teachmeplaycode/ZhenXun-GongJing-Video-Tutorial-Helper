@@ -105,7 +105,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         336.0,
         340.0,
@@ -121,7 +121,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         58.0,
         61.0,
@@ -152,7 +152,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         330.0,
         332.0,
@@ -181,7 +181,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-vlookup-locate",
@@ -199,7 +199,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         122.0
       ]
@@ -213,7 +213,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         125.0
       ]
@@ -241,7 +241,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         0.0,
         45.0,
@@ -270,7 +270,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-vlookup3-locate",
@@ -296,7 +296,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         128.0,
         131.0,
@@ -313,7 +313,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         90.0,
         91.0,
@@ -344,7 +344,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         289.0,
         291.0,
@@ -373,14 +373,14 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-dropdown-locate",
       "video": "tut-dropdown",
       "qtype": "locate",
       "question": "一级下拉菜单在数据验证里把允许改成什么，来源选了哪些单元格？",
-      "rubric": "参考答案：在数据选项卡点数据验证，把允许改成「序列」，来源选中A1到D1（首行省份）区域，点确定。",
+      "rubric": "参考答案：在数据选项卡点数据验证，把允许改成「序列」，输入INDIRECT函数，来源选中A1到D1（首行省份）区域，点确定。",
       "checks": {
         "citations_ok": true,
         "contains_any": [
@@ -397,7 +397,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         123.0,
         125.0,
@@ -414,7 +414,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         209.0,
         211.0,
@@ -445,7 +445,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         61.0,
         67.0,
@@ -474,7 +474,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-word-toc-locate",
@@ -498,7 +498,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         147.0,
         150.0,
@@ -515,7 +515,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         177.0,
         179.0,
@@ -546,7 +546,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         27.0,
         30.0,
@@ -575,7 +575,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-word-levels-locate",
@@ -599,7 +599,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         63.0,
         69.0
@@ -614,7 +614,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         103.0,
         108.0,
@@ -645,7 +645,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         36.0,
         63.0,
@@ -674,7 +674,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-ppt-anim-locate",
@@ -695,7 +695,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         43.0,
         45.0
@@ -710,7 +710,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         265.0
       ]
@@ -739,7 +739,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         100.0,
         103.0,
@@ -767,7 +767,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-ppt-morph-locate",
@@ -792,7 +792,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         63.0,
         64.0,
@@ -808,7 +808,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         84.0,
         86.0,
@@ -839,7 +839,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         60.0,
         61.0,
@@ -868,7 +868,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-wps-table-locate",
@@ -889,7 +889,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         125.0,
         128.0
@@ -904,7 +904,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         320.0,
         341.0
@@ -931,7 +931,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         32.0,
         47.0,
@@ -960,7 +960,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-ps-cutout-locate",
@@ -983,7 +983,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         36.0,
         38.0,
@@ -999,7 +999,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         64.0,
         65.0,
@@ -1029,7 +1029,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         79.0,
         82.0,
@@ -1058,7 +1058,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-ps-curves-locate",
@@ -1082,7 +1082,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         37.0,
         38.0,
@@ -1098,7 +1098,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         111.0,
         115.0,
@@ -1129,7 +1129,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         162.0,
         164.0,
@@ -1158,7 +1158,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-jianying-subs-locate",
@@ -1176,7 +1176,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         52.0,
         54.0
@@ -1191,7 +1191,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         26.0,
         30.0,
@@ -1220,7 +1220,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         91.0,
         94.0,
@@ -1249,7 +1249,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-pr-basics-locate",
@@ -1274,7 +1274,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         336.0,
         338.0,
@@ -1291,7 +1291,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         360.0,
         363.0,
@@ -1320,7 +1320,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         21.0,
         45.0,
@@ -1349,7 +1349,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-vscode-py-locate",
@@ -1369,7 +1369,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         134.0,
         138.0
@@ -1384,7 +1384,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         134.0,
         138.0
@@ -1415,7 +1415,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         44.0,
         84.0,
@@ -1444,7 +1444,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-vscode-py2-locate",
@@ -1467,7 +1467,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         67.0,
         70.0,
@@ -1483,7 +1483,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         36.0,
         128.0
@@ -1512,7 +1512,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         18.0,
         21.0,
@@ -1541,7 +1541,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     },
     {
       "id": "tut-cad-locate",
@@ -1563,7 +1563,7 @@
         "timestamps": true,
         "near": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         55.0,
         57.0,
@@ -1579,7 +1579,7 @@
       "checks": {
         "citations_ok": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         237.0,
         249.0,
@@ -1607,7 +1607,7 @@
         ],
         "timestamps": true
       },
-      "reviewed": false,
+      "reviewed": true,
       "evidence": [
         317.0,
         319.0,
@@ -1636,7 +1636,7 @@
           ]
         ]
       },
-      "reviewed": false
+      "reviewed": true
     }
   ]
 }
