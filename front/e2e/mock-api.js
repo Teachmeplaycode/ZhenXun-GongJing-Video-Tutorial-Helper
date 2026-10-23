@@ -140,6 +140,7 @@ export class MockApi {
     this.source = { state: 'cache', label: '缓存证据', message: '平台没有提供可播放的原视频，时间点只能查看抽取的画面和文字' }
     this.replayDelay = 0 // ms before /replay answers
     this.studios = [] // clip studio cards saved with their session (POST /studio)
+    this.samples = [] // ids of saved sessions offered as samples (public site)
     this.mediaBroken = false // /media answers 502 (an expired platform link)
     this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
@@ -237,6 +238,7 @@ export class MockApi {
       return json({ ok: true, user: this.member })
     }
     if (path === '/api/sessions' && req.method() === 'GET') return json({ sessions: this.sessions.map((s) => s.summary) })
+    if (path === '/api/samples') return json({ samples: this.samples.map((id) => this.sessions.find((s) => s.summary.id === id).summary) })
     let m = path.match(/^\/api\/sessions\/(\w+)\/export$/)
     if (m) {
       const session = this.sessions.find((session) => session.summary.id === m[1])

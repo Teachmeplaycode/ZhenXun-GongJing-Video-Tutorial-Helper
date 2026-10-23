@@ -301,9 +301,21 @@ def snapshot(job: FrameJob) -> dict:
     return {**job.snapshot(), "transcript": job.transcript.summary(), "screentext": job.screentext.summary()}
 
 
+def samples() -> list[str]:
+    """Sessions anyone may open on the public site (SAMPLE_SESSIONS: ids, comma-separated): finished
+    tutorials, so a first visit (a judge) can ask straight away instead of waiting for an import."""
+    return [s.strip() for s in os.environ.get("SAMPLE_SESSIONS", "").split(",") if s.strip()]
+
+
+def mine(job_id: str) -> bool:
+    """Whether the asker owns the session (always, off the public site). A sample opened by anyone
+    else is read-only: their questions are answered but not written into it."""
+    return not visitors.enabled() or visitors.may_see(store.owner(job_id))
+
+
 def find_job(job_id: str) -> FrameJob | None:
-    """The job, if it exists and (in the public demo) belongs to whoever is asking."""
-    if visitors.enabled() and not visitors.may_see(store.owner(job_id)):
+    """The job, if it exists and (in the public demo) belongs to whoever is asking — or is a sample."""
+    if visitors.enabled() and not (visitors.may_see(store.owner(job_id)) or job_id in samples()):
         return None
     job = jobs.get(job_id)
     if job is None:
@@ -325,6 +337,14 @@ def get_job(job_id: str) -> FrameJob:
     job = find_job(job_id)
     if job is None:
         raise HTTPException(404, "任务不存在或已删除")
+    return job
+
+
+def own_job(job_id: str) -> FrameJob:
+    """The job, to change it: a sample can be read and asked about, not changed, by anyone but its owner."""
+    job = get_job(job_id)
+    if not mine(job_id):
+        raise HTTPException(403, "示例视频只能查看和提问，不能修改")
     return job
 
 
@@ -606,7 +626,7 @@ async def job_frame(job_id: str, index: int):
 @app.post("/api/link-jobs/{job_id}/retry")
 async def retry_missing(job_id: str):
     """Sample the missing frames again (trial-limited ones excluded); a failed transcript or on-screen text pass is redone too."""
-    job = get_job(job_id)
+    job = own_job(job_id)
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再试")
     if images.is_images(job.video):  # pictures: fetch the missing ones again, then read their text
@@ -814,7 +834,7 @@ async def job_media(job_id: str, request: Request):
 @app.delete("/api/link-jobs/{job_id}/source")
 async def delete_source(job_id: str):
     """Delete a kept upload (the frames, text and answers stay); its moments become cached evidence."""
-    job = get_job(job_id)
+    job = own_job(job_id)
     if job.video.platform != LOCAL:
         raise HTTPException(400, "只有上传的视频可以删除原文件")
     if job.running:
@@ -845,6 +865,8 @@ async def save_studio(job_id: str, body: StudioRequest):
     job = get_job(job_id)
     if body.format not in ("gif", "mp4"):
         raise HTTPException(400, "格式只能是 gif 或 mp4")
+    if not mine(job.id):
+        return {"ok": True, "saved": False}  # a sample: the card works, but stays out of it
     store.add_message(job.id, "assistant", "", data={"manual": "clip", "request": body.text[:500],
                                                     "range": [round(body.start, 2), round(body.end, 2)], "format": body.format})
     return {"ok": True}
@@ -867,7 +889,8 @@ async def manual_replay(job_id: str, body: ReplayRequest):
         {"type": "tool_call.output", "call_id": call_id, "stdout": result.text, "exit_code": 0, "data": result.data, "t": round(timer.ms / 1000, 2)},
         {"type": "tool_call.completed", "call_id": call_id, "result_count": result.count, "t": round(timer.ms / 1000, 2)},
     ]
-    store.add_message(job.id, "assistant", "", data={"events": events, "manual": "replay"})
+    if mine(job.id):
+        store.add_message(job.id, "assistant", "", data={"events": events, "manual": "replay"})
     return {"manual": "replay", "events": events}
 
 
@@ -922,11 +945,13 @@ async def agent_run(body: AgentRequest):
             yield sse({"type": "run.error", "run_id": run_id, **err.as_dict()})
             return
         frames = body.scope.get("frames") if body.scope.get("type") == "frames" else None
-        history = store.history(job.id) if body.history else []
-        framed = store.framed(job.id)  # read before the question is saved: it ends the run of hand replays
+        keep = mine(job.id)  # someone else's sample: answered, but nothing is written into it
+        history = store.history(job.id) if body.history and keep else []
+        framed = store.framed(job.id) if keep else []  # read before the question is saved: it ends the run of hand replays
         attached = [i for i in body.images[:ATTACH_MAX] if ATTACH_ID.fullmatch(i) and (DATA_DIR / job.id / "attachments" / f"{i}.jpg").is_file()]
-        store.add_message(job.id, "user", body.question, data={"frames": frames or [], "images": [
-            {"id": i, "url": f"/api/link-jobs/{job.id}/attachments/{i}.jpg"} for i in attached]})
+        if keep:
+            store.add_message(job.id, "user", body.question, data={"frames": frames or [], "images": [
+                {"id": i, "url": f"/api/link-jobs/{job.id}/attachments/{i}.jpg"} for i in attached]})
         # The answer is saved as its text plus its events in order, consecutive text deltas merged,
         # so the UI can replay where text fell between tool calls. `t` is seconds since the question.
         # A disconnect (the user pressed stop) saves what arrived so far.
@@ -964,7 +989,8 @@ async def agent_run(body: AgentRequest):
         finally:
             if status == "stopped":
                 events.append({"type": "run.error", "code": "stopped", "message": "已停止"})
-            store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
+            if keep:
+                store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
             usage = final.get("usage") or {}
             log.event("answer", run_id=run_id, job_id=job.id, platform=job.video.platform, question=body.question[:200],
                       status=status, code=final.get("code"), message=final.get("message") if status == "error" else None,
@@ -1098,7 +1124,18 @@ async def list_sessions(limit: int = 50):
 async def get_session(session_id: str):
     """Everything needed to reopen a session: the job snapshot plus its conversation."""
     job = get_job(session_id)
-    return {**snapshot(job), "task": store.get(session_id)["task"], "messages": store.messages(session_id)}
+    keep = mine(session_id)  # a sample opens clean for everyone but its owner
+    return {**snapshot(job), "task": store.get(session_id)["task"] if keep else "", "messages": store.messages(session_id) if keep else [],
+            "sample": session_id in samples()}
+
+
+@app.get("/api/samples")
+async def list_samples():
+    """The sample sessions (finished tutorials anyone may open), in the order SAMPLE_SESSIONS names them."""
+    wanted = samples()
+    found = {s["id"]: s for s in store.list(500) if s["id"] in wanted}
+    return {"samples": [{k: found[i][k] for k in ("id", "title", "author", "platform", "duration", "kind", "frames_ok", "cover_index")}
+                        for i in wanted if i in found]}
 
 
 app.include_router(create_export_router(store=store, get_job=get_job, data_dir=DATA_DIR))
@@ -1109,6 +1146,8 @@ async def delete_session(session_id: str):
     job = find_job(session_id)
     if job is None:
         raise HTTPException(404, "会话不存在")
+    if not mine(session_id):
+        raise HTTPException(403, "示例视频不能删除")
     if busy(job):
         raise HTTPException(409, "仍在抓取中，请稍后再删除")
     chapter_service.remove(session_id)
