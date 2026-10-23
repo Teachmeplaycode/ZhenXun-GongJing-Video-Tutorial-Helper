@@ -149,6 +149,7 @@ def prune(force: bool = False) -> None:
         for path in DATA_DIR.iterdir():
             if path.name not in saved:
                 archive.remove_job(path, f"{SOURCE}.*")
+                archive.remove_job(path, "clips/*")
                 shutil.rmtree(path, ignore_errors=True)
             else:
                 for source in path.glob(f"{SOURCE}.*"):  # an upload whose processing a restart cut off
@@ -1093,5 +1094,6 @@ async def delete_session(session_id: str):
     jobs.pop(session_id, None)
     store.delete(session_id)
     archive.remove_job(DATA_DIR / session_id, f"{SOURCE}.*")
+    archive.remove_job(DATA_DIR / session_id, "clips/*")  # cut GIFs / MP4s kept in the bucket
     shutil.rmtree(DATA_DIR / session_id, ignore_errors=True)
     return {"ok": True}
