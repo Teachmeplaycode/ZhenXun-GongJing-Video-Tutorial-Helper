@@ -1165,6 +1165,19 @@ img { display: block; }
 .fc-embedded .fc-summary { grid-template-columns: repeat(2, 1fr); }
 
 /* notes tab */
+.steps-tab { display: flex; flex-direction: column; }
+.steps-tab__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-8); padding: var(--sp-16) var(--sp-16) var(--sp-8); }
+.steps-tab__list { list-style: none; margin: 0; padding: 0 var(--sp-16); display: flex; flex-direction: column; gap: var(--sp-10); }
+.step-card { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-10); padding: var(--sp-8); border: var(--border-hairline); border-radius: 10px; background: var(--surface-1, var(--bg-elevated, transparent)); }
+.step-card__shot { position: relative; padding: 0; border: 0; border-radius: 6px; overflow: hidden; aspect-ratio: 16 / 9; background: var(--grid-line); cursor: pointer; }
+.step-card__shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.step-card__no { position: absolute; left: 4px; top: 4px; padding: 0 5px; border-radius: 4px; background: var(--text-primary); color: var(--bg, #fff); }
+.step-card__body { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; font-size: var(--fs-body-sm); }
+.step-card__body strong { font-weight: 600; line-height: 1.4; }
+.step-card__actions { display: flex; align-items: center; gap: var(--sp-10); margin-top: auto; }
+.step-card__time { padding: 1px 6px; border: var(--border-hairline); border-radius: 999px; background: none; color: var(--text-primary); cursor: pointer; }
+.step-card__time:hover { border-color: var(--accent-active-dim, var(--accent-active)); }
+.steps-tab__redo { align-self: flex-start; margin: var(--sp-10) var(--sp-16) var(--sp-16); }
 .notes-tab { display: flex; flex-direction: column; }
 .notes-tab__done { display: flex; flex-direction: column; gap: var(--sp-10); padding: var(--sp-16); }
 .notes-tab__title { margin: 0; font-size: 17px; }

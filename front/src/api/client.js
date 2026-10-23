@@ -164,6 +164,10 @@ export function retryLinkJob(jobId, { signal } = {}) {
 /** The video's shot changes for the timeline: { status: running | done | failed | unavailable, cuts: [seconds] }. */
 export const fetchCuts = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/cuts`, { signal })
 
+/** The tutorial's step cards: { status: none | running | done | empty, steps: [{ n, time, action, detail, frame }], message }. */
+export const getSteps = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/steps`, { signal })
+/** Build them (one model call, counted as a question); resolves to the same shape. */
+export const buildSteps = (jobId) => linkRequest(`/api/link-jobs/${jobId}/steps`, { method: 'POST' })
 /** The video's chapter list: { status, chapters: [{ start, end, title, summary }], message }. */
 export const fetchChapters = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/chapters`, { signal })
 

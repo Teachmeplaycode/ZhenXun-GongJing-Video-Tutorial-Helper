@@ -7,6 +7,7 @@ import { IconChevron } from './Icons'
 // panels: { key: element } in tab order; labels: { key: '章节' }; badges: { key: '3' } (optional).
 export const BENCH_TABS = [
   { key: 'frames', label: '画面' }, // phones only: the frame grid instead of the timeline
+  { key: 'steps', label: '步骤' },
   { key: 'chapters', label: '章节' },
   { key: 'notes', label: '笔记' },
   // 反诈 and 科普 are no longer tabs: they are skills the agent runs in an answer (modules/agent/skills.py).
