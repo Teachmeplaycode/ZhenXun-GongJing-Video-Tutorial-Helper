@@ -645,3 +645,12 @@
 }
 .import-entry__ref { margin-left: auto; color: var(--text-tertiary); text-decoration: none; }
 .import-entry__ref:hover { color: var(--text-primary); }
+
+/* The finished samples under the import box (public site): open one and ask at once */
+.sample-list { list-style: none; margin: var(--sp-12) 0 0; padding: 0; display: grid; gap: var(--sp-8); }
+.sample-card { display: flex; align-items: center; gap: var(--sp-12); width: 100%; padding: var(--sp-8); border: var(--border-hairline); border-radius: var(--radius-md);
+  background: var(--bg-surface); text-align: left; font: inherit; cursor: pointer; transition: border-color var(--dur-micro) var(--ease-enter); }
+.sample-card:hover, .sample-card:focus-visible { border-color: var(--border-strong); outline: none; }
+.sample-card img, .sample-card__blank { width: 96px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-sm); background: var(--bg-surface-alt); flex: none; }
+.sample-card__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sample-card__title { font-size: var(--fs-body-sm); font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
