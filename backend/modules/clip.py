@@ -4,7 +4,8 @@ upload, or the platform's MP4 relayed with its headers.
 
 The stretch is first cut as an MP4 (one quick seek into the original; kept), and a GIF is made from
 that local file — reading the remote original straight into the palette filters is many times
-slower. A GIF's look is the caller's: frame rate, width, speed, dithering, and an optional size cap
+slower. A crop (a rectangle of the picture, in fractions of it) applies to either. A GIF's look is
+the caller's: frame rate, width, speed, dithering, and an optional size cap
 (WeChat won't autoplay a GIF over 1 MB): over the cap, frame rate and width come down step by step.
 Every finished file is kept under its settings, so asking again is instant: in the COS bucket when
 the server has one (ARCHIVE_DIR, modules/archive.py; the job folder keeps a symlink), else in the
@@ -44,16 +45,44 @@ class Look:
     speed: float = 1.0
     dither: str = "bayer"
     max_mb: float = 0.0  # 0: no cap
+    crop: tuple[float, float, float, float] | None = None  # x, y, w, h as fractions of the picture; None: all of it
 
     @staticmethod
-    def of(fps: float = 12, width: float = 480, speed: float = 1.0, dither: str = "bayer", max_mb: float = 0.0) -> "Look":
+    def of(fps: float = 12, width: float = 480, speed: float = 1.0, dither: str = "bayer", max_mb: float = 0.0, crop: str = "") -> "Look":
         if dither not in DITHERS:
             raise ClipError(400, "抖动只能是 bayer、sierra 或 none")
         return Look(int(min(30, max(5, fps))), int(min(960, max(160, width)) // 2 * 2), round(min(2.0, max(0.5, speed)), 2),
-                    dither, round(min(20.0, max(0.0, max_mb)), 2))
+                    dither, round(min(20.0, max(0.0, max_mb)), 2), parse_crop(crop))
 
     def key(self) -> str:
-        return f"f{self.fps}w{self.width}s{self.speed:g}{self.dither[0]}m{self.max_mb:g}"
+        return f"f{self.fps}w{self.width}s{self.speed:g}{self.dither[0]}m{self.max_mb:g}{crop_key(self.crop)}"
+
+
+def parse_crop(text: str) -> tuple[float, float, float, float] | None:
+    """"x,y,w,h" (fractions) → a rectangle kept inside the picture, at least 5% each way; ""/whole → None."""
+    if not text:
+        return None
+    try:
+        x, y, w, h = (float(v) for v in text.split(","))
+    except ValueError:
+        raise ClipError(400, "裁剪范围要写成 x,y,宽,高（0~1 的比例）") from None
+    w, h = min(1.0, max(0.05, w)), min(1.0, max(0.05, h))
+    x, y = min(1.0 - w, max(0.0, x)), min(1.0 - h, max(0.0, y))
+    if w > 0.995 and h > 0.995:
+        return None
+    return round(x, 4), round(y, 4), round(w, 4), round(h, 4)
+
+
+def crop_key(crop) -> str:
+    return "" if crop is None else "c" + "_".join(f"{v:.4f}" for v in crop)
+
+
+def crop_filter(crop) -> str:
+    """ffmpeg's crop for a rectangle of fractions (even sizes, as H.264 wants), with a trailing comma."""
+    if crop is None:
+        return ""
+    x, y, w, h = crop
+    return f"crop=trunc(iw*{w}/2)*2:trunc(ih*{h}/2)*2:trunc(iw*{x}):trunc(ih*{y}),"
 
 
 @dataclass
@@ -98,8 +127,8 @@ def _cut_args(source: list[str], start: float, end: float, speed: float, out: Pa
             "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out)]
 
 
-def _gif_args(src: Path, fps: int, width: int, dither: str, out: Path) -> list[str]:
-    graph = (f"fps={fps},scale='min({width},iw)':-2:flags=lanczos,split[a][b];"
+def _gif_args(src: Path, fps: int, width: int, dither: str, out: Path, crop=None) -> list[str]:
+    graph = (f"{crop_filter(crop)}fps={fps},scale='min({width},iw)':-2:flags=lanczos,split[a][b];"
              f"[a]palettegen=stats_mode=diff[p];[b][p]paletteuse={DITHERS[dither]}")
     return ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", "-i", str(src), "-an", "-vf", graph, "-loop", "0", str(out)]
 
@@ -168,6 +197,22 @@ async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | N
     if not (mp4.is_file() and mp4.stat().st_size > 0):
         await _cut(job, start, end, look.speed, mp4)
     if fmt == "mp4":
+        if look.crop is not None:  # the cropped one is made from the stretch's MP4, sound copied
+            cropped = folder / f"{start:.2f}-{end:.2f}-s{look.speed:g}{crop_key(look.crop)}.mp4"
+            if not (cropped.is_file() and cropped.stat().st_size > 0):
+                tmp = cropped.with_suffix(".part.mp4")
+                async with _slots:
+                    code, _ = await _run(["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", "-i", str(mp4),
+                                          "-vf", crop_filter(look.crop).rstrip(","), "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+                                          "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", str(tmp)], timeout=90)
+                if code != 0 or not tmp.is_file() or tmp.stat().st_size == 0:
+                    tmp.unlink(missing_ok=True)
+                    raise ClipError(502, "裁剪失败，请稍后再试")
+                tmp.rename(cropped)
+            await _keep(job, cropped)
+            await _keep(job, mp4)
+            _trim(folder, {mp4, cropped})
+            return Clip(cropped, name, "video/mp4")
         await _keep(job, mp4)
         _trim(folder, {mp4})
         return Clip(mp4, name, "video/mp4")
@@ -181,7 +226,7 @@ async def make(job: FrameJob, start: float, end: float, fmt: str, look: Look | N
     tmp = out.with_suffix(".part.gif")
     for _ in range(5):
         async with _slots:
-            code, _err = await _run(_gif_args(mp4, fps, width, look.dither, tmp), timeout=90)
+            code, _err = await _run(_gif_args(mp4, fps, width, look.dither, tmp, look.crop), timeout=90)
         if code != 0 or not tmp.is_file() or tmp.stat().st_size == 0:
             tmp.unlink(missing_ok=True)
             raise ClipError(502, "GIF 生成失败，请稍后再试")

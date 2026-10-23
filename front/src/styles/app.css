@@ -1471,3 +1471,18 @@ span.ev-chip { cursor: help; }
 .clip-studio__result-meta p { margin: 0; word-break: break-all; }
 .clip-studio__ref { font-size: var(--fs-caption); color: var(--text-secondary); text-decoration: none; align-self: flex-start; }
 .clip-studio__ref:hover { color: var(--text-primary); }
+/* the clip studio's crop: a rectangle over the picture, the rest dimmed */
+.clip-studio__crop-area { position: absolute; overflow: hidden; touch-action: none; }
+.clip-studio__crop { position: absolute; border: 2px solid var(--accent-active); box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55); cursor: move; }
+.clip-studio__crop::before, .clip-studio__crop::after { content: ""; position: absolute; pointer-events: none; border: 0 dashed rgba(255, 255, 255, 0.45); }
+.clip-studio__crop::before { left: 33.33%; right: 33.33%; top: 0; bottom: 0; border-left-width: 1px; border-right-width: 1px; }
+.clip-studio__crop::after { top: 33.33%; bottom: 33.33%; left: 0; right: 0; border-top-width: 1px; border-bottom-width: 1px; }
+.clip-studio__crop-handle { position: absolute; width: 18px; height: 18px; background: var(--accent-active); border: 2px solid #1a1a1a; border-radius: 3px; }
+.clip-studio__crop-handle--nw { left: -10px; top: -10px; cursor: nwse-resize; } .clip-studio__crop-handle--se { right: -10px; bottom: -10px; cursor: nwse-resize; }
+.clip-studio__crop-handle--ne { right: -10px; top: -10px; cursor: nesw-resize; } .clip-studio__crop-handle--sw { left: -10px; bottom: -10px; cursor: nesw-resize; }
+.clip-studio__play { z-index: 2; }
+.clip-studio__aspects { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-6); font-size: var(--fs-body-sm); }
+.clip-studio__aspects-label { color: var(--text-secondary); margin-right: var(--sp-4); }
+.clip-studio__aspects button { border: var(--border-hairline); background: var(--bg-surface); border-radius: var(--radius-pill); padding: 3px 12px; font: inherit; font-size: var(--fs-caption); color: var(--text-secondary); cursor: pointer; }
+.clip-studio__aspects button[aria-checked='true'] { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-surface); }
+.clip-studio__aspects-size { margin-left: auto; }
