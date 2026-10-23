@@ -7,22 +7,23 @@ export const BRAND = {
   slug: 'gongjing',
   gloss: '真的吗？',
   tag: '方言',
-  product: '视频 · 图文理解工作台',
+  product: '教程卡点助手',
 }
 
 export const WORKSPACE_CONTENT = {
-  title: ['画面之内，答案之间'], // the closing dot is drawn in the accent colour (workspace.css)
-  subtitle: '从视频素材到有据可查的回答',
-  description: '视频拆成关键帧，图文读出每一张。画面、字幕与正文，都成为你提问和核查的依据。',
+  // Platforms' summaries help you finish watching; 帧寻 helps you finish doing what the tutorial shows.
+  title: ['跟着教程，卡住就截图'], // the closing dot is drawn in the accent colour (workspace.css)
+  subtitle: '照着教程做，卡住了截个图',
+  description: '导入教程视频，卡住时发一张屏幕截图：帧寻说出你在第几步、下一步点哪，带你回到原视频那一秒。每句话都有出处。',
   issue: 'FIELD NOTES / 001',
   capabilities: [
-    { label: '关键片段', title: '总结内容', description: '找到人物、产品和场景出现的时间点。', task: '总结这份内容的主题和主要观点', mark: '01' },
-    { label: '跨帧对照', title: '核查说法', description: '选择多张关键帧，追踪变化与事件顺序。', task: '核查这份内容中的主要说法，并给出依据', mark: '02' },
-    { label: '分析报告', title: '整理要点', description: '串联片段、总结信息，生成可复用的报告。', task: '把这份内容整理成清晰的要点清单', mark: '03' },
+    { label: '操作步骤', title: '列出步骤', description: '按顺序列出每一步，标上时间，点一下回到那一秒。', task: '按顺序列出这个教程的操作步骤，每步标上时间', mark: '01' },
+    { label: '关键片段', title: '总结内容', description: '找到人物、产品和场景出现的时间点。', task: '总结这份内容的主题和主要观点', mark: '02' },
+    { label: '跨帧对照', title: '核查说法', description: '逐条核对视频里的说法，给出依据。', task: '核查这份内容中的主要说法，并给出依据', mark: '03' },
   ],
   suggestions: [
+    { title: '操作步骤', description: '按顺序列出每一步和时间', question: '按顺序列出操作步骤，每步标上时间' },
     { title: '快速理解', description: '梳理主题、人物和主要事件', question: '总结这段视频的主要内容' },
-    { title: '查找信息', description: '核实画面中出现的产品信息', question: '搜索视频里提到的产品信息' },
     { title: '生成报告', description: '按时间顺序整理关键片段', question: '整理关键片段并写成分析报告' },
   ],
   // The same three for a picture set (stages/PictureStage.jsx).

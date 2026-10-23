@@ -239,6 +239,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         onClearClip={onClearClip}
         scopeNote={scopeNote}
         suggestions={suggestions}
+        stuckPill={!pictures}
         onSuggest={(question) => ask(question, loadSwitches())}
         onUpload={video?.jobId ? (file) => uploadAttachment(video.jobId, file) : null}
         complete={video?.jobId && !pictures ? (text, signal) => completeQuestion(video.jobId, text, { signal }) : null}

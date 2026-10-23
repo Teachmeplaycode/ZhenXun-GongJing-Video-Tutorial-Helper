@@ -1393,6 +1393,8 @@ span.ev-chip { cursor: help; }
   transition: border-color var(--dur-micro) var(--ease-enter), color var(--dur-micro) var(--ease-enter);
 }
 .composer__pill:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.composer__pill--stuck { display: inline-flex; align-items: center; gap: 6px; border-color: var(--accent-active-dim, var(--accent-active)); color: var(--text-primary); }
+.composer__pill--stuck::before { content: none; }
 .composer__pill::before { content: "✦ "; color: var(--accent-active-dim, var(--accent-active)); }
 .image-chip img { object-fit: cover; }
 .image-chip[data-state="uploading"] { opacity: 0.6; }

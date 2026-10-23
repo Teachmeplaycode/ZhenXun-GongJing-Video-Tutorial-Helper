@@ -41,11 +41,12 @@ const canComplete = () => typeof window !== 'undefined' && Boolean(window.matchM
 
 // clip { start, end }: a stretch framed on the timeline, sent with the question (which may then be empty).
 // suggestions [{ question }]: small pills above the box, sent with a click (onSuggest).
+// stuckPill: lead the pills with one that picks a screenshot ("where am I stuck?"), for tutorials.
 // onUpload(file) → { id, url }: a picture for the question (button, paste or drop); a question with
 //   pictures and no text asks where the person is stuck.
 // complete(text, signal) → the rest of the question; hints: questions to complete from without asking.
 export default function Composer({ draft, setDraft, running, onSend, onStop, selected, onRemoveFrame, onClearSelection, onPickFrames, scopeNote, clip = null, onClearClip = null,
-  suggestions = [], onSuggest = null, onUpload = null, complete = null, hints = [] }) {
+  suggestions = [], onSuggest = null, stuckPill = false, onUpload = null, complete = null, hints = [] }) {
   const [switches, setSwitches] = useState(loadSwitches)
   const [active, setActive] = useState(0)
   const [dismissed, setDismissed] = useState(false)
@@ -149,11 +150,18 @@ export default function Composer({ draft, setDraft, running, onSend, onStop, sel
   }
 
   const pills = !draft && !running && onSuggest ? suggestions.slice(0, 4) : []
+  const stuck = stuckPill && onUpload && !draft && !running && !images.length
   return (
     <div className="composer" onDragOver={(e) => { if (onUpload && [...e.dataTransfer.types].includes('Files')) e.preventDefault() }}
       onDrop={(e) => { if (onUpload && e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files) } }}>
-      {pills.length ? (
+      {pills.length || stuck ? (
         <div className="composer__pills" aria-label="推荐的问题">
+          {stuck ? (
+            <button type="button" className="composer__pill composer__pill--stuck" onClick={() => fileRef.current?.click()}
+              title="附上你屏幕卡住时的截图，直接发送就问卡在哪一步">
+              <IconImage size={13} /> 卡住了？发截图问在第几步
+            </button>
+          ) : null}
           {pills.map((s) => (
             <button key={s.question} type="button" className="composer__pill" onClick={() => onSuggest(s.question)} title="点一下直接问">
               {s.question}
@@ -236,7 +244,7 @@ export default function Composer({ draft, setDraft, running, onSend, onStop, sel
             <>
               <button type="button" className="chip-btn" onClick={() => fileRef.current?.click()} disabled={images.length >= MAX_IMAGES}
                 title="附上图片，比如你屏幕卡住时的截图（最多 4 张；也可以直接粘贴或拖进来）">
-                <IconImage size={13} /> 图片
+                <IconImage size={13} /> 截图
               </button>
               <input ref={fileRef} type="file" accept="image/*" multiple hidden
                 onChange={(e) => { addFiles(e.target.files); e.target.value = '' }} />
