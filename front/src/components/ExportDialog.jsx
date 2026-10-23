@@ -27,7 +27,9 @@ function withSavedIds(messages, saved) {
 // exactly what to include; turns still being answered (or not yet saved) cannot be picked yet.
 export function exportItems(messages) {
   const items = []
-  for (const m of messages) {
+  for (let i = 0; i < messages.length; i += 1) {
+    const m = messages[i]
+    if (m.manual === 'clip' || (m.role === 'user' && messages[i + 1]?.manual === 'clip')) continue // clip cards aren't notes
     if (m.manual === 'replay') {
       const replay = m.parts?.flatMap((part) => part.calls || []).find((call) => call.tool === 'frames.replay')?.data
       const [start, end] = m.range || [replay?.start, replay?.end]

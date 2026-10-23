@@ -172,6 +172,31 @@ test('regenerate asks the same question again', async ({ page }) => {
   await expect(page.locator('.msg--assistant')).toHaveCount(2)
 })
 
+test('a clip studio card is saved with its session and comes back on reopening', async ({ page }) => {
+  const mock = await start(page, (m) => {
+    m.addSession('clip1', {
+      title: '有截取卡片的会话',
+      messages: [
+        { role: 'user', content: '第几步？', status: 'done', frames: [] },
+        { role: 'assistant', content: '第 2 步。', status: 'done', events: [] },
+        { role: 'assistant', content: '', status: 'done', manual: 'clip', request: '把 00:54 到 00:58 做成表情包 GIF', range: [54, 58], format: 'gif' },
+      ],
+    })
+  })
+  await enterChat(page)
+  await page.locator('.composer__input').fill('把 00:10 到 00:14 做成表情包 GIF')
+  await page.locator('.composer__input').press('Enter')
+  await expect(page.locator('.clip-studio')).toBeVisible()
+  await expect.poll(() => mock.studios).toEqual([{ job: 'job1', text: '把 00:10 到 00:14 做成表情包 GIF', start: 10, end: 14, format: 'gif' }])
+
+  await page.locator('.btn--history').click()
+  await page.locator('.history .session-item', { hasText: '有截取卡片的会话' }).locator('.session-item__open').click()
+  const card = page.locator('.clip-studio')
+  await expect(card).toHaveCount(1)
+  await expect(card.locator('.clip-studio__readout')).toContainText('起点 00:54.0')
+  await expect(page.locator('.msg--user .bubble__text').last()).toHaveText('把 00:54 到 00:58 做成表情包 GIF')
+})
+
 test('history reopens saved sessions, old and new answer formats', async ({ page }) => {
   await start(page, (m) => {
     const events = researchAnswer().filter((e) => e.type !== 'assistant.message.delta')
