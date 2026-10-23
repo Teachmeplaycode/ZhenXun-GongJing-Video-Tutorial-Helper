@@ -17,6 +17,18 @@ const DITHER = [
   ['sierra', '误差扩散，画质好'],
   ['none', '不抖动，色块明显'],
 ]
+// The picture's frame: all of it, or a rectangle (free, or locked to a common shape)
+const ASPECTS = [['full', '整个画面'], ['free', '自由'], ['1:1', '1:1'], ['16:9', '16:9'], ['9:16', '9:16'], ['4:3', '4:3']]
+const ratioOf = (a) => (a.includes(':') ? Number(a.split(':')[0]) / Number(a.split(':')[1]) : null)
+const MIN_CROP = 0.08
+/** The biggest centred rectangle of `ratio` (w/h in pixels) in a picture of shape `pic` (w/h), in fractions. */
+const fit = (ratio, pic) => {
+  if (!ratio) return { x: 0.1, y: 0.1, w: 0.8, h: 0.8 }
+  const w = Math.min(1, ratio / pic)
+  const h = Math.min(1, pic / ratio)
+  return { x: (1 - w) / 2, y: (1 - h) / 2, w, h }
+}
+
 const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`
 
 /** The strip's window: the stretch with room around it (at least 30 s, or 4× the stretch). */
@@ -45,6 +57,67 @@ export default function ClipStudio({ jobId, title = '', duration = 0, frames = [
   const [result, setResult] = useState(null) // { url, blob, name, size, fps, width, note, format }
   const [error, setError] = useState('')
   const [playing, setPlaying] = useState(false)
+  const [aspect, setAspect] = useState('full')
+  const [crop, setCrop] = useState(null) // { x, y, w, h } fractions of the picture, or null: all of it
+  const [natural, setNatural] = useState([16, 9]) // the picture's pixel size, once known
+  const [box, setBox] = useState([0, 0]) // the player's size on screen
+  const playerRef = useRef(null)
+  const cropDrag = useRef(null)
+  useEffect(() => {
+    const el = playerRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(() => setBox([el.clientWidth, el.clientHeight]))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const pic = natural[0] / natural[1]
+  // where the picture sits in the player (object-fit: contain)
+  const scale = Math.min(box[0] / natural[0], box[1] / natural[1]) || 0
+  const area = { w: natural[0] * scale, h: natural[1] * scale }
+  area.left = (box[0] - area.w) / 2
+  area.top = (box[1] - area.h) / 2
+  const chooseAspect = (a) => {
+    setAspect(a)
+    setCrop(a === 'full' ? null : fit(ratioOf(a), pic))
+    setResult(null)
+  }
+  const onCropDown = (what) => (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    cropDrag.current = { what, x: e.clientX, y: e.clientY, start: crop }
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+  const onCropMove = (e) => {
+    const d = cropDrag.current
+    if (!d || !area.w) return
+    const dx = (e.clientX - d.x) / area.w
+    const dy = (e.clientY - d.y) / area.h
+    let { x, y, w, h } = d.start
+    if (d.what === 'move') {
+      x = Math.min(1 - w, Math.max(0, x + dx))
+      y = Math.min(1 - h, Math.max(0, y + dy))
+    } else {
+      // a corner: the opposite corner stays put
+      const left = d.what.includes('w')
+      const top = d.what.includes('n')
+      const ax = left ? x + w : x
+      const ay = top ? y + h : y
+      w = Math.max(MIN_CROP, Math.min(left ? ax : 1 - ax, w + (left ? -dx : dx)))
+      h = Math.max(MIN_CROP, Math.min(top ? ay : 1 - ay, h + (top ? -dy : dy)))
+      const r = ratioOf(aspect)
+      if (r) { // keep the shape: the height follows the width, both shrunk to fit
+        h = (w * pic) / r
+        const maxH = top ? ay : 1 - ay
+        if (h > maxH) { h = maxH; w = (h * r) / pic }
+      }
+      x = left ? ax - w : ax
+      y = top ? ay - h : ay
+    }
+    setCrop({ x, y, w, h })
+    setResult(null)
+  }
+  const onCropUp = () => { cropDrag.current = null }
+  const cropSize = crop ? [Math.round(crop.w * natural[0]), Math.round(crop.h * natural[1])] : natural
   const videoRef = useRef(null)
   const stripRef = useRef(null)
   const drag = useRef(null)
@@ -119,7 +192,8 @@ export default function ClipStudio({ jobId, title = '', duration = 0, frames = [
     setBusy(true)
     setError('')
     try {
-      const look = format === 'gif' ? { fps, width, speed, dither, maxMb: cap ? 1 : 0 } : { speed }
+      const rect = crop ? [crop.x, crop.y, crop.w, crop.h].map((v) => v.toFixed(4)).join(',') : undefined
+      const look = format === 'gif' ? { fps, width, speed, dither, maxMb: cap ? 1 : 0, crop: rect } : { speed, crop: rect }
       const r = await fetchClip(jobId, sel[0], Math.min(sel[1], sel[0] + MAX[format]), format, look)
       setResult({ ...r, url: URL.createObjectURL(r.blob), size: r.blob.size, format })
     } catch (err) {
@@ -144,16 +218,31 @@ export default function ClipStudio({ jobId, title = '', duration = 0, frames = [
       <p className="clip-studio__hint">先选一段：{format === 'gif' ? 'GIF 最长 30 秒' : 'MP4 最长 60 秒'}</p>
       <div className="clip-studio__body">
         <div className="clip-studio__left">
-          <div className="clip-studio__player">
+          <div ref={playerRef} className="clip-studio__player">
             {playable && jobId ? (
-              <>
-                <video ref={videoRef} src={mediaUrl(jobId)} muted playsInline preload="metadata" onClick={toggle}
-                  onPause={() => setPlaying(false)} onPlay={() => setPlaying(true)} />
-                {!playing ? <button type="button" className="clip-studio__play" onClick={toggle} aria-label="播放这一段">▶</button> : null}
-              </>
+              <video ref={videoRef} src={mediaUrl(jobId)} muted playsInline preload="metadata" onClick={toggle}
+                onLoadedMetadata={(e) => e.target.videoWidth && setNatural([e.target.videoWidth, e.target.videoHeight])}
+                onPause={() => setPlaying(false)} onPlay={() => setPlaying(true)} />
             ) : (
-              thumbs[5]?.src ? <img src={thumbs[5].src} alt="" /> : null
+              thumbs[5]?.src ? <img src={thumbs[5].src} alt="" onLoad={(e) => e.target.naturalWidth && setNatural([e.target.naturalWidth, e.target.naturalHeight])} /> : null
             )}
+            {crop && area.w ? (
+              <div className="clip-studio__crop-area" style={{ left: area.left, top: area.top, width: area.w, height: area.h }}
+                onPointerMove={onCropMove} onPointerUp={onCropUp} onPointerCancel={onCropUp}>
+                <div className="clip-studio__crop" style={{ left: `${crop.x * 100}%`, top: `${crop.y * 100}%`, width: `${crop.w * 100}%`, height: `${crop.h * 100}%` }}
+                  onPointerDown={onCropDown('move')} aria-label="截取范围，拖动移动，拖四角调整大小">
+                  {['nw', 'ne', 'sw', 'se'].map((c) => <span key={c} className={`clip-studio__crop-handle clip-studio__crop-handle--${c}`} onPointerDown={onCropDown(c)} />)}
+                </div>
+              </div>
+            ) : null}
+            {playable && jobId && !playing ? <button type="button" className="clip-studio__play" onClick={toggle} aria-label="播放这一段">▶</button> : null}
+          </div>
+          <div className="clip-studio__aspects" role="radiogroup" aria-label="画面范围">
+            <span className="clip-studio__aspects-label">画面范围</span>
+            {ASPECTS.map(([a, label]) => (
+              <button key={a} type="button" role="radio" aria-checked={aspect === a} onClick={() => chooseAspect(a)}>{label}</button>
+            ))}
+            <span className="mono-sm muted clip-studio__aspects-size">{cropSize[0]}×{cropSize[1]}</span>
           </div>
           <div ref={stripRef} className="clip-studio__strip" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
             {thumbs.map((f, i) => <span key={i} className="clip-studio__thumb" style={f?.src ? { backgroundImage: `url(${f.src})` } : undefined} />)}

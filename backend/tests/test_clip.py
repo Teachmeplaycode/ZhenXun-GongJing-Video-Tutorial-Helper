@@ -110,3 +110,29 @@ def test_cuts_go_to_the_bucket_and_leave_with_it(tmp_path, monkeypatch):
 
     archive.remove_job(tmp_path / "job1", "clips/*")  # deleting the session empties its part of the bucket
     assert not (bucket / "job1" / "clips").exists() or not any((bucket / "job1" / "clips").iterdir())
+
+
+def test_a_crop_is_kept_inside_the_picture():
+    assert clip.parse_crop("") is None and clip.parse_crop("0,0,1,1") is None
+    assert clip.parse_crop("0.9,0.9,0.5,0.5") == (0.5, 0.5, 0.5, 0.5)  # pulled back inside
+    assert clip.parse_crop("0.2,0.1,0.01,0.3") == (0.2, 0.1, 0.05, 0.3)  # at least 5%
+    with pytest.raises(clip.ClipError):
+        clip.parse_crop("a,b")
+    assert clip.crop_filter((0.25, 0, 0.5, 1)) == "crop=trunc(iw*0.5/2)*2:trunc(ih*1/2)*2:trunc(iw*0.25):trunc(ih*0),"
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs ffmpeg")
+def test_a_cropped_gif_and_mp4_are_that_rectangle(tmp_path):
+    src = tmp_path / "upload.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=10", "-f", "lavfi", "-i", "sine",
+                    "-t", "3", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(src)], check=True)
+    video = ResolvedVideo(LOCAL, "u1", "file", "t", 3.0, [Stream(str(src), {}, "原文件", 360)])
+    job = FrameJob("job1", video, None, tmp_path / "job1", count=2)
+    size = lambda p: subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(p)],
+                                    capture_output=True, text=True).stdout.strip()
+    gif = asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=6, width=960, crop="0.25,0,0.5,1")))  # a 320×360 column
+    assert size(gif.path) == "320,360"
+    whole = asyncio.run(clip.make(job, 0, 2, "gif", clip.Look.of(fps=6, width=960)))
+    assert size(whole.path) == "640,360" and whole.path != gif.path
+    mp4 = asyncio.run(clip.make(job, 0, 2, "mp4", clip.Look.of(crop="0,0,0.5,0.5")))
+    assert size(mp4.path) == "320,180"

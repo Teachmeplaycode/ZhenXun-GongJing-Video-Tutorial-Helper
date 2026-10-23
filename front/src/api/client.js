@@ -183,10 +183,10 @@ export const deleteSource = (jobId) => linkRequest(`/api/link-jobs/${jobId}/sour
 export const mediaUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/media`
 
 /** A stretch of the original cut out as a GIF (≤30 s) or an MP4 (≤60 s): { blob, name, fps, width, note }.
- *  look: { fps, width, speed, dither: 'bayer' | 'sierra' | 'none', maxMb } (GIF; an MP4 uses speed). */
+ *  look: { fps, width, speed, dither: 'bayer' | 'sierra' | 'none', maxMb, crop: 'x,y,w,h' (fractions) } (an MP4 uses speed and crop). */
 export async function fetchClip(jobId, start, end, format, look = {}, { signal } = {}) {
   const q = new URLSearchParams({ start: start.toFixed(2), end: end.toFixed(2), format })
-  for (const [k, v] of Object.entries({ fps: look.fps, width: look.width, speed: look.speed, dither: look.dither, max_mb: look.maxMb })) {
+  for (const [k, v] of Object.entries({ fps: look.fps, width: look.width, speed: look.speed, dither: look.dither, max_mb: look.maxMb, crop: look.crop })) {
     if (v !== undefined && v !== null) q.set(k, String(v))
   }
   const res = await fetch(`${LINK_BASE}/api/link-jobs/${jobId}/clip?${q}`, { signal })

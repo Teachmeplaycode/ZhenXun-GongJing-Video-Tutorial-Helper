@@ -743,14 +743,15 @@ async def job_source(job_id: str):
 
 @app.get("/api/link-jobs/{job_id}/clip")
 async def job_clip(job_id: str, start: float, end: float, format: str = "gif", fps: float = 12, width: float = 480,
-                   speed: float = 1.0, dither: str = "bayer", max_mb: float = 0.0):
+                   speed: float = 1.0, dither: str = "bayer", max_mb: float = 0.0, crop: str = ""):
     """A stretch of the original cut out as a GIF (≤30 s, no sound; frame rate, width, speed, dithering
-    and a size cap are the caller's) or an MP4 (≤60 s, with sound), downloaded as a file. The GIF's
+    and a size cap are the caller's) or an MP4 (≤60 s, with sound), downloaded as a file; `crop`
+    ("x,y,w,h", fractions of the picture) keeps only that rectangle of it. The GIF's
     final frame rate and width come back in X-Clip-Fps / X-Clip-Width, and why they changed in
     X-Clip-Note (URL-encoded)."""
     job = get_job(job_id)
     try:
-        made = await clip.make(job, start, end, format.lower(), clip.Look.of(fps, width, speed, dither, max_mb))
+        made = await clip.make(job, start, end, format.lower(), clip.Look.of(fps, width, speed, dither, max_mb, crop))
     except clip.ClipError as e:
         raise HTTPException(e.status, e.message) from None
     headers = {"X-Clip-Fps": str(made.fps), "X-Clip-Width": str(made.width), "X-Clip-Note": quote("；".join(made.notes))}
