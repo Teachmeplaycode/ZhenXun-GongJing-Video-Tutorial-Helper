@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
 import ChaptersPanel from '../components/ChaptersPanel'
+import StepsTab from '../components/bench/StepsTab'
 import { IconArrowDown } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
 import { completeQuestion, fetchSuggestions, uploadAttachment } from '../api/client'
@@ -185,6 +186,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     ...(framesPanel ? { frames: React.cloneElement(framesPanel, { onClose: () => setBenchOpen(false) }) } : {}),
     chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
       onSelect={onChapterSelect} onHover={onChapterHover} />,
+    steps: <StepsTab video={video} onSeek={onSeek}
+      onStuck={(s) => setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`)} />,
     notes: <NotesTab video={video} messages={messages} />,
   }
 
@@ -239,13 +242,14 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         onClearClip={onClearClip}
         scopeNote={scopeNote}
         suggestions={suggestions}
+        stuckPill={!pictures}
         onSuggest={(question) => ask(question, loadSwitches())}
         onUpload={video?.jobId ? (file) => uploadAttachment(video.jobId, file) : null}
         complete={video?.jobId && !pictures ? (text, signal) => completeQuestion(video.jobId, text, { signal }) : null}
         hints={hints}
       />
     </div>
-    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters'] : []), ...(framesPanel ? [] : ['frames'])]}
+    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters', 'steps'] : []), ...(framesPanel ? [] : ['frames'])]}
       badges={{ chapters: chapterList.length || null }} />
     </div>
   )

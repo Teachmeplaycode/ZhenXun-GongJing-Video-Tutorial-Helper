@@ -213,7 +213,7 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
             <div className="import-disclosure__clip">
               <div id="import-task" className="import-options import-question" data-exit>
                 <label htmlFor="import-question">你想了解什么？</label>
-                <textarea ref={questionRef} rows={3} id="import-question" className="field__input import-options__task" value={task} placeholder="例如：总结内容，或核查其中的说法" aria-describedby="import-question-hint"
+                <textarea ref={questionRef} rows={3} id="import-question" className="field__input import-options__task" value={task} placeholder="例如：列出操作步骤，或者我做到哪一步卡住了" aria-describedby="import-question-hint"
                   onChange={(event) => setTask(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); closeQuestion() } }} />
                 <div className="import-question__footer">
                   <small id="import-question-hint">导入后会填入对话框，可修改后发送。</small>
@@ -235,7 +235,7 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
             </div>
           ) : null}
           <div className="import-actions" data-exit>
-            <span>{mode === 'images' ? `已选择 ${pics.length} 张图片` : mode === 'file' ? '视频已就绪' : mode === 'link' ? '链接已就绪，支持回车导入' : '导入后，围绕内容自由提问'}</span>
+            <span>{mode === 'images' ? `已选择 ${pics.length} 张图片` : mode === 'file' ? '视频已就绪' : mode === 'link' ? '链接已就绪，支持回车导入' : '卡住了就发截图问'}</span>
             <button type="button" className="import-control__submit" data-idle={mode === 'empty' || undefined} onClick={submit}>
               {mode === 'images' ? '读取图片' : mode === 'link' ? '解析链接' : entry === 'upload' && mode === 'empty' ? '选择文件' : '开始解析'} <IconArrowRight size={16} />
             </button>

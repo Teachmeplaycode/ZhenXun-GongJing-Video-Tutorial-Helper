@@ -205,7 +205,7 @@
 .wordmark--stacked { display: flex; flex-direction: column; align-items: flex-start; gap: 0.06em; }
 .wordmark--stacked .wordmark__cn { font-size: 0.66em; line-height: 1; }
 .wordmark--stacked .wordmark__en { font-size: 0.3em; line-height: 1; letter-spacing: -0.02em; }
-/* 画面之内，答案之间 ends in an accent dot instead of a full stop. */
+/* The homepage title ends in an accent dot instead of a full stop. */
 .magazine-hero__title > span:last-child::after { content: "."; color: var(--accent-active-dim); }
 .brand__name.wordmark .wordmark__en { opacity: 0.72; }
 .wordmark__mark, .wordmark__end { color: var(--accent-active); }
