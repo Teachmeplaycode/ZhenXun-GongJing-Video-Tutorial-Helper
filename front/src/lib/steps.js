@@ -46,6 +46,10 @@ export function describeStep(call) {
     }
     case 'screentext.read':
       return { verb: '读取画面文字', target: p.scope || '', meta: done ? (n ? `${n} 段` : '没有文字') : '' }
+    case 'screenshot.locate': { // backend modules/agent/locate.py
+      const best = (d.matches || [])[0]
+      return { verb: '比对你的截图', target: '找视频里最像的画面', meta: done ? (best ? `最像 ${clock(best.time)}` : '没有明显相像的') : '' }
+    }
     case 'transcript.search':
       return { verb: '搜索转写', target: `「${p.query || ''}」`, meta: done ? `${n} 处` : '' }
     case 'transcript.read_range':

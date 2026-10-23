@@ -18,7 +18,7 @@ from modules.llm import ChatClient, LLMError, OllamaClient, ToolCall, Usage, ass
 
 from modules.decide import questions as dq
 
-from . import experience, intent, skills
+from . import experience, intent, locate, skills
 
 from ..frames import images as picture_sets
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
@@ -315,7 +315,7 @@ ATTACHED_NOTE = ("用户随问题附上了 {n} 张自己的图片——不是视
 
 def build_messages(job: FrameJob, frames: list, question: str, history: list[dict], scope_all: bool,
                    transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], ""),
-                   images: list | None = None) -> list[dict]:
+                   images: list | None = None, located: dict | None = None) -> list[dict]:
     video = job.video
     coverage = job.coverage()
     pictures = picture_sets.is_images(video)
@@ -372,11 +372,22 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
             {"role": "assistant", "content": MATERIAL_READ},
             *past,
             {"role": "user", "content": [{"type": "text", "text": scope}, {"type": "text", "text": f"问题：{question}"},
-                                         *attached_parts(images or [])]}]
+                                         *attached_parts(images or [], located)]}]
 
 
-def attached_parts(images: list) -> list[dict]:
-    """The person's own pictures, after the question: the note on what they are, then each one."""
+LOCATED_NOTE = "按画面文字和画面相似度自动比对，和你的截图 {i} 最像的视频画面：{matches}。这只是线索，请对照画面自己确认是哪一步"
+
+
+def located_text(i: int, matches: list) -> str:
+    def one(m) -> str:
+        why = f"（共同文字：{'、'.join(m.shared[:4])}）" if m.shared else ""
+        return f"帧 {frame_no(m.slot.index)} · {clock(m.slot.time)}{why}"
+    return LOCATED_NOTE.format(i=i, matches="；".join(one(m) for m in matches))
+
+
+def attached_parts(images: list, located: dict | None = None) -> list[dict]:
+    """The person's own pictures, after the question: the note on what they are, then each one,
+    each followed by the frames that look most like it (`located`: path → matches)."""
     parts = []
     readable = [p for p in images if Path(p).is_file()]
     if readable:
@@ -385,7 +396,24 @@ def attached_parts(images: list) -> list[dict]:
         data = base64.b64encode(Path(path).read_bytes()).decode()
         parts.append({"type": "text", "text": f"你的截图 {i}"})
         parts.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{data}"}})
+        if (located or {}).get(str(path)):
+            parts.append({"type": "text", "text": located_text(i, located[str(path)])})
     return parts
+
+
+async def locate_shots(job: FrameJob, images: list) -> dict:
+    """path → the frames most like that screenshot (modules/agent/locate.py)."""
+    import asyncio
+
+    slots = [s for s in job.in_time_order() if s.status == "ok" and job.frame_path(s.index).is_file()]
+    captions = job.screentext.segments if job.screentext else []
+    found = {}
+    for path in [p for p in images if Path(p).is_file()]:
+        text = await asyncio.to_thread(locate.read_text, path)
+        matches = await asyncio.to_thread(locate.rank, text, path, slots, job.frame_path, captions)
+        if matches:
+            found[str(path)] = matches
+    return found
 
 
 async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
@@ -448,12 +476,31 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
                    data={"warning": warning})
         yield tool("screen", "completed", result_count=len(screen[0]))
 
+    located = {}
+    if images and not picture_sets.is_images(job.video):
+        steps += 1
+        yield {"type": "progress.update", "step": "比对截图", "percent": 28}
+        yield tool("locate", "started", tool_name="screenshot.locate")
+        yield tool("locate", "input", input={"kind": "params", "params": {"screenshots": len(images)}})
+        located = await locate_shots(job, images)
+        found = [m for ms in located.values() for m in ms]
+        have = {s.index for s in chosen}
+        extra = [m.slot for m in found if m.slot.index not in have]
+        if extra:  # the model must see the frames it is told to look at
+            chosen = sorted(chosen + list({s.index: s for s in extra}.values()), key=lambda s: s.time)
+        yield tool("locate", "output", exit_code=0,
+                   stdout="\n".join(located_text(i, located[str(p)]) for i, p in enumerate(
+                       [p for p in images if Path(p).is_file()], 1) if str(p) in located) or "没有找到明显相像的画面",
+                   data={"matches": [{"frame": m.slot.index, "time": round(m.slot.time, 1), "score": round(m.score, 2),
+                                      "shared": m.shared} for m in found]})
+        yield tool("locate", "completed", result_count=len(found))
+
     model = client.config.model
     rounds = tool_rounds()
     tools = AgentTools(job, decider=decider, llm=client)
     audience = tools.audience()
     messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
-                              images=images)
+                              images=images, located=located)
 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.
