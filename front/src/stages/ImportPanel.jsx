@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { IconArrowRight, IconClose, IconFilm, IconImage, IconLink, IconUpload, IconChevron } from '../components/Icons'
-import { looksLikeLink } from '../api/client'
-import { fmtBytes } from '../lib/format'
-import { linkPlatform } from '../lib/platforms'
+import { linkFrameUrl, looksLikeLink } from '../api/client'
+import { fmtBytes, fmtClock } from '../lib/format'
+import { linkPlatform, platformName } from '../lib/platforms'
 import { BRAND, WORKSPACE_CONTENT } from '../config/workspace'
 import Wordmark from '../components/Wordmark'
 import HomepageMascot from '../components/HomepageMascot'
@@ -22,7 +22,8 @@ const loadSampling = () => {
 
 // slideRef: the glass slide; the sculpture refracts through it and the upload screen grows out of it.
 // externalError: a failure reported by App after the import screen was left (e.g. link resolution).
-export default function ImportPanel({ showMascot = false, active = true, onStart, slideRef, externalError = '', onClearError, onShowAccounts, publicDemo = false }) {
+export default function ImportPanel({ showMascot = false, active = true, onStart, slideRef, externalError = '', onClearError, onShowAccounts, publicDemo = false, samples = [], onOpenSample = null }) {
+  const [picking, setPicking] = useState(false) // the list of finished samples, open
   const [entry, setEntry] = useState('link')
   const [file, setFile] = useState(null)
   const [link, setLink] = useState('')
@@ -249,10 +250,28 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
           </p>
         ) : null}
         <div className="import-entry__footer" data-exit>
-          <button type="button" className="import-entry__sample" onClick={() => onStart({ file: null, task })}>先用示例视频体验 <i aria-hidden="true" /><IconArrowRight size={14} /></button>
+          <button type="button" className="import-entry__sample" aria-expanded={samples.length ? picking : undefined}
+            onClick={() => (samples.length && onOpenSample ? setPicking((v) => !v) : onStart({ file: null, task }))}>
+            先用示例视频体验 <i aria-hidden="true" /><IconArrowRight size={14} />
+          </button>
           <a className="import-entry__ref" href="https://ynvan.com/?ref=zhenxun" target="_blank" rel="noopener noreferrer"
             title="「求原图」：免登录下载无水印视频、原图，转 GIF 和实况照片">只想下载视频、原图或做 GIF？去「求原图」↗</a>
         </div>
+        {picking && samples.length ? (
+          <ul className="sample-list" aria-label="示例视频">
+            {samples.map((s) => (
+              <li key={s.id}>
+                <button type="button" className="sample-card" onClick={() => onOpenSample(s.id)}>
+                  {s.cover_index != null ? <img src={linkFrameUrl(s.id, s.cover_index)} alt="" loading="lazy" /> : <span className="sample-card__blank" />}
+                  <span className="sample-card__body">
+                    <span className="sample-card__title">{s.title}</span>
+                    <span className="mono-sm muted">{platformName(s.platform)} · {fmtClock(s.duration || 0)} · 已分析好，直接提问</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </section>
   )

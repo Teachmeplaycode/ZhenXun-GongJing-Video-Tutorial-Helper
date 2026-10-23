@@ -259,6 +259,9 @@ export async function streamLinkJob(jobId, since, onEvent, signal) {
 /** Most recently used first: [{ id, title, author, video_id, duration, frames_ok, frames_total, cover_index, questions, last_question, updated }] */
 export const listSessions = ({ signal } = {}) => linkRequest('/api/sessions', { signal }).then((body) => body.sessions)
 
+/** Finished tutorials anyone may open on the public site (backend SAMPLE_SESSIONS). */
+export const listSamples = () => linkRequest('/api/samples').then((body) => body.samples || []).catch(() => [])
+
 /** Job snapshot (video, slots, coverage, running, seq) plus { task, messages }. */
 export const getSession = (id, { signal } = {}) => linkRequest(`/api/sessions/${id}`, { signal })
 
