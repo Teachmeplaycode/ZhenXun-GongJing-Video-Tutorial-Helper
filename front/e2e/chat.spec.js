@@ -486,12 +486,32 @@ test('"我要片段的 GIF" opens the clip studio, not the model: pick, tune, ma
   await expect(card.getByRole('tab', { name: 'GIF 动图' })).toHaveAttribute('aria-selected', 'true')
   expect(mock.runsSent()).toEqual([]) // no model involved
 
+  // 画面范围: 1:1 makes a centred square of the picture; a corner drag shrinks it, keeping the shape
+  await card.getByRole('radio', { name: '1:1' }).click()
+  const box = card.locator('.clip-studio__crop')
+  await expect(box).toBeVisible()
+  const before = await box.boundingBox()
+  expect(Math.abs(before.width - before.height)).toBeLessThan(3)
+  const corner = await card.locator('.clip-studio__crop-handle--se').boundingBox()
+  await page.mouse.move(corner.x + corner.width / 2, corner.y + corner.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(corner.x - 40, corner.y - 10, { steps: 5 })
+  await page.mouse.up()
+  const after = await box.boundingBox()
+  expect(after.width).toBeLessThan(before.width - 20)
+  expect(Math.abs(after.width - after.height)).toBeLessThan(3)
+  await page.screenshot({ path: 'test-results/clip-crop.png' })
+  await card.getByRole('radio', { name: '整个画面' }).click()
+  await expect(box).toHaveCount(0)
+  await card.getByRole('radio', { name: '16:9' }).click()
+
   await card.locator('.clip-studio__slider input').first().fill('20') // 帧率
   await card.getByRole('button', { name: '生成 GIF' }).click()
   await expect(card.locator('.clip-studio__result img')).toBeVisible()
   await expect(card.locator('.clip-studio__result')).toContainText('9 fps · 384 px')
   await expect(card.locator('.clip-studio__result')).toContainText('降到了 9 fps')
   expect(asked[0]).toMatchObject({ start: '54.00', end: '58.00', format: 'gif', fps: '20', width: '480', dither: 'bayer', max_mb: '1' })
+  expect(asked[0].crop.split(',').map(Number)).toHaveLength(4) // the 16:9 frame went with it
   const download = page.waitForEvent('download')
   await card.getByRole('button', { name: '下载' }).click()
   expect((await download).suggestedFilename()).toBe('帧寻_t_0054-0058.gif')
