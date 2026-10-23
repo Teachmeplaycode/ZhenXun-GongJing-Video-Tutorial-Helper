@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, clip, log, members, playback, spend, visitors
+from modules import accounts, archive, backup, clip, log, members, playback, spend, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -68,6 +68,8 @@ decider: Decider | None = None
 async def lifespan(_: FastAPI):
     log.setup(DATA_ROOT / "logs")
     prune(force=True)
+    if archive.root() is not None:  # databases and secrets into the bucket, daily (modules/backup.py)
+        tasks.add(asyncio.create_task(backup.daily(DATA_ROOT)))
     yield
     for task in tasks:
         task.cancel()
