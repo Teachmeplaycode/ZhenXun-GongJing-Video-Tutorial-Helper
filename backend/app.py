@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, clip, log, members, playback, visitors
+from modules import accounts, archive, clip, log, members, playback, spend, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -379,6 +379,7 @@ async def resolve_link(body: LinkRequest):
     return video.public()
 
 
+spend.use(lambda: DATA_ROOT / "spend.sqlite3")  # the public site's daily spend (modules/spend.py)
 member_service = members.Members(lambda: DATA_ROOT / "members.sqlite3", lambda: visitors.secret(DATA_ROOT),
                                  lambda old, new: store.reassign(old, new))
 app.include_router(member_service.router)

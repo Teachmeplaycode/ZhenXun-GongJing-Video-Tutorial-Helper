@@ -314,6 +314,21 @@ test('the web demo: a signed-in person links their own platform login by QR only
   await expect(drawer.getByRole('button', { name: '手动粘贴 Cookie' })).toHaveCount(0)
 })
 
+test('the web demo: an owner sees the site\'s spend today against its cap; others are told 今日额度已满', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1'))
+  await start(page, (mock) => {
+    mock.publicDemo = true
+    mock.member = { name: 'linyi', plan: 'owner', questions: { used: 3, limit: null }, imports: { used: 1, limit: null },
+      spend: { day: '2026-10-23', limit: 10, yuan: 10.4, kinds: { llm: { yuan: 9.9, units: 1, calls: 40 }, asr: { yuan: 0.5, units: 1, calls: 3 } } } }
+  })
+  await page.locator('.member-chip').click()
+  const mine = page.getByRole('dialog', { name: '我的' })
+  await expect(mine).toContainText('网站今日花费')
+  await expect(mine).toContainText('模型 ¥9.90 · 语音识别 ¥0.50')
+  await expect(mine).toContainText('¥10.40 / ¥10')
+  await expect(mine).toContainText('已到上限')
+})
+
 test('the web demo: one click to try it as a guest', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('zhenxun.guide.v1', '1'))
   await start(page, (mock) => { mock.publicDemo = true })

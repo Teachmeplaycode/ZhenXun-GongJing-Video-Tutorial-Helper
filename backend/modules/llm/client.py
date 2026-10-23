@@ -23,6 +23,7 @@ from pathlib import Path
 import httpx
 
 from ..settings import parse_assignment, read_env_file, settings  # noqa: F401 (re-exported for tests)
+from .. import spend
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 DEFAULT_MODEL = "deepseek-flash"
@@ -255,6 +256,8 @@ class ChatClient:
         finally:
             if response is not None:
                 await response.aclose()
+            if usage.prompt_tokens or usage.completion_tokens:  # priced against the day's budget (modules/spend.py)
+                spend.llm(usage.prompt_tokens, usage.cached_tokens, usage.completion_tokens)
 
 
 class OllamaClient:
