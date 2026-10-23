@@ -21,7 +21,8 @@ MAX_CHARS = 14000  # of timed text sent; a long tutorial keeps its lines evenly 
 PROMPT = ("你从软件教程里整理「操作步骤卡」：观看者跟着做时必须亲手完成的操作，按视频里的先后顺序。"
           "每步一行，格式：时间|动作|说明。时间写成 mm:ss，照抄材料里讲到或演示这个操作的那一行的时间，不要写步骤序号。动作不超过 30 字，以动词开头，写清点哪个菜单、按钮，或输入什么"
           "（例如：点「数据」选项卡里的「数据验证」）；说明不超过 60 字，写这一步要注意的设置或结果，没有就留空。"
-          "只依据给出的语音和画面文字，不要编造视频里没有的操作；讲解、闲聊、片头片尾不算步骤。"
+          "只依据给出的语音和画面文字，不要编造视频里没有的操作；闲聊、片头片尾不算步骤。"
+          "只要视频在演示怎么操作软件、设备或做出某个东西，就算教程，边讲边做的操作都要列出来。"
           f"最多 {MAX_STEPS} 步。如果这不是教程、没有可以照着做的操作，只输出：无")
 
 Completer = Callable[[list[dict]], Awaitable[str]]
@@ -77,12 +78,14 @@ def seconds(text: str) -> float:
 
 
 def parse(output: str, duration: float) -> list[dict]:
+    matches = [m for m in map(LINE.match, (output or "").splitlines()) if m]
+    # "18:00" for the 18th second: every time ends in :00 and read as minutes most run past the end.
+    raw = [m.group(1) for m in matches]
+    as_seconds = (duration and raw and all(re.fullmatch(r"\d+:00", r) for r in raw)
+                  and max(seconds(r) for r in raw) > duration >= max(int(r.split(":")[0]) for r in raw))
     steps = []
-    for line in (output or "").splitlines():
-        m = LINE.match(line)
-        if not m:
-            continue
-        t = seconds(m.group(1))
+    for m in matches:
+        t = float(m.group(1).split(":")[0]) if as_seconds else seconds(m.group(1))
         if duration and not 0 <= t <= duration:
             continue
         action = m.group(2).strip()[:MAX_ACTION]
