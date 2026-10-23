@@ -19,7 +19,7 @@ MAX_DETAIL = 60
 MAX_CHARS = 14000  # of timed text sent; a long tutorial keeps its lines evenly spread
 
 PROMPT = ("你从软件教程里整理「操作步骤卡」：观看者跟着做时必须亲手完成的操作，按视频里的先后顺序。"
-          "每步一行，格式：开始秒数|动作|说明。动作不超过 30 字，以动词开头，写清点哪个菜单、按钮，或输入什么"
+          "每步一行，格式：时间|动作|说明。时间写成 mm:ss，照抄材料里讲到或演示这个操作的那一行的时间，不要写步骤序号。动作不超过 30 字，以动词开头，写清点哪个菜单、按钮，或输入什么"
           "（例如：点「数据」选项卡里的「数据验证」）；说明不超过 60 字，写这一步要注意的设置或结果，没有就留空。"
           "只依据给出的语音和画面文字，不要编造视频里没有的操作；讲解、闲聊、片头片尾不算步骤。"
           f"最多 {MAX_STEPS} 步。如果这不是教程、没有可以照着做的操作，只输出：无")
@@ -49,7 +49,8 @@ def timed_lines(transcript, screen) -> list[str]:
     """Speech and on-screen text in time order, `[mm:ss] 说/屏 text`, evenly thinned to MAX_CHARS."""
     rows = [(s.start, "说", s.text) for s in transcript or []] + [(c.start, "屏", c.text) for c in screen or []]
     rows.sort(key=lambda r: r[0])
-    lines = [f"[{_clock(t)} · {round(t)}s] {kind}：{text.strip()}" for t, kind, text in rows if text.strip()]
+    lines = [f"[{_clock(t)} · {round(t)}s] {kind}：{text.strip()}" for t, kind, text in rows
+             if text.strip() and not NUMBERS_ONLY.match(text)]
     size = sum(len(x) + 1 for x in lines)
     if size > MAX_CHARS:
         keep = max(1, len(lines) * MAX_CHARS // size)
@@ -63,7 +64,16 @@ def messages(title: str, lines: list[str]) -> list[dict]:
 
 
 # "1. 12|…" / "1、12|…" are numbered; "40.5|…" is a time, not step 40 at 5 s.
-LINE = re.compile(r"^\s*(?:\d+(?:[、)]|\.\s)\s*)?(\d+(?:\.\d+)?)\s*s?\s*\|\s*([^|]+?)\s*(?:\|\s*(.*))?$")
+# Seconds as asked, or the mm:ss the lines show (models write either).
+LINE = re.compile(r"^\s*(?:\d+(?:[、)]|\.\s)\s*)?(\d+:\d{2}(?::\d{2})?|\d+(?:\.\d+)?)\s*s?\s*\|\s*([^|]+?)\s*(?:\|\s*(.*))?$")
+NUMBERS_ONLY = re.compile(r"^[\d\s.,:%+\-/()¥$]*$")  # a spreadsheet's cells read off the screen
+
+
+def seconds(text: str) -> float:
+    t = 0.0
+    for part in text.split(":"):
+        t = t * 60 + float(part)
+    return t
 
 
 def parse(output: str, duration: float) -> list[dict]:
@@ -72,13 +82,15 @@ def parse(output: str, duration: float) -> list[dict]:
         m = LINE.match(line)
         if not m:
             continue
-        t = float(m.group(1))
+        t = seconds(m.group(1))
         if duration and not 0 <= t <= duration:
             continue
         action = m.group(2).strip()[:MAX_ACTION]
         if not action:
             continue
         steps.append({"time": round(t, 1), "action": action, "detail": (m.group(3) or "").strip()[:MAX_DETAIL]})
+    if len(steps) >= 3 and [s["time"] for s in steps] == [float(i) for i in range(1, len(steps) + 1)]:
+        return []  # step numbers written where the times go: no time can be trusted
     return steps[:MAX_STEPS]
 
 

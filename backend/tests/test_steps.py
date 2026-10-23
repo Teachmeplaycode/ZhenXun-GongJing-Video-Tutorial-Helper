@@ -32,7 +32,7 @@ def tutorial(tmp_path):
 
 
 def test_lines_are_timed_and_a_long_text_is_thinned():
-    lines = steps.timed_lines([Seg(65, "说一句")], [Caption(3, 4, "屏上字", "top")])
+    lines = steps.timed_lines([Seg(65, "说一句")], [Caption(3, 4, "屏上字", "top"), Caption(5, 6, "240", "top")])
     assert lines == ["[00:03 · 3s] 屏：屏上字", "[01:05 · 65s] 说：说一句"]
     many = steps.timed_lines([Seg(i, "字" * 100) for i in range(1000)], [])
     assert sum(len(x) + 1 for x in many) <= steps.MAX_CHARS + 200 and many[0].startswith("[00:00")
@@ -43,6 +43,8 @@ def test_parse_keeps_steps_inside_the_video():
     assert got == [{"time": 12.0, "action": "点「数据」选项卡里的「数据验证」", "detail": ""},
                    {"time": 40.5, "action": "把「允许」改成「序列」", "detail": "来源选 A1:D1"}]
     assert steps.parse("无", 300) == []
+    assert [s["time"] for s in steps.parse("04:22|双击精确匹配|\n1:02:03|太晚了|", 400)] == [262.0]  # mm:ss too
+    assert steps.parse("1|点单元格|\n2|输入公式|\n3|按回车|", 400) == []  # numbers, not times
 
 
 def test_build_numbers_steps_puts_each_on_its_nearest_frame_and_caches(tmp_path):
