@@ -33,14 +33,39 @@ def legacy() -> dict:
     return {"version": data["blender"], "nodes": data["nodes"], "by_name": by_name}
 
 
+# Nodes whose title in the editor is the chosen operation (循环, 取模, 等于…), not the node's name.
+TITLED_BY_OPERATION = ("ShaderNodeMath", "ShaderNodeVectorMath", "FunctionNodeCompare", "FunctionNodeBooleanMath",
+                       "FunctionNodeIntegerMath")
+# A zone is two nodes both titled like this in the editor; the first one met is the input.
+ZONES = {"模拟": ("GeometryNodeSimulationInput", "GeometryNodeSimulationOutput"),
+         "simulation": ("GeometryNodeSimulationInput", "GeometryNodeSimulationOutput"),
+         "重复": ("GeometryNodeRepeatInput", "GeometryNodeRepeatOutput"),
+         "repeat": ("GeometryNodeRepeatInput", "GeometryNodeRepeatOutput"),
+         "逐元素": ("GeometryNodeForeachGeometryElementInput", "GeometryNodeForeachGeometryElementOutput")}
+
+
 @lru_cache(maxsize=1)
 def blender() -> dict:
     data = json.loads(CATALOG.read_text())
     by_name: dict[str, list[dict]] = {}
+    by_id = {n["id"]: n for n in data["nodes"]}
+    operations: dict[str, tuple[dict, dict]] = {}
     for node in data["nodes"]:
         for name in {node["label"], node["zh"], node["id"]}:
             by_name.setdefault(_key(name), []).append(node)
-    return {"version": data["blender"], "nodes": data["nodes"], "by_name": by_name}
+    for nid in TITLED_BY_OPERATION:  # earlier ones win: 相加 is Math's before Vector Math's
+        for item in ((by_id.get(nid) or {}).get("options") or {}).get("operation", {}).get("items", []):
+            for name in (item["zh"], item["name"]):
+                operations.setdefault(_key(name), (by_id[nid], item))
+    return {"version": data["blender"], "nodes": data["nodes"], "by_name": by_name, "by_id": by_id, "operations": operations}
+
+
+def operation(name: str) -> tuple[dict, dict] | None:
+    """(node, operation item) when a title is an operation's name: 循环 → Math set to Wrap."""
+    key = _key(name)
+    if not key or key in blender()["by_name"]:  # a node's own name (混合 is Mix) wins
+        return None
+    return blender()["operations"].get(key)
 
 
 def match(name: str, en: str = "", tree: str = "") -> dict | None:
