@@ -23,7 +23,7 @@ from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
 from modules.notes.router import NotesService
-from modules.agent import browser, run_agent
+from modules.agent import browser, locate, run_agent
 from modules.agent.evidence import with_evidence
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.export.api import create_router as create_export_router
@@ -40,6 +40,7 @@ from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
 from modules.antifraud.router import create_router as antifraud_router
 from modules.video_source import ResolveError, ResolvedVideo, Stream, default_registry
+from modules.video_source.base import Resolver
 from modules.video_source.registry import extract_url
 from modules.video_source.local import PLATFORM as LOCAL, resolve_file
 
@@ -907,6 +908,30 @@ async def build_compare(body: CompareRequest):
         raise HTTPException(502, f"对照失败：{err.message}") from err
     log.event("compare", ids=",".join(wanted), rows=len(record["rows"]))
     return record
+
+
+RELATED_MAX = 8
+
+
+@app.get("/api/link-jobs/{job_id}/related")
+async def job_related(job_id: str):
+    """Tutorials the platform recommends beside this one, closest in title first, to compare against."""
+    job = get_job(job_id)
+    resolver = job.resolver
+    if resolver is None or type(resolver).related is Resolver.related:
+        return {"status": "unavailable", "items": [], "message": "这个平台没有相关推荐"}
+    try:
+        items = await resolver.related(job.video)
+    except ResolveError as exc:
+        return {"status": "failed", "items": [], "message": exc.message}
+    mine_words = locate.words(job.video.title)
+    have = {(s.get("video_id") or "") for s in store.list(200, owner=visitors.current.get() if visitors.enabled() else None)}
+    for it in items:
+        it["shared"] = len(mine_words & locate.words(it["title"]))
+        it["imported"] = it["url"].rstrip("/").rsplit("/", 1)[-1] in have
+    items = [it for it in items if it["url"].rstrip("/").rsplit("/", 1)[-1] != job.video.video_id]
+    items.sort(key=lambda it: (-it["shared"], -it["views"]))
+    return {"status": "done", "items": items[:RELATED_MAX], "message": ""}
 
 
 @app.get("/api/link-jobs/{job_id}/source")
