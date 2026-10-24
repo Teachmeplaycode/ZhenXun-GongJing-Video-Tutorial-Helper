@@ -9,7 +9,8 @@ from ..frames import FrameJob
 from ..video_source import ResolveError, Stream
 from . import asr
 from .asr import Segment, hallucinated
-from .audio import read_audio
+from . import timing
+from .audio import read_audio, wav_seconds
 
 # pending · running · done · empty (no speech found) · none (no audio track) · unavailable (no ASR here) · failed
 FINISHED = {"done", "empty", "none", "unavailable"}
@@ -20,6 +21,7 @@ class Transcript:
     status: str = "pending"
     message: str = ""
     segments: list[Segment] = field(default_factory=list)
+    stages: dict = field(default_factory=dict)  # milliseconds per stage of the last run (modules/transcript/timing.py), not saved
 
     @property
     def running(self) -> bool:
@@ -61,32 +63,37 @@ async def run_transcript(job: FrameJob, *, read: ReadAudio = read_audio, transcr
     if not job.video.audio_streams:
         return finish("none", "该视频没有可读取的音轨，只分析画面")
 
-    state.status, state.segments = "running", []
+    state.status, state.segments, state.stages = "running", [], {}
+    timing.STAGES.set(state.stages)
     job.emit({"type": "transcript", **state.summary(), "message": "正在读取音轨"})
     wav = job.root / "audio.wav"
     timeout = max(90.0, job.video.duration / 4)
     try:
         result = None
-        for attempt in range(2):
-            for stream in job.video.audio_streams:
-                result = await read(stream, wav, timeout)
-                if result.ok or result.kind != "forbidden":
+        with timing.stage("read"):
+            for attempt in range(2):
+                for stream in job.video.audio_streams:
+                    result = await read(stream, wav, timeout)
+                    if result.ok or result.kind != "forbidden":
+                        break
+                if result.ok or result.kind != "forbidden" or attempt:
                     break
-            if result.ok or result.kind != "forbidden" or attempt:
-                break
-            # Every address refused (expired): re-acquire them once.
-            try:
-                fresh = await job.resolver.refresh(job.video)
-                job.video.audio_streams = fresh.audio_streams
-            except ResolveError as exc:
-                return finish("failed", f"音轨地址获取失败：{exc.message}")
+                # Every address refused (expired): re-acquire them once.
+                try:
+                    fresh = await job.resolver.refresh(job.video)
+                    job.video.audio_streams = fresh.audio_streams
+                except ResolveError as exc:
+                    return finish("failed", f"音轨地址获取失败：{exc.message}")
+        if result is not None and result.ok:
+            timing.note(audio_s=round(wav_seconds(wav), 1))
         if result is None or not result.ok:
             reason = {"forbidden": "音轨地址无法访问", "timeout": "读取音轨超时"}.get(result.kind if result else "", "读取音轨失败")
             return finish("failed", reason)
 
         job.emit({"type": "transcript", **state.summary(), "message": "正在识别语音"})
         try:
-            state.segments = await transcribe(wav)
+            with timing.stage("asr"):
+                state.segments = await transcribe(wav)
         except Exception as exc:  # model load / decode failures are reported, not raised
             return finish("failed", f"语音识别失败：{type(exc).__name__}")
         partial = {"partial": f"；{result.detail}，后面没能读取", "gaps": f"；{result.detail}"}.get(result.kind, "")
