@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, clip, log, members, playback, spend, steps, stuck, visitors
+from modules import accounts, archive, backup, clip, compare, log, members, playback, spend, steps, stuck, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -853,6 +853,59 @@ async def build_step_comments(job_id: str):
     if notes:
         record = stuck.save(job.root, {**record, "message": f"{record['message']}（{'、'.join(notes)}）"})
     log.event("stuck", job_id=job.id, status=record["status"], groups=len(record["groups"]))
+    return record
+
+
+class CompareRequest(BaseModel):
+    ids: list[str]
+
+
+def compare_ids(ids: list[str]) -> list[str]:
+    ids = list(dict.fromkeys(i for i in ids if re.fullmatch(r"[0-9a-f]{12}", i)))
+    if not 2 <= len(ids) <= compare.MAX_VIDEOS:
+        raise HTTPException(422, f"选 2 到 {compare.MAX_VIDEOS} 个教程来对照")
+    return ids
+
+
+@app.get("/api/compare")
+async def get_compare(ids: str):
+    """A comparison built before for these videos (modules/compare.py); {status: 'none'} before."""
+    wanted = compare_ids(ids.split(","))
+    for i in wanted:
+        get_job(i)
+    return compare.load(DATA_ROOT, wanted) or {"status": "none", "rows": [], "message": ""}
+
+
+@app.post("/api/compare")
+async def build_compare(body: CompareRequest):
+    """Align the step cards of 2–3 tutorials; videos without cards get them first. Counts as one question."""
+    wanted = compare_ids(body.ids)
+    jobs = [get_job(i) for i in wanted]
+    if any((j.video.extra or {}).get("kind") == "images" for j in jobs):
+        raise HTTPException(422, "图集没有操作步骤，不能对照")
+    missing = [j for j in jobs if (steps.load(j.root) or {}).get("status") != "done"]
+    if any(not mine(j.id) for j in missing):
+        raise HTTPException(409, "示例视频还没有整理步骤，先打开它在「步骤」里整理")
+    member_service.charge("questions")
+    try:
+        client = get_llm()
+    except LLMError as err:
+        raise HTTPException(503, err.message) from err
+
+    async def complete(messages):
+        return "".join([d async for d in client.stream(messages, Usage(), max_tokens=3000)])
+
+    try:
+        for j in missing:
+            await steps.build(j, complete)
+        cards = [steps.load(j.root) or {} for j in jobs]
+        empty = [j.video.title for j, c in zip(jobs, cards) if c.get("status") != "done"]
+        if empty:
+            raise HTTPException(422, f"「{empty[0][:20]}」整理不出操作步骤，可能不是教程")
+        record = await compare.build(DATA_ROOT, jobs, cards, complete)
+    except LLMError as err:
+        raise HTTPException(502, f"对照失败：{err.message}") from err
+    log.event("compare", ids=",".join(wanted), rows=len(record["rows"]))
     return record
 
 
