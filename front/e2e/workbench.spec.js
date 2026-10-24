@@ -22,7 +22,7 @@ test('the workbench folds out from the right edge with its tabs, and remembers w
   await expect(page.locator('.chat__toolbar, .chat__factcheck, .chat__export')).toHaveCount(0) // nothing stacked above the composer
   await handle.click()
   // 反诈 and 科普 are skills the agent runs in an answer now (e2e/skills.spec.js), not tabs.
-  await expect(page.getByRole('tab')).toHaveText(['步骤', /章节/, '笔记'])
+  await expect(page.getByRole('tab')).toHaveText(['步骤', '对照', /章节/, '笔记'])
   // arrow keys move between tabs
   await page.getByRole('tab', { name: /章节/ }).click()
   await page.getByRole('tab', { name: /章节/ }).press('ArrowRight')

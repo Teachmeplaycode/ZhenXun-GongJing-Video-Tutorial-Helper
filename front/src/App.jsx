@@ -586,7 +586,8 @@ export default function App() {
   }
 
   // Reopen a saved session straight into the conversation, behind the same container wipe.
-  const openSession = async (id) => {
+  // at: a second to show once it is open (a step of another tutorial in the 对照 tab).
+  const openSession = async (id, at = null) => {
     setHistoryOpen(false)
     if (video?.jobId === id) {
       if (stage === 'ready') enterChat()
@@ -628,6 +629,7 @@ export default function App() {
       setImportError('')
       setRetrying(false)
       setStage(v.kind === 'images' ? 'pictures' : 'chat')
+      if (at != null) { setTimelineOpen(true); setSeek({ time: at, key: Date.now() }) }
     }
     wipeThrough(apply)
     // Sampling still running (e.g. reopened right after parsing): keep the timeline filling in.
@@ -744,6 +746,7 @@ export default function App() {
       onChapterSelect={setActiveChapter}
       onChapterHover={setHoverChapter}
       replayRequest={replayRequest}
+      onOpenSession={(id, at) => openSession(id, at)}
       clip={clip}
       onClearClip={() => setClip(null)}
     />
