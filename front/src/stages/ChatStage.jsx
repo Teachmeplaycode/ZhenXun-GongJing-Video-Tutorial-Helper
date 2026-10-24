@@ -4,6 +4,7 @@ import MessageBubble from '../components/MessageBubble'
 import Composer, { loadSwitches } from '../components/Composer'
 import ChaptersPanel from '../components/ChaptersPanel'
 import StepsTab from '../components/bench/StepsTab'
+import CompareTab from '../components/bench/CompareTab'
 import { IconArrowDown } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
 import { completeQuestion, fetchSuggestions, uploadAttachment } from '../api/client'
@@ -32,7 +33,7 @@ const fineClock = (t) => {
 // onCited the times the answers point at; onBusy whether an answer (or a replay) is in progress.
 // replayRequest { start, end, key }: a stretch framed on the timeline to replay now, without the model.
 // clip { start, end }: a stretch framed on the timeline to ask about; the question asks to replay it first.
-export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null, framesPanel = null }) {
+export default function ChatStage({ active, video, frames, duration = null, onSeek = null, coverage = null, transcript = null, screentext = null, chapters = null, pictures = false, activeChapter = null, onChapterSelect = null, onChapterHover = null, initialMessages, selected, onClearSelection, onRemoveFrame, onPickFrames, onExtras = null, onCited = null, onBusy = null, replayRequest = null, clip = null, onClearClip = null, framesPanel = null, onOpenSession = null }) {
   const { messages, send, regenerate, stop, running, replay, cancelReplay, studio } = useAgentChat({ videoId: video?.videoId, frames, coverage, video, initialMessages })
   // The workbench sidebar: open or not and which tab, remembered across visits.
   const [bench, setBench] = useState(() => {
@@ -188,6 +189,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
       onSelect={onChapterSelect} onHover={onChapterHover} />,
     steps: <StepsTab video={video} onSeek={onSeek}
       onStuck={(s) => setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`)} />,
+    compare: <CompareTab video={video} onSeek={onSeek} onOpenSession={onOpenSession} />,
     notes: <NotesTab video={video} messages={messages} />,
   }
 
@@ -249,7 +251,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
         hints={hints}
       />
     </div>
-    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters', 'steps'] : []), ...(framesPanel ? [] : ['frames'])]}
+    <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters', 'steps', 'compare'] : []), ...(framesPanel ? [] : ['frames'])]}
       badges={{ chapters: chapterList.length || null }} />
     </div>
   )
