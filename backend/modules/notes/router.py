@@ -31,6 +31,9 @@ PICTURES = 3  # sampled frames per section shown to the model
 CHAPTER_WAIT = 180.0  # seconds to wait for chapters still being built before using even stretches
 
 
+FIGURE_WIDTH = 1600  # px a note's figure is read at (the stream's own width when smaller)
+
+
 class NotesService:
     def __init__(self, get_job, spawn, get_client, chapters_busy=lambda job_id: False):
         self.get_job = get_job
@@ -56,8 +59,15 @@ class NotesService:
         return record if record is not None and record.get("status") == "done" else None
 
     async def _frame(self, job, t: float) -> str | None:
-        """A picture of the moment: read from the video, else the nearest sampled keyframe."""
-        result = await AgentTools(job).run("view_frames", {"start": t, "end": t, "count": 1})
+        """A picture of the moment: read from the video as wide as it comes (up to FIGURE_WIDTH; the
+        640 px keyframes look blurred in a note), else at keyframe size, else the nearest keyframe."""
+        tools = AgentTools(job)
+        name = f"{int(t * 100):08d}-hd.jpg"
+        path = job.root / "extra" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.is_file() or await tools.sharp(t, path, FIGURE_WIDTH):
+            return f"/api/link-jobs/{job.id}/extra/{name}"
+        result = await tools.run("view_frames", {"start": t, "end": t, "count": 1})
         if result.data.get("frames"):
             return result.data["frames"][0]
         ok = [s for s in job.slots if s.status == "ok" and job.frame_path(s.index).is_file()]
@@ -155,7 +165,7 @@ class NotesService:
             raise HTTPException(409, "还没有生成好的笔记")
 
         def picture(src: str):
-            m = re.search(r"/(extra/\d{8}\.jpg|frames/(\d+)\.jpg|replay/[\d-]+/\d{2}\.jpg)$", src)
+            m = re.search(r"/(extra/\d{8}(?:-hd)?\.jpg|frames/(\d+)\.jpg|replay/[\d-]+/\d{2}\.jpg)$", src)
             if not m:
                 return None
             path = job.frame_path(int(m.group(2))) if m.group(2) else job.root / m.group(1)

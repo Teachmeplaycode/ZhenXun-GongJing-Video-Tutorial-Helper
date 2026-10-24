@@ -80,3 +80,12 @@ def test_endpoints_build_on_post_and_serve_the_cache(tmp_path, monkeypatch):
     built = client.post("/api/link-jobs/job1/steps").json()
     assert built["status"] == "done" and len(built["steps"]) == 2
     assert client.get("/api/link-jobs/job1/steps").json() == built
+
+
+def test_parse_reads_the_shapes_models_wrap_lines_in():
+    out = "\n".join(["**00:56|调整网格分段|按需要**", "- 第2步：01:12｜使用点实例节点｜", "[01:36] | 新建矢量运算节点 | 使用位置",
+                     "【1:55】输出线性衰减属性", "02:05 - 复制点大小节点", "步骤6：02:13|调整点乘的轴|"])
+    got = steps.parse(out, 600)
+    assert [(s["time"], s["action"]) for s in got] == [
+        (56.0, "调整网格分段"), (72.0, "使用点实例节点"), (96.0, "新建矢量运算节点"),
+        (115.0, "输出线性衰减属性"), (125.0, "复制点大小节点"), (133.0, "调整点乘的轴")]

@@ -14,7 +14,7 @@ from pathlib import Path
 from .task import clock
 
 # Picture addresses the note uses → (folder under the job, file name)
-SRC_RE = re.compile(r"/api/link-jobs/[\w-]+/(extra/\d{8}\.jpg|frames/\d+\.jpg|replay/[\d-]+/\d{2}\.jpg)$")
+SRC_RE = re.compile(r"/api/link-jobs/[\w-]+/(extra/\d{8}(?:-hd)?\.jpg|frames/\d+\.jpg|replay/[\d-]+/\d{2}\.jpg)$")
 
 
 def _section_md(b: dict) -> list[str]:
@@ -144,7 +144,7 @@ class ImageError(RuntimeError):
 
 
 IMAGE_WIDTH = 720       # CSS px: a phone screen's reading width
-IMAGE_SCALE = 1.5       # device pixels per CSS px
+IMAGE_SCALE = 2         # device pixels per CSS px (1.5 read blurred on a phone)
 MAX_IMAGE_PX = 16000    # Chromium can't capture a taller page in one go: shrink the scale to fit
 
 

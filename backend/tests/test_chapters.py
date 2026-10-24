@@ -315,3 +315,20 @@ def test_restored_session_runs_missing_cut_detection_before_build(api, monkeypat
     assert called == [job.id]
     assert load(job.root)['status'] == 'done'
     assert 100 in {c['end'] for c in load(job.root)['chapters']}
+
+
+def test_chapters_wait_for_the_speech_but_only_briefly_for_screen_text_and_cuts(api, monkeypatch):
+    app, job, _ = api
+    job.transcript.status = "done"
+    job.screentext.status = "running"   # OCR still queued on the server
+    app.cutting.add(job.id)              # the cut pass still reading the video
+    clock = [0.0]
+    monkeypatch.setattr("modules.chapters.router.time.monotonic", lambda: clock[0])
+
+    async def tick(_):
+        clock[0] += 2
+
+    monkeypatch.setattr(app.asyncio, "sleep", tick)
+    asyncio.run(app.chapter_service.wait_inputs(job))
+    assert 30 <= clock[0] <= 32  # SIDE_WAIT, not until OCR and cuts end
+    app.cutting.discard(job.id)

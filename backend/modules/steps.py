@@ -77,8 +77,23 @@ def seconds(text: str) -> float:
     return t
 
 
+# What models put around the line the format asks for: bold, bullets, 「第 3 步：」, a bracketed time,
+# a full-width bar, "00:56 - 动作" without bars.
+DECOR = re.compile(r"^\s*(?:[-*•>]\s*)?(?:第\s*\d+\s*步\s*[:：.、]?\s*|步骤\s*\d+\s*[:：.、]?\s*)?")
+LOOSE = re.compile(r"^\s*(\d+:\d{2}(?::\d{2})?)\s*[-—–:：]\s*(.+)$")
+
+
+def tidy(line: str) -> str:
+    line = line.replace("｜", "|").replace("**", "").replace("`", "")
+    line = DECOR.sub("", line)
+    line = re.sub(r"^\s*[\[【(（]\s*(\d+:\d{2}(?::\d{2})?|\d+(?:\.\d+)?)\s*s?\s*[\]】)）]\s*\|?", r"\1|", line)
+    if "|" not in line and (m := LOOSE.match(line)):
+        line = f"{m.group(1)}|{m.group(2)}"
+    return line
+
+
 def parse(output: str, duration: float) -> list[dict]:
-    matches = [m for m in map(LINE.match, (output or "").splitlines()) if m]
+    matches = [m for m in map(LINE.match, map(tidy, (output or "").splitlines())) if m]
     # "18:00" for the 18th second: every time ends in :00 and read as minutes most run past the end.
     raw = [m.group(1) for m in matches]
     as_seconds = (duration and raw and all(re.fullmatch(r"\d+:00", r) for r in raw)
@@ -108,7 +123,11 @@ async def build(job, complete: Completer) -> dict:
                         job.screentext.segments if job.screentext else [])
     if not lines:
         return save(job.root, {"status": "empty", "steps": [], "message": "这个视频没有语音和画面文字，整理不出步骤"})
-    steps = parse(await complete(messages(job.video.title, lines)), job.video.duration or 0)
+    output = await complete(messages(job.video.title, lines))
+    steps = parse(output, job.video.duration or 0)
+    if not steps and output.strip() not in ("无", ""):
+        from modules import log  # a reply in a shape parse doesn't know: keep its start to see why
+        log.event("steps.unparsed", job_id=job.id, head=output.strip()[:300])
     for n, step in enumerate(steps, 1):
         step["n"] = n
         step["frame"] = nearest_frame(job.slots, step["time"])
