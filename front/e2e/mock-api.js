@@ -343,6 +343,22 @@ export class MockApi {
       }
       return json(this.steps ? { status: 'done', steps: this.steps, message: `${this.steps.length} 步` } : { status: 'none', steps: [], message: '' })
     }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/step-comments$/)
+    if (m) {
+      if (req.method() === 'POST') {
+        this.stepComments = {
+          status: 'done', read: { comments: 9, danmaku: 110 }, message: '读了 9 条评论、110 条弹幕，2 条说卡住了',
+          groups: [
+            { step: 2, stuck: 1, fixes: 1, items: [
+              { id: '4', source: 'danmaku', time: 41, text: '为什么我的序列选不了', kind: 'stuck', summary: '允许里选不了序列' },
+              { id: '1', source: 'comment', author: '甲', likes: 30, text: 'WPS 要先点「有效性」', kind: 'fix', summary: 'WPS 里叫「有效性」' },
+            ] },
+            { step: 0, stuck: 1, fixes: 0, items: [{ id: '2', source: 'reply', author: '乙', text: '跨工作表怎么做', kind: 'stuck', summary: '跨工作表不会' }] },
+          ],
+        }
+      }
+      return json(this.stepComments || { status: 'none', groups: [], message: '' })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/chapters$/)
     if (m && this.chapterFailureCount > 0) {
       this.chapterFailureCount -= 1
