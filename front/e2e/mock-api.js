@@ -343,6 +343,20 @@ export class MockApi {
       }
       return json(this.steps ? { status: 'done', steps: this.steps, message: `${this.steps.length} 步` } : { status: 'none', steps: [], message: '' })
     }
+    if (path === '/api/compare') {
+      if (req.method() === 'POST') {
+        const ids = req.postDataJSON().ids
+        this.compared = {
+          status: 'done', ids, message: '2 个操作，1 个每个教程都有', summary: '先看甲打基础，再看乙学跨表。',
+          videos: ids.map((id, i) => ({ id, title: i ? '另一个教程' : '这个教程', label: '甲乙丙'[i], steps: 2, trait: i ? '进阶' : '基础' })),
+          rows: [
+            { op: '输入函数', note: '甲先点单元格', cells: [{ n: 1, time: 12, action: 'a', frame: 1 }, { n: 1, time: 30, action: 'b', frame: 2 }] },
+            { op: '绝对引用', note: '乙没讲', cells: [{ n: 2, time: 40.5, action: 'c', frame: 3 }, null] },
+          ],
+        }
+      }
+      return json(this.compared || { status: 'none', rows: [], message: '' })
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/step-comments$/)
     if (m) {
       if (req.method() === 'POST') {

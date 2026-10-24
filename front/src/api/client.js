@@ -172,6 +172,12 @@ export const buildSteps = (jobId) => linkRequest(`/api/link-jobs/${jobId}/steps`
 export const getStepComments = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/step-comments`, { signal })
 /** Read the comment section against the steps (one model call, counted as a question). */
 export const buildStepComments = (jobId) => linkRequest(`/api/link-jobs/${jobId}/step-comments`, { method: 'POST' })
+/** A comparison of 2–3 tutorials built before: { status: none | done | empty, videos, rows: [{ op, cells, note }], summary, message }. */
+export const getCompare = (ids, { signal } = {}) => linkRequest(`/api/compare?ids=${ids.join(',')}`, { signal })
+/** Align their step cards (steps built first where missing); counted as one question. */
+export const buildCompare = (ids) => linkRequest('/api/compare', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }),
+})
 /** The video's chapter list: { status, chapters: [{ start, end, title, summary }], message }. */
 export const fetchChapters = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/chapters`, { signal })
 
