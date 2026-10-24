@@ -90,7 +90,7 @@ test('skills: the composer\'s quick tasks name them, beside 卡点 for software 
   await expect(menu).toContainText('反诈识别')
 })
 
-test('skills: 抄作业 draws the finished node graph, opened, with settings, versions and moments to look at again', async ({ page }) => {
+test('skills: 抄作业 sums up the finished node graph, opened, and opens it on its own canvas page', async ({ page }) => {
   const { readFileSync } = await import('node:fs')
   const recipe = JSON.parse(readFileSync(new URL('./fixtures/recipe.json', import.meta.url), 'utf8')) // from a real Blender tutorial
   const answer = await ask(page, [skillAnswer('skill.recipe', recipe, '整体分两棵节点树，最容易连错的是模拟区域 [画面 08:39]。')], '给我最终的节点图，我直接抄作业')
@@ -98,10 +98,11 @@ test('skills: 抄作业 draws the finished node graph, opened, with settings, ve
   await expect(card).toHaveAttribute('open', '')
   const first = recipe.trees[0]
   await expect(card.locator(':scope > summary')).toContainText(`${first.nodes.length + recipe.trees[1].nodes.length} 个节点`)
-  await expect(card.locator('.recipe-graph svg > g')).toHaveCount(first.nodes.length)
-  await expect(card.locator('.recipe-graph svg > path')).toHaveCount(first.links.length)
-  await card.getByRole('tab', { name: new RegExp(recipe.trees[1].name.slice(0, 4)) }).click()
-  await expect(card.locator('.recipe-graph svg > g')).toHaveCount(recipe.trees[1].nodes.length)
+  await expect(card.locator('.recipe__trees li')).toHaveCount(recipe.trees.length) // the graph itself is on its own page
+  await expect(card.locator('.recipe__trees li').first()).toContainText(`${first.nodes.length} 个节点`)
+  const opened = page.waitForEvent('popup')
+  await card.getByRole('button', { name: '打开节点画布' }).click()
+  expect((await opened).url()).toContain(`#/recipe/${recipe.job_id}`)
   await expect(card.locator('.recipe__notes').first()).toContainText(recipe.version_notes[0].text.slice(0, 10))
   await page.screenshot({ path: 'test-results/recipe.png', fullPage: false })
 })
