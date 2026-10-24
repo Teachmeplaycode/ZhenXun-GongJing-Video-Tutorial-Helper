@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, clip, log, members, playback, spend, steps, visitors
+from modules import accounts, archive, backup, clip, log, members, playback, spend, steps, stuck, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -792,6 +792,67 @@ async def build_steps(job_id: str):
     finally:
         steps_building.discard(job.id)
     log.event("steps", job_id=job.id, status=record["status"], count=len(record["steps"]))
+    return record
+
+
+stuck_building: set[str] = set()
+
+
+@app.get("/api/link-jobs/{job_id}/step-comments")
+async def job_step_comments(job_id: str):
+    """Comments and danmaku matched to the step cards (modules/stuck.py); {status: 'none'} before."""
+    job = get_job(job_id)
+    if job.id in stuck_building:
+        return {"status": "running", "groups": [], "message": ""}
+    return stuck.load(job.root) or {"status": "none", "groups": [], "message": ""}
+
+
+@app.post("/api/link-jobs/{job_id}/step-comments")
+async def build_step_comments(job_id: str):
+    """Read the comments (and Bilibili's danmaku) against the steps; one model call, counts as a question."""
+    job = own_job(job_id)
+    cards = steps.load(job.root) or {}
+    if cards.get("status") != "done":
+        raise HTTPException(409, "先整理操作步骤，才能把评论对到步骤上")
+    if job.id in stuck_building:
+        raise HTTPException(409, "评论区正在整理中")
+    tools = AgentTools(job)
+    audience = tools.audience()
+    if "comments" not in audience and "danmaku" not in audience:
+        return stuck.save(job.root, {"status": "unavailable", "groups": [], "message": "这个平台读不到评论和弹幕"})
+    member_service.charge("questions")
+    try:
+        client = get_llm()
+    except LLMError as err:
+        raise HTTPException(503, err.message) from err
+
+    async def complete(messages):
+        return "".join([d async for d in client.stream(messages, Usage(), max_tokens=3000)])
+
+    stuck_building.add(job.id)
+    try:
+        pages, danmaku, notes = [], [], []
+        if "comments" in audience:
+            try:
+                pages = await tools._comment_pages("hot", stuck.COMMENT_PAGES)
+            except Exception as exc:  # a platform refusing still leaves the danmaku
+                notes.append("评论没读到")
+                log.error("stuck.comments", exc, job_id=job.id)
+        if "danmaku" in audience:
+            try:
+                danmaku = job.audience.get("danmaku") or await job.resolver.danmaku(job.video)
+                job.audience["danmaku"] = danmaku
+            except Exception as exc:
+                notes.append("弹幕没读到")
+                log.error("stuck.danmaku", exc, job_id=job.id)
+        record = await stuck.build(job, cards["steps"], pages, danmaku, complete)
+    except LLMError as err:
+        raise HTTPException(502, f"整理评论区失败：{err.message}") from err
+    finally:
+        stuck_building.discard(job.id)
+    if notes:
+        record = stuck.save(job.root, {**record, "message": f"{record['message']}（{'、'.join(notes)}）"})
+    log.event("stuck", job_id=job.id, status=record["status"], groups=len(record["groups"]))
     return record
 
 

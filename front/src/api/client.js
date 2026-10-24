@@ -168,6 +168,10 @@ export const fetchCuts = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs
 export const getSteps = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/steps`, { signal })
 /** Build them (one model call, counted as a question); resolves to the same shape. */
 export const buildSteps = (jobId) => linkRequest(`/api/link-jobs/${jobId}/steps`, { method: 'POST' })
+/** Comments and danmaku matched to the steps: { status: none | running | done | empty | unavailable, groups: [{ step, stuck, fixes, items }], read, message }. */
+export const getStepComments = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/step-comments`, { signal })
+/** Read the comment section against the steps (one model call, counted as a question). */
+export const buildStepComments = (jobId) => linkRequest(`/api/link-jobs/${jobId}/step-comments`, { method: 'POST' })
 /** The video's chapter list: { status, chapters: [{ start, end, title, summary }], message }. */
 export const fetchChapters = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/chapters`, { signal })
 
