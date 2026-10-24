@@ -268,6 +268,12 @@ export class MockApi {
     }
     if (path === '/api/link-jobs' && req.method() === 'POST') {
       if (this.linkError) return json(this.linkError, 422)
+      const next = this.nextJob // a second import (a related video for 对照): its own id and title
+      if (next) {
+        this.nextJob = null
+        this.addSession(next.id, { title: next.title })
+        return json(this.snapshot(next.id))
+      }
       this.addSession('job1', { title: video().title })
       return json(this.snapshot('job1'))
     }
@@ -343,6 +349,8 @@ export class MockApi {
       }
       return json(this.steps ? { status: 'done', steps: this.steps, message: `${this.steps.length} 步` } : { status: 'none', steps: [], message: '' })
     }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/related$/)
+    if (m) return json({ status: 'done', message: '', items: this.related || [] })
     if (path === '/api/compare') {
       if (req.method() === 'POST') {
         const ids = req.postDataJSON().ids
