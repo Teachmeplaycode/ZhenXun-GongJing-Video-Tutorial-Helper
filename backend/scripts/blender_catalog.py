@@ -13,6 +13,9 @@ import re
 import sys
 
 
+OPTION_ENUMS = ("operation", "data_type", "mode", "input_type", "blend_type", "clamp_type", "interpolation_type")
+
+
 def dump(out: str) -> None:
     import bpy
 
@@ -44,6 +47,11 @@ def dump(out: str) -> None:
                 continue
             entry = nodes.setdefault(name, {"id": name, "label": node.bl_label, "zh": node.bl_label, "trees": [],
                                             "inputs": sockets(node.inputs), "outputs": sockets(node.outputs)})
+            options = {p.identifier: {"label": p.name, "zh": p.name, "items": [{"id": i.identifier, "name": i.name, "zh": i.name} for i in p.enum_items]}
+                       for p in node.bl_rna.properties
+                       if p.type == "ENUM" and not p.is_readonly and p.identifier in OPTION_ENUMS}
+            if options:  # a Math node's title is its operation (循环, 取模…): these are how it is recognised
+                entry["options"] = options
             entry["trees"].append(kind)
             tree.nodes.remove(node)
     with open(out, "w") as f:
@@ -94,6 +102,10 @@ def add_chinese(nodes_path: str, po_path: str, out: str) -> None:
         node["zh"] = zh(node["label"])
         for s in node["inputs"] + node["outputs"]:
             s["zh"] = zh(s["name"])
+        for option in (node.get("options") or {}).values():
+            option["zh"] = zh(option["label"])
+            for item in option["items"]:
+                item["zh"] = zh(item["name"])
     with open(out, "w") as f:
         json.dump(data, f, ensure_ascii=False)
     print(sum(n["zh"] == n["label"] for n in data["nodes"]), "of", len(data["nodes"]), "labels without a translation")

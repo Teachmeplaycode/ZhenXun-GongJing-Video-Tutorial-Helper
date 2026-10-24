@@ -16,6 +16,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from contextlib import contextmanager
+from contextvars import ContextVar
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,8 +38,24 @@ OLLAMA_MODEL = "qwen3.5:9b"
 OLLAMA_FIRST_TOKEN_TIMEOUT = 300
 
 
+EXACT: ContextVar[float | None] = ContextVar("llm_exact_temperature", default=None)
+
+
+@contextmanager
+def exact():
+    """Calls inside answer at temperature 0: reading a node graph, steps or comments off the material is
+    copying, and the same video should give the same result every time."""
+    token = EXACT.set(0.0)
+    try:
+        yield
+    finally:
+        EXACT.reset(token)
+
+
 def temperature() -> float:
-    """LLM_TEMPERATURE (default 0.3); benchmarks use 0 so two runs differ less."""
+    """LLM_TEMPERATURE (default 0.3); benchmarks use 0 so two runs differ less; 0 inside exact()."""
+    if EXACT.get() is not None:
+        return EXACT.get()
     try:
         return float(os.environ.get("LLM_TEMPERATURE", "0.3"))
     except ValueError:
