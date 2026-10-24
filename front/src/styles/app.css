@@ -1562,3 +1562,12 @@ span.ev-chip { cursor: help; }
 .recipe__table th, .recipe__table td { text-align: left; padding: 4px 6px; border-bottom: var(--border-hairline); }
 .recipe__notes h4 { margin: 0 0 4px; font-size: 13px; }
 .recipe__notes ul { margin: 0; padding-left: 1.2em; font-size: var(--fs-body-sm); display: flex; flex-direction: column; gap: 3px; }
+/* 对照: B 站's related videos, imported in the background to compare against. */
+.related { display: flex; flex-direction: column; gap: var(--sp-8); padding-top: var(--sp-10); border-top: var(--border-hairline); }
+.related h4 { margin: 0; font-size: 13.5px; }
+.related .btn--sm { padding: 3px 10px; font-size: 12.5px; white-space: nowrap; }
+.related__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-6); }
+.related__item { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; gap: var(--sp-8); align-items: center; font-size: var(--fs-body-sm); }
+.related__cover img, .related__cover .compare-cell__blank { display: block; width: 80px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: var(--grid-line); }
+.related__body { display: flex; flex-direction: column; min-width: 0; }
+.related__title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }

@@ -146,6 +146,10 @@ class Resolver:
         """Lower-quality but more permissive addresses, tried after the primary ones fail."""
         return []
 
+    async def related(self, video: ResolvedVideo) -> list[dict]:
+        """Videos the platform recommends next to this one: [{url, title, author, duration, views, cover}]."""
+        return []
+
     async def comments(self, video: ResolvedVideo, sort: str = "hot", cursor: str | None = None) -> CommentPage:
         """One page of the video's comments; sort is "hot" or "time"."""
         raise ResolveError("unsupported", "这个平台读不到评论")
