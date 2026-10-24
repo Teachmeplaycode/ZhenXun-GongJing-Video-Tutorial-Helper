@@ -17,7 +17,7 @@ from modules.frames import FrameJob
 from modules.llm import ChatClient, LLMError, OllamaClient, ToolCall, Usage, assistant_message, tool_message
 
 from modules.decide import questions as dq
-from modules import stuck
+from modules import recipe, stuck
 
 from . import experience, intent, locate, skills
 
@@ -593,7 +593,9 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         # Once per route attempt, regardless of whether it classified or fell back to keywords.
         add_usage(route_usage.get("prompt_tokens"), route_usage.get("completion_tokens"))
     offered = {d["function"]["name"] for d in allowed_tools(job, web, papers, audience)}
-    skill = route.skill if route.skill in offered and rounds else None
+    # 「给我最终节点图，我抄作业」 asks for that skill whatever the question's kind
+    wanted = "copy_result" if recipe.WANTS.search(question) and not picture_sets.is_images(job.video) else route.skill
+    skill = wanted if wanted in offered and rounds else None
     yield tool("route", "output", stdout=(
         f"{intent.NAMES[route.kind]}（{route.how}" + (f"，概率 {route.p:.2f}" if route.p is not None else "") + "）"
         + (f"\n先运行{skills.BY_NAME[skill].title}技能" if skill else "")), exit_code=0, data=route.as_data())

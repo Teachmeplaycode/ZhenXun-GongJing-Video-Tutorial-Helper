@@ -97,6 +97,9 @@ export function describeStep(call) {
     case 'skill.factcheck': // backend modules/agent/skills.py
       return { verb: '科普核查', target: '逐条查证视频里的说法',
         meta: done ? (d.report ? `${d.report.summary?.total ?? n} 条说法 · 错误 ${d.report.summary?.wrong ?? 0} · 部分正确 ${d.report.summary?.partial ?? 0}` : '未完成') : '' }
+    case 'skill.recipe': // backend modules/recipe.py
+      return { verb: '抄作业', target: '整理最终节点图、参数和版本差异',
+        meta: done ? (d.report ? `${d.report.trees.reduce((k, t) => k + t.nodes.length, 0)} 个节点 · ${d.report.trees.reduce((k, t) => k + t.links.length, 0)} 条连线` : '未完成') : '' }
     case 'skill.antifraud':
       return { verb: '反诈识别', target: '话术、引流、二维码与机构登记',
         meta: done ? (d.report ? `风险${RISK[d.report.assessment?.risk || d.report.score?.level] || '未知'}` : '未完成') : '' }
