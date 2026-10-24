@@ -146,6 +146,10 @@ class Resolver:
         """Lower-quality but more permissive addresses, tried after the primary ones fail."""
         return []
 
+    async def hd_streams(self, video: ResolvedVideo) -> list[Stream]:
+        """Sharper picture tracks than the ones keyframes are read from, for small print; [] when there are none."""
+        return []
+
     async def related(self, video: ResolvedVideo) -> list[dict]:
         """Videos the platform recommends next to this one: [{url, title, author, duration, views, cover}]."""
         return []

@@ -48,3 +48,18 @@ test('recipe canvas: a Math node is titled by its operation, a vector setting ge
   const transform = page.locator('.rc-node', { hasText: '变换几何体' })
   await expect(transform.locator('text', { hasText: /^Z$/ })).toHaveCount(3) // 移动, 旋转, 缩放 each with an X / Y / Z
 })
+
+test('recipe canvas: the Blender script is one click away; add-ons and a low resolution are said', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const mock = new MockApi(page)
+  mock.recipe = { ...JSON.parse(readFileSync(new URL('./fixtures/recipe-zone.json', import.meta.url), 'utf8')), source_height: 480,
+    plugins: [{ term: 'Node Wrangler', plugin: 'Node Wrangler', provides: '节点快捷操作', install: '扩展平台安装', url: 'https://extensions.blender.org/add-ons/node-wrangler/' }] }
+  await mock.install()
+  await page.goto('/#/recipe/job1')
+  await page.getByRole('button', { name: '复制 Blender 脚本' }).click()
+  await expect(page.getByRole('button', { name: '脚本已复制' })).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('import bpy')
+  await expect(page.locator('.rc-panel')).toContainText('需要的插件')
+  await expect(page.locator('.rc-panel a', { hasText: '出处' })).toHaveAttribute('href', /extensions\.blender\.org/)
+  await expect(page.locator('.rc-warn')).toContainText('480p')
+})

@@ -38,6 +38,7 @@ BV_RE = re.compile(r"(BV[0-9A-Za-z]{10})")
 AV_RE = re.compile(r"/av(\d+)", re.I)
 # Frames don't need more than this; smaller streams seek faster.
 MAX_HEIGHT = 720
+HD_HEIGHT = 1080  # hd_streams: reading small print, with the person's login
 AVC = 7
 # Peer/edge caches that are often slow or refuse range reads; tried last.
 PCDN_MARKERS = ("mcdn.bilivideo", "szbdyd.com", ":8082", ":4483")
@@ -267,11 +268,11 @@ class BilibiliResolver(Resolver):
             raise ResolveError("no_stream", f"没有拿到播放地址（{code}）：{payload.get('message', '')}", retryable=True)
         return payload["data"] or {}
 
-    def _dash_streams(self, play: dict) -> list[Stream]:
+    def _dash_streams(self, play: dict, cap: int = MAX_HEIGHT) -> list[Stream]:
         videos = [v for v in ((play.get("dash") or {}).get("video") or []) if v.get("baseUrl") or v.get("base_url")]
         if not videos:
             return []
-        bounded = [v for v in videos if (v.get("height") or 0) <= MAX_HEIGHT] or videos
+        bounded = [v for v in videos if (v.get("height") or 0) <= cap] or videos
         # Prefer AVC (fastest to decode), highest height within the cap; other codecs follow.
         ordered = sorted(bounded, key=lambda v: (v.get("codecid") != AVC, -(v.get("height") or 0), v.get("codecid") or 0))
         streams: list[Stream] = []
@@ -403,6 +404,23 @@ class BilibiliResolver(Resolver):
         if response.status_code != 200:
             raise ResolveError("upstream", f"读取弹幕失败（HTTP {response.status_code}）", retryable=True)
         return parse_danmaku(response.content.decode("utf-8", errors="replace"))
+
+    async def hd_streams(self, video: ResolvedVideo) -> list[Stream]:
+        """Picture tracks up to HD_HEIGHT with the person's own login (accounts: BILIBILI_COOKIE, the web
+        demo's per-person overlay), for reading small print off the screen (抄作业, a note's figures).
+        Logged out, Bilibili gives 480p at most; the keyframes stay at MAX_HEIGHT either way. [] when
+        there is no login or it is refused."""
+        login = settings().get("BILIBILI_COOKIE", "").strip()
+        if not login:
+            return []
+        params = {"bvid": video.extra["bvid"], "cid": video.extra["cid"], "fnval": 16, "fnver": 0, "fourk": 0, "qn": 80}
+        try:
+            payload = await self._api("/x/player/wbi/playurl", params, login=login)
+        except ResolveError:
+            return []
+        if payload.get("code") != 0:
+            return []
+        return self._dash_streams(payload.get("data") or {}, cap=HD_HEIGHT)
 
     async def play_streams(self, video: ResolvedVideo) -> list[Stream]:
         """An MP4 with picture and sound for watching the original (modules/playback): the html5 player's
