@@ -8,6 +8,8 @@ links, so its answer can cite them) and the page shows the full report as the st
 
   check_science  科普核查  modules/factcheck: claims extracted from speech and on-screen text,
                            each checked against authoritative web pages and papers
+  copy_result    抄作业    modules/recipe: a node tutorial's finished graph (nodes, settings, links),
+                           with other versions' differences from the comments, to copy at once
   check_fraud    反诈识别  modules/antifraud: scam phrasing, contact details and QR codes for
                            drawing people off-platform, institution records, a model's overall view
 
@@ -35,6 +37,10 @@ SKILLS = [
           "科普核查技能：把视频里关于健康、医学、营养、科学的说法逐条抽出来，联网查权威网页和论文，给出每条"
           "「正确 / 部分正确 / 错误 / 无法核实」的判定、风险和出处。用户问「说得对吗」「靠谱吗」「有没有科学依据」"
           "「帮我核查/辟谣」或要求科普核查时用。要跑一两分钟；问的只是某一句话时，用 web_search 更快。", needs_web=True),
+    Skill("copy_result", "抄作业", "skill.recipe",
+          "抄作业技能：把节点类教程（Blender 几何节点/着色器节点、ComfyUI 工作流、UE 蓝图等）最终做出来的节点图完整整理出来："
+          "每个节点、改过的参数、每条连线，再按评论区和弹幕补上不同版本的做法，标出看不清要回看的地方。"
+          "用户要「最终的节点图/连接图/所有参数」「直接给我答案抄」「照着连总是错」时用。要跑半分钟到一分钟。"),
     Skill("check_fraud", "反诈识别", "skill.antifraud",
           "反诈识别技能：检查视频里的诈骗风险：高收益承诺、冒充机构、制造紧迫感等话术，微信号、电话、网址、二维码"
           "等引流方式，提到的机构有没有公开登记，再给出综合风险判断。用户问「是不是骗局」「能不能信」「有没有风险」"
@@ -92,7 +98,7 @@ def fraud_digest(report: dict) -> str:
     return "\n".join(lines)
 
 
-async def run(name: str, job: FrameJob, llm, *, web: bool = True, papers: bool = True) -> AsyncIterator[dict | tuple]:
+async def run(name: str, job: FrameJob, llm, *, web: bool = True, papers: bool = True, grab=None, viewers=None) -> AsyncIterator[dict | tuple]:
     """Progress events ({"type": "progress.update", ...}) while the skill runs, then one
     ("result", text, summary, count, data, error) tuple for the caller to turn into a ToolResult."""
     if name == "check_science":
@@ -117,6 +123,13 @@ async def run(name: str, job: FrameJob, llm, *, web: bool = True, papers: bool =
         summary = report.get("summary") or {}
         brief = f"{summary.get('total', 0)} 条说法 · 错误 {summary.get('wrong', 0)} · 部分正确 {summary.get('partial', 0)}"
         yield ("result", science_digest(report), brief, summary.get("total", 0), {"skill": "factcheck", "report": report}, False)
+    elif name == "copy_result":
+        from modules import recipe
+
+        async def keyframes_only(t, path, width):
+            return False
+        async for item in recipe.run(job, llm, grab or keyframes_only, viewers):
+            yield item
     elif name == "check_fraud":
         from modules.antifraud.review import analyze_reviewed
         yield {"type": "progress.update", "step": "反诈识别：查话术、引流方式、二维码和机构登记"}

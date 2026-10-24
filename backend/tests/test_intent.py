@@ -76,7 +76,7 @@ def test_a_fraud_question_runs_the_skill_first_and_the_model_answers_from_it(tmp
     from modules.agent import skills, tools
     from modules.agent.tools import ToolResult
 
-    async def fake_run(name, job, llm, web=True, papers=True):
+    async def fake_run(name, job, llm, web=True, papers=True, **kwargs):
         yield {"type": "progress.update", "step": "反诈识别：查话术"}
         yield ("result", "反诈识别完成：综合风险高。", "风险高", 1, {"skill": "antifraud", "report": {"summary": "x"}}, False)
     monkeypatch.setattr(skills, "run", fake_run)
