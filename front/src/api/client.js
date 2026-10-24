@@ -251,10 +251,12 @@ export async function downloadClip(jobId, start, end, format) {
 export const fetchSuggestions = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/suggestions`, { signal })
 
 /** A picture added to the next question (a screenshot of where one is stuck): { id, url, width, height }. */
-export function uploadAttachment(jobId, file) {
+export async function uploadAttachment(jobId, file) {
   const form = new FormData()
   form.append('file', file)
-  return linkRequest(`/api/link-jobs/${jobId}/attachments`, { method: 'POST', body: form })
+  const image = await linkRequest(`/api/link-jobs/${jobId}/attachments`, { method: 'POST', body: form })
+  // Sent messages load the stored image, so use the same API base as restored messages.
+  return { ...image, url: apiUrl(image.url) }
 }
 
 /** The rest of the question being typed, for the composer's grey Tab completion ('' when unsure). */
