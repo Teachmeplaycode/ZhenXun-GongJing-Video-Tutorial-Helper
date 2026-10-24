@@ -1546,3 +1546,19 @@ span.ev-chip { cursor: help; }
 .clip-studio__aspects button { border: var(--border-hairline); background: var(--bg-surface); border-radius: var(--radius-pill); padding: 3px 12px; font: inherit; font-size: var(--fs-caption); color: var(--text-secondary); cursor: pointer; }
 .clip-studio__aspects button[aria-checked='true'] { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-surface); }
 .clip-studio__aspects-size { margin-left: auto; }
+
+/* 抄作业 (components/RecipeReport.jsx): the node graph scrolls inside its own box. */
+.recipe { display: flex; flex-direction: column; gap: var(--sp-10); }
+.recipe__goal { margin: 0; }
+.recipe__tabs { display: flex; gap: var(--sp-6); flex-wrap: wrap; }
+.recipe__tabs button { border: var(--border-hairline); background: none; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; cursor: pointer; color: var(--text-secondary); }
+.recipe__tabs button[aria-selected='true'] { background: var(--text-primary); color: var(--bg, #fff); border-color: var(--text-primary); }
+.recipe-graph { overflow: auto; max-height: 560px; border-radius: 8px; background: #232323; }
+.recipe-graph svg { display: block; }
+.recipe__actions { display: flex; gap: var(--sp-8); }
+.recipe__actions .btn--sm { padding: 3px 10px; font-size: 12.5px; }
+.recipe__table summary { cursor: pointer; font-size: var(--fs-body-sm); color: var(--text-secondary); }
+.recipe__table table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: var(--sp-6); }
+.recipe__table th, .recipe__table td { text-align: left; padding: 4px 6px; border-bottom: var(--border-hairline); }
+.recipe__notes h4 { margin: 0 0 4px; font-size: 13px; }
+.recipe__notes ul { margin: 0; padding-left: 1.2em; font-size: var(--fs-body-sm); display: flex; flex-direction: column; gap: 3px; }

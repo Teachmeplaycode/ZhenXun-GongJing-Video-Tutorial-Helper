@@ -1,6 +1,7 @@
 import React from 'react'
 import FactCheckReport from './FactCheckReport'
 import AntifraudPanel from './AntifraudPanel'
+import RecipeReport from './RecipeReport'
 
 const RISK = { high: '高', medium: '中', low: '低' }
 
@@ -11,7 +12,7 @@ export function skillReports(message) {
   for (const part of message.parts || []) {
     if (part.kind !== 'steps') continue
     for (const c of part.calls) {
-      if ((c.tool === 'skill.factcheck' || c.tool === 'skill.antifraud') && c.data?.report) out.push({ id: c.id, tool: c.tool, report: c.data.report })
+      if (['skill.factcheck', 'skill.antifraud', 'skill.recipe'].includes(c.tool) && c.data?.report) out.push({ id: c.id, tool: c.tool, report: c.data.report })
     }
   }
   return out
@@ -22,6 +23,20 @@ export default function SkillReports({ reports, onSeek }) {
   return (
     <div className="skill-reports">
       {reports.map(({ id, tool, report }) => {
+        if (tool === 'skill.recipe') {
+          const nodes = report.trees.reduce((n, t) => n + t.nodes.length, 0)
+          const links = report.trees.reduce((n, t) => n + t.links.length, 0)
+          return (
+            <details key={id} className="skill-report" data-skill="recipe" open>
+              <summary>
+                <span className="skill-report__name">抄作业 · 最终节点图</span>
+                <span className="skill-report__outcome">{nodes} 个节点 · {links} 条连线{report.unsure?.length ? ` · ${report.unsure.length} 处待确认` : ''}</span>
+                <span className="skill-report__open">收起 / 展开</span>
+              </summary>
+              <div className="skill-report__body"><RecipeReport report={report} onSeek={onSeek} /></div>
+            </details>
+          )
+        }
         const science = tool === 'skill.factcheck'
         const s = report.summary || {}
         const outcome = science

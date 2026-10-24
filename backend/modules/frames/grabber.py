@@ -42,13 +42,13 @@ def classify(stderr: str) -> str:
     return "error"
 
 
-async def grab_frame(stream: Stream, time_sec: float, out: Path, timeout: float = 40) -> GrabResult:
+async def grab_frame(stream: Stream, time_sec: float, out: Path, timeout: float = 40, width: int = FRAME_WIDTH) -> GrabResult:
     tmp = out.with_suffix(".part.jpg")
     *before, i, url = input_args(stream)
     args = [
         "ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", *before,
         "-ss", f"{max(0.0, time_sec):.3f}", i, url,
-        "-frames:v", "1", "-an", "-vf", f"scale='min({FRAME_WIDTH},iw)':-2", "-q:v", "4", str(tmp),
+        "-frames:v", "1", "-an", "-vf", f"scale='min({width},iw)':-2", "-q:v", "4", str(tmp),
     ]
     try:
         proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)

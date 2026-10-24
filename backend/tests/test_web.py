@@ -170,5 +170,5 @@ def test_definitions_follow_the_composer_switches(monkeypatch):
     assert "search_papers" in names(web=False) and "web_search" not in names(web=False)
     assert "search_papers" not in names(papers=False) and "web_search" in names(papers=False)
     monkeypatch.setattr(tools, "settings", lambda: {"LLM_WEB": "off"})
-    # Without the web: the fraud check still runs (its institution lookup says it couldn't), the science check doesn't.
-    assert names() == {"search_transcript", "read_transcript", "read_chapters", "view_frames", "replay", "measure_motion", "check_fraud"}
+    # Without the web: the fraud check and 抄作业 still run (the fraud institution lookup says it couldn't), the science check doesn't.
+    assert names() == {"search_transcript", "read_transcript", "read_chapters", "view_frames", "replay", "measure_motion", "check_fraud", "copy_result"}

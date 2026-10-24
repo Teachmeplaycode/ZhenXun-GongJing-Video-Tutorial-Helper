@@ -17,6 +17,7 @@ from modules.frames import FrameJob
 from modules.frames import instruments
 from modules.frames import replay as slowmo
 from modules.frames.grabber import grab_frame
+from modules import stuck
 from modules.settings import settings
 from modules.video_source import ResolveError
 from modules.video_source.base import Comment
@@ -236,7 +237,7 @@ class AgentTools:
             if self.llm is None:
                 yield ToolResult("这个技能需要模型服务，现在不可用。", "不可用", error=True)
                 return
-            async for item in skills.run(name, self.job, self.llm, web=web_enabled()):
+            async for item in skills.run(name, self.job, self.llm, web=web_enabled(), grab=self.sharp, viewers=self.viewers):
                 if isinstance(item, tuple):
                     _, text, summary, count, data, error = item
                     yield ToolResult(text, summary, count, error=error, data=data)
@@ -565,6 +566,34 @@ class AgentTools:
             if result.kind != "forbidden":
                 return False
         return False
+
+    async def viewers(self) -> tuple[list, list]:
+        """(hot comment pages, danmaku) for a skill that reads them as a whole; what the platform refuses is left out."""
+        pages, danmaku = [], []
+        if "comments" in self.audience():
+            try:
+                pages = await self._comment_pages("hot", stuck.COMMENT_PAGES)
+            except Exception:  # noqa: BLE001
+                pages = []
+        if "danmaku" in self.audience():
+            try:
+                danmaku = self.job.audience.get("danmaku") or await self.job.resolver.danmaku(self.job.video)
+                self.job.audience["danmaku"] = danmaku
+            except Exception:  # noqa: BLE001
+                danmaku = []
+        return pages, danmaku
+
+    async def sharp(self, t: float, out: Path, width: int) -> bool:
+        """One frame read again wider than the keyframes (a skill reading small print), stream addresses renewed once."""
+        async def once() -> bool:
+            for stream in [s for s in self.job.video.streams if not s.expired()]:
+                result = await grab_frame(stream, t, out, width=width)
+                if result.ok:
+                    return True
+                if result.kind != "forbidden":
+                    return False
+            return False
+        return await once() or (await self._refresh() and await once())
 
     async def _refresh(self) -> bool:
         """Re-acquire stream addresses once per answer (expired, or a session restored without them)."""
