@@ -112,3 +112,57 @@ def test_trees_that_differ_by_more_than_a_note_stay_apart():
     got = recipe.merge_same({"trees": [{"name": "材质：方块 A", "nodes": [{"id": "a", "name": "x", "params": []}], "links": []},
                                        {"name": "材质：方块 B", "nodes": [{"id": "a", "name": "x", "params": []}], "links": []}]})
     assert len(got["trees"]) == 2
+
+
+def test_operation_titles_and_zone_pairs_are_read_as_blender_has_them():
+    got = recipe.normalize({"trees": [{"name": "几何节点", "nodes": [
+        {"id": "a", "name": "循环", "en": "Repeat", "params": [{"name": "最大值", "value": "4", "time": 1}], "time": None},
+        {"id": "b", "name": "等于", "en": "", "params": [], "time": None},
+        {"id": "c", "name": "模拟", "en": "", "params": [], "time": None},
+        {"id": "d", "name": "模拟", "en": "Simulation", "params": [], "time": None}], "links": []}], "version_notes": []})
+    a, b, c, d = got["trees"][0]["nodes"]
+    assert (a["ref"], a["title"]) == ("ShaderNodeMath", "循环") and a["params"][0] == {"name": "运算", "value": "循环", "time": None}
+    assert (b["ref"], b["title"]) == ("FunctionNodeCompare", "等于")
+    assert (c["ref"], d["ref"]) == ("GeometryNodeSimulationInput", "GeometryNodeSimulationOutput")
+
+
+def test_the_group_output_gets_the_one_geometry_left_dangling():
+    tree = recipe.normalize({"trees": [{"name": "几何节点", "nodes": [
+        {"id": "i", "name": "组输入", "en": "", "params": [], "time": None},
+        {"id": "s", "name": "模拟", "en": "", "params": [], "time": None},
+        {"id": "o", "name": "模拟", "en": "", "params": [], "time": None},
+        {"id": "g", "name": "组输出", "en": "", "params": [], "time": None}],
+        "links": [{"from": "i", "out": "几何数据", "to": "s", "in": "几何数据", "time": None},
+                  {"from": "s", "out": "几何数据", "to": "o", "in": "几何数据", "time": None}]}]})["trees"][0]
+    added = recipe.close_ends(tree)
+    assert [(x["from"], x["to"], x["inferred"]) for x in added] == [("o", "g", True)]
+
+
+def test_links_and_nodes_read_in_two_pictures_settle_the_graph():
+    def reading(links):
+        names = {"组输入", "切换", "合并几何体", "变换几何体"}
+        ids = {n: f"r{i}" for i, n in enumerate(sorted(names))}
+        return {"trees": [{"name": "几何节点", "nodes": [{"id": ids[n], "name": n, "en": "", "params": [], "time": None} for n in sorted(names)],
+                           "links": [{"from": ids[a], "out": "几何数据" if a != "切换" else "输出", "to": ids[b], "in": i, "time": None} for a, b, i in links]}]}
+    seen = [reading([("切换", "合并几何体", "几何数据"), ("合并几何体", "变换几何体", "几何数据")]),
+            reading([("切换", "合并几何体", "几何数据"), ("合并几何体", "变换几何体", "几何数据"), ("组输入", "合并几何体", "几何数据")])]
+    final = recipe.normalize({"trees": [{"name": "几何节点", "nodes": [
+        {"id": "a", "name": "组输入", "en": "", "params": [], "time": None},
+        {"id": "b", "name": "切换", "en": "", "params": [], "time": None},
+        {"id": "c", "name": "合并几何体", "en": "", "params": [], "time": None}],
+        "links": [{"from": "a", "out": "几何数据", "to": "b", "in": "假", "time": None}]}]})  # a link no picture shows
+    recipe.vote(final, seen)
+    tree = final["trees"][0]
+    names = {n["id"]: n["name"] for n in tree["nodes"]}
+    got = {(names[l["from"]], names[l["to"]]) for l in tree["links"]}
+    assert "变换几何体" in names.values()  # read twice, lost in the merge: back
+    assert got == {("切换", "合并几何体"), ("合并几何体", "变换几何体")}  # 组输入→切换 seen nowhere: gone; 组输入→合并 once: not added
+
+
+def test_a_geometry_tree_without_its_group_output_gets_one():
+    tree = recipe.normalize({"trees": [{"name": "几何节点", "nodes": [
+        {"id": "s", "name": "模拟", "en": "", "params": [], "time": None},
+        {"id": "o", "name": "模拟", "en": "", "params": [], "time": None}],
+        "links": [{"from": "s", "out": "几何数据", "to": "o", "in": "几何数据", "time": None}]}]})["trees"][0]
+    added = recipe.close_ends(tree)
+    assert tree["nodes"][-1]["ref"] == "NodeGroupOutput" and [(x["from"], x["to"]) for x in added] == [("o", "group_output")]

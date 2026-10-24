@@ -37,3 +37,14 @@ test('recipe canvas: a session without one says how to get it', async ({ page })
   await page.goto('/#/recipe/job1')
   await expect(page.locator('.rc-empty')).toContainText('还没有抄作业')
 })
+
+test('recipe canvas: a Math node is titled by its operation, a vector setting gets X / Y / Z rows', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.recipe = JSON.parse(readFileSync(new URL('./fixtures/recipe-zone.json', import.meta.url), 'utf8')) // a real Blender tutorial
+  await mock.install()
+  await page.goto('/#/recipe/job1')
+  const loop = page.locator('.rc-node', { hasText: '循环' }).first()
+  await expect(loop).toContainText('Math')
+  const transform = page.locator('.rc-node', { hasText: '变换几何体' })
+  await expect(transform.locator('text', { hasText: /^Z$/ })).toHaveCount(3) // 移动, 旋转, 缩放 each with an X / Y / Z
+})

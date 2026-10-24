@@ -18,10 +18,10 @@ function NodeCard({ c, x, y, onGrab }) {
       <rect width={W} height={h} rx="7" fill="#303030" stroke={node.ref ? '#151515' : '#B4531F'} strokeDasharray={node.ref ? '' : '5 4'} />
       <g onPointerDown={onGrab} style={{ cursor: 'grab' }}>
         <path d={`M0,7 a7,7 0 0 1 7,-7 h${W - 14} a7,7 0 0 1 7,7 v${HEAD - 7} h-${W} z`} fill={headerColor(node)} />
-        <text x="10" y="19" fontSize="13" fontWeight="600" fill="#F4F4F4">{short(node.name, 15)}</text>
+        <text x="10" y="19" fontSize="13" fontWeight="600" fill="#F4F4F4">{short(node.title || node.name, 15)}</text>
         {node.legacy ? <text x={W - 9} y="19" fontSize="10" fill="#FFD27A" textAnchor="end">{node.legacy} 旧节点</text>
           : node.en && node.name.length < 11 ? <text x={W - 9} y="19" fontSize="10" fill="#EDEDED" opacity="0.7" textAnchor="end">{short(node.en, 18)}</text> : null}
-        <title>{`${node.name}${node.en ? `（${node.en}）` : ''}${node.ref ? '' : '：不在 Blender 节点目录里，按视频里的叫法画出'}${node.legacy ? `：Blender ${node.legacy} 的旧节点，新版本用 ${node.replaced_by}` : ''}${node.time != null ? ` · 视频 ${fmtClock(node.time)}` : ''}`}</title>
+        <title>{`${node.title ? `${node.title}（${node.name}）` : node.name}${node.en ? `（${node.en}）` : ''}${node.ref ? '' : '：不在 Blender 节点目录里，按视频里的叫法画出'}${node.legacy ? `：Blender ${node.legacy} 的旧节点，新版本用 ${node.replaced_by}` : ''}${node.time != null ? ` · 视频 ${fmtClock(node.time)}` : ''}`}</title>
       </g>
       {rows.map((r, i) => {
         const cy = rowY(i)
@@ -31,6 +31,15 @@ function NodeCard({ c, x, y, onGrab }) {
               <rect x={PAD} y={cy - ROW / 2 + 2} width={W - PAD * 2} height={ROW - 4} rx="4" fill="#3E3E3E" stroke="#C8F04A" strokeOpacity="0.55" />
               <text x={PAD + 7} y={cy + 4} fontSize="11" fill="#CFCFCF">{short(r.name, 10)}</text>
               <text x={W - PAD - 7} y={cy + 4} fontSize="11" fill="#FFFFFF" textAnchor="end">{short(String(r.value), 14)}</text>
+            </g>
+          )
+        }
+        if (r.kind === 'axis') {
+          return (
+            <g key={`ax${i}`}>
+              <rect x={PAD + 14} y={cy - ROW / 2 + 2} width={W - PAD * 2 - 14} height={ROW - 4} rx="3" fill={r.changed ? '#4D5A2A' : '#545454'} />
+              <text x={PAD + 22} y={cy + 4} fontSize="11" fill="#E6E6E6">{r.name}</text>
+              <text x={W - PAD - 7} y={cy + 4} fontSize="11" fill={r.changed ? '#E7FF9E' : '#FFFFFF'} textAnchor="end">{short(String(r.value), 14)}</text>
             </g>
           )
         }
