@@ -11,7 +11,11 @@ import './styles/app.css'
 import './styles/workspace.css'
 import App from './App'
 import NoteEditor from './notes/NoteEditor'
+import RecipeCanvas from './recipe/RecipeCanvas'
 
-// #/notes/<jobId> opens the note editor in its own tab; everything else is the workbench.
+// #/notes/<jobId> opens the note editor in its own tab, #/recipe/<jobId> the 抄作业 node canvas;
+// everything else is the workbench.
 const note = /^#\/notes\/([\w-]+)/.exec(window.location.hash)
-createRoot(document.getElementById('root')).render(note ? <NoteEditor jobId={note[1]} /> : <App />)
+const graph = /^#\/recipe\/([\w-]+)/.exec(window.location.hash)
+createRoot(document.getElementById('root')).render(
+  note ? <NoteEditor jobId={note[1]} /> : graph ? <RecipeCanvas jobId={graph[1]} /> : <App />)

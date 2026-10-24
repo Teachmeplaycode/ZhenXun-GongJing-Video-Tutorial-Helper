@@ -351,6 +351,12 @@ export class MockApi {
     }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/related$/)
     if (m) return json({ status: 'done', message: '', items: this.related || [] })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe(\/layout)?$/)
+    if (m && m[2] && req.method() === 'PUT') {
+      this.recipeLayouts = [...(this.recipeLayouts || []), req.postDataJSON().positions]
+      return json({ ok: true })
+    }
+    if (m) return json(this.recipe || { status: 'none', message: '还没有抄作业' })
     if (path === '/api/compare') {
       if (req.method() === 'POST') {
         const ids = req.postDataJSON().ids

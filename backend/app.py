@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, clip, compare, log, members, playback, spend, steps, stuck, visitors
+from modules import accounts, archive, backup, clip, compare, log, members, playback, recipe, spend, steps, stuck, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -932,6 +932,34 @@ async def job_related(job_id: str):
     items = [it for it in items if it["url"].rstrip("/").rsplit("/", 1)[-1] != job.video.video_id]
     items.sort(key=lambda it: (-it["shared"], -it["views"]))
     return {"status": "done", "items": items[:RELATED_MAX], "message": ""}
+
+
+class RecipeLayout(BaseModel):
+    positions: dict  # {tree index: {node id: [x, y]}}
+
+
+@app.get("/api/link-jobs/{job_id}/recipe")
+async def job_recipe(job_id: str):
+    """The 抄作业 node graph once the skill has run (modules/recipe.py), with the layout saved on the canvas."""
+    job = get_job(job_id)
+    found = recipe.load(job.root)
+    if found is None:
+        return {"status": "none", "message": "还没有抄作业：在对话里说「给我最终的节点图」"}
+    return {"status": "done", "job_id": job.id, "title": job.video.title, "editable": mine(job.id), **found}
+
+
+@app.put("/api/link-jobs/{job_id}/recipe/layout")
+async def save_recipe_layout(job_id: str, body: RecipeLayout):
+    """Where the person dragged the nodes to; a sample's layout stays in the viewer's browser."""
+    job = own_job(job_id)
+    found = recipe.load(job.root)
+    if found is None:
+        raise HTTPException(404, "还没有抄作业")
+    clean = {str(t): {str(n): [round(float(xy[0]), 1), round(float(xy[1]), 1)] for n, xy in (nodes or {}).items()
+                      if isinstance(xy, list | tuple) and len(xy) == 2}
+             for t, nodes in body.positions.items() if isinstance(nodes, dict)}
+    recipe.save(job.root, {**found, "layout": clean})
+    return {"ok": True}
 
 
 @app.get("/api/link-jobs/{job_id}/source")
