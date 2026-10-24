@@ -32,7 +32,7 @@ from modules.frames import images, sampling
 from modules.frames.job import MAX_FRAMES, shot_fill
 from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
-from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, create_client
+from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, create_client, exact
 from modules.store import SessionStore
 from modules.settings import overlay as settings_overlay, vault as settings_vault
 from modules.screentext import ScreenText, run_screentext
@@ -784,7 +784,8 @@ async def build_steps(job_id: str):
         raise HTTPException(503, err.message) from err
 
     async def complete(messages):
-        return "".join([d async for d in client.stream(messages, Usage(), max_tokens=2048)])
+        with exact():  # reading steps, comments or tutorials side by side is copying, not writing
+            return "".join([d async for d in client.stream(messages, Usage(), max_tokens=2048)])
 
     steps_building.add(job.id)
     try:
@@ -829,7 +830,8 @@ async def build_step_comments(job_id: str):
         raise HTTPException(503, err.message) from err
 
     async def complete(messages):
-        return "".join([d async for d in client.stream(messages, Usage(), max_tokens=3000)])
+        with exact():  # reading steps, comments or tutorials side by side is copying, not writing
+            return "".join([d async for d in client.stream(messages, Usage(), max_tokens=3000)])
 
     stuck_building.add(job.id)
     try:
@@ -895,7 +897,8 @@ async def build_compare(body: CompareRequest):
         raise HTTPException(503, err.message) from err
 
     async def complete(messages):
-        return "".join([d async for d in client.stream(messages, Usage(), max_tokens=3000)])
+        with exact():  # reading steps, comments or tutorials side by side is copying, not writing
+            return "".join([d async for d in client.stream(messages, Usage(), max_tokens=3000)])
 
     try:
         for j in missing:

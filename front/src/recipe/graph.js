@@ -27,8 +27,9 @@ export function headerColor(node) {
   if (/Output|Viewer/.test(id + en)) return '#6E1F32'
   if (/Input|GroupInput|Value$|Position|Index|Normal|ObjectInfo|CollectionInfo|SceneTime|LightPath|TexCoord/.test(id + en)) return '#83314A'
   if (/ShaderNodeTex|Texture/.test(id + en)) return '#8A5A27'
-  if (/Bsdf|Shader|Emission|Background|Volume(Principled|Absorption|Scatter)|Holdout/.test(id)) return '#2C7A3C'
+  // converters before shaders: ShaderNodeMath is a converter, though its id says Shader
   if (/Math|MapRange|Clamp|Compare|Boolean|Switch|ColorRamp|ValToRGB|Separate|Combine|Mix(?!Shader)|FloatCurve|Accumulate|Random/.test(id + en)) return '#2D5F8F'
+  if (/Bsdf|MixShader|AddShader|Emission|Background|Volume(Principled|Absorption|Scatter)|Holdout/.test(id)) return '#2C7A3C'
   if (/Vector|Mapping|Bump|Displacement|Normal/.test(id)) return '#3F3F9E'
   if (/RGB|Hue|Gamma|Bright|Invert|Color/.test(id)) return '#6D6A1F'
   if (/Simulation|Repeat|ForEach|Group|Frame/.test(id + en)) return '#3B5B2C'
@@ -47,7 +48,18 @@ export function formatValue(v) {
   return String(v)
 }
 
-// One node as rows: options (settings that aren't sockets), outputs, inputs. sockets.out/in: row index by name.
+// A vector setting as Blender lists it, X / Y / Z: "0, 0, 0.005 m", "X:0 Y:0 Z:0.1°" or a default [0, 0, 0].
+export function axes(value) {
+  if (Array.isArray(value)) return value.length >= 3 ? value.slice(0, 3).map(formatValue) : null
+  const text = String(value ?? '')
+  const named = ['X', 'Y', 'Z'].map((a) => new RegExp(`${a}\\s*[:：=]\\s*([^,，;；\\s]+(?:\\s?(?:m|°|cm|mm))?)`, 'i').exec(text)?.[1])
+  if (named.every(Boolean)) return named
+  const parts = text.split(/[,，;；]/).map((x) => x.trim()).filter(Boolean)
+  return parts.length === 3 ? parts : null
+}
+
+// One node as rows: options (settings that aren't sockets), outputs, inputs; a vector input that isn't
+// linked gets its X / Y / Z under it, as in Blender. index.out/in: row index of a socket by name.
 export function card(node, links) {
   const outputs = (node.outputs || []).map((s) => ({ ...s }))
   const inputs = (node.inputs || []).map((s) => ({ ...s }))
@@ -65,8 +77,15 @@ export function card(node, links) {
   const rows = [
     ...options.map((o) => ({ kind: 'opt', ...o, changed: true })),
     ...outputs.map((s) => ({ kind: 'out', ...s })),
-    ...inputs.map((s, i) => ({ kind: 'in', ...s, linked: linkedIn.has(i), value: s.changed ? s.value : formatValue(s.default) })),
   ]
+  inputs.forEach((s, i) => {
+    const linked = linkedIn.has(i)
+    const xyz = !linked && Array.isArray(s.default) && s.default.length === 3 ? axes(s.changed ? s.value : s.default) : null
+    if (xyz) {
+      rows.push({ kind: 'in', ...s, linked, value: '' })
+      xyz.forEach((v, k) => rows.push({ kind: 'axis', name: 'XYZ'[k], value: v, changed: s.changed }))
+    } else rows.push({ kind: 'in', ...s, linked, value: s.changed ? s.value : formatValue(s.default) })
+  })
   const index = { out: {}, in: {} }
   rows.forEach((r, i) => {
     if (r.kind === 'out') index.out[r.name] = i
