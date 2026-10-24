@@ -166,3 +166,32 @@ def test_a_geometry_tree_without_its_group_output_gets_one():
         "links": [{"from": "s", "out": "几何数据", "to": "o", "in": "几何数据", "time": None}]}]})["trees"][0]
     added = recipe.close_ends(tree)
     assert tree["nodes"][-1]["ref"] == "NodeGroupOutput" and [(x["from"], x["to"]) for x in added] == [("o", "group_output")]
+
+
+def test_addon_names_and_unknown_nodes_are_looked_up_only_with_a_source(monkeypatch):
+    import asyncio
+
+    from modules.agent import web
+    terms = recipe.addon_terms({"trees": [{"nodes": [{"name": "自定义波浪", "ref": None}, {"name": "设置位置", "ref": "GeometryNodeSetPosition"}]}]},
+                               ["[00:10 · 10s] 说：先打开 Node Wrangler，再装一下 Sverchok 插件", "[00:20 · 20s] 说：这个插件很好用"])
+    assert terms == ["自定义波浪", "Node Wrangler", "Sverchok"]
+
+    async def search(query, limit=8, freshness=""):
+        return [web.SearchResult("Node Wrangler — Blender Extensions", "https://extensions.blender.org/add-ons/node-wrangler/", "节点工具")]
+
+    monkeypatch.setattr(web, "search", search)
+
+    async def says(url):
+        async def complete(messages, max_tokens=0):
+            return json.dumps({"plugin": "Node Wrangler", "provides": "节点快捷操作", "install": "扩展平台安装", "url": url}, ensure_ascii=False)
+        return complete
+
+    good = asyncio.run(recipe.find_plugin("Node Wrangler", asyncio.run(says("https://extensions.blender.org/add-ons/node-wrangler/"))))
+    assert good["plugin"] == "Node Wrangler" and good["url"].startswith("https://extensions.blender.org")
+    assert asyncio.run(recipe.find_plugin("Node Wrangler", asyncio.run(says("https://made-up.example/")))) is None  # no source among the results
+
+
+def test_the_blender_version_comes_from_the_title_or_the_status_bar():
+    assert recipe.blender_version("【Blender教程】纯节点！Blender4.0有机方块动画", []) == "4.0"
+    assert recipe.blender_version("几何节点教程", ["场景集合 4.1.0", "移动 0.005 m", "4.1.0 Alpha"]) == "4.1.0"
+    assert recipe.blender_version("几何节点教程", ["缩放 1.000"]) == ""

@@ -44,7 +44,9 @@ KEYWORDS = [  # order matters: the first that matches wins
 
 TUTORIAL_NOTE = ("这是软件或操作教程类问题。按操作顺序回答：每一步写清第几秒、点了哪个按钮或菜单、输入了什么，"
                  "按钮和菜单的名字照画面上的文字原样写；界面细节以画面和画面文字为准，语音只作补充；"
-                 "关键一步只有一两张关键帧或看不清时，先用 view_frames 补看再回答；问到出错或卡住时，指出最可能出错的一步和原因。")
+                 "关键一步只有一两张关键帧或看不清时，先用 view_frames 补看再回答；问到出错或卡住时，指出最可能出错的一步和原因。"
+                 "用户说自己这里没有某个节点、菜单或功能，或问某个术语时：先用 lookup_software 查软件自带的目录，"
+                 "不是自带的再用 web_search 搜是哪个插件或扩展，回答写清插件名、怎么安装（Blender 4.2 起多数在扩展平台，旧插件用 zip 安装）和出处链接，不要凭印象编。")
 CHAT_NOTE = "这个问题和视频内容无关：简短回答，并说明你主要是根据这个视频来回答问题的。"
 
 # The main chat model as the second decider: on Linux/cloud there is usually no local Ollama.

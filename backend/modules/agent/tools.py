@@ -81,6 +81,14 @@ DEFINITIONS = [
             "start": {"type": "string", "description": "开始时间，秒数或 mm:ss"},
             "end": {"type": "string", "description": "结束时间，秒数或 mm:ss"}}, "required": ["start", "end"]}}},
     {"type": "function", "function": {
+        "name": "lookup_software",
+        "description": "查软件自带的功能目录（现在支持 Blender 5.0 的全部几何/着色器/合成器节点、运算名，以及 2.93 的旧节点）："
+                       "某个节点或运算是不是 Blender 自带的、英文名、在哪类节点树里、有哪些输入输出口、旧节点 3.0 以后用什么替代。"
+                       "用户说「我这里没有这个节点/功能」、问某个术语或节点是什么时先用它；查不到说明不是自带的，再用 web_search 查是哪个插件或扩展。",
+        "parameters": {"type": "object", "properties": {
+            "name": {"type": "string", "description": "节点名、运算名或术语，中文或英文"},
+            "software": {"type": "string", "description": "软件名，现在只有 blender"}}, "required": ["name"]}}},
+    {"type": "function", "function": {
         "name": "read_chapters",
         "description": "读取视频的章节目录：每章的标题、起止时间和一句话摘要。用来回答\"第几分钟讲了什么\"、视频整体结构、某一章讲了什么等问题。",
         "parameters": {"type": "object", "properties": {}}}},
@@ -169,7 +177,7 @@ BROWSE_DEFINITION = {"type": "function", "function": {
 
 ARGS = {
     "search_transcript": ("query",), "read_transcript": ("start", "end"), "view_frames": ("start", "end", "count"),
-    "replay": ("start", "end", "fps"), "measure_motion": ("start", "end"),
+    "replay": ("start", "end", "fps"), "measure_motion": ("start", "end"), "lookup_software": ("name", "software"),
     "web_search": ("query", "limit", "freshness"), "fetch_page": ("url", "offset"), "search_papers": ("query", "source", "limit"),
     "browse": ("task", "url"),
     "read_comments": ("sort", "page"), "read_danmaku": ("start", "end", "query"),
@@ -178,7 +186,7 @@ ARGS = {
 TRACE_NAMES = {"search_transcript": "transcript.search", "read_transcript": "transcript.read_range", "view_frames": "frames.view", "replay": "frames.replay", "measure_motion": "frames.motion",
                "web_search": "web.search", "fetch_page": "web.fetch", "search_papers": "papers.search",
                "browse": "browser.use", "read_comments": "audience.comments", "read_danmaku": "audience.danmaku",
-               "read_chapters": "chapters.read", **skills.TRACE}
+               "read_chapters": "chapters.read", "lookup_software": "knowledge.lookup", **skills.TRACE}
 
 
 def web_enabled() -> bool:
@@ -227,6 +235,7 @@ class AgentTools:
         self.job = job
         self.llm = llm  # drives browse; None: browse is unavailable
         self.grab = grab or grab_frame
+        self.hd: list | None = None  # the platform's sharper tracks, asked for once (sharp())
         self.decider = decider  # modules.decide.Decider, or None: results go to the model unscreened
         self.refreshed = False
         self.pages: dict[str, web.Page] = {}  # fetched this answer, so offset reads don't refetch
@@ -263,7 +272,8 @@ class AgentTools:
         handler = {"search_transcript": self.search_transcript, "read_transcript": self.read_transcript,
                    "view_frames": self.view_frames, "replay": self.replay, "measure_motion": self.measure_motion, "web_search": self.web_search, "fetch_page": self.fetch_page,
                    "search_papers": self.search_papers, "read_comments": self.read_comments,
-                   "read_danmaku": self.read_danmaku, "read_chapters": self.read_chapters}.get(name)
+                   "read_danmaku": self.read_danmaku, "read_chapters": self.read_chapters,
+                   "lookup_software": self.lookup_software}.get(name)
         if handler is None or (name in ARGS and name in {d["function"]["name"] for d in WEB_DEFINITIONS} and not web_enabled()):
             return ToolResult(f"没有名为 {name} 的工具", "未知工具", error=True)
         try:
@@ -534,6 +544,33 @@ class AgentTools:
         return ToolResult(("\n".join(text) + legend) or f"{clock(a)}–{clock(b)} 之间没有语音，也没有画面文字。",
                           f"{clock(a)}–{clock(b)} · {len(picked)} 句", len(picked))
 
+    async def lookup_software(self, name: str = "", software: str = "blender") -> ToolResult:
+        """Blender's own catalog (modules/knowledge): is it built in, its sockets, what replaced an old node."""
+        from modules import knowledge
+
+        name = (name or "").strip()
+        if not name:
+            return ToolResult("请给出要查的节点名或术语。", "没有名字", error=True)
+        if (software or "blender").strip().lower() not in ("blender", ""):
+            return ToolResult(f"现在只有 Blender 的目录，{software} 的请用 web_search 查。", "没有这个软件的目录", error=True)
+        found = knowledge.lookup(name)
+        version = knowledge.blender()["version"]
+        if found is None:
+            return ToolResult(f"Blender {version} 自带的节点和运算里没有「{name}」，2.93 的旧节点里也没有："
+                              "它很可能来自插件或扩展（或是视频里的自定义节点组）。用 web_search 搜「Blender {name} 插件」确认是哪个、怎么装。",
+                              "不是自带的", 0, data={"name": name, "found": False})
+        if found["kind"] == "operation":
+            text = f"「{found['zh']}」（{found['en']}）是 Blender 自带的「{found['node']}」（{found['node_en']}）节点的一种运算：添加 {found['node']} 节点，把运算选成 {found['zh']}。节点编辑器里这个节点的标题会显示成「{found['zh']}」。"
+        elif found["kind"] == "legacy":
+            text = (f"「{found['zh']}」（{found['en']}）是 Blender {found['era']} 的旧节点，3.0 起已移除，新版本里用：{found['replaced_by']}。"
+                    f"输入：{'、'.join(found['inputs'])}；输出：{'、'.join(found['outputs'])}。")
+        else:
+            text = (f"「{found['zh']}」（{found['en']}）是 Blender {version} 自带的节点，在{'、'.join(found['trees'])}里，"
+                    f"节点编辑器按 Shift+A 搜索「{found['zh']}」或「{found['en']}」即可添加。"
+                    f"输入：{'、'.join(found['inputs']) or '无'}；输出：{'、'.join(found['outputs']) or '无'}。")
+        return ToolResult(text, {"operation": "自带运算", "legacy": "旧节点", "node": "自带节点"}[found["kind"]], 1,
+                          data={"name": name, "found": True, **found})
+
     async def read_chapters(self) -> ToolResult:
         """The video's chapter list: titles, time ranges and one-line summaries."""
         from modules.chapters import load as load_chapters
@@ -584,8 +621,23 @@ class AgentTools:
         return pages, danmaku
 
     async def sharp(self, t: float, out: Path, width: int) -> bool:
-        """One frame read again wider than the keyframes (a skill reading small print), stream addresses renewed once."""
+        """One frame read again wider than the keyframes (a skill reading small print), stream addresses renewed once.
+        The platform's sharper tracks first (Bilibili logged in: up to 1080p), else the import's own."""
+        if self.hd is None:
+            self.hd = []
+            resolver = self.job.resolver
+            if resolver is not None and hasattr(resolver, "hd_streams"):
+                try:
+                    self.hd = await resolver.hd_streams(self.job.video)
+                except Exception:  # noqa: BLE001 — the import's streams still work
+                    self.hd = []
+            heights = [s.height for s in self.hd if s.height] or [s.height for s in self.job.video.streams if s.height]
+            self.job.video.extra["read_height"] = max(heights, default=0)  # what small print is read at
+
         async def once() -> bool:
+            for stream in [s for s in self.hd if not s.expired()]:  # any failure: on to the import's own
+                if (await grab_frame(stream, t, out, width=width)).ok:
+                    return True
             for stream in [s for s in self.job.video.streams if not s.expired()]:
                 result = await grab_frame(stream, t, out, width=width)
                 if result.ok:

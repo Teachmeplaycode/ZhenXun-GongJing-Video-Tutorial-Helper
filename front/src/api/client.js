@@ -176,6 +176,13 @@ export const buildStepComments = (jobId) => linkRequest(`/api/link-jobs/${jobId}
 export const getRelated = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/related`, { signal })
 /** The 抄作业 node graph (backend modules/recipe.py): { status, trees, version_notes, unsure, tips, layout, editable }. */
 export const getRecipe = (jobId) => linkRequest(`/api/link-jobs/${jobId}/recipe`)
+/** The 抄作业 graph as a Blender Python script that builds it (backend modules/recipe_script.py). */
+export const recipeScriptUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/recipe/script`
+export async function fetchRecipeScript(jobId) {
+  const response = await fetch(recipeScriptUrl(jobId))
+  if (!response.ok) throw new Error('脚本生成失败')
+  return response.text()
+}
 /** Where the nodes were dragged to on the canvas: { tree index: { node id: [x, y] } }. */
 export const saveRecipeLayout = (jobId, positions) => linkRequest(`/api/link-jobs/${jobId}/recipe/layout`, {
   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ positions }),

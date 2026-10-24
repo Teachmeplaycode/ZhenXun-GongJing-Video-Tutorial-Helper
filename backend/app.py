@@ -15,10 +15,10 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, clip, compare, log, members, playback, recipe, spend, steps, stuck, visitors
+from modules import accounts, archive, backup, clip, compare, log, members, playback, recipe, recipe_script, spend, steps, stuck, visitors
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -950,6 +950,16 @@ async def job_recipe(job_id: str):
     if found is None:
         return {"status": "none", "message": "还没有抄作业：在对话里说「给我最终的节点图」"}
     return {"status": "done", "job_id": job.id, "title": job.video.title, "editable": mine(job.id), **found}
+
+
+@app.get("/api/link-jobs/{job_id}/recipe/script")
+async def recipe_blender_script(job_id: str):
+    """The 抄作业 graph as a Blender Python script that builds it (modules/recipe_script.py)."""
+    job = get_job(job_id)
+    found = recipe.load(job.root)
+    if found is None:
+        raise HTTPException(404, "还没有抄作业")
+    return Response(recipe_script.script(found), media_type="text/x-python; charset=utf-8")
 
 
 @app.put("/api/link-jobs/{job_id}/recipe/layout")

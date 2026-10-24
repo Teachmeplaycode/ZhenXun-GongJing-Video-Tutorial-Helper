@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getRecipe, saveRecipeLayout } from '../api/client'
+import { fetchRecipeScript, getRecipe, recipeScriptUrl, saveRecipeLayout } from '../api/client'
 import { fmtClock } from '../lib/format'
 import { HEAD, PAD, ROW, W, asText, autoLayout, bounds, card, headerColor, rowY, socketColor, socketPoint } from './graph'
 import './recipe.css'
@@ -80,6 +80,7 @@ export default function RecipeCanvas({ jobId }) {
   const [view, setView] = useState({ x: 40, y: 80, k: 0.9 })
   const [saveState, setSaveState] = useState('saved')
   const [copied, setCopied] = useState(false)
+  const [scripted, setScripted] = useState('') // '' | 'copied' | 'failed'
   const [panel, setPanel] = useState(true)
   const svgRef = useRef(null)
   const drag = useRef(null)
@@ -216,6 +217,15 @@ export default function RecipeCanvas({ jobId }) {
       setCopied(false)
     }
   }
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(await fetchRecipeScript(jobId))
+      setScripted('copied')
+    } catch {
+      setScripted('failed')
+    }
+    setTimeout(() => setScripted(''), 2400)
+  }
   const savePicture = async () => {
     const b = bounds(cards, pos)
     const clone = svgRef.current.cloneNode(true)
@@ -277,6 +287,10 @@ export default function RecipeCanvas({ jobId }) {
           <button type="button" onClick={() => zoom(1.2)} aria-label="放大">＋</button>
           <button type="button" onClick={fit}>适应窗口</button>
           <button type="button" onClick={relayout}>自动排列</button>
+          <button type="button" className="rc-script" onClick={copyScript} title="粘贴到 Blender → Scripting 运行，节点自动建好">
+            {scripted === 'copied' ? '脚本已复制' : scripted === 'failed' ? '复制失败，用下载' : '复制 Blender 脚本'}
+          </button>
+          <a className="rc-link" href={recipeScriptUrl(jobId)} download={`抄作业-${jobId}.py`}>下载 .py</a>
           <button type="button" onClick={copy}>{copied ? '已复制' : '复制为文字'}</button>
           <button type="button" onClick={savePicture}>存为图片</button>
           <button type="button" onClick={() => setPanel((p) => !p)} aria-expanded={panel}>说明</button>
@@ -302,6 +316,19 @@ export default function RecipeCanvas({ jobId }) {
           <p className="rc-hint">拖背景移动，⌘/Ctrl + 滚轮缩放，拖节点标题调整位置。绿色底的是教程改过的参数，橙色的「待确认」是改过但没看清的值，其余是 Blender 默认值。
             {unmatched ? ` 虚线框的 ${unmatched} 个节点不在 Blender ${recipe.catalog || ''} 节点目录里，按视频里的叫法画出。` : ''}
             {inferred ? ` ${inferred} 条虚线是视频里没直接看到、按常规用法推断的连线，鼠标停在线上看理由，照着连之前请核对。` : ''}</p>
+          {recipe.source_height && recipe.source_height < 720 ? (
+            <p className="rc-warn">这次只读到 {recipe.source_height}p 的画面，节点上的小字可能认错。登录 B 站（账号 → 扫码）或上传原视频后重新抄作业会更准。</p>
+          ) : null}
+          <section>
+            <h4>导入 Blender</h4>
+            <p className="rc-hint">点「复制 Blender 脚本」，在 Blender 里 Scripting → 新建 → 粘贴 → 运行脚本，节点会建在当前选中物体的几何节点修改器上（材质建成新材质）。
+              适用于 4.x / 5.0；脚本里「# 手动」开头的是需要照视频手动补的地方。</p>
+          </section>
+          {recipe.plugins?.length ? (
+            <section><h4>需要的插件</h4><ul>{recipe.plugins.map((p) => (
+              <li key={p.term}><em>{p.plugin}</em>{p.term !== p.plugin ? `「${p.term}」来自它。` : ''}{p.provides}；{p.install}
+                <a className="rc-link" href={p.url} target="_blank" rel="noopener noreferrer"> 出处</a></li>))}</ul></section>
+          ) : null}
           {recipe.version_notes?.length ? (
             <section><h4>不同版本</h4><ul>{recipe.version_notes.map((v, i) => <li key={i}><em>{v.source}</em>{v.text}</li>)}</ul></section>
           ) : null}
