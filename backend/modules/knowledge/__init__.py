@@ -14,12 +14,23 @@ from functools import lru_cache
 from pathlib import Path
 
 CATALOG = Path(__file__).with_name("blender_nodes.json")
+LEGACY = Path(__file__).with_name("blender_legacy.json")  # 2.93's attribute / point nodes, gone since 3.0
 CLOSE = 0.92  # similarity a fuzzy name needs to count as that node (Mesh to SDF Volume ≠ Mesh to Volume at 0.89)
 TREES = {"geometry": "几何节点", "shader": "着色器", "compositor": "合成器"}
 
 
 def _key(text: str) -> str:
     return re.sub(r"[\s_\-()（）·.]+", "", (text or "").lower())
+
+
+@lru_cache(maxsize=1)
+def legacy() -> dict:
+    data = json.loads(LEGACY.read_text())
+    by_name: dict[str, list[dict]] = {}
+    for node in data["nodes"]:
+        for name in {node["label"], node["zh"], node["id"], *node.get("aliases", [])}:
+            by_name.setdefault(_key(name), []).append(node)
+    return {"version": data["blender"], "nodes": data["nodes"], "by_name": by_name}
 
 
 @lru_cache(maxsize=1)
@@ -42,6 +53,10 @@ def match(name: str, en: str = "", tree: str = "") -> dict | None:
         found = catalog["by_name"].get(_key(candidate))
         if found:
             return next((n for n in found if kind in n["trees"]), found[0])
+    for candidate in (en, name):  # a 2.9x tutorial's node that Blender has since replaced
+        found = legacy()["by_name"].get(_key(candidate))
+        if found and kind == "geometry":
+            return found[0]
     best, score = None, 0.0
     for candidate in (en, name):
         k = _key(candidate)

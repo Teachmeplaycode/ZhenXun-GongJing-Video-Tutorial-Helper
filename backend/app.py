@@ -736,7 +736,7 @@ async def attachment(job_id: str, name: str):
 async def extra_frame(job_id: str, name: str):
     """A frame read on demand by view_frames (补看), for the timeline and the zoom view."""
     get_job(job_id)  # 404 for a session that isn't the asker's (public demo)
-    if not re.fullmatch(r"\d{8}\.jpg", name):
+    if not re.fullmatch(r"\d{8}(?:-hd)?\.jpg", name):  # -hd: read at full width for a note's figure
         raise HTTPException(404, "没有这张画面")
     path = DATA_DIR / job_id / "extra" / name
     if not path.is_file() or DATA_DIR.resolve() not in path.resolve().parents:

@@ -85,3 +85,30 @@ def test_link_ends_and_axis_settings_land_on_the_real_sockets():
     assert tree["links"][0]["in"] == "几何数据"  # Blender's Chinese for Geometry; the video said 几何体
     params = {p["name"]: p["value"] for p in tree["nodes"][1]["params"]}
     assert params["旋转"] == "180°, 0.0, 0.0" and params["移动"] == "0.0, 0.0, 待确认"
+
+
+def test_a_2_9x_node_is_drawn_from_the_legacy_table_and_its_replacement_named():
+    got = recipe.normalize({"trees": [{"name": "几何节点", "nodes": [
+        {"id": "a", "name": "点旋转", "en": "", "params": [], "time": None}], "links": []}], "version_notes": []})
+    node = got["trees"][0]["nodes"][0]
+    assert node["ref"] == "GeometryNodePointRotate" and node["legacy"] == "2.93"
+    assert [x["name"] for x in node["inputs"]][:2] == ["几何数据", "轴"]
+    assert got["version_notes"][0]["source"] == "节点目录" and "「点旋转」→ 旋转实例" in got["version_notes"][0]["text"]
+
+
+def test_trees_of_one_name_are_joined_and_twin_nodes_kept_once():
+    got = recipe.merge_same({"trees": [
+        {"name": "几何节点：Geometry Nodes（主体）", "nodes": [{"id": "n1", "name": "点旋转", "params": []}, {"id": "n2", "name": "混合属性", "params": []}],
+         "links": [{"from": "n2", "out": "几何数据", "to": "n1", "in": "几何数据"}]},
+        {"name": "几何节点：Geometry Nodes（续）", "nodes": [{"id": "n1", "name": "点旋转", "params": []}, {"id": "n2", "name": "设置材质", "params": []}],
+         "links": [{"from": "n1", "out": "几何数据", "to": "n2", "in": "几何数据"}]}]})
+    assert len(got["trees"]) == 1
+    tree = got["trees"][0]
+    assert [n["name"] for n in tree["nodes"]] == ["点旋转", "混合属性", "设置材质"]
+    assert ("n1", tree["nodes"][2]["id"]) in {(l["from"], l["to"]) for l in tree["links"]}  # the second tree's link moved onto the kept 点旋转
+
+
+def test_trees_that_differ_by_more_than_a_note_stay_apart():
+    got = recipe.merge_same({"trees": [{"name": "材质：方块 A", "nodes": [{"id": "a", "name": "x", "params": []}], "links": []},
+                                       {"name": "材质：方块 B", "nodes": [{"id": "a", "name": "x", "params": []}], "links": []}]})
+    assert len(got["trees"]) == 2

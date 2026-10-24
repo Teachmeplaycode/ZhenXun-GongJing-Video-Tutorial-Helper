@@ -19,8 +19,9 @@ function NodeCard({ c, x, y, onGrab }) {
       <g onPointerDown={onGrab} style={{ cursor: 'grab' }}>
         <path d={`M0,7 a7,7 0 0 1 7,-7 h${W - 14} a7,7 0 0 1 7,7 v${HEAD - 7} h-${W} z`} fill={headerColor(node)} />
         <text x="10" y="19" fontSize="13" fontWeight="600" fill="#F4F4F4">{short(node.name, 15)}</text>
-        {node.en && node.name.length < 11 ? <text x={W - 9} y="19" fontSize="10" fill="#EDEDED" opacity="0.7" textAnchor="end">{short(node.en, 18)}</text> : null}
-        <title>{`${node.name}${node.en ? `（${node.en}）` : ''}${node.ref ? '' : '：不在 Blender 节点目录里，按视频里的叫法画出'}${node.time != null ? ` · 视频 ${fmtClock(node.time)}` : ''}`}</title>
+        {node.legacy ? <text x={W - 9} y="19" fontSize="10" fill="#FFD27A" textAnchor="end">{node.legacy} 旧节点</text>
+          : node.en && node.name.length < 11 ? <text x={W - 9} y="19" fontSize="10" fill="#EDEDED" opacity="0.7" textAnchor="end">{short(node.en, 18)}</text> : null}
+        <title>{`${node.name}${node.en ? `（${node.en}）` : ''}${node.ref ? '' : '：不在 Blender 节点目录里，按视频里的叫法画出'}${node.legacy ? `：Blender ${node.legacy} 的旧节点，新版本用 ${node.replaced_by}` : ''}${node.time != null ? ` · 视频 ${fmtClock(node.time)}` : ''}`}</title>
       </g>
       {rows.map((r, i) => {
         const cy = rowY(i)
