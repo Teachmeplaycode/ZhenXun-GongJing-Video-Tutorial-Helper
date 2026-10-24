@@ -353,6 +353,18 @@ class BilibiliResolver(Resolver):
             video.extra["aid"] = (await self._view("bvid", video.extra.get("bvid") or video.video_id)).get("aid")
         return int(video.extra["aid"]), int(video.extra["cid"])
 
+    async def related(self, video: ResolvedVideo) -> list[dict]:
+        """B 站's 相关推荐 beside the player (no login needed)."""
+        response = await self._get(f"{API}/x/web-interface/archive/related", params={"bvid": video.video_id})
+        out = []
+        for v in (response.json() or {}).get("data") or []:
+            if not v.get("bvid"):
+                continue
+            out.append({"url": f"https://www.bilibili.com/video/{v['bvid']}/", "title": v.get("title") or "",
+                        "author": (v.get("owner") or {}).get("name") or "", "duration": v.get("duration") or 0,
+                        "views": (v.get("stat") or {}).get("view") or 0, "cover": (v.get("pic") or "").replace("http://", "https://")})
+        return out
+
     async def comments(self, video: ResolvedVideo, sort: str = "hot", cursor: str | None = None) -> CommentPage:
         aid, _ = await self._ids(video)
         mode = COMMENT_SORT.get(sort, 3)
