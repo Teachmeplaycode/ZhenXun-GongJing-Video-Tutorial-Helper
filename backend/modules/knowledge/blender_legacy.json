@@ -1,0 +1,1084 @@
+{
+"blender": "2.93",
+"note": "Blender 2.93 的属性/点节点（3.0 改为字段节点后移除），手工整理自 2.93 手册",
+"nodes": [
+{
+"id": "GeometryNodeAttributeMath",
+"label": "Attribute Math",
+"zh": "属性运算",
+"aliases": [
+"属性数学运算"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "A",
+"zh": "A",
+"type": "String",
+"default": null
+},
+{
+"name": "B",
+"zh": "B",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "运算（Math），接到字段上",
+"modern": "Math"
+},
+{
+"id": "GeometryNodeAttributeVectorMath",
+"label": "Attribute Vector Math",
+"zh": "属性矢量运算",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "A",
+"zh": "A",
+"type": "String",
+"default": null
+},
+{
+"name": "B",
+"zh": "B",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "矢量运算（Vector Math），接到字段上",
+"modern": "Vector Math"
+},
+{
+"id": "GeometryNodeAttributeRandomize",
+"label": "Attribute Randomize",
+"zh": "属性随机化",
+"aliases": [
+"随机属性"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Attribute",
+"zh": "属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Min",
+"zh": "最小",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "Max",
+"zh": "最大",
+"type": "Float",
+"default": 1.0
+},
+{
+"name": "Seed",
+"zh": "种子",
+"type": "Int",
+"default": 0
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "随机值（Random Value）",
+"modern": "Random Value"
+},
+{
+"id": "GeometryNodeAttributeMix",
+"label": "Attribute Mix",
+"zh": "混合属性",
+"aliases": [
+"属性混合"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Factor",
+"zh": "系数",
+"type": "Float",
+"default": 0.5
+},
+{
+"name": "A",
+"zh": "A",
+"type": "String",
+"default": null
+},
+{
+"name": "B",
+"zh": "B",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "混合（Mix）",
+"modern": "Mix"
+},
+{
+"id": "GeometryNodeAttributeFill",
+"label": "Attribute Fill",
+"zh": "属性填充",
+"aliases": [
+"填充属性"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Attribute",
+"zh": "属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Value",
+"zh": "值",
+"type": "Float",
+"default": 0.0
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "存储命名属性（Store Named Attribute）",
+"modern": "Store Named Attribute"
+},
+{
+"id": "GeometryNodeAttributeColorRamp",
+"label": "Attribute Color Ramp",
+"zh": "属性颜色渐变",
+"aliases": [
+"属性颜色ramp"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Attribute",
+"zh": "属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "颜色渐变（Color Ramp），接到字段上",
+"modern": "Color Ramp"
+},
+{
+"id": "GeometryNodeAttributeCompare",
+"label": "Attribute Compare",
+"zh": "属性比较",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "A",
+"zh": "A",
+"type": "String",
+"default": null
+},
+{
+"name": "B",
+"zh": "B",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "比较（Compare）",
+"modern": "Compare"
+},
+{
+"id": "GeometryNodeAttributeMapRange",
+"label": "Attribute Map Range",
+"zh": "属性映射范围",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Attribute",
+"zh": "属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+},
+{
+"name": "From Min",
+"zh": "从最小",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "From Max",
+"zh": "从最大",
+"type": "Float",
+"default": 1.0
+},
+{
+"name": "To Min",
+"zh": "到最小",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "To Max",
+"zh": "到最大",
+"type": "Float",
+"default": 1.0
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "映射范围（Map Range）",
+"modern": "Map Range"
+},
+{
+"id": "GeometryNodeAttributeCombineXYZ",
+"label": "Attribute Combine XYZ",
+"zh": "属性合并XYZ",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "X",
+"zh": "X",
+"type": "String",
+"default": null
+},
+{
+"name": "Y",
+"zh": "Y",
+"type": "String",
+"default": null
+},
+{
+"name": "Z",
+"zh": "Z",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "合并 XYZ（Combine XYZ）",
+"modern": "Combine XYZ"
+},
+{
+"id": "GeometryNodeAttributeSeparateXYZ",
+"label": "Attribute Separate XYZ",
+"zh": "属性分离XYZ",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Vector",
+"zh": "矢量",
+"type": "String",
+"default": null
+},
+{
+"name": "Result X",
+"zh": "结果 X",
+"type": "String",
+"default": null
+},
+{
+"name": "Result Y",
+"zh": "结果 Y",
+"type": "String",
+"default": null
+},
+{
+"name": "Result Z",
+"zh": "结果 Z",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "分离 XYZ（Separate XYZ）",
+"modern": "Separate XYZ"
+},
+{
+"id": "GeometryNodeAttributeProximity",
+"label": "Attribute Proximity",
+"zh": "属性接近",
+"aliases": [
+"属性邻近"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Target",
+"zh": "目标",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Distance",
+"zh": "距离",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "几何体接近（Geometry Proximity）",
+"modern": "Geometry Proximity"
+},
+{
+"id": "GeometryNodeAttributeSampleTexture",
+"label": "Attribute Sample Texture",
+"zh": "属性采样纹理",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Texture",
+"zh": "纹理",
+"type": "Texture",
+"default": null
+},
+{
+"name": "Mapping",
+"zh": "映射",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "直接把纹理节点接到字段上",
+"modern": "Noise Texture"
+},
+{
+"id": "GeometryNodeAttributeVectorRotate",
+"label": "Attribute Vector Rotate",
+"zh": "属性矢量旋转",
+"aliases": [
+"矢量旋转属性"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Vector",
+"zh": "矢量",
+"type": "String",
+"default": null
+},
+{
+"name": "Center",
+"zh": "中心",
+"type": "Vector",
+"default": [
+0,
+0,
+0
+]
+},
+{
+"name": "Axis",
+"zh": "轴",
+"type": "Vector",
+"default": [
+0,
+0,
+1
+]
+},
+{
+"name": "Angle",
+"zh": "角度",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "Rotation",
+"zh": "旋转",
+"type": "Vector",
+"default": [
+0,
+0,
+0
+]
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "矢量旋转（Vector Rotate）",
+"modern": "Vector Rotate"
+},
+{
+"id": "GeometryNodeAttributeConvert",
+"label": "Attribute Convert",
+"zh": "属性转换",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Attribute",
+"zh": "属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "存储命名属性（Store Named Attribute）并选数据类型",
+"modern": "Store Named Attribute"
+},
+{
+"id": "GeometryNodeAttributeClamp",
+"label": "Attribute Clamp",
+"zh": "属性钳制",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Attribute",
+"zh": "属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Result",
+"zh": "结果",
+"type": "String",
+"default": null
+},
+{
+"name": "Min",
+"zh": "最小",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "Max",
+"zh": "最大",
+"type": "Float",
+"default": 1.0
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "钳制（Clamp）",
+"modern": "Clamp"
+},
+{
+"id": "GeometryNodePointDistribute",
+"label": "Point Distribute",
+"zh": "点分布",
+"aliases": [
+"分布点"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Distance Min",
+"zh": "最小距离",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "Density Max",
+"zh": "最大密度",
+"type": "Float",
+"default": 1.0
+},
+{
+"name": "Density Attribute",
+"zh": "密度属性",
+"type": "String",
+"default": null
+},
+{
+"name": "Seed",
+"zh": "种子",
+"type": "Int",
+"default": 0
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "在面上分布点（Distribute Points on Faces）",
+"modern": "Distribute Points on Faces"
+},
+{
+"id": "GeometryNodePointInstance",
+"label": "Point Instance",
+"zh": "点实例",
+"aliases": [
+"实例化点"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Object",
+"zh": "物体",
+"type": "Object",
+"default": null
+},
+{
+"name": "Collection",
+"zh": "集合",
+"type": "Collection",
+"default": null
+},
+{
+"name": "Seed",
+"zh": "种子",
+"type": "Int",
+"default": 0
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "实例化于点上（Instance on Points）",
+"modern": "Instance on Points"
+},
+{
+"id": "GeometryNodePointRotate",
+"label": "Point Rotate",
+"zh": "点旋转",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Axis",
+"zh": "轴",
+"type": "Vector",
+"default": [
+0,
+0,
+1
+]
+},
+{
+"name": "Angle",
+"zh": "角度",
+"type": "Float",
+"default": 0.0
+},
+{
+"name": "Rotation",
+"zh": "旋转",
+"type": "Vector",
+"default": [
+0,
+0,
+0
+]
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "旋转实例（Rotate Instances），或实例化于点上的「旋转」输入",
+"modern": "Rotate Instances"
+},
+{
+"id": "GeometryNodePointScale",
+"label": "Point Scale",
+"zh": "点缩放",
+"aliases": [
+"点大小"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Factor",
+"zh": "系数",
+"type": "Vector",
+"default": [
+1,
+1,
+1
+]
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "缩放实例（Scale Instances），或实例化于点上的「缩放」输入",
+"modern": "Scale Instances"
+},
+{
+"id": "GeometryNodePointTranslate",
+"label": "Point Translate",
+"zh": "点平移",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Translation",
+"zh": "平移",
+"type": "Vector",
+"default": [
+0,
+0,
+0
+]
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "设置位置（Set Position）的「偏移」，或平移实例（Translate Instances）",
+"modern": "Set Position"
+},
+{
+"id": "GeometryNodePointSeparate",
+"label": "Point Separate",
+"zh": "点分离",
+"aliases": [],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Mask",
+"zh": "遮罩",
+"type": "String",
+"default": null
+}
+],
+"outputs": [
+{
+"name": "Geometry 1",
+"zh": "几何数据 1",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Geometry 2",
+"zh": "几何数据 2",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "按选择分离几何体（Separate Geometry）",
+"modern": "Separate Geometry"
+},
+{
+"id": "GeometryNodeAlignRotationToVector",
+"label": "Align Rotation to Vector",
+"zh": "对齐旋转到矢量",
+"aliases": [
+"对齐旋转至矢量"
+],
+"trees": [
+"geometry"
+],
+"era": "2.93",
+"inputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+},
+{
+"name": "Factor",
+"zh": "系数",
+"type": "Float",
+"default": 1.0
+},
+{
+"name": "Vector",
+"zh": "矢量",
+"type": "Vector",
+"default": [
+0,
+0,
+1
+]
+}
+],
+"outputs": [
+{
+"name": "Geometry",
+"zh": "几何数据",
+"type": "Geometry",
+"default": null
+}
+],
+"replaced_by": "对齐欧拉到矢量（Align Euler to Vector）",
+"modern": "Align Euler to Vector"
+}
+]
+}

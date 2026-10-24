@@ -237,6 +237,39 @@ def _settle(node: dict) -> None:
     node["params"] = params
 
 
+def merge_same(recipe: dict) -> dict:
+    """Trees of one name (the merge call sometimes splits a modifier) joined; a node of the same name and
+    settings appearing in both kept once, links moved to it."""
+    joined: dict[str, dict] = {}
+    for tree in recipe["trees"]:
+        key = re.sub(r"\s*[（(][^）)]*[）)]?\s*$", "", tree["name"]).strip() or tree["name"]  # 「（续）」「（」 aside
+        if key not in joined:
+            joined[key] = tree
+            continue
+        into = joined[key]
+        same = {(n["name"], json.dumps(n["params"], ensure_ascii=False, sort_keys=True)): n["id"] for n in into["nodes"]}
+        taken = {n["id"] for n in into["nodes"]}
+        rename = {}
+        for n in tree["nodes"]:
+            twin = same.get((n["name"], json.dumps(n["params"], ensure_ascii=False, sort_keys=True)))
+            if twin:
+                rename[n["id"]] = twin
+                continue
+            new = n["id"] if n["id"] not in taken else f"{n['id']}_{len(taken)}"
+            rename[n["id"]] = new
+            taken.add(new)
+            into["nodes"].append({**n, "id": new})
+        seen = {(l["from"], l["out"], l["to"], l["in"]) for l in into["links"]}
+        for l in tree["links"]:
+            moved = {**l, "from": rename.get(l["from"], l["from"]), "to": rename.get(l["to"], l["to"])}
+            key2 = (moved["from"], moved["out"], moved["to"], moved["in"])
+            if key2 not in seen and moved["from"] != moved["to"]:
+                seen.add(key2)
+                into["links"].append(moved)
+    recipe["trees"] = list(joined.values())
+    return recipe
+
+
 def normalize(recipe: dict) -> dict:
     """Each node matched to the Blender catalog: its real name, every socket it has, its defaults; link
     ends and settings renamed to the sockets they mean."""
@@ -251,6 +284,8 @@ def normalize(recipe: dict) -> dict:
             node["name"] = ref["zh"] if ref["zh"] != ref["label"] else node["name"]
             node["inputs"] = [{"name": x["zh"], "en": x["name"], "type": x["type"], "default": x["default"]} for x in ref["inputs"]]
             node["outputs"] = [{"name": x["zh"], "en": x["name"], "type": x["type"]} for x in ref["outputs"]]
+            if ref.get("era"):  # a 2.9x node Blender has since replaced: say with what
+                node["legacy"], node["replaced_by"] = ref["era"], ref["replaced_by"]
         by_id = {n["id"]: n for n in tree["nodes"]}
         for link in tree["links"]:
             for end, side, key in ((link["from"], "outputs", "out"), (link["to"], "inputs", "in")):
@@ -260,6 +295,10 @@ def normalize(recipe: dict) -> dict:
                     link[key] = found["name"]
         for node in tree["nodes"]:
             _settle(node)
+    olds = {n["name"]: n["replaced_by"] for t in recipe["trees"] for n in t["nodes"] if n.get("legacy")}
+    if olds:
+        recipe.setdefault("version_notes", []).insert(0, {"source": "节点目录", "text": (
+            "这个教程用的是 Blender 2.9x 的属性/点节点，3.0 起已经移除：" + "；".join(f"「{a}」→ {b}" for a, b in olds.items()))[:400]})
     return recipe
 
 
@@ -371,6 +410,7 @@ async def run(job, llm, grab, viewers=None) -> AsyncIterator[dict | tuple]:
         return
     if not feedback:  # no viewer said anything it was given: notes credited to them are made up
         recipe["version_notes"] = [v for v in recipe["version_notes"] if not re.search(r"评论|弹幕|观众", v["source"] + v["text"])]
+    merge_same(recipe)
     normalize(recipe)
     lonely = [t for t in recipe["trees"] if any(n["id"] not in {l["from"] for l in t["links"]} | {l["to"] for l in t["links"]} for n in t["nodes"])]
     if lonely:
