@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { fmtClock } from '../lib/format'
+import Working from './Working'
 
 // The video's table of contents (backend modules/chapters): titles with time ranges and a one-line
 // summary each. data is the polled /chapters answer; onSeek(start) points the timeline at a chapter.
@@ -40,6 +41,11 @@ export default function ChaptersPanel({ data = null, onSeek = null, embedded = f
           </button>
         )}
       </header>
+      {open && embedded && data.status === 'running' ? (
+        <div className="steps-tab__working">
+          <Working label="正在生成章节目录" hint="导入完成后自动开始：等语音转写和画面文字读完，再切分章节、起标题。长视频要一两分钟。" />
+        </div>
+      ) : null}
       {open && data.summary ? <p className="chapters__overview body-sm">{data.summary}</p> : null}
       {open && list.length ? (
         <ol className="chapters__list">

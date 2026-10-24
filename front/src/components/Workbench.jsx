@@ -4,7 +4,8 @@ import { IconChevron } from './Icons'
 // The workbench: a sidebar on the right of the chat that holds the per-video tools, one tab each.
 // A handle on its left edge (a small triangle) pulls it out and pushes it back. Panels stay mounted
 // while hidden, so a fact-check or a note still being generated keeps running when another tab shows.
-// panels: { key: element } in tab order; labels: { key: '章节' }; badges: { key: '3' } (optional).
+// panels: { key: element } in tab order; labels: { key: '章节' }; badges: { key: '3' } (optional);
+// a badge 'busy' is a pulsing dot on the tab and on the handle, so a job running out of sight shows.
 export const BENCH_TABS = [
   { key: 'frames', label: '画面' }, // phones only: the frame grid instead of the timeline
   { key: 'steps', label: '步骤' },
@@ -47,6 +48,7 @@ export default function Workbench({ open, onOpenChange, tab, onTab, panels, badg
           aria-expanded={open} aria-controls="bench-body" title={open ? '收起工作台' : '展开工作台：章节、反诈、科普、笔记'}>
           <IconChevron size={12} />
           <span className="bench__handle-label">工作台</span>
+          {Object.values(badges).includes('busy') ? <span className="bench__busy" aria-label="工作台里有任务正在处理" /> : null}
         </button>
         <div className="bench__body" id="bench-body" hidden={!open}>
           <div ref={tabsRef} className="bench__tabs" role="tablist" aria-label="工作台功能" onKeyDown={onKeyDown}>
@@ -55,7 +57,8 @@ export default function Workbench({ open, onOpenChange, tab, onTab, panels, badg
                 aria-selected={shown === t.key} aria-controls={`bench-panel-${t.key}`} tabIndex={shown === t.key ? 0 : -1}
                 className="bench__tab" onClick={() => onTab(t.key)}>
                 {t.label}
-                {badges[t.key] ? <span className="bench__badge mono-sm">{badges[t.key]}</span> : null}
+                {badges[t.key] === 'busy' ? <span className="bench__busy" aria-label="正在处理" />
+                  : badges[t.key] ? <span className="bench__badge mono-sm">{badges[t.key]}</span> : null}
               </button>
             ))}
           </div>

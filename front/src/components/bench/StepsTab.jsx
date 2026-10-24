@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { buildStepComments, buildSteps, getStepComments, getSteps, linkFrameUrl } from '../../api/client'
 import { fmtClock } from '../../lib/format'
 import { IconFilm } from '../Icons'
+import Working from '../Working'
 
 // Step cards (backend modules/steps.py): what the tutorial has you do, in order, each at its second
 // with the frame from that moment. A card's time jumps the timeline there; 「卡在这步」 starts a
@@ -29,7 +30,7 @@ function Viewers({ group, onSeek }) {
     </ul>
   )
 }
-export default function StepsTab({ video, onSeek = null, onStuck = null }) {
+export default function StepsTab({ video, onSeek = null, onStuck = null, onBusy = null }) {
   const jobId = video?.jobId
   const [state, setState] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -58,6 +59,8 @@ export default function StepsTab({ video, onSeek = null, onStuck = null }) {
       setReading(false)
     }
   }
+  const working = busy || state?.status === 'running' || reading
+  useEffect(() => { onBusy?.(working) }, [working]) // eslint-disable-line react-hooks/exhaustive-deps
   const groups = voices?.status === 'done' ? voices.groups || [] : []
   const groupOf = (n) => groups.find((g) => g.step === n)
   const general = groupOf(0)
@@ -85,6 +88,8 @@ export default function StepsTab({ video, onSeek = null, onStuck = null }) {
             <span className="eyebrow">操作步骤</span>
             <span className="mono-sm muted">{list.length} 步 · 点时间回到那一秒</span>
           </header>
+          {reading ? <div className="steps-tab__working"><Working label="正在读评论区和弹幕" hint="读热门评论和弹幕，对到每一步上，一般 20–40 秒。" /></div> : null}
+          {busy ? <div className="steps-tab__working"><Working label="正在重新整理步骤" hint="读整段语音和画面文字，长视频要半分钟左右。" /></div> : null}
           <div className="steps-tab__voices">
             {voices?.status === 'done' || voices?.status === 'empty' || voices?.status === 'unavailable'
               ? <span className="caption muted">{voices.message}</span>
@@ -128,9 +133,13 @@ export default function StepsTab({ video, onSeek = null, onStuck = null }) {
           <button type="button" className="link-btn steps-tab__redo" onClick={start} disabled={running}>{running ? '整理中…' : '重新整理'}</button>
         </>
       ) : (
-        <div className="bench__idle">
+        running ? (
+          <div className="steps-tab__working">
+            <Working label="正在整理操作步骤" hint="读整段语音和画面文字，按顺序列出要亲手做的每一步。一般 10–40 秒，视频越长越久；切到别的页也会继续。" />
+          </div>
+        ) : <div className="bench__idle">
           <IconFilm size={28} />
-          <h3>{running ? '正在整理步骤…' : '整理操作步骤'}</h3>
+          <h3>整理操作步骤</h3>
           <p className="body-sm muted">把教程里要你亲手做的操作按顺序列成卡片：每一步写清点哪里、填什么，配上那一刻的画面，点时间就回到原视频那一秒。</p>
           {state?.status === 'empty' ? <p className="caption muted">{state.message}</p> : null}
           <button type="button" className="btn btn--dark" onClick={start} disabled={running}>{running ? '整理中…' : state?.status === 'empty' ? '再试一次' : '整理步骤'}</button>

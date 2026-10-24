@@ -95,3 +95,14 @@ for (const status of ['empty', 'unavailable']) {
     await expect(page.locator('.chapters__item')).toHaveCount(0)
   })
 }
+
+test('a chapter list still being built says so in the tab, with a pulsing dot on the tab and the handle', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.chaptersStatus = 'running'
+  await mock.install()
+  await page.goto('/')
+  await enterChat(page)
+  await expect(page.locator('.chapters .working')).toContainText('正在生成章节目录')
+  await expect(page.getByRole('tab', { name: '章节' }).locator('.bench__busy')).toBeVisible()
+  await expect(page.locator('.bench__handle .bench__busy')).toHaveCount(1)
+})
