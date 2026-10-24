@@ -182,14 +182,15 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     : `范围：${clip ? `先慢放 ${fineClock(clip.start)}–${fineClock(clip.end)}` : selected.length ? `已选 ${selected.length} 帧` : '整段视频'}${transcript ? ` · 语音 ${speechStep(transcript).value || '等待'}` : ''}${screentext ? ` · 字幕 ${screenStep(screentext).value || '等待'}` : ''}`
 
   const chapterList = chapters?.status === 'done' ? chapters.chapters || [] : []
+  const [busyTabs, setBusyTabs] = useState({}) // tabs with a job running: a pulsing dot on the tab and the handle
   const panels = {
     // Phones: the frame grid lives here (the timeline is gone); a choice made in it closes the workbench.
     ...(framesPanel ? { frames: React.cloneElement(framesPanel, { onClose: () => setBenchOpen(false) }) } : {}),
     chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
       onSelect={onChapterSelect} onHover={onChapterHover} />,
-    steps: <StepsTab video={video} onSeek={onSeek}
+    steps: <StepsTab video={video} onSeek={onSeek} onBusy={(b) => setBusyTabs((t) => ({ ...t, steps: b }))}
       onStuck={(s) => setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`)} />,
-    compare: <CompareTab video={video} onSeek={onSeek} onOpenSession={onOpenSession} />,
+    compare: <CompareTab video={video} onSeek={onSeek} onOpenSession={onOpenSession} onBusy={(b) => setBusyTabs((t) => ({ ...t, compare: b }))} />,
     notes: <NotesTab video={video} messages={messages} />,
   }
 
@@ -252,7 +253,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
       />
     </div>
     <Workbench open={bench.open} onOpenChange={setBenchOpen} tab={bench.tab} onTab={setBenchTab} panels={panels} hide={[...(pictures ? ['chapters', 'steps', 'compare'] : []), ...(framesPanel ? [] : ['frames'])]}
-      badges={{ chapters: chapterList.length || null }} />
+      badges={{ chapters: chapters?.status === 'running' ? 'busy' : chapterList.length || null,
+        steps: busyTabs.steps ? 'busy' : null, compare: busyTabs.compare ? 'busy' : null }} />
     </div>
   )
 }
