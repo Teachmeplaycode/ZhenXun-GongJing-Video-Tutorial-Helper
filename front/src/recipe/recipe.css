@@ -23,3 +23,7 @@
 .rc-empty { position: fixed; inset: 0; display: grid; place-content: center; gap: 10px; background: #1D1D1D; color: #DADADA; text-align: center; }
 .rc-empty a { color: #C8F04A; }
 @media (max-width: 760px) { .rc { grid-template-columns: minmax(0, 1fr); } .rc-panel { display: none; } }
+.rc-script { background: #C8F04A !important; color: #1A1A1A !important; border-color: #C8F04A !important; font-weight: 600; }
+.rc-link { color: #C8F04A; font-size: 12.5px; text-decoration: none; }
+.rc-link:hover { text-decoration: underline; }
+.rc-warn { margin: 0; padding: 8px 10px; border-radius: 6px; background: #3A2A14; color: #FFD27A; font-size: 12.5px; }

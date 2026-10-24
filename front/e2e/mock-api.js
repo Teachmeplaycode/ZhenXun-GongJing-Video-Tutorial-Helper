@@ -352,6 +352,8 @@ export class MockApi {
     }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/related$/)
     if (m) return json({ status: 'done', message: '', items: this.related || [] })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe\/script$/)
+    if (m) return route.fulfill({ status: 200, contentType: 'text/x-python', body: '# 帧寻 · 抄作业\nimport bpy\n' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe(\/layout)?$/)
     if (m && m[2] && req.method() === 'PUT') {
       this.recipeLayouts = [...(this.recipeLayouts || []), req.postDataJSON().positions]
