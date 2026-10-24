@@ -12,6 +12,8 @@ from modules.llm import LLMError, Usage
 
 from .task import FILE, load, run_chapters, save, write_record
 
+SIDE_WAIT = 30.0  # seconds the screen text and shot cuts get once the speech is in
+
 
 class ChapterService:
     def __init__(self, get_job, spawn, get_client, cutting, ensure_cuts):
@@ -27,15 +29,20 @@ class ChapterService:
         self.router = APIRouter()
         self.router.add_api_route('/api/link-jobs/{job_id}/chapters', self.get, methods=['GET'])
 
-    async def wait_inputs(self, job, timeout: float | None = None):
+    async def wait_inputs(self, job, timeout: float | None = None, side: float = SIDE_WAIT):
+        """The speech first (chapters are cut and titled from it); then the screen text and the shot cuts
+        for at most `side` seconds more: on the web demo's 4 cores OCR queues for minutes and the cut pass
+        took 162 s for a 9-minute video, and a chapter list without them beats waiting for them."""
         # Producers own their duration-based timeouts; a long video is not a failure.
         deadline = time.monotonic() + timeout if timeout is not None else None
+        side_deadline = None
         while deadline is None or time.monotonic() < deadline:
             t, s = job.transcript, job.screentext
-            if ((t is None or t.status not in {'pending', 'running'})
-                    and (s is None or s.status not in {'pending', 'running'})
-                    and job.id not in self.cutting):
-                return
+            if t is None or t.status not in {'pending', 'running'}:
+                side_deadline = side_deadline or time.monotonic() + side
+                rest = (s is None or s.status not in {'pending', 'running'}) and job.id not in self.cutting
+                if rest or time.monotonic() >= side_deadline:
+                    return
             await asyncio.sleep(2)
         raise TimeoutError('章节输入尚未准备完成')
 
@@ -65,7 +72,8 @@ class ChapterService:
             while job.id not in self.deleted:
                 revision = self.revisions.get(job.id, 0)
                 if cuts.load(job.root) is None and job.id not in self.cutting:
-                    await self.ensure_cuts(job)
+                    self.spawn(self.ensure_cuts(job))  # alongside: wait_inputs gives it SIDE_WAIT seconds
+                    await asyncio.sleep(0)  # let it start and mark the job as cutting
                 await self.wait_inputs(job)
                 try:
                     client = self.get_client()
