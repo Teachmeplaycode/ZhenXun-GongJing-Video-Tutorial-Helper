@@ -55,7 +55,24 @@ test('a picture rides with the question; alone it asks where one is stuck', asyn
   await expect.poll(() => mock.runsSent()[0]?.images).toEqual(['a00000000001'])
   expect(mock.runsSent()[0].question).toContain('卡在这一步')
   await expect(page.locator('.msg--user .attach-thumb--mine')).toHaveCount(1)
+  const image = page.locator('.msg--user .attach-thumb--mine img')
+  await expect.poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true)
   await expect(page.locator('.image-chip')).toHaveCount(0)
+})
+
+test('saved screenshots still load when the conversation is reopened', async ({ page }) => {
+  await chat(page, (mock) => mock.addSession('shot1', {
+    title: '带截图的会话',
+    messages: [
+      { role: 'user', content: '这一步怎么做？', frames: [], images: [{ id: 'a00000000001', url: '/api/link-jobs/shot1/attachments/a00000000001.jpg' }] },
+      { role: 'assistant', content: '打开设置。', status: 'done', events: [] },
+    ],
+  }))
+  await page.locator('.btn--history').click()
+  await page.locator('.history .session-item', { hasText: '带截图的会话' }).locator('.session-item__open').click()
+  const image = page.locator('.msg--user .attach-thumb--mine img')
+  await expect(image).toHaveCount(1)
+  await expect.poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true)
 })
 
 test('desktop: grey completion after the caret, Tab takes it', async ({ page }) => {
