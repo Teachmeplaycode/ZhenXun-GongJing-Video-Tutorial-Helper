@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { buildCompare, getCompare, linkFrameUrl, listSessions } from '../../api/client'
 import { fmtClock } from '../../lib/format'
+import Working from '../Working'
 
 const MAX_OTHERS = 2
 const LAST_KEY = (jobId) => `compare.last.${jobId}` // the videos last compared with this one
@@ -8,7 +9,7 @@ const LAST_KEY = (jobId) => `compare.last.${jobId}` // the videos last compared 
 // Tutorials of the same task side by side (backend modules/compare.py): one row per operation with
 // each video's step for it, what differs, and which video suits whom. This video's times seek its
 // timeline; another video's time opens that session at that second.
-export default function CompareTab({ video, onSeek = null, onOpenSession = null }) {
+export default function CompareTab({ video, onSeek = null, onOpenSession = null, onBusy = null }) {
   const jobId = video?.jobId
   const [sessions, setSessions] = useState(null)
   const [picked, setPicked] = useState([])
@@ -54,6 +55,7 @@ export default function CompareTab({ video, onSeek = null, onOpenSession = null 
       setBusy(false)
     }
   }
+  useEffect(() => { onBusy?.(busy) }, [busy]) // eslint-disable-line react-hooks/exhaustive-deps
   const jump = (v, cell) => (v.id === jobId ? onSeek?.(cell.time) : onOpenSession?.(v.id, cell.time))
 
   if (!jobId) return <p className="bench__note muted">导入视频后可以和别的教程对照。</p>
@@ -119,6 +121,7 @@ export default function CompareTab({ video, onSeek = null, onOpenSession = null 
               ))}
             </ul>
           )}
+          {busy ? <Working label="正在对照这几个教程" hint="没整理步骤的先整理，再把同一个操作对成一行。一般半分钟到一分钟。" /> : null}
           <button type="button" className="btn btn--dark" onClick={start} disabled={busy || !picked.length}>
             {busy ? '对照中…（可能要半分钟）' : picked.length ? `对照这 ${picked.length + 1} 个教程` : '先选一个教程'}
           </button>
