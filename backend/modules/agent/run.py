@@ -432,6 +432,57 @@ async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
     return bool(RESEARCH_RE.search(question)), None
 
 
+WAIT_MAX = 240.0      # seconds an answer waits for the keyframes and the speech
+SCREEN_WAIT = 60.0    # and then, at most, for the screen text (OCR queues for minutes on the web demo)
+WAIT_STEP = 2.0
+BUSY = {"pending", "running"}
+
+
+def missing_material(job: FrameJob) -> list[str]:
+    """What an answer would be short of right now: the keyframes still being read, the speech, the screen text."""
+    out = []
+    if job.coverage()["pending"]:
+        out.append("关键帧")
+    if job.transcript is not None and job.transcript.status in BUSY and not picture_sets.is_images(job.video):
+        out.append("语音转写")
+    if job.screentext is not None and job.screentext.status in BUSY:
+        out.append("画面文字")
+    return out
+
+
+async def wait_for_material(job: FrameJob, sleep=None) -> AsyncIterator[dict]:
+    """A question asked while the import is still reading: wait in the answer, saying for what, until the
+    keyframes and the speech are in (WAIT_MAX at most) and then the screen text (SCREEN_WAIT more at most).
+    Events: progress updates and a data.wait step; nothing at all when everything is already there."""
+    import asyncio
+
+    sleep = sleep or asyncio.sleep
+    waiting = missing_material(job)
+    if not waiting:
+        return
+
+    def tool(kind: str, **payload) -> dict:
+        return {"type": f"tool_call.{kind}", "call_id": "wait", **payload}
+
+    yield tool("started", tool_name="data.wait")
+    yield tool("input", input={"kind": "params", "params": {"waiting": "、".join(waiting)}})
+    waited, screen_waited = 0.0, 0.0
+    while True:
+        now = missing_material(job)
+        core = [x for x in now if x != "画面文字"]
+        if not now or (not core and screen_waited >= SCREEN_WAIT) or waited >= WAIT_MAX:
+            break
+        if not core:
+            screen_waited += WAIT_STEP
+        yield {"type": "progress.update", "step": f"等待{'、'.join(now)}（已等 {int(waited)} 秒）", "percent": 5}
+        await sleep(WAIT_STEP)
+        waited += WAIT_STEP
+    left = missing_material(job)
+    note = (f"等了 {int(waited)} 秒，{'、'.join(left)}还没完成，先用已有的部分回答" if left else f"等了 {int(waited)} 秒，数据已齐")
+    yield tool("output", stdout=note, exit_code=0, data={"waited": int(waited), "left": left})
+    yield tool("completed", result_count=int(waited))
+
+
 async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: str, *,
                     frames: list[int] | None = None, history: list[dict] | None = None, decider=None,
                     web: bool = True, papers: bool = True, framed: list[tuple[float, float]] | None = None,
@@ -445,6 +496,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     def tool(call_id: str, kind: str, **payload) -> dict:
         return {"type": f"tool_call.{kind}", "call_id": call_id, **payload}
 
+    async for event in wait_for_material(job):  # asked mid-import: wait here for enough to answer from
+        yield event
     yield {"type": "progress.update", "step": "整理画面", "percent": 10}
     steps += 1
     chosen, notes = pick_frames(job, frames, max_images())

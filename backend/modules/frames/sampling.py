@@ -4,7 +4,7 @@ Three presets, chosen on the import screen, plus optional overrides from its "�
 
   quick     32 keyframes, no shot fill, on-screen text every 2 s   short videos, a few quick questions
   standard  48–64 keyframes, a frame for every shot up to 128,     most videos (the default)
-            on-screen text every second
+            on-screen text every second (every 2 s past LONG_VIDEO)
   fine      64–128 keyframes (about one a second), shot fill up    lectures, blackboard / slides,
             to 256, on-screen text twice a second                    note-taking
 
@@ -20,6 +20,10 @@ from .job import frame_count
 
 MAX_FRAMES = 256
 OCR_RATES = (0, 0.5, 1, 2)  # frames per second read for on-screen text; 0 = off
+# Past this many seconds the standard preset reads on-screen text every 2 s: on the web demo's 4 cores
+# a 20-minute tutorial at one a second took 33 minutes and queued every import behind it; a caption or
+# a menu stays up for more than 2 s, and unchanged frames are skipped anyway (modules/screentext/change.py).
+LONG_VIDEO = 360
 
 
 @dataclass
@@ -40,7 +44,7 @@ def _preset(name: str, duration: float) -> Plan:
     if name == "fine":
         n = min(128, max(64, round(duration))) if duration > 0 else 64
         return Plan("fine", n, True, MAX_FRAMES, 2)
-    return Plan("standard", frame_count(duration), True, 128, 1)
+    return Plan("standard", frame_count(duration), True, 128, 0.5 if duration > LONG_VIDEO else 1)
 
 
 def plan(spec: dict | None, duration: float) -> Plan:
