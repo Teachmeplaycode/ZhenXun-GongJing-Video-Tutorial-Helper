@@ -13,6 +13,7 @@ per-word times, so a citation points at the right few seconds.
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import re
 import subprocess
@@ -24,6 +25,7 @@ from pathlib import Path
 import httpx
 
 from .. import spend
+from . import timing
 
 MODEL = "paraformer-v2"
 MAX_SECONDS = 12.0   # longer sentences are cut at punctuation
@@ -128,17 +130,84 @@ async def _transcribe(client: httpx.AsyncClient, url: str) -> dict:
     raise ParaformerError("识别超时")
 
 
+PART_SECONDS = 180.0   # audio longer than SPLIT_OVER is cut into pieces of about this length,
+SPLIT_OVER = 300.0     # recognized side by side (one task each) instead of one after the other
+MAX_PARTS = 8
+QUIET_WINDOW = 8.0     # seconds either side of each cut to look for the quietest moment
+QUIET_STEP = 0.2
+
+
+def cut_points(samples, rate: int, duration: float) -> list[float]:
+    """Where to cut: near every PART_SECONDS, at the quietest QUIET_STEP within QUIET_WINDOW,
+    so a cut falls between words."""
+    import numpy as np
+
+    if duration <= SPLIT_OVER:
+        return []
+    parts = min(MAX_PARTS, math.ceil(duration / PART_SECONDS))
+    step = int(rate * QUIET_STEP)
+    cuts = []
+    for k in range(1, parts):
+        target = duration * k / parts
+        a, b = max(0.0, target - QUIET_WINDOW), min(duration, target + QUIET_WINDOW)
+        piece = samples[int(a * rate):int(b * rate)].astype(np.float32)
+        n = len(piece) // step
+        if n < 2:
+            cuts.append(round(target, 2))
+            continue
+        loud = np.sqrt((piece[:n * step].reshape(n, step) ** 2).mean(axis=1))
+        cuts.append(round(a + (int(loud.argmin()) + 0.5) * QUIET_STEP, 2))
+    return cuts
+
+
+def pieces(wav: Path, folder: Path) -> list[tuple[float, Path]]:
+    """(start second, wav) for each part of `wav`; the whole file when it is short."""
+    import numpy as np
+
+    with wave.open(str(wav)) as w:
+        rate, width, channels = w.getframerate(), w.getsampwidth(), w.getnchannels()
+        raw = w.readframes(w.getnframes())
+    if width != 2 or channels != 1:
+        return [(0.0, wav)]
+    samples = np.frombuffer(raw, dtype=np.int16)
+    duration = len(samples) / rate
+    bounds = [0.0, *cut_points(samples, rate, duration), duration]
+    if len(bounds) == 2:
+        return [(0.0, wav)]
+    out = []
+    for i, (a, b) in enumerate(zip(bounds, bounds[1:])):
+        path = folder / f"part{i:02d}.wav"
+        with wave.open(str(path), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(rate)
+            w.writeframes(samples[int(a * rate):int(b * rate)].tobytes())
+        out.append((a, path))
+    return out
+
+
 async def transcribe(wav: Path) -> list[dict]:
-    """[{start, end, text}] for the audio in `wav`, seconds; raises ParaformerError."""
+    """[{start, end, text}] for the audio in `wav`, seconds; raises ParaformerError.
+    Long audio is cut at quiet moments and the parts recognized at the same time."""
     if not key():
         raise ParaformerError("没有配置 DASHSCOPE_API_KEY")
     with tempfile.TemporaryDirectory() as tmp:
-        small = await asyncio.to_thread(squeeze, wav, Path(tmp) / "audio.opus")
+        folder = Path(tmp)
+        parts = await asyncio.to_thread(pieces, wav, folder)
+        timing.note(parts=len(parts))
+        with timing.stage("squeeze"):
+            small = await asyncio.gather(*(asyncio.to_thread(squeeze, p, folder / f"{p.stem}.opus") for _, p in parts))
         async with httpx.AsyncClient(timeout=60, headers={"Authorization": f"Bearer {key()}"}) as client:
-            url = await _upload(client, small)
-            result = segments(await _transcribe(client, url))
+            with timing.stage("upload"):
+                urls = await asyncio.gather(*(_upload(client, f) for f in small))
+            with timing.stage("recognize"):
+                results = await asyncio.gather(*(_transcribe(client, u) for u in urls))
+    out = []
+    for (start, _), result in zip(parts, results):
+        out += [{**s, "start": round(s["start"] + start, 3), "end": round(s["end"] + start, 3)} for s in segments(result)]
+    out.sort(key=lambda s: s["start"])
     spend.asr(_seconds(wav))  # priced against the day's budget
-    return result
+    return out
 
 
 def _seconds(wav: Path) -> float:

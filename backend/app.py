@@ -216,7 +216,8 @@ async def transcribe(job: FrameJob) -> None:
         store.save_transcript(job)
         t = job.transcript
         log.event("transcript", job_id=job.id, status=t.status if t else None, segments=len(t.segments) if t else 0,
-                  message=(t.message if t and t.status != "done" else ""), ms=timer.ms)
+                  message=(t.message if t and t.status != "done" else ""), ms=timer.ms,
+                  **(t.stages if t else {}))  # read / asr and the recognizer's own stages (modules/transcript/timing.py)
 
 
 # Reading on-screen text is the import's CPU-heavy part: OCR_SLOTS videos at a time (one on the web
