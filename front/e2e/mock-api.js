@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const FRAME = readFileSync(fileURLToPath(new URL('./fixtures/frame.jpg', import.meta.url)))
 const CLIP = readFileSync(fileURLToPath(new URL('./fixtures/playback.mp4', import.meta.url))) // 40 s, for the player
+const API_PATH = new URL(process.env.VITE_API_BASE || '/', 'http://localhost').pathname.replace(/\/$/, '')
 const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')
 
 // Valid uncompressed ZIPs keep the offline download tests honest without another dependency.
@@ -210,13 +211,13 @@ export class MockApi {
 
   async install() {
     // Context-level, so the PDF export's popup (a new page) is answered too.
-    await this.page.context().route((url) => url.pathname.startsWith('/api/'), (route) => this.handle(route))
+    await this.page.context().route((url) => url.pathname.startsWith(`${API_PATH}/api/`), (route) => this.handle(route))
   }
 
   async handle(route) {
     const req = route.request()
     const url = new URL(req.url())
-    const path = url.pathname
+    const path = url.pathname.slice(API_PATH.length)
     let body = null
     try {
       body = req.postDataJSON()
