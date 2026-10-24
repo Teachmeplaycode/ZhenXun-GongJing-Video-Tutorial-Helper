@@ -1,12 +1,23 @@
 import React, { useState } from 'react'
 import { fmtClock } from '../lib/format'
 import { asText } from '../recipe/graph'
+import { fetchRecipeScript } from '../api/client'
 
 // 抄作业 in the answer (backend modules/recipe.py): what was found, tree by tree, and the way to the
 // full node canvas (#/recipe/<jobId>, recipe/RecipeCanvas.jsx), where every node is drawn the way
 // Blender draws it and can be moved; versions and moments to check stay here, next to the answer.
 export default function RecipeReport({ report, onSeek = null }) {
   const [copied, setCopied] = useState(false)
+  const [scripted, setScripted] = useState('')
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(await fetchRecipeScript(report.job_id))
+      setScripted('脚本已复制，粘贴到 Blender 的 Scripting 运行')
+    } catch {
+      setScripted('复制失败：在节点画布里点「下载 .py」')
+    }
+    setTimeout(() => setScripted(''), 3000)
+  }
   const trees = report.trees || []
   const open = () => window.open(`${window.location.pathname}#/recipe/${report.job_id}`, '_blank', 'noopener')
   const copy = async () => {
@@ -33,8 +44,20 @@ export default function RecipeReport({ report, onSeek = null }) {
       </ul>
       <div className="recipe__actions">
         {report.job_id ? <button type="button" className="btn btn--dark btn--sm" onClick={open}>打开节点画布</button> : null}
+        {report.job_id && /blender/i.test(report.software || 'blender') ? (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={copyScript}>复制 Blender 脚本</button>
+        ) : null}
         <button type="button" className="btn btn--ghost btn--sm" onClick={copy}>{copied ? '已复制' : '复制为文字'}</button>
       </div>
+      {scripted ? <p className="caption muted">{scripted}</p> : null}
+      {report.plugins?.length ? (
+        <section className="recipe__notes">
+          <h4>需要的插件</h4>
+          <ul>{report.plugins.map((p) => (
+            <li key={p.term}><strong>{p.plugin}</strong>{p.term !== p.plugin ? `（「${p.term}」）` : ''}：{p.provides}；{p.install}{' '}
+              <a href={p.url} target="_blank" rel="noopener noreferrer">出处</a></li>))}</ul>
+        </section>
+      ) : null}
       {report.version_notes?.length ? (
         <section className="recipe__notes">
           <h4>不同版本</h4>

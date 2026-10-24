@@ -76,8 +76,18 @@ def match(name: str, en: str = "", tree: str = "") -> dict | None:
         "compositor" if re.search(r"合成|compositor", tree or "", re.I) else "geometry"
     for candidate in (en, name):
         found = catalog["by_name"].get(_key(candidate))
+        if found and any(kind in n["trees"] for n in found):
+            return next(n for n in found if kind in n["trees"])
+    for candidate in (name, en):  # 「变换」 in a geometry tree is 变换几何体, not the compositor's 变换
+        k = _key(candidate)
+        if len(k) >= 2:
+            longer = [n for n in catalog["nodes"] if kind in n["trees"] and _key(n["zh"]).startswith(k)]
+            if longer:  # one that takes geometry first (变换 → 变换几何体, not 变换点), then the shortest
+                return min(longer, key=lambda n: (not any(x["type"].startswith("Geometry") for x in n["inputs"]), len(n["zh"])))
+    for candidate in (en, name):
+        found = catalog["by_name"].get(_key(candidate))
         if found:
-            return next((n for n in found if kind in n["trees"]), found[0])
+            return found[0]
     for candidate in (en, name):  # a 2.9x tutorial's node that Blender has since replaced
         found = legacy()["by_name"].get(_key(candidate))
         if found and kind == "geometry":
@@ -97,3 +107,26 @@ def match(name: str, en: str = "", tree: str = "") -> dict | None:
 def vocabulary(kinds=("geometry", "shader")) -> str:
     """Node names as Blender's Chinese interface shows them, with the English: for the model to name nodes by."""
     return "、".join(f"{n['zh']}({n['label']})" for n in blender()["nodes"] if set(n["trees"]) & set(kinds))
+
+
+def lookup(name: str) -> dict | None:
+    """What Blender itself says about a name the person or the video used: an operation (循环 is Math
+    set to Wrap), a node of 5.0 (its tree, sockets), a 2.9x node and what replaced it; None when Blender
+    has no such thing built in (likely an add-on or extension)."""
+    op = operation(name)
+    if op:
+        node, item = op
+        return {"kind": "operation", "zh": item["zh"], "en": item["name"], "node": node["zh"], "node_en": node["label"], "id": node["id"]}
+    key = _key(name)
+    found = blender()["by_name"].get(key) or legacy()["by_name"].get(key)
+    if not found:
+        found = [n] if (n := match(name, name)) else []
+    if not found:
+        return None
+    n = found[0]
+    out = {"kind": "legacy" if n.get("era") else "node", "zh": n["zh"], "en": n["label"], "id": n["id"],
+           "trees": [TREES.get(t, t) for t in n["trees"]],
+           "inputs": [s["zh"] for s in n["inputs"]], "outputs": [s["zh"] for s in n["outputs"]]}
+    if n.get("era"):
+        out |= {"era": n["era"], "replaced_by": n["replaced_by"]}
+    return out

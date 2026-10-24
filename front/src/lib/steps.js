@@ -30,6 +30,8 @@ export function describeStep(call) {
   switch (call.tool) {
     case 'data.wait': // backend modules/agent/run.py wait_for_material: asked while the import was still reading
       return { verb: '等待数据', target: p.waiting || '', meta: done ? ((d.left || []).length ? `等了 ${d.waited} 秒 · ${d.left.join('、')}未完成` : `等了 ${d.waited} 秒`) : '' }
+    case 'knowledge.lookup': // backend modules/knowledge: Blender's own catalog
+      return { verb: '查节点目录', target: `「${p.name || ''}」`, meta: done ? (d.found === false ? '不是自带的' : d.kind === 'legacy' ? '旧节点' : d.kind === 'operation' ? '自带运算' : '自带节点') : '' }
     case 'frames.select':
       return { verb: '选取画面', target: p.scope || '', meta: done ? `${n} 帧` : '' }
     case 'transcript.read':

@@ -165,3 +165,29 @@ def test_classify_ignores_hex_addresses():
     assert classify("[vost#0:0/mjpeg @ 0xc50c44000] Terminating thread with return code -22 (Invalid argument)") == "error"
     assert classify("Server returned 403 Forbidden (access denied)") == "forbidden"
     assert classify("HTTP error 404 Not Found") == "forbidden"
+
+
+def test_hd_streams_use_the_persons_login_and_go_up_to_1080p(monkeypatch):
+    from modules import settings as config
+
+    transport, calls = make_api()
+    resolver = BilibiliResolver(transport)
+    video = run(resolver.resolve("https://www.bilibili.com/video/BV1xx411c7mD"))
+    monkeypatch.setattr(config, "overlay", config.overlay)
+    token = config.overlay.set({"BILIBILI_COOKIE": ""})
+    assert run(resolver.hd_streams(video)) == []  # logged out: nothing sharper to ask for
+    config.overlay.reset(token)
+    token = config.overlay.set({"BILIBILI_COOKIE": "SESSDATA=s; bili_jct=j"})
+    seen = []
+    original = transport.handle_async_request
+
+    async def spy(request):
+        if request.url.path.endswith("/wbi/playurl"):
+            seen.append((dict(request.url.params).get("qn"), request.headers.get("cookie", "")))
+        return await original(request)
+
+    transport.handle_async_request = spy
+    streams = run(resolver.hd_streams(video))
+    config.overlay.reset(token)
+    assert streams[0].label.startswith("dash-7-1080p")  # past MAX_HEIGHT, for small print
+    assert seen and seen[-1][0] == "80" and "SESSDATA=s" in seen[-1][1]
