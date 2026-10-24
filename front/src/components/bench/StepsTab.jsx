@@ -1,23 +1,66 @@
 import React, { useEffect, useState } from 'react'
-import { buildSteps, getSteps, linkFrameUrl } from '../../api/client'
+import { buildStepComments, buildSteps, getStepComments, getSteps, linkFrameUrl } from '../../api/client'
 import { fmtClock } from '../../lib/format'
 import { IconFilm } from '../Icons'
 
 // Step cards (backend modules/steps.py): what the tutorial has you do, in order, each at its second
 // with the frame from that moment. A card's time jumps the timeline there; 「卡在这步」 starts a
-// question about that step, to send with a screenshot.
+// question about that step, to send with a screenshot. 读评论区 matches the comments and danmaku to
+// the steps (backend modules/stuck.py): a card then says how many viewers got stuck there and what fixed it.
+const KIND = { stuck: '卡住', fix: '办法', version: '版本' }
+
+function Viewers({ group, onSeek }) {
+  return (
+    <ul className="step-voices">
+      {group.items.map((x) => (
+        <li key={x.id} data-kind={x.kind}>
+          <span className="step-voices__kind mono-sm">{KIND[x.kind]}</span>
+          <span className="step-voices__body">
+            <strong>{x.summary}</strong>
+            <q>{x.text}</q>
+            <span className="caption muted">
+              {x.source === 'danmaku'
+                ? <button type="button" className="link-btn" onClick={() => onSeek?.(x.time)}>弹幕 · {fmtClock(x.time)}</button>
+                : `${x.source === 'reply' ? '回复' : '评论'} · ${x.author || '观众'}${x.likes ? ` · 赞 ${x.likes}` : ''}`}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 export default function StepsTab({ video, onSeek = null, onStuck = null }) {
   const jobId = video?.jobId
   const [state, setState] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [voices, setVoices] = useState(null) // getStepComments() answer
+  const [reading, setReading] = useState(false)
+  const [open, setOpen] = useState(null) // the step whose viewers' words are unfolded
 
   useEffect(() => {
     if (!jobId) return undefined
     const ctrl = new AbortController()
-    getSteps(jobId, { signal: ctrl.signal }).then(setState).catch((err) => { if (err.name !== 'AbortError') setError(err.message) })
+    const fail = (err) => { if (err.name !== 'AbortError') setError(err.message) }
+    getSteps(jobId, { signal: ctrl.signal }).then(setState).catch(fail)
+    getStepComments(jobId, { signal: ctrl.signal }).then(setVoices).catch(() => {})
     return () => ctrl.abort()
   }, [jobId])
+
+  const readComments = async () => {
+    setReading(true)
+    setError('')
+    try {
+      setVoices(await buildStepComments(jobId))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setReading(false)
+    }
+  }
+  const groups = voices?.status === 'done' ? voices.groups || [] : []
+  const groupOf = (n) => groups.find((g) => g.step === n)
+  const general = groupOf(0)
 
   const start = async () => {
     setBusy(true)
@@ -42,6 +85,16 @@ export default function StepsTab({ video, onSeek = null, onStuck = null }) {
             <span className="eyebrow">操作步骤</span>
             <span className="mono-sm muted">{list.length} 步 · 点时间回到那一秒</span>
           </header>
+          <div className="steps-tab__voices">
+            {voices?.status === 'done' || voices?.status === 'empty' || voices?.status === 'unavailable'
+              ? <span className="caption muted">{voices.message}</span>
+              : <span className="caption muted">看看评论区和弹幕里，别人卡在哪一步、怎么解决的。</span>}
+            {voices?.status !== 'unavailable' ? (
+              <button type="button" className="btn btn--ghost btn--sm" onClick={readComments} disabled={reading}>
+                {reading ? '正在读评论区…' : voices?.status === 'done' || voices?.status === 'empty' ? '重新读' : '读评论区'}
+              </button>
+            ) : null}
+          </div>
           <ol className="steps-tab__list">
             {list.map((s) => (
               <li key={`${s.n}-${s.time}`} className="step-card">
@@ -55,11 +108,23 @@ export default function StepsTab({ video, onSeek = null, onStuck = null }) {
                   <span className="step-card__actions">
                     <button type="button" className="step-card__time mono-sm" onClick={() => onSeek?.(s.time)}>{fmtClock(s.time)}</button>
                     {onStuck ? <button type="button" className="link-btn" onClick={() => onStuck(s)}>卡在这步</button> : null}
+                    {groupOf(s.n) ? (
+                      <button type="button" className="step-card__voices" aria-expanded={open === s.n} onClick={() => setOpen((v) => (v === s.n ? null : s.n))}>
+                        {[groupOf(s.n).stuck ? `${groupOf(s.n).stuck} 人卡在这` : '', groupOf(s.n).fixes ? `${groupOf(s.n).fixes} 个办法` : ''].filter(Boolean).join(' · ') || '评论区提到'}
+                      </button>
+                    ) : null}
                   </span>
                 </div>
+                {open === s.n && groupOf(s.n) ? <Viewers group={groupOf(s.n)} onSeek={onSeek} /> : null}
               </li>
             ))}
           </ol>
+          {general ? (
+            <details className="steps-tab__general">
+              <summary>和整个教程有关的 {general.items.length} 条</summary>
+              <Viewers group={general} onSeek={onSeek} />
+            </details>
+          ) : null}
           <button type="button" className="link-btn steps-tab__redo" onClick={start} disabled={running}>{running ? '整理中…' : '重新整理'}</button>
         </>
       ) : (
