@@ -35,7 +35,7 @@ const ANALYSIS_WORD_TIPS = {
  * align: 'side' shifts the sculpture right to leave room for the import panel.
  * glassRef: optional element the model refracts through like a glass slide (homepage import box).
  */
-export default function SculptureCanvas({ mode = 'idle', align = 'center', glassRef = null, complete = false, className = '' }) {
+export default function SculptureCanvas({ mode = 'idle', align = 'center', glassRef = null, complete = false, portrait = false, className = '' }) {
   const hostRef = useRef(null)
   const canvasRef = useRef(null)
   const stateRef = useRef(null)
@@ -165,8 +165,9 @@ export default function SculptureCanvas({ mode = 'idle', align = 'center', glass
       camera.aspect = width / height
       sideScale = width <= 860 ? 0 : 1
       const vFov = THREE.MathUtils.degToRad(CAMERA_FOV)
-      const fitV = FRAME_HALF.h / Math.tan(vFov / 2)
-      const fitH = FRAME_HALF.w / (Math.tan(vFov / 2) * camera.aspect)
+      const frame = portrait ? { w: FRAME_HALF.h, h: FRAME_HALF.w } : FRAME_HALF
+      const fitV = frame.h / Math.tan(vFov / 2)
+      const fitH = frame.w / (Math.tan(vFov / 2) * camera.aspect)
       cameraDistance = Math.max(fitV, fitH)
       viewportHeight = height
       const padding = width <= 860 ? SCULPTURE_SETTINGS.scatterText.mobilePadding : SCULPTURE_SETTINGS.scatterText.padding
@@ -220,6 +221,7 @@ export default function SculptureCanvas({ mode = 'idle', align = 'center', glass
       material.color.lerpColors(lightColor, wordColor, morphState.spread * SCULPTURE_SETTINGS.scatterText.inkMix)
 
       const rock = 1 - morphState.spread
+      pivot.rotation.z = portrait ? Math.PI / 2 * rock : 0
       group.rotation.x = SCULPTURE_VIEW.x + Math.sin(elapsed * ROCK_SPEED.x) * ROCK_AMOUNT.x * rock
       group.rotation.y = SCULPTURE_VIEW.y + Math.sin(elapsed * ROCK_SPEED.y) * ROCK_AMOUNT.y * rock
       group.rotation.z = SCULPTURE_VIEW.z + Math.sin(elapsed * ROCK_SPEED.z) * ROCK_AMOUNT.z * rock
@@ -269,7 +271,7 @@ export default function SculptureCanvas({ mode = 'idle', align = 'center', glass
       renderer.dispose()
       stateRef.current = null
     }
-  }, [])
+  }, [portrait])
 
   // Start the repeating gallery only when entering the analysis scene.
   useEffect(() => {
@@ -279,15 +281,15 @@ export default function SculptureCanvas({ mode = 'idle', align = 'center', glass
     params.analyzing = analyzing
     params.cycleTime = 0
     gsap.to(params, { speed: analyzing ? 1.3 : 1, duration: DUR.long, ease: EASE.move })
-  }, [mode])
+  }, [mode, portrait])
 
   useEffect(() => {
     const params = stateRef.current?.params
     if (!params) return
     gsap.to(params, { offsetX: align === 'side' ? SCULPTURE_SETTINGS.sideOffset : 0, duration: DUR.scene, ease: EASE.move })
-  }, [align])
+  }, [align, portrait])
 
-  if (failed) return <SculptureFallback className={className} align={align} />
+  if (failed) return <SculptureFallback className={className} align={align} portrait={portrait} />
   const wordTip = ANALYSIS_WORD_TIPS[morph.word] || ANALYSIS_WORD_TIPS['加载中...']
   return (
     <div

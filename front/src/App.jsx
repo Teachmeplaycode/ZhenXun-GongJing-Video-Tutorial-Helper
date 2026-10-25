@@ -876,7 +876,7 @@ export default function App() {
         {stage === 'idle' && !snakeOnly ? <HomepageMascot state={importError ? 'think' : 'idle'} /> : null}
 
         {maskMounted && meta ? (
-          <UploadMask maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />
+          <UploadMask mobile={mobile} maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />
         ) : null}
 
         {(stage === 'analyzing' || stage === 'ready') && meta && !mobile ? (
