@@ -1,0 +1,73 @@
+{
+  "source_directory": "MyTargetProject-visitors/video/zhenxun-promo",
+  "project_branch": "feat/promo-video",
+  "prepared_on": "2026-10-25",
+  "assets": [
+    {
+      "file": "../screenshots/ask-29.jpg",
+      "source": "public/rec/ask.mp4",
+      "source_sha256": "9b5fd0e349009de9355589cf817c339d666d06ceaaeaa2475da4ed4c98720a64",
+      "at_seconds": 29
+    },
+    {
+      "file": "../screenshots/evidence-28.jpg",
+      "source": "public/rec/evidence.mp4",
+      "source_sha256": "dc43531fb160503cf98feb707858bb1a982c2c2a8e230b1334e40fc0cd6ca022",
+      "at_seconds": 28
+    },
+    {
+      "file": "../screenshots/replay-27.jpg",
+      "source": "public/rec/replay.mp4",
+      "source_sha256": "68e53b8e4bf42a7c1aa37a7eeaebfd3fcccd7b40ec4fa3a18ad3b6c90df6ce46",
+      "at_seconds": 27
+    },
+    {
+      "file": "../screenshots/screenshot-46.jpg",
+      "source": "public/rec/screenshot.mp4",
+      "source_sha256": "44b2b09eb3725c0803f6179bb8bd95c1776c5f343bfabfe04968cc64c9c3fba8",
+      "at_seconds": 46
+    },
+    {
+      "file": "../screenshots/notes-30.jpg",
+      "source": "public/rec/notes.mp4",
+      "source_sha256": "fa47d42af4994a45d56973ec978a70e95670ad0e389ca587a79e34e1373ac8d5",
+      "at_seconds": 30
+    },
+    {
+      "file": "../screenshots/phone-22.jpg",
+      "source": "public/rec/phone.mp4",
+      "source_sha256": "bf45a57560ab36ac7b7fb154e15fa51ab4e13b49b3a29f8b9417953c0b53ef2f",
+      "at_seconds": 22
+    },
+    {
+      "file": "../screenshots/phone-notes.jpg",
+      "source": "public/rec/phone.mp4",
+      "source_sha256": "bf45a57560ab36ac7b7fb154e15fa51ab4e13b49b3a29f8b9417953c0b53ef2f",
+      "at_seconds": 37
+    },
+    {
+      "file": "../screenshots/gif-35.jpg",
+      "source": "public/rec/gif.mp4",
+      "source_sha256": "9e9b0fe5e55b064a477ff8a0df4fa5c2b1f6a8caed6659213a0514ce057b8340",
+      "at_seconds": 35
+    },
+    {
+      "file": "../screenshots/import-20.jpg",
+      "source": "public/rec/import.mp4",
+      "source_sha256": "987e74a9fe9e8e1a389a3ccbb7f309ee40782ef4729151fda95377759573cb43",
+      "at_seconds": 20
+    },
+    {
+      "file": "zhenxun-demo-cut.mp4",
+      "source": "out/v4/zhenxun-demo-cut.mp4",
+      "source_sha256": "9f816d5f48043e1557a2348ea36d3689ce18785a37bf81dba22b7fdf93f8c736",
+      "sha256": "085881edc3810f3e7fa3b19b54f8476dabf1355c63ea4d03dc6f2f5de9ff7479"
+    },
+    {
+      "file": "zhenxun-reel.mp4",
+      "source": "out/v4/zhenxun-reel.mp4",
+      "source_sha256": "f7e32642a2a046342858eefb90c6595eef66e038fbdc4d09ec93e0bff33339bd",
+      "sha256": "a1cbe35c82a30eff23d6d5d85f4b5ac4f94ba3d357b1cfeaec25ddf22ca668c0"
+    }
+  ]
+}
