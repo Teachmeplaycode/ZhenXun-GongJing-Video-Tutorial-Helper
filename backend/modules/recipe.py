@@ -573,6 +573,20 @@ def _zone_or_operation(tree: dict) -> dict:
     return picked
 
 
+# What the editor labels a Math / Vector Math input in one operation (the socket itself is just 值 / 矢量)
+DRAWN_AS = {("SNAP", 1): "增量", ("WRAP", 1): "最大值", ("WRAP", 2): "最小值"}
+
+
+def _operation_item(ref: dict, node: dict) -> dict | None:
+    """The catalog entry of the operation a Math-like node is set to (运算=点乘), with that operation's sockets."""
+    from . import recipe_script
+    for p in node.get("params") or []:
+        found = recipe_script._option(ref, p)
+        if found and found[0] == "operation":
+            return next((i for i in ref["options"]["operation"]["items"] if i["id"] == found[1]), None)
+    return None
+
+
 def normalize(recipe: dict) -> dict:
     """Each node matched to the Blender catalog: its real name, every socket it has, its defaults; link
     ends and settings renamed to the sockets they mean."""
@@ -592,6 +606,12 @@ def normalize(recipe: dict) -> dict:
                     node["title"] = op  # the editor titles it by its operation
             node["inputs"] = [{"name": x["zh"], "en": x["name"], "type": x["type"], "default": x["default"]} for x in ref["inputs"]]
             node["outputs"] = [{"name": x["zh"], "en": x["name"], "type": x["type"]} for x in ref["outputs"]]
+            item = _operation_item(ref, node)
+            if item and "inputs" in item:  # 点乘 gives a 「值」, 长度 takes one vector: the operation's own sockets
+                defaults = {x["name"]: x["default"] for x in ref["inputs"]}
+                node["inputs"] = [{"name": DRAWN_AS.get((item["id"], i), x["zh"]), "en": x["name"], "type": x["type"], "default": defaults.get(x["name"])}
+                                  for i, x in enumerate(item["inputs"])]
+                node["outputs"] = [{"name": x["zh"], "en": x["name"], "type": x["type"]} for x in item["outputs"]]
             if ref.get("era"):  # a 2.9x node Blender has since replaced: say with what
                 node["legacy"], node["replaced_by"] = ref["era"], ref["replaced_by"]
         by_id = {n["id"]: n for n in tree["nodes"]}
