@@ -9,7 +9,9 @@ be touched from another thread.
   ping                       → {"blender": "5.0.1", "object": name or null}
   export_tree [target owned] → the node tree 帧寻 built (its modifier / material named `owned`), else the
                                active object's geometry-nodes modifier or material, or the world
+  inspect [target owned]     → invalid links, outputs nothing uses, the size of what the modifier makes
   run_script code            → runs a script 帧寻 generated (抄作业 → 应用到 Blender), with its output
+  preview                    → a Workbench picture of the active object (AI 修改 compares it with the video)
 """
 from __future__ import annotations
 
@@ -26,7 +28,7 @@ import bpy
 bl_info = {
     "name": "帧寻 Bridge",
     "author": "帧寻 GongJ!ng?",
-    "version": (0, 2, 0),
+    "version": (0, 4, 0),
     "blender": (4, 0, 0),
     "location": "3D 视图 / 节点编辑器 › 侧栏（N）› 帧寻",
     "description": "让本机的帧寻读取和建立节点：抄作业一键应用、对答案",
@@ -92,6 +94,95 @@ def export_tree(target: str = "", owned: str = "") -> dict:
     return {"ok": True, "kind": kind, "name": tree.name, "nodes": nodes, "links": links}
 
 
+def inspect(target: str = "", owned: str = "") -> dict:
+    """After building: links Blender marks invalid, outputs nothing uses, and what the modifier makes."""
+    tree, kind = _tree(target, owned)
+    if tree is None:
+        return {"ok": False, "error": "没有找到节点树"}
+    feeds: dict = {}
+    for l in tree.links:
+        feeds.setdefault(l.from_node.name, set()).add(l.to_node.name)
+
+    def loops_back(start, goal):  # does goal reach start again: the link closes a loop
+        seen, todo = set(), [goal]
+        while todo:
+            name = todo.pop()
+            if name == start:
+                return True
+            if name not in seen:
+                seen.add(name)
+                todo += list(feeds.get(name, ()))
+        return False
+
+    def why(l):
+        if not l.from_socket.enabled or not l.to_socket.enabled:
+            hidden = l.from_socket if not l.from_socket.enabled else l.to_socket
+            return f"「{hidden.name}」口在这个节点当前的运算/模式下是隐藏的（比如点乘只输出「值」）"
+        if loops_back(l.from_node.name, l.to_node.name):
+            return "这根线让节点首尾相连成了回路"
+        return f"类型接不上（{l.from_socket.type} → {l.to_socket.type}，或字段接进了只收单个值的口）"
+
+    invalid = [f"{l.from_node.name}.{l.from_socket.name} → {l.to_node.name}.{l.to_socket.name}：{why(l)}" for l in tree.links if not l.is_valid]
+    used = {l.from_node.name for l in tree.links}
+    dangling = [n.name for n in tree.nodes if n.outputs and n.name not in used and n.bl_idname not in ("NodeGroupOutput", "NodeFrame")]
+    result = {"ok": True, "kind": kind, "name": tree.name, "nodes": len(tree.nodes), "links": len(tree.links), "invalid": invalid, "dangling": dangling}
+    obj = bpy.context.object
+    if kind == "geometry" and obj is not None:
+        try:
+            evaluated = obj.evaluated_get(bpy.context.evaluated_depsgraph_get())
+            mesh = evaluated.to_mesh()
+            result["geometry"] = {"vertices": len(mesh.vertices), "faces": len(mesh.polygons), "edges": len(mesh.edges)}
+            evaluated.to_mesh_clear()
+        except Exception as exc:  # noqa: BLE001 — a curve or instances only: say so
+            result["geometry"] = {"error": str(exc)[:200]}
+    return result
+
+
+def preview(width: int = 640, height: int = 480) -> dict:
+    """A quick Workbench picture of the active object as its modifiers make it, from a camera framed on
+    it, for the model to compare with the video. The scene's camera and render settings are put back."""
+    import base64
+    import os
+    import tempfile
+
+    from mathutils import Vector
+
+    obj = bpy.context.object
+    if obj is None:
+        return {"ok": False, "error": "没有选中物体"}
+    scene = bpy.context.scene
+    evaluated = obj.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    corners = [evaluated.matrix_world @ Vector(c) for c in evaluated.bound_box]
+    center = sum(corners, Vector()) / 8
+    size = max((max(c[i] for c in corners) - min(c[i] for c in corners)) for i in range(3)) or 1.0
+    render = scene.render
+    kept = (scene.camera, render.engine, render.resolution_x, render.resolution_y, render.resolution_percentage,
+            render.filepath, render.image_settings.file_format)
+    cam = bpy.data.objects.new("帧寻·预览相机", bpy.data.cameras.new("帧寻·预览相机"))
+    scene.collection.objects.link(cam)
+    path = os.path.join(tempfile.gettempdir(), "zhenxun_preview.png")
+    try:
+        cam.location = center + Vector((0.6, -1.0, 0.9)).normalized() * size * 1.9
+        cam.rotation_euler = (center - cam.location).to_track_quat("-Z", "Y").to_euler()
+        cam.data.lens = 40
+        cam.data.clip_start, cam.data.clip_end = size * 0.001, size * 20
+        scene.camera = cam
+        render.engine = "BLENDER_WORKBENCH"
+        render.resolution_x, render.resolution_y, render.resolution_percentage = width, height, 100
+        render.image_settings.file_format = "PNG"
+        render.filepath = path
+        bpy.ops.render.render(write_still=True)
+        with open(path, "rb") as f:
+            data = base64.b64encode(f.read()).decode()
+    finally:
+        (scene.camera, render.engine, render.resolution_x, render.resolution_y, render.resolution_percentage,
+         render.filepath, render.image_settings.file_format) = kept
+        camera_data = cam.data
+        bpy.data.objects.remove(cam)
+        bpy.data.cameras.remove(camera_data)
+    return {"ok": True, "png": data, "object": obj.name, "size": round(size, 3)}
+
+
 def run_script(code: str) -> dict:
     out = io.StringIO()
     try:
@@ -109,6 +200,10 @@ def handle(request: dict) -> dict:
         return {"ok": True, "blender": bpy.app.version_string, "object": obj.name if obj else None}
     if cmd == "export_tree":
         return export_tree(str(request.get("target") or ""), str(request.get("owned") or ""))
+    if cmd == "inspect":
+        return inspect(str(request.get("target") or ""), str(request.get("owned") or ""))
+    if cmd == "preview":
+        return preview()
     if cmd == "run_script":
         return run_script(str(request.get("code") or ""))
     return {"ok": False, "error": f"不认识的命令：{cmd}"}

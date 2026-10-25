@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { applyRecipe, blenderAddonUrl, blenderStatus, checkRecipe, fetchRecipeScript, getRecipe, recipeScriptUrl, saveRecipeLayout } from '../api/client'
+import { renderMarkdown } from '../lib/markdown'
+import { applyRecipe, blenderAddonUrl, blenderStatus, checkRecipe, fetchRecipeScript, getRecipe, recipeScriptUrl, reviseRecipe, saveRecipeLayout, undoRecipe } from '../api/client'
 import { fmtClock } from '../lib/format'
 import { HEAD, PAD, ROW, W, asText, autoLayout, bounds, card, headerColor, rowY, socketColor, socketPoint } from './graph'
 import './recipe.css'
@@ -88,9 +89,16 @@ export default function RecipeCanvas({ jobId }) {
   const [blenderBusy, setBlenderBusy] = useState('')
   const [blenderNote, setBlenderNote] = useState('')
   const [connectHelp, setConnectHelp] = useState(false)
+  const [revising, setRevising] = useState(false) // the AI 修改 section is open
+  const [instruction, setInstruction] = useState('')
+  const [revision, setRevision] = useState(null) // { tab, summary, changes, problems, checks, preview } or { tab, busy } / { tab, error }
   const svgRef = useRef(null)
   const drag = useRef(null)
   const timer = useRef(0)
+
+  const load = useCallback(() => getRecipe(jobId).then((r) => {
+    setState((s) => ({ ...s, recipe: { ...s.recipe, ...r } }))
+  }), [jobId])
 
   useEffect(() => {
     getRecipe(jobId).then((r) => {
@@ -264,6 +272,30 @@ export default function RecipeCanvas({ jobId }) {
       refreshBridge()
     }
   }
+  const revise = async (text) => {
+    setRevision({ tab, busy: true })
+    setPanel(true)
+    try {
+      const r = await reviseRecipe(jobId, tab, text)
+      setState((s) => ({ ...s, recipe: { ...s.recipe, ...r.recipe } }))
+      setChecked(null) // the graph changed: an old 对答案 no longer applies
+      setRevision({ tab, ...r })
+    } catch (err) {
+      setRevision({ tab, error: err.message })
+    } finally {
+      refreshBridge()
+    }
+  }
+  const undoRevision = async () => {
+    try {
+      await undoRecipe(jobId)
+      await load()
+      setRevision(null)
+      setChecked(null)
+    } catch (err) {
+      setRevision((r) => ({ ...r, error: err.message }))
+    }
+  }
   const savePicture = async () => {
     const b = bounds(cards, pos)
     const clone = svgRef.current.cloneNode(true)
@@ -337,6 +369,9 @@ export default function RecipeCanvas({ jobId }) {
               <button type="button" className="rc-check" onClick={checkAnswer} disabled={Boolean(blenderBusy)}>{blenderBusy === 'check' ? '核对中…' : '对答案'}</button>
             </>
           ) : <button type="button" onClick={() => { setConnectHelp(true); setPanel(true) }}>连接 Blender</button>) : null}
+          {recipe.editable ? (
+            <button type="button" className="rc-ai" onClick={() => { setRevising(true); setPanel(true) }} aria-expanded={revising && panel}>AI 修改</button>
+          ) : null}
           <button type="button" className="rc-script" onClick={copyScript} title="粘贴到 Blender → Scripting 运行，节点自动建好">
             {scripted === 'copied' ? '脚本已复制' : scripted === 'failed' ? '复制失败，用下载' : '复制 Blender 脚本'}
           </button>
@@ -363,6 +398,44 @@ export default function RecipeCanvas({ jobId }) {
       {panel ? (
         <aside className="rc-panel">
           {blenderNote ? <p className="rc-warn">{blenderNote}</p> : null}
+          {revising || (revision && revision.tab === tab) ? (
+            <section className="rc-revise" aria-label="AI 修改">
+              <h4>AI 修改 · {tree.name}</h4>
+              <p className="rc-hint">{bridge?.connected
+                ? '会对照视频画面修改节点图，每改一版就在你的 Blender 里试建一次、看渲染效果，再接着改。'
+                : '会对照视频画面修改节点图。连上 Blender 后还能每改一版就试建一次、看效果。'}</p>
+              <div className="rc-quick">
+                {['补全没连上的节点和线', '对照视频再检查一遍'].map((q) => (
+                  <button key={q} type="button" onClick={() => revise(q)} disabled={Boolean(revision?.busy)}>{q}</button>
+                ))}
+              </div>
+              <form onSubmit={(e) => { e.preventDefault(); if (instruction.trim()) revise(instruction.trim()) }}>
+                <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={2} maxLength={500}
+                  placeholder="想怎么改，比如：等高线没出来，检查吸附和删除面那一段" aria-label="修改要求" />
+                <button type="submit" disabled={Boolean(revision?.busy) || !instruction.trim()}>让 AI 改</button>
+              </form>
+              {revision && revision.tab === tab ? (
+                revision.busy ? <p className="rc-busy" role="status">AI 正在修改：看画面、改图{bridge?.connected ? '、在 Blender 里试建' : ''}，大约 1–3 分钟…</p>
+                  : revision.error ? <p className="rc-warn">{revision.error}</p> : (
+                    <div className="rc-revised">
+                      <div className="rc-summary">{renderMarkdown(revision.summary)}</div>
+                      {revision.preview ? <img src={`data:image/png;base64,${revision.preview}`} alt="Blender 按改后的节点图做出的效果" /> : null}
+                      {revision.checks?.length ? <pre className="rc-blender">{revision.checks[revision.checks.length - 1]}</pre> : null}
+                      {revision.problems?.length ? (
+                        <><h4>还有的问题</h4><ul>{revision.problems.map((p, i) => <li key={i}>{p}</li>)}</ul></>
+                      ) : null}
+                      {revision.changes?.length ? (
+                        <details><summary>改了 {revision.changes.length} 处</summary><ul>{revision.changes.map((c, i) => <li key={i}>{c}</li>)}</ul></details>
+                      ) : null}
+                      <div className="rc-quick">
+                        <button type="button" onClick={undoRevision}>撤销这次修改</button>
+                        {bridge?.connected ? <button type="button" onClick={checkAnswer} disabled={Boolean(blenderBusy)}>对答案</button> : null}
+                      </div>
+                    </div>
+                  )
+              ) : null}
+            </section>
+          ) : null}
           {result ? (
             <section className="rc-result" data-done={result.done || undefined}>
               <h4>对答案 · {result.summary}</h4>

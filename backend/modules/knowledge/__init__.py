@@ -109,6 +109,27 @@ def vocabulary(kinds=("geometry", "shader")) -> str:
     return "、".join(f"{n['zh']}({n['label']})" for n in blender()["nodes"] if set(n["trees"]) & set(kinds))
 
 
+# Labels the editor draws on a socket in one mode, under another name in the catalog.
+DRAWN_AS = {"增量": "数学/矢量运算的「吸附」(Snap) 运算：第二个口在界面上显示为「增量」",
+            "increment": "数学/矢量运算的「吸附」(Snap) 运算：第二个口在界面上显示为「增量」"}
+
+
+def settings_named(name: str) -> list[str]:
+    """Where a setting of this name lives: nodes, or operations of Math-like nodes, with an input so named."""
+    key = _key(name)
+    if not key:
+        return []
+    found = [DRAWN_AS[key]] if key in DRAWN_AS else []
+    for n in blender()["nodes"]:
+        if any(_key(s["zh"]) == key or _key(s["name"]) == key for s in n["inputs"]):
+            found.append(f"{n['zh']}({n['label']})")
+        for item in ((n.get("options") or {}).get("operation") or {}).get("items", []):
+            if any(_key(s["zh"]) == key or _key(s["name"]) == key for s in item.get("inputs") or []) \
+                    and not any(_key(s["zh"]) == key for s in n["inputs"]):
+                found.append(f"{n['zh']}·{item['zh']}({item['name']})")
+    return found
+
+
 def lookup(name: str) -> dict | None:
     """What Blender itself says about a name the person or the video used: an operation (循环 is Math
     set to Wrap), a node of 5.0 (its tree, sockets), a 2.9x node and what replaced it; None when Blender
@@ -122,11 +143,20 @@ def lookup(name: str) -> dict | None:
     if not found:
         found = [n] if (n := match(name, name)) else []
     if not found:
-        return None
-    n = found[0]
-    out = {"kind": "legacy" if n.get("era") else "node", "zh": n["zh"], "en": n["label"], "id": n["id"],
-           "trees": [TREES.get(t, t) for t in n["trees"]],
-           "inputs": [s["zh"] for s in n["inputs"]], "outputs": [s["zh"] for s in n["outputs"]]}
-    if n.get("era"):
-        out |= {"era": n["era"], "replaced_by": n["replaced_by"]}
-    return out
+        where = settings_named(name)
+        return {"kind": "setting", "name": name, "found_in": where[:12]} if where else None
+    order = {"geometry": 0, "shader": 1, "compositor": 2}  # 法向 is three nodes: the geometry one first
+    found = sorted(found, key=lambda n: min(order.get(t, 3) for t in n["trees"]))
+
+    def one(n):
+        out = {"kind": "legacy" if n.get("era") else "node", "zh": n["zh"], "en": n["label"], "id": n["id"],
+               "trees": [TREES.get(t, t) for t in n["trees"]],
+               "inputs": [s["zh"] for s in n["inputs"]], "outputs": [s["zh"] for s in n["outputs"]]}
+        if n.get("era"):
+            out |= {"era": n["era"], "replaced_by": n["replaced_by"]}
+        return out
+
+    first = one(found[0])
+    if len(found) > 1:  # the same name in other trees, said so the model doesn't keep asking
+        first["also"] = [{"id": n["id"], "trees": [TREES.get(t, t) for t in n["trees"]]} for n in found[1:]]
+    return first

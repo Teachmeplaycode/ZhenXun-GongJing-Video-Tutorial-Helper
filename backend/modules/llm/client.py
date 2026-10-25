@@ -81,6 +81,7 @@ class LLMConfig:
     provider: str = "deepseek"
     num_ctx: int = 65536
     first_token_timeout: float = FIRST_TOKEN_TIMEOUT
+    thinking: bool = False  # DeepSeek's thinking mode: slower, for multi-step work like AI 修改
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> LLMConfig:
@@ -123,13 +124,17 @@ class Usage:
     cached_tokens: int | None = None  # of the prompt, read from the provider's context cache (cheaper, faster)
     finish_reason: str | None = None
     tool_calls: list[ToolCall] = field(default_factory=list)
+    reasoning: str = ""  # thinking mode: passed back with the tool calls it led to
 
 
-def assistant_message(text: str, calls: list[ToolCall]) -> dict:
+def assistant_message(text: str, calls: list[ToolCall], reasoning: str = "") -> dict:
     """The model's turn that asked for tools, in the OpenAI format both clients accept."""
-    return {"role": "assistant", "content": text, "tool_calls": [
+    turn = {"role": "assistant", "content": text, "tool_calls": [
         {"id": c.id, "type": "function", "function": {"name": c.name, "arguments": json.dumps(c.arguments, ensure_ascii=False)}}
         for c in calls]}
+    if reasoning:  # DeepSeek's thinking mode wants it back within the turn
+        turn["reasoning_content"] = reasoning
+    return turn
 
 
 def tool_message(call: ToolCall, content: str) -> dict:
@@ -205,8 +210,8 @@ class ChatClient:
         }
         if tools:
             body["tools"] = tools
-        if "deepseek" in self.config.base_url:
-            body["thinking"] = {"type": "disabled"}  # keep reasoning text out of the answer stream
+        if "deepseek" in self.config.base_url:  # off: keep reasoning text out of the answer stream
+            body["thinking"] = {"type": "enabled" if self.config.thinking else "disabled"}
         return body
 
     async def stream(self, messages: list[dict], usage: Usage, max_tokens: int = 2048,
@@ -259,6 +264,9 @@ class ChatClient:
                         function = piece.get("function") or {}
                         call["name"] = function.get("name") or call["name"]
                         call["args"] += function.get("arguments") or ""
+                    if (choice.get("delta") or {}).get("reasoning_content"):
+                        deadline.start()
+                        usage.reasoning += choice["delta"]["reasoning_content"]
                     delta = (choice.get("delta") or {}).get("content")
                     if delta:
                         deadline.start()

@@ -5,6 +5,10 @@ its sockets and their defaults, with Chinese names from Blender's own translatio
     /tmp/bpy/bin/python scripts/blender_catalog.py dump /tmp/nodes.json
     curl -L -o /tmp/zh_HANS.po https://projects.blender.org/blender/blender/raw/branch/main/locale/po/zh_HANS.po
     python scripts/blender_catalog.py zh /tmp/nodes.json /tmp/zh_HANS.po modules/knowledge/blender_nodes.json
+    /tmp/bpy/bin/python scripts/blender_catalog.py ops modules/knowledge/blender_nodes.json /tmp/zh_HANS.po
+
+`ops` adds, to each operation of Math, Vector Math, Compare…, the sockets that operation shows: Snap's
+second vector is 「增量」, Dot Product gives a 「值」 — the node's own sockets are Add's only.
 """
 from __future__ import annotations
 
@@ -111,9 +115,50 @@ def add_chinese(nodes_path: str, po_path: str, out: str) -> None:
     print(sum(n["zh"] == n["label"] for n in data["nodes"]), "of", len(data["nodes"]), "labels without a translation")
 
 
+PER_OPERATION = ("ShaderNodeMath", "ShaderNodeVectorMath", "FunctionNodeCompare", "FunctionNodeBooleanMath",
+                 "FunctionNodeIntegerMath")
+
+
+def operation_sockets(catalog: str, po_path: str) -> None:
+    import bpy
+
+    table = parse_po(po_path)
+
+    def zh(text: str) -> str:
+        options = table.get(text) or {}
+        return next((options[c] for c in ("*", "NodeTree") if c in options), next(iter(options.values()), text))
+
+    def sockets(items):  # the same name twice (Math's 值, 值, 值) stays in order: links count on it
+        return [{"name": s.name, "zh": zh(s.name), "type": s.bl_idname.replace("NodeSocket", "")}
+                for s in items if s.enabled and s.bl_idname != "NodeSocketVirtual"]
+
+    data = json.load(open(catalog))
+    tree = bpy.data.node_groups.new("t", "GeometryNodeTree")
+    for entry in data["nodes"]:
+        if entry["id"] not in PER_OPERATION or "operation" not in (entry.get("options") or {}):
+            continue
+        node = tree.nodes.new(entry["id"])
+        for item in entry["options"]["operation"]["items"]:
+            for data_type in ("", "FLOAT", "RGBA"):  # Compare's 更亮/更暗 are colour operations only
+                try:
+                    if data_type:
+                        node.data_type = data_type
+                    node.operation = item["id"]
+                    break
+                except TypeError:
+                    continue
+            item["inputs"], item["outputs"] = sockets(node.inputs), sockets(node.outputs)
+        tree.nodes.remove(node)
+    with open(catalog, "w") as f:
+        json.dump(data, f, ensure_ascii=False)
+    print("per-operation sockets for", ", ".join(PER_OPERATION))
+
+
 if __name__ == "__main__":
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     if args[0] == "dump":
         dump(args[1])
+    elif args[0] == "ops":
+        operation_sockets(args[1], args[2])
     else:
         add_chinese(*args[1:4])

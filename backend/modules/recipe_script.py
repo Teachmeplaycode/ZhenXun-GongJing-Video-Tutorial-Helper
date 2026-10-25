@@ -111,8 +111,11 @@ def _socket_ref(node: dict, side: str, name: str, used: dict) -> tuple[str, int]
             return (en, 0) if en else None
         return None
     en = names[0].get("en") or names[0]["name"]
+    same = [s for s in sockets if (s.get("en") or s["name"]) == en]
+    if len(same) > 1 and sum(1 for s in same if s["name"] == names[0]["name"]) == 1:  # 吸附's 增量: the second 矢量, by its label
+        return en, same.index(names[0])
     k = used.get((node["id"], side, en), 0)
-    count = sum(1 for s in sockets if (s.get("en") or s["name"]) == en)
+    count = len(same)
     if side == "inputs":
         used[(node["id"], side, en)] = k + 1
     return en, min(k, count - 1) if side == "inputs" else 0
@@ -236,6 +239,9 @@ def script(recipe: dict) -> str:
                 slot = MATH_SLOTS.get(p["name"].lower()) if ref["id"] in ("ShaderNodeMath", "ShaderNodeVectorMath") else None
                 number = _number(str(p["value"])) if "待确认" not in str(p["value"]) else None
                 if slot is not None and number is not None:
+                    if ref["id"] == "ShaderNodeVectorMath":  # its inputs are vectors: 0, 0, 0.2 (one number fills all three)
+                        parts = [float(x) for x in NUMBER.findall(str(p["value"]))]
+                        number = parts * 3 if len(parts) == 1 else (parts + [0.0, 0.0])[:3]
                     lines.append(f"put_at(n[{key}], {slot}, {number!r})")
                     continue
                 if p["name"] not in sockets and p["name"].isascii() and number is not None:  # a socket shown only in some modes (Epsilon)

@@ -358,6 +358,12 @@ export class MockApi {
       this.blenderCalls = [...(this.blenderCalls || []), m[2]]
       return json(m[2] === 'apply' ? { ok: true, output: '帧寻：节点已生成' } : this.checkResult)
     }
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe\/(revise|undo)$/)
+    if (m && req.method() === 'POST') {
+      this.reviseCalls = [...(this.reviseCalls || []), m[2] === 'revise' ? req.postDataJSON() : 'undo']
+      if (m[2] === 'undo') return json({ ok: true })
+      return json(this.revision)
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe\/script$/)
     if (m) return route.fulfill({ status: 200, contentType: 'text/x-python', body: '# 帧寻 · 抄作业\nimport bpy\n' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe(\/layout)?$/)
