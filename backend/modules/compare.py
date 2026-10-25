@@ -1,4 +1,4 @@
-"""Several tutorials of the same task side by side: one row per operation, each video's step for it.
+"""Several tutorials of the same task side by side (2–5: the 对照 tab, or several links pasted on the homepage): one row per operation, each video's step for it.
 
 Three VLOOKUP tutorials: which step is where in each, who explains absolute references and who skips
 them, which one fits WPS. Built from each video's step cards (modules/steps.py) with one model call
@@ -13,8 +13,8 @@ import re
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-LABELS = "甲乙丙"
-MAX_VIDEOS = 3
+LABELS = "甲乙丙丁戊"
+MAX_VIDEOS = 5  # the homepage takes up to five links at once
 MAX_ROWS = 40
 
 PROMPT = ("你在对照讲同一类操作的几个软件教程。给你每个教程的操作步骤（带序号）。"
@@ -97,8 +97,11 @@ def parse(output: str, videos: list[dict]) -> dict:
     return {"rows": rows, "summary": summary, "traits": [traits.get(LABELS[i], "") for i in range(n)]}
 
 
-async def build(root: Path, jobs: list, cards: list[dict], complete: Completer) -> dict:
-    """`jobs` and their step `cards`, in the order the person picked them. Raises on a model failure."""
+async def build(root: Path, jobs: list, cards: list[dict], complete: Completer, asked: list[str] | None = None,
+                skipped: list[str] | None = None) -> dict:
+    """`jobs` and their step `cards`, in the order the person picked them. Raises on a model failure.
+    `asked`: the ids the person gave when some were left out (`skipped`: their titles, no steps); the record
+    is saved under those too, so asking again finds it."""
     ids = [j.id for j in jobs]
     videos = [{"id": j.id, "title": j.video.title, "duration": j.video.duration, "label": LABELS[i],
                "steps": c.get("steps") or []} for i, (j, c) in enumerate(zip(jobs, cards))]
@@ -108,5 +111,8 @@ async def build(root: Path, jobs: list, cards: list[dict], complete: Completer) 
               "videos": [{k: v[k] for k in ("id", "title", "duration", "label")} | {"steps": len(v["steps"]), "trait": t}
                          for v, t in zip(videos, table["traits"])],
               "rows": table["rows"], "summary": table["summary"],
-              "message": f"{len(table['rows'])} 个操作，{shared} 个每个教程都有" if table["rows"] else "这几个教程对不上同样的操作"}
+              "message": f"{len(table['rows'])} 个操作，{shared} 个每个教程都有" if table["rows"] else "这几个教程对不上同样的操作",
+              "skipped": skipped or []}
+    if asked and sorted(asked) != sorted(ids):
+        save(root, asked, record)
     return save(root, ids, record)

@@ -156,6 +156,9 @@ export function createLinkJob(url, { task = '', sampling = null, signal } = {}) 
   })
 }
 
+/** A link job's snapshot: { job_id, video, running, slots, coverage, transcript, screentext }. */
+export const getLinkJob = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}`, { signal })
+
 /** Ask the backend to sample the missing frames again. Returns { retrying, since }. */
 export function retryLinkJob(jobId, { signal } = {}) {
   return linkRequest(`/api/link-jobs/${jobId}/retry`, { method: 'POST', signal })

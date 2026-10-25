@@ -56,3 +56,33 @@ def test_endpoint_builds_missing_steps_then_compares_and_caches(tmp_path, monkey
     assert len(asked) == 2  # b's steps first, then the comparison
     assert built["status"] == "done" and [v["label"] for v in built["videos"]] == ["甲", "乙"]
     assert client.get("/api/compare", params={"ids": f"{b.id},{a.id}"}).json() == built  # either order
+
+
+def test_a_video_without_steps_is_left_out_while_two_remain(tmp_path, monkeypatch):
+    import app
+
+    a, b, c = job_for(tmp_path / "a"), job_for(tmp_path / "b"), job_for(tmp_path / "c")
+    a.id, b.id, c.id = "aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"
+    for j in (a, b, c):
+        monkeypatch.setitem(app.jobs, j.id, j)
+    monkeypatch.setattr(app, "DATA_ROOT", tmp_path)
+    steps.save(a.root, {"status": "done", "steps": A, "message": ""})
+    steps.save(b.root, {"status": "done", "steps": B, "message": ""})
+    steps.save(c.root, {"status": "empty", "steps": [], "message": "不是教程"})
+
+    class Model:
+        async def stream(self, messages, usage, **kwargs):
+            yield ANSWER
+
+    monkeypatch.setattr(app, "get_llm", lambda: Model())
+    client = TestClient(app.app)
+    built = client.post("/api/compare", json={"ids": [a.id, c.id, b.id]}).json()
+    assert [v["id"] for v in built["videos"]] == [a.id, b.id] and built["skipped"] == [c.video.title]
+    assert client.get("/api/compare", params={"ids": f"{a.id},{c.id},{b.id}"}).json() == built  # found by what was asked
+    steps.save(b.root, {"status": "empty", "steps": [], "message": ""})
+    assert client.post("/api/compare", json={"ids": [a.id, b.id, c.id]}).status_code == 422  # one left: nothing to compare
+
+
+def test_five_videos_get_five_columns():
+    five = [{"title": x, "steps": A} for x in "12345"]
+    assert "戊的步骤号" in compare.messages(five)[0]["content"]

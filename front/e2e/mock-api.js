@@ -269,6 +269,15 @@ export class MockApi {
     }
     if (path === '/api/link-jobs' && req.method() === 'POST') {
       if (this.linkError) return json(this.linkError, 422)
+      if (this.batch) { // several links from the homepage: one job per link, in order
+        const url = req.postDataJSON().url
+        this.batchUrls = [...(this.batchUrls || []), url]
+        const n = this.batchUrls.length
+        if (this.batch.fail?.includes(n)) return json({ detail: '链接解析失败' }, 422)
+        const id = `multi${n}`
+        this.addSession(id, { title: `教程${n}` })
+        return json(this.snapshot(id, { v: video({ title: `教程${n}` }) }))
+      }
       const next = this.nextJob // a second import (a related video for 对照): its own id and title
       if (next) {
         this.nextJob = null
@@ -372,15 +381,17 @@ export class MockApi {
       return json({ ok: true })
     }
     if (m) return json(this.recipe || { status: 'none', message: '还没有抄作业' })
+    m = path.match(/^\/api\/link-jobs\/(multi\d+)$/)
+    if (m) return json({ ...this.snapshot(m[1], { done: true }), screentext: { status: 'done', message: '', count: 3 } })
     if (path === '/api/compare') {
       if (req.method() === 'POST') {
         const ids = req.postDataJSON().ids
         this.compared = {
           status: 'done', ids, message: '2 个操作，1 个每个教程都有', summary: '先看甲打基础，再看乙学跨表。',
-          videos: ids.map((id, i) => ({ id, title: i ? '另一个教程' : '这个教程', label: '甲乙丙'[i], steps: 2, trait: i ? '进阶' : '基础' })),
+          videos: ids.map((id, i) => ({ id, title: i ? '另一个教程' : '这个教程', label: '甲乙丙丁戊'[i], steps: 2, trait: i ? '进阶' : '基础' })),
           rows: [
-            { op: '输入函数', note: '甲先点单元格', cells: [{ n: 1, time: 12, action: 'a', frame: 1 }, { n: 1, time: 30, action: 'b', frame: 2 }] },
-            { op: '绝对引用', note: '乙没讲', cells: [{ n: 2, time: 40.5, action: 'c', frame: 3 }, null] },
+            { op: '输入函数', note: '甲先点单元格', cells: ids.map((_, i) => ({ n: 1, time: 12 + 18 * i, action: 'a', frame: 1 + i })) },
+            { op: '绝对引用', note: '乙没讲', cells: ids.map((_, i) => (i ? null : { n: 2, time: 40.5, action: 'c', frame: 3 })) },
           ],
         }
       }

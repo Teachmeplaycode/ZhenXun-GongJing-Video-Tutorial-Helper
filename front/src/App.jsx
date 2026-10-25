@@ -20,6 +20,7 @@ import useHomeVisual from './lib/useHomeVisual'
 import ClickSpark from './components/ClickSpark'
 import DockNav from './components/DockNav'
 import ImportPanel from './stages/ImportPanel'
+import CompareStage from './stages/CompareStage'
 import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
 import ChatStage from './stages/ChatStage'
@@ -83,6 +84,7 @@ const byTime = (list) => [...list].sort((a, b) => a.time - b.time)
 export default function App() {
   const { choice: homeVisual, select: selectHomeVisual, mobile, snakeOnly } = useHomeVisual()
   const [stage, setStage] = useState('idle')
+  const [comparing, setComparing] = useState(null) // several links pasted on the homepage: { links, sampling, key }
   const [runId, setRunId] = useState(() => makeRunId())
   const [meta, setMeta] = useState(null)
   const [video, setVideo] = useState(null)
@@ -470,9 +472,15 @@ export default function App() {
     }
   }
 
-  const start = useCallback(async ({ file, task, link, images = null, sampling = null }) => {
+  const start = useCallback(async ({ file, task, link, links = null, images = null, sampling = null }) => {
     if (publicDemo && member && !member.user) { // the web demo: importing needs an account
       setMemberDialog({ mode: 'register', reason: '登录后才能导入视频和提问。可以直接点「游客体验」试用，或注册一个账号。' })
+      return
+    }
+    if (links?.length) { // tutorials of the same task: each imported, then compared (stages/CompareStage.jsx)
+      setImportError('')
+      setComparing({ links, sampling, key: Date.now() })
+      wipeThrough(() => setStage('compare'))
       return
     }
     abortRef.current?.abort()
@@ -851,6 +859,12 @@ export default function App() {
 
         {maskMounted && meta ? (
           <UploadMask maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />
+        ) : null}
+
+        {stage === 'compare' && comparing ? (
+          <div className="layer layer--ui layer--compare">
+            <CompareStage key={comparing.key} links={comparing.links} sampling={comparing.sampling} onOpenSession={(id, at) => openSession(id, at)} />
+          </div>
         ) : null}
 
         {(stage === 'analyzing' || stage === 'ready') && meta ? (
