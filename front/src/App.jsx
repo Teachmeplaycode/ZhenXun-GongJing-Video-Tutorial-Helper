@@ -22,6 +22,7 @@ import DockNav from './components/DockNav'
 import ImportPanel from './stages/ImportPanel'
 import UploadMask from './stages/UploadMask'
 import AnalyzeHud from './stages/AnalyzeHud'
+import MobileProcessing from './stages/MobileProcessing'
 import ChatStage from './stages/ChatStage'
 import PictureStage from './stages/PictureStage'
 import { createLinkJob, deleteSession, deleteSource, downloadClip, listSamples, fetchChapters, fetchCuts, fetchSource, getHealth, getSession, signOut, linkFrameUrl, listSessions, retryLinkJob, streamLinkJob, uploadImages, uploadVideo } from './api/client'
@@ -305,8 +306,9 @@ export default function App() {
 
   // Leaving the upload screen: it wipes up like a curtain onto the analysis scene underneath.
   const exitMask = async (signal) => {
-    const enter = maskEnterRef.current
-    if (enter && enter.progress() < 1) await new Promise((r) => enter.eventCallback('onComplete', r))
+    signal.throwIfAborted()
+    if (!maskRef.current) return
+    await waitMaskEnter(signal)
     return new Promise((resolve, reject) => {
       signal.throwIfAborted()
       const onAbort = () => {
@@ -335,9 +337,18 @@ export default function App() {
     })
   }
 
-  const waitMaskEnter = async () => {
+  const waitMaskEnter = async (signal) => {
+    signal.throwIfAborted()
     const enter = maskEnterRef.current
-    if (enter && enter.progress() < 1) await new Promise((r) => enter.eventCallback('onComplete', r))
+    if (!maskRef.current || !enter || enter.progress() === 1) return
+    await new Promise((resolve, reject) => {
+      const onAbort = () => reject(new DOMException('aborted', 'AbortError'))
+      signal.addEventListener('abort', onAbort, { once: true })
+      enter.eventCallback('onComplete', () => {
+        signal.removeEventListener('abort', onAbort)
+        resolve()
+      })
+    })
   }
 
   // Apply a link job's frame events to the timeline until the run reports `done`.
@@ -387,7 +398,7 @@ export default function App() {
     let job = null
     try {
       // Long enough for the window to open and the terrain to draw before switching scenes.
-      const minimum = new Promise((r) => setTimeout(r, 2400))
+      const minimum = new Promise((r) => setTimeout(r, prefersReducedMotion() ? 0 : 2400))
       const onProgress = (p) => { if (!signal.aborted) setUploadProgress(p) }
       job = link
         ? await createLinkJob(link, { task, sampling, signal })
@@ -407,7 +418,7 @@ export default function App() {
       if (v.kind === 'images') {
         // A picture set skips the analysis screen: its page shows the pictures as they arrive.
         setAnalysis((a) => ({ ...a, index: true }))
-        await waitMaskEnter()
+        await waitMaskEnter(signal)
         signal.throwIfAborted()
         setStage('pictures')
         // Follow the pictures while the curtain lifts: they show up as soon as they arrive.
@@ -418,7 +429,7 @@ export default function App() {
         await following
         return
       }
-      await waitMaskEnter()
+      await waitMaskEnter(signal)
       signal.throwIfAborted()
       setStage('analyzing')
       await exitMask(signal)
@@ -432,6 +443,11 @@ export default function App() {
         return
       }
       // Resolution or upload failed: close the upload screen and show why on the import slide.
+      if (!maskRef.current) {
+        reset()
+        setImportError(err.message)
+        return
+      }
       gsap.to(maskRef.current, {
         opacity: 0,
         duration: DUR.short,
@@ -509,7 +525,7 @@ export default function App() {
       signal.throwIfAborted()
       setVideo({ videoId: uploaded.video_id, task })
       // Switch to the analysis scene under the mask once it fully covers, then wipe it away.
-      await waitMaskEnter()
+      await waitMaskEnter(signal)
       signal.throwIfAborted()
       setStage('analyzing')
       await exitMask(signal)
@@ -540,7 +556,7 @@ export default function App() {
     } catch (err) {
       if (!signal.aborted && err.name !== 'AbortError') setNotice(err.message)
     }
-  }, [publicDemo, member])
+  }, [publicDemo, member, mobile])
 
   // Container refresh: pixel cells cover the workspace, `apply` swaps the content behind them at the
   // peak, then the cells release diagonally like extracted video frames. The snake mark either flies
@@ -693,7 +709,7 @@ export default function App() {
   const canRetry = Boolean(video?.jobId) && meta?.platform !== 'local'
   const showSculpture = stage !== 'chat' && stage !== 'pictures'
   const homeScene = stage === 'idle' || stage === 'uploading'
-  const sculptureEnabled = !homeScene || !snakeOnly
+  const sculptureEnabled = !mobile && (!homeScene || !snakeOnly)
   const sculptureMode = stage === 'analyzing' || stage === 'ready' ? 'analyzing' : 'idle'
   const settledFrames = analysis.frames + (analysis.missing || 0)
   const isVerifying = stage === 'analyzing' && Boolean(analysis.total) && settledFrames >= analysis.total && !analysis.index
@@ -752,10 +768,20 @@ export default function App() {
     />
   ) : null
 
+  const mobileProcessing = mobile && meta && ['analyzing', 'ready'].includes(stage)
+
   return (
     // Uploading keeps the homepage layout underneath, so the slide opens from where it sits.
-    <div className={`app app--${stage === 'uploading' ? 'idle app--uploading' : stage}${homeScene && snakeOnly ? ' app--snake-home' : ''}`}>
-      <header className="topbar">
+    <div className={`app app--${stage === 'uploading' ? 'idle app--uploading' : stage}${homeScene && snakeOnly ? ' app--snake-home' : ''}${mobileProcessing ? ' app--mobile-processing' : ''}`}>
+      {mobileProcessing ? (
+        <MobileProcessing
+          stage={stage} meta={meta} analysis={analysis} frames={frames} uploadProgress={uploadProgress}
+          notice={notice} onBack={goBack} onNext={enterChat}
+          canEnterEarly={Boolean(meta.backend) && analysis.frames >= EARLY_CHAT_FRAMES}
+          onRetry={canRetry ? retryMissing : null} retrying={retrying}
+        />
+      ) : null}
+      <header className="topbar" hidden={Boolean(mobileProcessing)}>
         <div className="brand">
           <SnakeMark className="brand__mark" state={brandMarkState} />
           {/* Once the timeline is built the question is answered: "?" becomes "!". */}
@@ -814,7 +840,7 @@ export default function App() {
         </DockNav>
       </header>
 
-      <main className="wireframe">
+      <main className="wireframe" hidden={Boolean(mobileProcessing)}>
         <span className="wireframe__tick wireframe__tick--tl" />
         <span className="wireframe__tick wireframe__tick--tr" />
         <span className="wireframe__tick wireframe__tick--bl" />
@@ -853,7 +879,7 @@ export default function App() {
           <UploadMask maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />
         ) : null}
 
-        {(stage === 'analyzing' || stage === 'ready') && meta ? (
+        {(stage === 'analyzing' || stage === 'ready') && meta && !mobile ? (
           <div className="layer layer--ui">
             <AnalyzeHud
               meta={meta}
@@ -893,13 +919,15 @@ export default function App() {
           </div>
         ) : null}
 
+      </main>
+
         <div ref={wipeRef} className="wipe" aria-hidden="true">
           <div className="wipe__pixels">
             {WIPE_PIXELS.map((index) => <i key={index} className="wipe__pixel" data-accent={index % 47 === 18 || undefined} />)}
           </div>
           <SnakeMark className="wipe__snake" state="confirmed" framed />
         </div>
-      </main>
+
 
       {pickerOpen && stage === 'chat' ? (
         <FramePicker frames={frames} duration={meta?.duration} busy={chatBusy} selected={selected}
