@@ -25,7 +25,7 @@
 | --- | --- |
 | 跟着教程做 | 梳理操作步骤，附上自己的截图提问，结合教程画面分析卡点与下一步 |
 | 找回关键一秒 | 章节导航、关键帧时间轴、区间慢放和补看画面；点击回答中的时间点回看证据 |
-| 还原 Blender 节点 | 用「抄作业」整理节点、连线和参数，在独立画布查看，复制 Blender 脚本或下载 `.py`；标出看不清的参数和版本差异 |
+| 还原 Blender 节点 | 用「抄作业」整理节点、连线和参数，在独立画布查看，复制 Blender 脚本或下载 `.py`；标出看不清的参数和版本差异。本机版装上「帧寻 Bridge」插件后，可以一键应用到打开的 Blender，并「对答案」指出少了哪个节点、哪根线、哪个参数不对 |
 | 整理学习笔记 | 生成并编辑图文笔记，导出 Markdown、长图，或通过浏览器打印保存 PDF |
 | 追问与查证 | 按需检索语音转写、画面文字、评论与弹幕，搜索网页和论文；工具执行过程可展开查看 |
 | 多种素材导入 | 视频链接、本地视频、图片与图文内容；保留会话，方便继续追问 |
@@ -166,7 +166,6 @@ backend/          FastAPI 后端：链接解析、抽帧、语音转写、问答
 front/            React + Vite 前端：导入、对话、时间轴、工作台、笔记、节点画布
 docs/
   screenshots/    README 使用的真实界面截图
-  architecture/   软件架构图集
   design.md       最初的需求说明
   design_2.md     前端设计规范（视觉 token、组件、动效、对话界面）
 deploy/           Linux、华为云与容器部署说明
@@ -202,7 +201,6 @@ cd backend && uv run python scripts/log_stats.py      # 最近 7 天的使用统
 - [后端说明](backend/README.md)：API、模块实现、模型和解析配置。
 - [华为云部署](deploy/huawei/README.md)：openEuler / aarch64 环境准备与识别依赖。
 - [容器部署](deploy/linyi/README.md)：服务部署与运行配置。
-- [软件架构图集](docs/architecture/README.md)：系统架构与模块关系。
 - [前端自定义](docs/frontend-customization.md)：文案、视觉和界面配置。
 
 前端使用 React 18、Vite、Three.js 与 GSAP；后端使用 Python、FastAPI、SQLite 和 ffmpeg，通过 SSE 推送解析与问答过程，模型接口兼容 OpenAI 协议，也支持本地 Ollama。
