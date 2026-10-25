@@ -4,6 +4,8 @@ import AntifraudPanel from './AntifraudPanel'
 import RecipeReport from './RecipeReport'
 
 const RISK = { high: '高', medium: '中', low: '低' }
+// 抄作业 (the node graph) is off unless built with VITE_RECIPE=1 (backend RECIPE_ENABLED): an old answer's graph card stays hidden.
+export const RECIPE_ON = import.meta.env.VITE_RECIPE === '1'
 
 // The reports of the skills an answer ran (backend modules/agent/skills.py), as cards under its
 // text: the outcome in the title line, the full report a click away.
@@ -12,6 +14,7 @@ export function skillReports(message) {
   for (const part of message.parts || []) {
     if (part.kind !== 'steps') continue
     for (const c of part.calls) {
+      if (c.tool === 'skill.recipe' && !RECIPE_ON) continue
       if (['skill.factcheck', 'skill.antifraud', 'skill.recipe'].includes(c.tool) && c.data?.report) out.push({ id: c.id, tool: c.tool, report: c.data.report })
     }
   }

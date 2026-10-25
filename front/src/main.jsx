@@ -12,10 +12,11 @@ import './styles/workspace.css'
 import App from './App'
 import NoteEditor from './notes/NoteEditor'
 import RecipeCanvas from './recipe/RecipeCanvas'
+import { RECIPE_ON } from './components/SkillReports'
 
 // #/notes/<jobId> opens the note editor in its own tab, #/recipe/<jobId> the 抄作业 node canvas;
-// everything else is the workbench.
+// everything else is the workbench. With 抄作业 off (no VITE_RECIPE=1) the canvas link opens the workbench.
 const note = /^#\/notes\/([\w-]+)/.exec(window.location.hash)
-const graph = /^#\/recipe\/([\w-]+)/.exec(window.location.hash)
+const graph = RECIPE_ON && /^#\/recipe\/([\w-]+)/.exec(window.location.hash)
 createRoot(document.getElementById('root')).render(
   note ? <NoteEditor jobId={note[1]} /> : graph ? <RecipeCanvas jobId={graph[1]} /> : <App />)
