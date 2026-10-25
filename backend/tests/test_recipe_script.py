@@ -37,6 +37,8 @@ def test_what_the_script_cant_do_is_a_comment_not_a_guess():
 def test_the_script_endpoint(tmp_path, monkeypatch):
     import app
 
+    monkeypatch.setenv("RECIPE_ENABLED", "1")  # 抄作业 is off by default
+
     job = job_for(tmp_path)
     monkeypatch.setitem(app.jobs, "job1", job)
     client = TestClient(app.app)
@@ -60,3 +62,15 @@ def test_vector_math_slots_take_vectors():
     recipe.normalize(found)
     text = recipe_script.script(found)
     assert 'put_at(n["a"], 1, [0.0, 0.0, 0.2])' in text and 'put_at(n["b"], 1, [2.0, 2.0, 2.0])' in text
+
+
+def test_recipe_is_off_by_default(tmp_path, monkeypatch):
+    import app
+
+    monkeypatch.delenv("RECIPE_ENABLED", raising=False)
+    monkeypatch.setattr(app.recipe, "enabled", lambda: False)
+    client = TestClient(app.app)
+    for method, path in (("get", "/api/link-jobs/abc/recipe"), ("get", "/api/link-jobs/abc/recipe/script"),
+                         ("post", "/api/link-jobs/abc/recipe/revise"), ("get", "/api/blender/status")):
+        r = getattr(client, method)(path)
+        assert r.status_code == 404 and "已关闭" in r.json()["detail"]

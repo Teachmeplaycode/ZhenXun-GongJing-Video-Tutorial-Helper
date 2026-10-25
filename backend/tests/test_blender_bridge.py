@@ -55,6 +55,8 @@ class FakeBlender:
 def test_endpoints_apply_and_check_through_the_bridge(tmp_path, monkeypatch):
     import app
 
+    monkeypatch.setenv("RECIPE_ENABLED", "1")  # 抄作业 is off by default
+
     job = job_for(tmp_path)
     monkeypatch.setitem(app.jobs, "job1", job)
     recipe.save(job.root, ZONE)
@@ -74,6 +76,8 @@ def test_endpoints_apply_and_check_through_the_bridge(tmp_path, monkeypatch):
 
 def test_without_blender_or_on_the_web_demo(tmp_path, monkeypatch):
     import app
+
+    monkeypatch.setenv("RECIPE_ENABLED", "1")  # 抄作业 is off by default
 
     job = job_for(tmp_path)
     monkeypatch.setitem(app.jobs, "job1", job)

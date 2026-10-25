@@ -88,6 +88,17 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="GongJ!ng? backend", lifespan=lifespan)
 
 
+RECIPE_PATHS = re.compile(r"^/api/(link-jobs/[^/]+/recipe(/|$)|blender/)")
+
+
+@app.middleware("http")
+async def recipe_switch(request: Request, call_next):
+    """抄作业 off (modules/recipe.enabled): its graph, script, Blender and AI 修改 endpoints answer 404."""
+    if RECIPE_PATHS.match(request.url.path) and not recipe.enabled():
+        return JSONResponse({"detail": "抄作业（节点图）已关闭：请用步骤卡片跟做"}, status_code=404)
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def visitor(request: Request, call_next):
     """Public demo: who is asking, from a signed cookie; a browser without one gets a new id."""
