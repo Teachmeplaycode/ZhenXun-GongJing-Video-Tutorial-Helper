@@ -2,7 +2,8 @@ import React, { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { IconAlert, IconArrowRight, IconCheck, IconRefresh } from '../components/Icons'
 import { fmtBytes, fmtTime } from '../lib/format'
-import { EASE } from '../lib/motion'
+import { EASE, prefersReducedMotion } from '../lib/motion'
+import '../styles/analysis-hud.css'
 
 const StepState = ({ state }) =>
   state === 'done' ? <IconCheck size={14} /> : state === 'running' ? <span className="spinner-dot" />
@@ -43,13 +44,15 @@ const PLATFORM_NAMES = { bilibili: 'B 站', wechat_channels: '视频号', local:
 export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNext, canEnterEarly = false, onRetry = null, retrying = false }) {
   const nextRef = useRef(null)
   useLayoutEffect(() => {
-    if (ready && nextRef.current) {
-      gsap.fromTo(nextRef.current, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.4, ease: EASE.bounce })
+    if (ready && nextRef.current && !prefersReducedMotion()) {
+      const tween = gsap.fromTo(nextRef.current, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.4, ease: EASE.bounce })
+      return () => tween.kill()
     }
   }, [ready])
 
+  const total = Math.max(analysis.total || 0, frames.length)
   const settled = analysis.frames + (analysis.missing || 0)
-  const framesDone = Boolean(analysis.total) && settled >= analysis.total
+  const framesDone = Boolean(total) && settled >= total
   const pictures = meta.kind === 'images' // an image post or uploaded pictures: no time axis, no speech
   const steps = pictures ? [
     meta.link
@@ -58,9 +61,9 @@ export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNe
     {
       key: 'frames',
       label: '读取图片',
-      value: analysis.total ? `${analysis.frames} / ${analysis.total} 张` : '',
+      value: total ? `${analysis.frames} / ${total} 张` : '',
       state: framesDone ? 'done' : 'running',
-      progress: analysis.total ? settled / analysis.total : 0,
+      progress: total ? analysis.frames / total : 0,
     },
     ...(analysis.screentext ? [{ key: 'screen', label: '图片文字', ...screenStep(analysis.screentext) }] : []),
   ] : [
@@ -76,14 +79,14 @@ export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNe
     {
       key: 'frames',
       label: '抓取关键帧',
-      value: analysis.total ? `${analysis.frames} / ${analysis.total}` : '',
+      value: total ? `${analysis.frames} / ${total}` : '',
       state: framesDone ? 'done' : analysis.meta ? 'running' : 'pending',
-      progress: analysis.total ? settled / analysis.total : 0,
+      progress: total ? analysis.frames / total : 0,
     },
     {
       key: 'index',
       label: '建立时间轴索引',
-      value: analysis.index ? `${analysis.total} 段` : '',
+      value: analysis.index ? `${total} 段` : '',
       state: analysis.index ? 'done' : framesDone ? 'running' : 'pending',
     },
     ...(meta.backend ? [{ key: 'speech', label: '语音转写', ...speechStep(analysis.transcript) }] : []),
@@ -94,11 +97,11 @@ export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNe
   const retryLabel = [analysis.missing ? `缺失的 ${analysis.missing} 帧` : '', transcriptFailed ? '语音转写' : '', screenFailed ? '画面文字' : '']
     .filter(Boolean).join('和')
   const frameMap = new Map(frames.map((frame) => [frame.index, frame]))
-  const frameSlots = Array.from({ length: analysis.total || frames.length }, (_, index) => (
+  const frameSlots = Array.from({ length: total }, (_, index) => (
     frameMap.get(index) || { index, src: null, status: 'pending' }
   ))
   const activeFrame = frames.reduce((latest, frame) => (frame.src ? Math.max(latest, frame.index) : latest), -1)
-  const frameProgress = analysis.total ? Math.min(1, settled / analysis.total) : 0
+  const frameProgress = total ? Math.min(1, analysis.frames / total) : 0
 
   return (
     <>
@@ -107,22 +110,19 @@ export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNe
           <div className="hud__state" data-status={ready ? 'done' : 'running'}>
             <span className="hud__state-mark">{ready ? <IconCheck size={16} /> : <span className="spinner-dot" />}</span>
             <span className="hud__state-copy">
-              <strong>{ready ? '视频切帧完成' : '正在切分视频帧'}</strong>
-              <small>{ready ? `已生成 ${analysis.frames} 个可检索画面` : '请保持页面开启，画面将逐帧生成'}</small>
+              <strong>{retrying ? '正在补充素材' : ready ? '画面已就绪' : framesDone ? '正在整理索引' : '正在切分视频帧'}</strong>
+              <small>{ready ? `已生成 ${analysis.frames} 个可检索画面` : '画面与解析状态实时更新'}</small>
             </span>
           </div>
-          <span className="mono-sm hud__file">{meta.name}</span>
+          <span className="hud__file" title={meta.name}>{meta.name}</span>
         </div>
-        <p className="hud__patience">
-          {ready ? '时间轴索引已经建立，可以进入对话继续理解与核验。' : '正在识别画面变化并建立时间轴，请耐心等待片刻。视频越长，处理时间可能越久。'}
-        </p>
         <ol className="hud__steps">
           {steps.map((s) => (
             <li key={s.key} className="hud__step" data-status={s.state}>
               <StepState state={s.state} />
               <span className="hud__label">{s.label}</span>
               <span className="hud__value mono-sm">
-                {s.key === 'frames' && analysis.total ? <>{analysis.frames} / {analysis.total}</> : s.value}
+                {s.key === 'frames' && total ? <>{analysis.frames} / {total}</> : s.value}
                 {s.key === 'frames' && analysis.missing ? <em className="hud__missing">缺 {analysis.missing}</em> : null}
               </span>
               {s.key === 'frames' && s.state !== 'pending' ? (
@@ -147,11 +147,11 @@ export default function AnalyzeHud({ meta, analysis, frames, ready, notice, onNe
           <span className="filmstrip__title">
             <i />
             <strong>{ready ? '切分队列已完成' : '正在逐帧切分'}</strong>
-            <small>{ready ? '所有画面已按时间顺序写入索引' : '每亮起一格，代表一个画面已生成'}</small>
+            <small>{analysis.missing ? `${analysis.missing} 帧未获取` : ready ? '画面已写入索引' : '已生成画面依次点亮'}</small>
           </span>
-          <span className="mono-sm filmstrip__count">{settled} / {analysis.total || '—'} 帧</span>
+          <span className="mono-sm filmstrip__count">{analysis.frames} / {total || '—'} 帧</span>
         </div>
-        <span className="filmstrip__progress" aria-hidden="true"><span style={{ transform: `scaleX(${frameProgress})` }} /></span>
+        <span className="filmstrip__progress" role="progressbar" aria-label="画面提取进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={total ? Math.round(frameProgress * 100) : undefined}><span style={{ transform: `scaleX(${frameProgress})` }} /></span>
         <div className="filmstrip" aria-label={ready ? '已完成的切分帧队列' : '正在生成的切分帧队列'}>
           {frameSlots.map((frame) => {
             const status = frame.src ? 'done' : frame.status === 'missing' ? 'missing' : 'pending'
