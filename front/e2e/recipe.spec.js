@@ -63,3 +63,34 @@ test('recipe canvas: the Blender script is one click away; add-ons and a low res
   await expect(page.locator('.rc-panel a', { hasText: '出处' })).toHaveAttribute('href', /extensions\.blender\.org/)
   await expect(page.locator('.rc-warn')).toContainText('480p')
 })
+
+test('recipe canvas: with Blender connected, apply the graph and 对答案 marks what is missing', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.recipe = JSON.parse(readFileSync(new URL('./fixtures/recipe-zone.json', import.meta.url), 'utf8'))
+  mock.blender = { available: true, connected: true, blender: '5.0.1', object: 'Cube' }
+  const transform = mock.recipe.trees[0].nodes.find((n) => n.ref === 'GeometryNodeTransform')
+  mock.checkResult = { done: false, summary: '还差 1 个节点、1 根线、1 处参数', theirs: '几何节点', matched: 9, nodes: 10, findings: [
+    { kind: 'missing_node', node: transform.id, text: '少了节点「变换几何体」：Shift+A 搜「变换几何体」添加' },
+    { kind: 'missing_link', from: 'n1', to: 'n8', text: '缺一根线：组输入.几何数据 → 切换.真' },
+    { kind: 'setting', text: '「循环」的「最大值」应为 3，你的是 5' }] }
+  await mock.install()
+  await page.goto('/#/recipe/job1')
+  await page.getByRole('button', { name: '应用到 Blender' }).click()
+  await expect(page.locator('.rc-warn')).toContainText('已在 Blender 里建好')
+  await page.getByRole('button', { name: '对答案' }).click()
+  await expect(page.locator('.rc-result h4')).toHaveText('对答案 · 还差 1 个节点、1 根线、1 处参数')
+  await expect(page.locator('.rc-result li')).toHaveCount(3)
+  await expect(page.locator('.rc-node rect[stroke="#FF5A4E"]')).toHaveCount(1) // the missing Transform outlined
+  expect(mock.blenderCalls).toEqual(['apply', 'check'])
+})
+
+test('recipe canvas: Blender not connected yet shows how to connect it', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.recipe = JSON.parse(readFileSync(new URL('./fixtures/recipe-zone.json', import.meta.url), 'utf8'))
+  mock.blender = { available: true, connected: false, message: '没有连上 Blender' }
+  await mock.install()
+  await page.goto('/#/recipe/job1')
+  await page.getByRole('button', { name: '连接 Blender' }).click()
+  await expect(page.locator('.rc-steps li')).toHaveCount(4)
+  await expect(page.getByRole('link', { name: '下载「帧寻 Bridge」插件' })).toHaveAttribute('href', /\/api\/blender\/addon$/)
+})
