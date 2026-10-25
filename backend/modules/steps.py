@@ -94,10 +94,13 @@ def tidy(line: str) -> str:
 
 def parse(output: str, duration: float) -> list[dict]:
     matches = [m for m in map(LINE.match, map(tidy, (output or "").splitlines())) if m]
-    # "18:00" for the 18th second: every time ends in :00 and read as minutes most run past the end.
+    # "18:00" or "21:21" for the 18th / 21st second (the lines show both "[00:21 · 21s]"): read as minutes
+    # most times run past the end, while the number before the colon always fits in the video.
     raw = [m.group(1) for m in matches]
-    as_seconds = (duration and raw and all(re.fullmatch(r"\d+:00", r) for r in raw)
-                  and max(seconds(r) for r in raw) > duration >= max(int(r.split(":")[0]) for r in raw))
+    clocks = [r for r in raw if r.count(":") == 1]
+    as_seconds = bool(duration and raw and len(clocks) == len(raw)
+                      and sum(seconds(r) > duration for r in raw) * 2 >= len(raw)
+                      and duration >= max(int(r.split(":")[0]) for r in raw))
     steps = []
     for m in matches:
         t = float(m.group(1).split(":")[0]) if as_seconds else seconds(m.group(1))
