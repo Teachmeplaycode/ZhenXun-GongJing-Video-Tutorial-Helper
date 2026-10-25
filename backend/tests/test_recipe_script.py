@@ -50,3 +50,13 @@ def test_applying_again_reuses_the_帧寻_modifier_instead_of_adding_one():
     text = recipe_script.script(ZONE)
     assert 'mod = obj.modifiers.get("帧寻·几何节点.007") or obj.modifiers.new("帧寻·几何节点.007", \'NODES\')' in text
     assert recipe_script.owned_name("材质：有机方块 这里很长很长很长") == "帧寻·材质：有机方块 这里很长很长"
+
+
+def test_vector_math_slots_take_vectors():
+    found = {"trees": [{"name": "几何节点", "nodes": [
+        {"id": "a", "name": "矢量运算", "params": [{"name": "运算", "value": "吸附", "time": 1}, {"name": "增量", "value": "0, 0, 0.2", "time": 1}]},
+        {"id": "b", "name": "矢量运算", "params": [{"name": "运算", "value": "循环", "time": 1}, {"name": "最大值", "value": "2", "time": 1}]}],
+        "links": []}]}
+    recipe.normalize(found)
+    text = recipe_script.script(found)
+    assert 'put_at(n["a"], 1, [0.0, 0.0, 0.2])' in text and 'put_at(n["b"], 1, [2.0, 2.0, 2.0])' in text

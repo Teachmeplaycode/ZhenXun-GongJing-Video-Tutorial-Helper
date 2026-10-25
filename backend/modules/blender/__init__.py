@@ -15,6 +15,7 @@ from pathlib import Path
 ADDON = Path(__file__).with_name("zhenxun_bridge.py")
 HOST = "127.0.0.1"
 TIMEOUT = 8.0
+LINE_LIMIT = 16 * 1024 * 1024  # a preview picture comes back in one line
 
 
 def port() -> int:
@@ -30,7 +31,7 @@ class BridgeError(RuntimeError):
 
 async def call(cmd: str, timeout: float = TIMEOUT, **fields) -> dict:
     try:
-        reader, writer = await asyncio.wait_for(asyncio.open_connection(HOST, port()), timeout=2)
+        reader, writer = await asyncio.wait_for(asyncio.open_connection(HOST, port(), limit=LINE_LIMIT), timeout=2)
     except (OSError, asyncio.TimeoutError):
         raise BridgeError("没有连上 Blender：打开 Blender，装好并启用「帧寻 Bridge」插件（侧栏 › 帧寻 显示已连接）") from None
     try:

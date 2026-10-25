@@ -194,6 +194,12 @@ export const applyRecipe = (jobId, tree = null) => linkRequest(`/api/link-jobs/$
 export const checkRecipe = (jobId, tree) => linkRequest(`/api/link-jobs/${jobId}/recipe/check`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tree }),
 })
+/** AI 修改: the model edits one tree (and builds each try in the connected Blender) → { summary, changes, problems, checks, preview, recipe }. */
+export const reviseRecipe = (jobId, tree, instruction) => linkRequest(`/api/link-jobs/${jobId}/recipe/revise`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tree, instruction }),
+})
+/** Back to the graph before the last AI 修改. */
+export const undoRecipe = (jobId) => linkRequest(`/api/link-jobs/${jobId}/recipe/undo`, { method: 'POST' })
 /** Where the nodes were dragged to on the canvas: { tree index: { node id: [x, y] } }. */
 export const saveRecipeLayout = (jobId, positions) => linkRequest(`/api/link-jobs/${jobId}/recipe/layout`, {
   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ positions }),
