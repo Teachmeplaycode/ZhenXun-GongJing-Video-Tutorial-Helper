@@ -391,14 +391,20 @@ export default function App() {
       : images
         ? { name: `${images.length} 张图片`, size: images.reduce((n, f) => n + f.size, 0), type: 'images', kind: 'images', duration: NaN, width: 0, height: 0, link: false, backend: true, sample: false }
         : { name: file.name, size: file.size, type: file.type, duration: NaN, width: 0, height: 0, link: false, backend: true, sample: false }
-    setMeta(baseMeta)
-    setMaskMounted(true)
-    setStage('uploading')
-    setUploadProgress(link ? 0.12 : 0)
+    const openProcessing = () => {
+      setMeta(baseMeta)
+      setMaskMounted(!mobile)
+      setStage('uploading')
+      setUploadProgress(link ? 0.12 : 0)
+    }
     let job = null
     try {
+      if (mobile) {
+        if (!await wipeThrough(openProcessing)) return
+        signal.throwIfAborted()
+      } else openProcessing()
       // Long enough for the window to open and the terrain to draw before switching scenes.
-      const minimum = new Promise((r) => setTimeout(r, prefersReducedMotion() ? 0 : 2400))
+      const minimum = new Promise((r) => setTimeout(r, mobile || prefersReducedMotion() ? 0 : 2400))
       const onProgress = (p) => { if (!signal.aborted) setUploadProgress(p) }
       job = link
         ? await createLinkJob(link, { task, sampling, signal })
@@ -415,6 +421,15 @@ export default function App() {
       setFrames(byTime(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))))
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
       if (v.notes?.length) setNotice(v.notes.join('；'))
+      if (mobile) {
+        if (!await wipeThrough(() => {
+          if (v.kind === 'images') setAnalysis((a) => ({ ...a, index: true }))
+          setStage(v.kind === 'images' ? 'pictures' : 'analyzing')
+        })) return
+        signal.throwIfAborted()
+        await followLinkJob(job.job_id, 0, signal, v.notes || [])
+        return
+      }
       if (v.kind === 'images') {
         // A picture set skips the analysis screen: its page shows the pictures as they arrive.
         setAnalysis((a) => ({ ...a, index: true }))
@@ -513,24 +528,32 @@ export default function App() {
 
     // The sample: a scripted demo on placeholder frames, with mocked upload and answers.
     const nextMeta = SAMPLE_META
-    setMeta(nextMeta)
-    setMaskMounted(true)
-    setStage('uploading')
-
+    const openSample = () => {
+      setMeta(nextMeta)
+      setMaskMounted(!mobile)
+      setStage('uploading')
+    }
     try {
+      if (mobile) {
+        if (!await wipeThrough(openSample)) return
+        signal.throwIfAborted()
+      } else openSample()
       const uploaded = await mockUpload(null, {
         onProgress: (progress) => { if (!signal.aborted) setUploadProgress(progress) },
         signal,
       })
       signal.throwIfAborted()
       setVideo({ videoId: uploaded.video_id, task })
-      // Switch to the analysis scene under the mask once it fully covers, then wipe it away.
-      await waitMaskEnter(signal)
+      if (mobile) {
+        if (!await wipeThrough(() => setStage('analyzing'))) return
+      } else {
+        await waitMaskEnter(signal)
+        signal.throwIfAborted()
+        setStage('analyzing')
+        await exitMask(signal)
+        setMaskMounted(false)
+      }
       signal.throwIfAborted()
-      setStage('analyzing')
-      await exitMask(signal)
-      signal.throwIfAborted()
-      setMaskMounted(false)
 
       setAnalysis((a) => ({ ...a, meta: true }))
       const total = pickFrameCount(nextMeta.duration)
@@ -566,11 +589,12 @@ export default function App() {
     const wipe = wipeRef.current
     if (prefersReducedMotion() || !wipe) {
       apply()
-      return
+      return Promise.resolve(true)
     }
     const wipeSnake = wipe.querySelector('.wipe__snake')
     const pixels = [...wipe.querySelectorAll('.wipe__pixel')]
-    navigationRef.current = gsap.timeline()
+    return new Promise((resolve) => {
+      navigationRef.current = gsap.timeline({ onComplete: () => resolve(true), onInterrupt: () => resolve(false) })
       .set(wipe, { display: 'block' })
       .set(pixels, { scale: 0, transformOrigin: '50% 50%' })
       .set(wipeSnake, { opacity: 0, scale: 0.72, x: 0, y: 10, rotation: -8 })
@@ -584,6 +608,7 @@ export default function App() {
       .set(wipe, { display: 'none' })
       .set(pixels, { clearProps: 'transform' })
       .set(wipeSnake, { clearProps: 'all' })
+    })
   }
 
   const enterChat = () => {
@@ -768,7 +793,7 @@ export default function App() {
     />
   ) : null
 
-  const mobileProcessing = mobile && meta && ['analyzing', 'ready'].includes(stage)
+  const mobileProcessing = mobile && meta && ['uploading', 'analyzing', 'ready'].includes(stage)
 
   return (
     // Uploading keeps the homepage layout underneath, so the slide opens from where it sits.
@@ -875,8 +900,8 @@ export default function App() {
 
         {stage === 'idle' && !snakeOnly ? <HomepageMascot state={importError ? 'think' : 'idle'} /> : null}
 
-        {maskMounted && meta ? (
-          <UploadMask mobile={mobile} maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />
+        {maskMounted && meta && !mobile ? (
+          <UploadMask maskRef={maskRef} contourRef={contourRef} progress={uploadProgress} name={meta.name} size={meta.size} link={Boolean(meta.link)} onBack={goBack} />
         ) : null}
 
         {(stage === 'analyzing' || stage === 'ready') && meta && !mobile ? (
