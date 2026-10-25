@@ -18,7 +18,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, blender, clip, compare, log, members, playback, recipe, recipe_script, spend, steps, stuck, visitors
+from modules import accounts, archive, backup, blender, clip, compare, log, members, playback, recipe, recipe_revise, recipe_script, spend, steps, stuck, visitors
 from modules.blender import check as blender_check
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
@@ -1024,6 +1024,71 @@ async def recipe_check(job_id: str, body: BlenderTree):
     result = blender_check.compare(tree, theirs)
     log.event("blender.check", job_id=job_id, tree=index, done=result["done"], findings=len(result["findings"]))
     return result
+
+
+class RecipeRevision(BaseModel):
+    tree: int = 0
+    instruction: str = ""
+
+
+async def blender_try(tree: dict) -> tuple[str, str]:
+    """Build one tree in the person's Blender and say what came out (AI 修改's check_blender): the report,
+    and a Workbench picture (base64 PNG, '' when it couldn't render) for the model to compare with the video."""
+    kind = {"geometry": "geometry", "material": "material", "world": "world"}.get(recipe_script._kind(tree["name"]), "")
+    owned = recipe_script.owned_name(tree["name"])
+    try:
+        ran = await blender.call("run_script", timeout=60, code=recipe_script.script({"trees": [tree]}))
+        seen = await blender.call("inspect", target=kind, owned=owned)
+    except blender.BridgeError as exc:
+        return f"Blender 出错：{exc}", ""
+    picture = ""
+    if kind == "geometry":
+        try:
+            picture = (await blender.call("preview", timeout=60)).get("png") or ""
+        except blender.BridgeError:  # an add-on before 0.4 has no preview: the report alone
+            pass
+    manual = [line for line in (ran.get("output") or "").splitlines() if "手动" in line]
+    geo = seen.get("geometry") or {}
+    return "\n".join(x for x in [
+        f"建出 {seen['nodes']} 个节点、{seen['links']} 根线",
+        f"无效连线：{'；'.join(seen['invalid'])}" if seen["invalid"] else "没有无效连线",
+        f"输出没人用的节点：{'、'.join(seen['dangling'][:12])}" if seen["dangling"] else "",
+        f"修改器输出：{geo.get('vertices', 0)} 个点、{geo.get('faces', 0)} 个面" if "vertices" in geo else f"修改器输出：{geo.get('error', '没算出来')}",
+        f"建不出来：{'；'.join(manual)}" if manual else ""] if x), picture
+
+
+@app.post("/api/link-jobs/{job_id}/recipe/revise")
+async def recipe_revise_route(job_id: str, body: RecipeRevision):
+    """AI 修改: the model fixes the 抄作业 graph round after round (modules/recipe_revise.py); with the person's
+    Blender connected (local app) it builds each try there. Counts as a question."""
+    job = own_job(job_id)
+    found = recipe.load(job.root)
+    if found is None:
+        raise HTTPException(404, "还没有抄作业")
+    if not 0 <= body.tree < len(found["trees"]):
+        raise HTTPException(422, "没有这棵节点树")
+    member_service.charge("questions")
+    try:
+        llm = recipe_revise.model_client()
+    except LLMError as err:
+        raise HTTPException(503, err.message) from err
+    connected = not visitors.enabled() and (await blender.status()).get("connected")
+    try:
+        result = await recipe_revise.revise(job, found, body.tree, body.instruction[:500], llm, AgentTools(job, llm=llm),
+                                            blender_check=blender_try if connected else None)
+    except LLMError as err:
+        raise HTTPException(502, f"AI 修改失败：{err.message}") from err
+    log.event("recipe.revise", job_id=job_id, tree=body.tree, changes=len(result["changes"]), left=len(result["problems"]), blender=bool(connected))
+    return result
+
+
+@app.post("/api/link-jobs/{job_id}/recipe/undo")
+async def recipe_undo(job_id: str):
+    """Back to the graph before the last AI 修改."""
+    found = recipe_revise.undo(own_job(job_id).root)
+    if found is None:
+        raise HTTPException(404, "没有可以撤销的修改")
+    return {"ok": True}
 
 
 @app.put("/api/link-jobs/{job_id}/recipe/layout")

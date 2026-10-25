@@ -94,3 +94,35 @@ test('recipe canvas: Blender not connected yet shows how to connect it', async (
   await expect(page.locator('.rc-steps li')).toHaveCount(4)
   await expect(page.getByRole('link', { name: '下载「帧寻 Bridge」插件' })).toHaveAttribute('href', /\/api\/blender\/addon$/)
 })
+
+test('recipe canvas: AI 修改 fixes the graph, shows what Blender made, and can be undone', async ({ page }) => {
+  const mock = new MockApi(page)
+  const zone = JSON.parse(readFileSync(new URL('./fixtures/recipe-zone.json', import.meta.url), 'utf8'))
+  mock.recipe = zone
+  mock.blender = { available: true, connected: true, blender: '5.0.1', object: 'Grid' }
+  const added = { id: 'ai1', name: '法向', en: 'Normal', ref: 'GeometryNodeInputNormal', params: [], inputs: [],
+    outputs: [{ name: '法向', en: 'Normal', type: 'Vector' }] }
+  mock.revision = { summary: '补上了法向，Blender 里能建出来。', changes: ['加节点「法向」(ai1)'], problems: [],
+    checks: ['建出 11 个节点、12 根线\n没有无效连线\n修改器输出：400 个点、380 个面'],
+    preview: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    recipe: { trees: [{ ...zone.trees[0], nodes: [...zone.trees[0].nodes, added] }, ...zone.trees.slice(1)] } }
+  await mock.install()
+  await page.goto('/#/recipe/job1')
+  await page.getByRole('button', { name: 'AI 修改' }).click()
+  await page.getByRole('button', { name: '补全没连上的节点和线' }).click()
+  await expect(page.locator('.rc-summary')).toHaveText('补上了法向，Blender 里能建出来。')
+  await expect(page.locator('.rc-node')).toHaveCount(zone.trees[0].nodes.length + 1)
+  await expect(page.getByRole('img', { name: 'Blender 按改后的节点图做出的效果' })).toBeVisible()
+  await expect(page.locator('.rc-blender')).toContainText('400 个点')
+  await page.screenshot({ path: 'test-results/recipe-revise.png' })
+  expect(mock.reviseCalls[0]).toEqual({ tree: 0, instruction: '补全没连上的节点和线' })
+
+  await page.getByLabel('修改要求').fill('等高线没出来')
+  await page.getByRole('button', { name: '让 AI 改' }).click()
+  await expect.poll(() => mock.reviseCalls.length).toBe(2)
+  expect(mock.reviseCalls[1].instruction).toBe('等高线没出来')
+
+  await page.getByRole('button', { name: '撤销这次修改' }).click()
+  await expect.poll(() => mock.reviseCalls.at(-1)).toBe('undo')
+  await expect(page.locator('.rc-node')).toHaveCount(zone.trees[0].nodes.length) // reloaded the graph before
+})
