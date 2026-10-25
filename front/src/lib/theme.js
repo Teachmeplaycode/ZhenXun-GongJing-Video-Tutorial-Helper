@@ -55,8 +55,8 @@ export function useTheme() {
     const root = document.documentElement
     // Colour transitions (the frame's background eases over 1.2 s) would leave the new page half-way
     // between themes: pause them for the swap, and restore them once the new page is shown.
-    const swap = () => {
-      root.classList.add('theme-swapping')
+    const swap = (freezeTransitions = true) => {
+      if (freezeTransitions) root.classList.add('theme-swapping')
       root.dataset.theme = target
       flushSync(() => {
         setChoice(next)
@@ -65,7 +65,8 @@ export function useTheme() {
     }
     const settle = () => requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-swapping')))
     if (target === theme || !document.startViewTransition || prefersReducedMotion()) {
-      swap()
+      // Without View Transitions, let the headline's CSS colour transition run.
+      swap(prefersReducedMotion())
       settle()
       return
     }

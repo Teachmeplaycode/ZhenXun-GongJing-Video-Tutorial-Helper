@@ -18,7 +18,7 @@ test('phone: the chat keeps the room — no timeline, workbench full screen', as
   await start(page)
   await page.locator('.import-control__link').fill('https://www.bilibili.com/video/BV1TEST00001')
   await page.locator('.import-control__submit').click()
-  await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
+  await page.getByRole('button', { name: '开始分析', exact: true }).click({ timeout: 30_000 })
   await expect(page.locator('.composer__input')).toBeVisible()
   await expect(page.locator('.stepper')).toBeHidden()
   await expect(page.locator('.brand__name .wordmark__en')).toBeHidden()
@@ -47,7 +47,7 @@ test('phone: frames are picked in a big grid — attach, or frame a stretch to r
   const mock = await start(page)
   await page.locator('.import-control__link').fill('https://www.bilibili.com/video/BV1TEST00001')
   await page.locator('.import-control__submit').click()
-  await page.locator('.btn--next:not(.btn--early)').click({ timeout: 30_000 })
+  await page.getByRole('button', { name: '开始分析', exact: true }).click({ timeout: 30_000 })
   await page.locator('.composer').getByRole('button', { name: /选帧/ }).click()
   const picker = page.locator('.bench .picker--embedded') // the 画面 tab
   await expect(page.getByRole('tab', { name: '画面' })).toHaveAttribute('aria-selected', 'true')
