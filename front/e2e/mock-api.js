@@ -352,6 +352,12 @@ export class MockApi {
     }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/related$/)
     if (m) return json({ status: 'done', message: '', items: this.related || [] })
+    if (path === '/api/blender/status') return json(this.blender || { available: false, connected: false })
+    m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe\/(apply|check)$/)
+    if (m && req.method() === 'POST') {
+      this.blenderCalls = [...(this.blenderCalls || []), m[2]]
+      return json(m[2] === 'apply' ? { ok: true, output: '帧寻：节点已生成' } : this.checkResult)
+    }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe\/script$/)
     if (m) return route.fulfill({ status: 200, contentType: 'text/x-python', body: '# 帧寻 · 抄作业\nimport bpy\n' })
     m = path.match(/^\/api\/link-jobs\/(\w+)\/recipe(\/layout)?$/)

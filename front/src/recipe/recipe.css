@@ -27,3 +27,12 @@
 .rc-link { color: #C8F04A; font-size: 12.5px; text-decoration: none; }
 .rc-link:hover { text-decoration: underline; }
 .rc-warn { margin: 0; padding: 8px 10px; border-radius: 6px; background: #3A2A14; color: #FFD27A; font-size: 12.5px; }
+.rc-check { background: #2F2F2F; color: #FFFFFF; border-color: #FF8A3D !important; }
+.rc-result { padding: 10px; border-radius: 8px; background: #2A1E1C; border: 1px solid #5A2E28; }
+.rc-result[data-done] { background: #1F2A16; border-color: #4E6410; }
+.rc-result li[data-kind="missing_node"], .rc-result li[data-kind="missing_link"] { color: #FFB3AD; }
+.rc-result li[data-kind="setting"] { color: #FFD27A; }
+.rc-steps { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; color: #CFCFCF; font-size: 12.5px; }
+@keyframes rc-dash { to { stroke-dashoffset: -18; } }
+.rc-absent { animation: rc-dash 0.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .rc-absent { animation: none; } }
