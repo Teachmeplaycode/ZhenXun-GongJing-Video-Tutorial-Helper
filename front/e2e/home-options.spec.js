@@ -62,7 +62,7 @@ test('home: mobile question focus keeps the scroll position and survives rapid t
     for (let i = 0; i < 4; i++) trigger.click()
   })
   await expect(question).toHaveValue('手机上的问题')
-  await question.press('End')
+  await question.evaluate((el) => el.setSelectionRange(el.value.length, el.value.length)) // End doesn't move the caret on macOS
   await question.press('Enter')
   await question.press('a')
   await expect(question).toHaveValue('手机上的问题\na')
