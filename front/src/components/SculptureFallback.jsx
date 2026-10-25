@@ -5,7 +5,7 @@ import { SHEET, SCULPTURE_VIEW, sampleSheets, composeSheetMatrix } from '../lib/
 
 // Static SVG rendering of the sculpture for browsers without WebGL (§7.1 webgl_fallback).
 // Project the broad face of every sheet so the fallback retains the same volume.
-export default function SculptureFallback({ className = '', spread = 0, align = 'center', portrait = false }) {
+export default function SculptureFallback({ className = '', spread = 0, align = 'center' }) {
   const faces = useMemo(() => {
     const sheets = sampleSheets(220)
     const rot = new THREE.Euler(SCULPTURE_VIEW.x, SCULPTURE_VIEW.y, SCULPTURE_VIEW.z)
@@ -27,8 +27,8 @@ export default function SculptureFallback({ className = '', spread = 0, align = 
 
   return (
     <div className={`sculpture sculpture--fallback ${className}`}>
-      <svg viewBox={portrait ? '-13.5 -22 27 44' : '-22 -13.5 44 27'} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <g transform={`translate(${align === 'side' ? SCULPTURE_SETTINGS.sideOffset : 0}, 0) rotate(${portrait ? 90 : 0})`}>
+      <svg viewBox="-22 -13.5 44 27" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <g transform={`translate(${align === 'side' ? SCULPTURE_SETTINGS.sideOffset : 0}, 0)`}>
           {faces.map((face, i) => (
             <polygon
               key={i}
