@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { IconArrowRight, IconClose, IconFilm, IconImage, IconLink, IconUpload, IconChevron } from '../components/Icons'
 import { linkFrameUrl, looksLikeLink } from '../api/client'
+import { extractLinks } from '../lib/links'
 import { fmtBytes, fmtClock } from '../lib/format'
 import { linkPlatform, platformName } from '../lib/platforms'
 import { BRAND, WORKSPACE_CONTENT } from '../config/workspace'
@@ -11,6 +12,7 @@ import SamplingOptions, { DEFAULT_SAMPLING, customized, presetLabel, samplingSpe
 const SOURCES = '支持 B 站、视频号、抖音、小红书、YouTube 等平台的分享链接'
 const DEMO_SOURCES = '支持 B 站、抖音、小红书、快手、视频号等平台的分享链接；视频号需先在「平台账号」绑定腾讯元宝'
 const MAX_PICTURES = 60
+const MAX_LINKS = 5 // several links at once: tutorials of the same task, compared (stages/CompareStage.jsx)
 const SAMPLING_KEY = 'import.sampling'
 const loadSampling = () => {
   try {
@@ -90,15 +92,22 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
   }
 
   const isLink = entry === 'link' && looksLikeLink(link)
-  const mode = entry === 'upload' ? (pics.length ? 'images' : file ? 'file' : 'empty') : isLink ? 'link' : 'empty'
+  const links = entry === 'link' ? extractLinks(link) : []
+  const mode = entry === 'upload' ? (pics.length ? 'images' : file ? 'file' : 'empty') : links.length > 1 ? 'links' : isLink ? 'link' : 'empty'
   const source = mode === 'link' ? linkPlatform(link) : null
-  const hint = mode === 'link'
-    ? `${source?.name || '链接'} · 已识别，导入后即可提问`
-    : link.trim() ? '没有识别到链接，请粘贴完整的分享链接或分享文案' : publicDemo ? DEMO_SOURCES : SOURCES
+  const hint = mode === 'links'
+    ? (links.length > MAX_LINKS ? `识别到 ${links.length} 个链接，一次最多对照 ${MAX_LINKS} 个` : `识别到 ${links.length} 个链接 · 分别解析，再把同一个操作对成一行`)
+    : mode === 'link'
+      ? `${source?.name || '链接'} · 已识别，导入后即可提问；贴多个讲同一操作的教程链接可以对照`
+      : link.trim() ? '没有识别到链接，请粘贴完整的分享链接或分享文案' : publicDemo ? DEMO_SOURCES : SOURCES
   const submit = () => {
     if (mode === 'images') onStart({ images: pics, task })
     else if (mode === 'file') onStart({ file, task, sampling: samplingSpec(sampling) })
     else if (mode === 'link') onStart({ link: link.trim(), task, sampling: samplingSpec(sampling) })
+    else if (mode === 'links') {
+      if (links.length > MAX_LINKS) setError(`一次最多对照 ${MAX_LINKS} 个教程，请删掉几个链接`)
+      else onStart({ links, sampling: samplingSpec(sampling) })
+    }
     else if (entry === 'upload') inputRef.current?.click()
     else {
       setError('请先粘贴视频或图文的分享链接')
@@ -183,14 +192,14 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
                       ref={linkRef}
                       className="import-control__link"
                       value={link}
-                      placeholder="粘贴视频或图文链接"
+                      placeholder="粘贴视频或图文链接；贴几个同主题教程可以对照"
                       aria-label="内容链接"
-                      aria-describedby="import-link-hint" aria-invalid={Boolean(link.trim() && !isLink)}
+                      aria-describedby="import-link-hint" aria-invalid={Boolean(link.trim() && !isLink) || links.length > MAX_LINKS}
                       onChange={(event) => { setLink(event.target.value); setError(''); onClearError?.() }}
-                      onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && mode === 'link') { event.preventDefault(); submit() } }}
+                      onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && (mode === 'link' || mode === 'links')) { event.preventDefault(); submit() } }}
                     />
                   </span>
-                  <small id="import-link-hint" className={link.trim() && mode !== 'link' ? 'is-warn' : ''}>{hint}</small>
+                  <small id="import-link-hint" className={(link.trim() && mode !== 'link' && mode !== 'links') || links.length > MAX_LINKS ? 'is-warn' : ''}>{hint}</small>
                 </span>
               </div>
             )}
@@ -235,9 +244,9 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
             </div>
           ) : null}
           <div className="import-actions" data-exit>
-            <span>{mode === 'images' ? `已选择 ${pics.length} 张图片` : mode === 'file' ? '视频已就绪' : mode === 'link' ? '链接已就绪，支持回车导入' : '卡住了就发截图问'}</span>
+            <span>{mode === 'images' ? `已选择 ${pics.length} 张图片` : mode === 'file' ? '视频已就绪' : mode === 'link' ? '链接已就绪，支持回车导入' : mode === 'links' ? `${links.length} 个教程，导入后自动对照` : '卡住了就发截图问'}</span>
             <button type="button" className="import-control__submit" data-idle={mode === 'empty' || undefined} onClick={submit}>
-              {mode === 'images' ? '读取图片' : mode === 'link' ? '解析链接' : entry === 'upload' && mode === 'empty' ? '选择文件' : '开始解析'} <IconArrowRight size={16} />
+              {mode === 'images' ? '读取图片' : mode === 'link' ? '解析链接' : mode === 'links' ? `对照 ${links.length} 个教程` : entry === 'upload' && mode === 'empty' ? '选择文件' : '开始解析'} <IconArrowRight size={16} />
             </button>
           </div>
         </div>
