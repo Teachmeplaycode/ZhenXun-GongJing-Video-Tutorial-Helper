@@ -647,7 +647,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         add_usage(route_usage.get("prompt_tokens"), route_usage.get("completion_tokens"))
     offered = {d["function"]["name"] for d in allowed_tools(job, web, papers, audience)}
     # 「给我最终节点图，我抄作业」 asks for that skill whatever the question's kind
-    wanted = "copy_result" if recipe.WANTS.search(question) and not picture_sets.is_images(job.video) else route.skill
+    wanted = "copy_result" if recipe.enabled() and recipe.WANTS.search(question) and not picture_sets.is_images(job.video) else route.skill
     skill = wanted if wanted in offered and rounds else None
     yield tool("route", "output", stdout=(
         f"{intent.NAMES[route.kind]}（{route.how}" + (f"，概率 {route.p:.2f}" if route.p is not None else "") + "）"
@@ -655,6 +655,9 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield tool("route", "completed", result_count=1)
     if route.note:
         messages.append({"role": "user", "content": f"（回答方式）{route.note}"})
+    if not recipe.enabled() and recipe.WANTS.search(question):  # 抄作业 is off: the steps, not a whole graph
+        messages.append({"role": "user", "content": "（回答方式）整张节点图一次抄出来的功能已关闭。按操作顺序讲：每一步加什么节点、改哪些参数、"
+                                                    "怎么连，带上视频时间戳；看不清的地方说明并给出回看时间，不要编。"})
     if skill:
         call = ToolCall("skill0", skill, {})
         tool_calls += 1
