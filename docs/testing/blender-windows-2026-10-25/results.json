@@ -1,0 +1,137 @@
+{
+  "status": {
+    "http": 200,
+    "body": {
+      "available": true,
+      "connected": true,
+      "blender": "4.5.0",
+      "object": "Cube"
+    }
+  },
+  "apply": {
+    "http": 200,
+    "body": {
+      "ok": true,
+      "output": "帧寻：节点已生成\n"
+    }
+  },
+  "correct": {
+    "http": 200,
+    "body": {
+      "tree": "几何节点.007",
+      "theirs": "几何节点.004",
+      "matched": 10,
+      "nodes": 10,
+      "links": 10,
+      "findings": [],
+      "unknown": [],
+      "done": true,
+      "summary": "全部对上了"
+    }
+  },
+  "broken": {
+    "http": 200,
+    "body": {
+      "tree": "几何节点.007",
+      "theirs": "几何节点.004",
+      "matched": 9,
+      "nodes": 10,
+      "links": 8,
+      "findings": [
+        {
+          "kind": "missing_node",
+          "node": "n9",
+          "text": "少了节点「变换几何体」：Shift+A 搜「变换几何体」添加",
+          "time": 125.0
+        },
+        {
+          "kind": "missing_link",
+          "text": "缺一根线：合并几何体.几何数据 → 模拟输出.几何数据",
+          "from": "n3",
+          "to": "n4",
+          "time": 15.0
+        },
+        {
+          "kind": "missing_link",
+          "text": "缺一根线：组输入.几何数据 → 切换.真",
+          "from": "n1",
+          "to": "n8",
+          "time": null
+        },
+        {
+          "kind": "setting",
+          "text": "「循环」的「最大值」应为 3，你的是 5",
+          "time": 194.1
+        }
+      ],
+      "unknown": [],
+      "done": false,
+      "summary": "还差 1 个节点、2 根线、1 处参数"
+    }
+  },
+  "repair": {
+    "http": 200,
+    "body": {
+      "ok": true,
+      "output": "帧寻：节点已生成\n"
+    }
+  },
+  "reapplied_still_old": {
+    "http": 200,
+    "body": {
+      "tree": "几何节点.007",
+      "theirs": "几何节点.004",
+      "matched": 9,
+      "nodes": 10,
+      "links": 8,
+      "findings": [
+        {
+          "kind": "missing_node",
+          "node": "n9",
+          "text": "少了节点「变换几何体」：Shift+A 搜「变换几何体」添加",
+          "time": 125.0
+        },
+        {
+          "kind": "missing_link",
+          "text": "缺一根线：合并几何体.几何数据 → 模拟输出.几何数据",
+          "from": "n3",
+          "to": "n4",
+          "time": 15.0
+        },
+        {
+          "kind": "missing_link",
+          "text": "缺一根线：组输入.几何数据 → 切换.真",
+          "from": "n1",
+          "to": "n8",
+          "time": null
+        },
+        {
+          "kind": "setting",
+          "text": "「循环」的「最大值」应为 3，你的是 5",
+          "time": 194.1
+        }
+      ],
+      "unknown": [],
+      "done": false,
+      "summary": "还差 1 个节点、2 根线、1 处参数"
+    }
+  },
+  "modifier_diagnosis": {
+    "ok": true,
+    "output": "[('几何节点.007', '几何节点.004', 9), ('几何节点.008', '几何节点.005', 10)]\n"
+  },
+  "manually_repaired": {
+    "http": 200,
+    "body": {
+      "tree": "几何节点.007",
+      "theirs": "几何节点.004",
+      "matched": 10,
+      "nodes": 10,
+      "links": 10,
+      "findings": [],
+      "unknown": [],
+      "done": true,
+      "summary": "全部对上了"
+    }
+  }
+}

@@ -7,8 +7,8 @@ blender-mcp (MIT): requests are queued and run on Blender's main thread by a tim
 be touched from another thread.
 
   ping                       → {"blender": "5.0.1", "object": name or null}
-  export_tree [target]       → the node tree of the active object's geometry-nodes modifier, or its
-                               active material (target: "geometry" | "material" | "world")
+  export_tree [target owned] → the node tree 帧寻 built (its modifier / material named `owned`), else the
+                               active object's geometry-nodes modifier or material, or the world
   run_script code            → runs a script 帧寻 generated (抄作业 → 应用到 Blender), with its output
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ import bpy
 bl_info = {
     "name": "帧寻 Bridge",
     "author": "帧寻 GongJ!ng?",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (4, 0, 0),
     "location": "3D 视图 / 节点编辑器 › 侧栏（N）› 帧寻",
     "description": "让本机的帧寻读取和建立节点：抄作业一键应用、对答案",
@@ -49,23 +49,27 @@ def _plain(value):
         return getattr(value, "name", None)  # an object, material, collection: its name
 
 
-def _tree(target: str = ""):
+def _tree(target: str = "", owned: str = ""):
+    """The tree to read: what 帧寻 built under `owned` (its modifier or material) first, else the last
+    帧寻 modifier, else the object's first geometry-nodes modifier / active material, else the world."""
     obj = bpy.context.object
     if target in ("", "geometry") and obj is not None:
-        for mod in obj.modifiers:
-            if mod.type == "NODES" and mod.node_group is not None:
-                return mod.node_group, "geometry"
-    if target in ("", "material") and obj is not None and getattr(obj, "active_material", None):
-        mat = obj.active_material
-        if mat.node_tree is not None:
+        mods = [m for m in obj.modifiers if m.type == "NODES" and m.node_group is not None]
+        mine = [m for m in mods if m.name == owned] or [m for m in mods if m.name.startswith("帧寻·")]
+        if mine or mods:
+            return (mine[-1] if mine else mods[0]).node_group, "geometry"
+    if target in ("", "material") and obj is not None:
+        mat = bpy.data.materials.get(owned) if owned else None
+        mat = mat if mat is not None and mat.node_tree is not None else getattr(obj, "active_material", None)
+        if mat is not None and mat.node_tree is not None:
             return mat.node_tree, "material"
     if target in ("", "world") and bpy.context.scene.world and bpy.context.scene.world.node_tree:
         return bpy.context.scene.world.node_tree, "world"
     return None, ""
 
 
-def export_tree(target: str = "") -> dict:
-    tree, kind = _tree(target)
+def export_tree(target: str = "", owned: str = "") -> dict:
+    tree, kind = _tree(target, owned)
     if tree is None:
         return {"ok": False, "error": "没有找到节点树：选中一个带几何节点修改器或材质的物体再试"}
     nodes = []
@@ -104,7 +108,7 @@ def handle(request: dict) -> dict:
         obj = bpy.context.object
         return {"ok": True, "blender": bpy.app.version_string, "object": obj.name if obj else None}
     if cmd == "export_tree":
-        return export_tree(str(request.get("target") or ""))
+        return export_tree(str(request.get("target") or ""), str(request.get("owned") or ""))
     if cmd == "run_script":
         return run_script(str(request.get("code") or ""))
     return {"ok": False, "error": f"不认识的命令：{cmd}"}
