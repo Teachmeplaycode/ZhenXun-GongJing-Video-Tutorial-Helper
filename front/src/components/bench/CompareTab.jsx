@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { buildCompare, createLinkJob, getCompare, getRelated, linkFrameUrl, listSessions } from '../../api/client'
 import { fmtClock } from '../../lib/format'
 import Working from '../Working'
+import CompareTable from './CompareTable'
 
 const MAX_OTHERS = 2
 const POLL = 4000 // ms between looks at a recommended video being imported for comparison
@@ -113,39 +114,7 @@ export default function CompareTab({ video, onSeek = null, onOpenSession = null,
             <span className="eyebrow">教程对照</span>
             <button type="button" className="link-btn" onClick={() => setResult(null)}>换一组</button>
           </header>
-          <ul className="compare-tab__videos">
-            {result.videos.map((v) => (
-              <li key={v.id}>
-                <span className="compare-tab__label">{v.label}</span>
-                <span className="compare-tab__vbody">
-                  <strong>{v.title}{v.id === jobId ? '（当前）' : ''}</strong>
-                  {v.trait ? <span className="caption muted">{v.trait}</span> : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {result.summary ? <p className="compare-tab__summary body-sm">{result.summary}</p> : null}
-          <p className="caption muted compare-tab__count">{result.message}</p>
-          <ol className="compare-tab__rows">
-            {result.rows.map((r, i) => (
-              <li key={`${i}-${r.op}`} className="compare-row">
-                <strong className="compare-row__op">{r.op}</strong>
-                {r.note ? <span className="caption muted">{r.note}</span> : null}
-                <span className="compare-row__cells">
-                  {r.cells.map((c, k) => {
-                    const v = result.videos[k]
-                    return c ? (
-                      <button key={v.id} type="button" className="compare-cell" onClick={() => jump(v, c)}
-                        title={`${v.label} 第 ${c.n} 步：${c.action}${v.id === jobId ? '' : '（打开那个教程）'}`}>
-                        {c.frame != null ? <img src={linkFrameUrl(v.id, c.frame)} alt="" loading="lazy" /> : <span className="compare-cell__blank" />}
-                        <span className="compare-cell__tag mono-sm">{v.label} · {fmtClock(c.time)}</span>
-                      </button>
-                    ) : <span key={v.id} className="compare-cell compare-cell--none mono-sm">{v.label} 没讲</span>
-                  })}
-                </span>
-              </li>
-            ))}
-          </ol>
+          <CompareTable result={result} currentId={jobId} onJump={jump} />
         </>
       ) : (
         <div className="compare-tab__pick">

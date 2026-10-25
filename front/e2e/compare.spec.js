@@ -45,3 +45,35 @@ test('compare: a related Bilibili tutorial is imported in the background and tic
   await expect(tab.locator('.related__item').getByRole('button', { name: '已导入，勾上' })).toBeVisible()
   await expect(tab.getByRole('button', { name: '对照这 2 个教程' })).toBeEnabled()
 })
+
+test('compare from the homepage: several links pasted, each imported, then lined up; a failed one is said', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.batch = { fail: [2] } // the second link doesn't resolve
+  await mock.install()
+  await page.goto('/')
+  const field = page.locator('.import-control__link')
+  await field.fill('【透视表】 https://www.bilibili.com/video/BV1TEST00001 https://b23.tv/abcd123【另一个】https://www.bilibili.com/video/BV1TEST00003')
+  await expect(page.locator('#import-link-hint')).toContainText('识别到 3 个链接')
+  await page.locator('.import-control__submit').click()
+  const stage = page.locator('.compare-stage')
+  await expect(stage.locator('.compare-stage__videos li')).toHaveCount(3)
+  await expect(stage.locator('.compare-stage__videos li').nth(1)).toContainText('链接解析失败')
+  await expect(stage.locator('.compare-row')).toHaveCount(2, { timeout: 20_000 })
+  expect(mock.batchUrls).toEqual(['https://www.bilibili.com/video/BV1TEST00001', 'https://b23.tv/abcd123', 'https://www.bilibili.com/video/BV1TEST00003'])
+  expect(mock.compared.ids).toEqual(['multi1', 'multi3'])
+  await page.screenshot({ path: 'test-results/compare-home.png' })
+  await stage.locator('.compare-row').first().locator('.compare-cell').nth(1).click() // 乙 · 00:30 opens that session
+  await expect(page.locator('.compare-stage')).toHaveCount(0)
+})
+
+test('compare from the homepage: more than five links are refused before importing', async ({ page }) => {
+  const mock = new MockApi(page)
+  mock.batch = {}
+  await mock.install()
+  await page.goto('/')
+  await page.locator('.import-control__link').fill([1, 2, 3, 4, 5, 6].map((n) => `https://www.bilibili.com/video/BV1TEST0000${n}`).join(' '))
+  await expect(page.locator('#import-link-hint')).toContainText('一次最多对照 5 个')
+  await page.locator('.import-control__submit').click()
+  await expect(page.locator('.field-error')).toContainText('一次最多对照 5 个')
+  expect(mock.batchUrls).toBeUndefined()
+})
