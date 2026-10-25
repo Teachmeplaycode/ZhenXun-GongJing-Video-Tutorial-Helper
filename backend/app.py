@@ -1018,7 +1018,7 @@ async def recipe_check(job_id: str, body: BlenderTree):
     tree = found["trees"][index]
     kind = {"geometry": "geometry", "material": "material", "world": "world"}.get(recipe_script._kind(tree["name"]), "")
     try:
-        theirs = await blender.call("export_tree", target=kind)
+        theirs = await blender.call("export_tree", target=kind, owned=recipe_script.owned_name(tree["name"]))
     except blender.BridgeError as exc:
         raise HTTPException(409, str(exc)) from exc
     result = blender_check.compare(tree, theirs)

@@ -128,6 +128,12 @@ def _option(ref: dict, param: dict) -> tuple[str, str] | None:
     return None
 
 
+def owned_name(tree_name: str) -> str:
+    """The name the script gives what it makes in Blender (the modifier, the material): applying again
+    replaces it instead of piling up another, and 对答案 finds it among the person's own (zhenxun_bridge)."""
+    return "帧寻·" + re.sub(r"\s+", " ", tree_name).strip()[:14]
+
+
 def script(recipe: dict) -> str:
     catalog = knowledge.blender()
     lines = [
@@ -179,16 +185,23 @@ def script(recipe: dict) -> str:
         if kind == "compositor":
             lines.append("# 手动：合成器节点树没有生成，请照着画布手动添加。")
             continue
-        if kind == "geometry":
+        owned = json.dumps(owned_name(tree["name"]), ensure_ascii=False)
+        if kind == "geometry":  # the 帧寻 modifier is reused: applying again swaps its node group, adds nothing
             lines += [f"tree = bpy.data.node_groups.new({name}, 'GeometryNodeTree')",
                       "tree.interface.new_socket('Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')",
                       "tree.interface.new_socket('Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')",
-                      "if bpy.context.object is not None:",
-                      f"    bpy.context.object.modifiers.new({name}, 'NODES').node_group = tree"]
-        elif kind == "material":
-            lines += [f"mat = bpy.data.materials.new({name})", "mat.use_nodes = True", "tree = mat.node_tree", "tree.nodes.clear()",
-                      "if bpy.context.object is not None and hasattr(bpy.context.object.data, 'materials'):",
-                      "    bpy.context.object.data.materials.append(mat)"]
+                      "obj = bpy.context.object",
+                      "if obj is not None:",
+                      f"    mod = obj.modifiers.get({owned}) or obj.modifiers.new({owned}, 'NODES')",
+                      "    mod.node_group = tree"]
+        elif kind == "material":  # the 帧寻 material is rebuilt in place and made the active one
+            lines += [f"mat = bpy.data.materials.get({owned}) or bpy.data.materials.new({owned})", "mat.use_nodes = True",
+                      "tree = mat.node_tree", "tree.nodes.clear()",
+                      "obj = bpy.context.object",
+                      "if obj is not None and hasattr(obj.data, 'materials'):",
+                      "    if mat.name not in obj.data.materials:",
+                      "        obj.data.materials.append(mat)",
+                      "    obj.active_material_index = list(obj.data.materials).index(mat)"]
         else:
             lines += ["world = bpy.context.scene.world or bpy.data.worlds.new('World')", "bpy.context.scene.world = world",
                       "world.use_nodes = True", "tree = world.node_tree", "tree.nodes.clear()"]

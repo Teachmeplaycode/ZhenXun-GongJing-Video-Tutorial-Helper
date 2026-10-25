@@ -44,3 +44,9 @@ def test_the_script_endpoint(tmp_path, monkeypatch):
     recipe.save(job.root, ZONE)
     got = client.get("/api/link-jobs/job1/recipe/script")
     assert got.status_code == 200 and got.text.startswith("# 帧寻 · 抄作业") and "python" in got.headers["content-type"]
+
+
+def test_applying_again_reuses_the_帧寻_modifier_instead_of_adding_one():
+    text = recipe_script.script(ZONE)
+    assert 'mod = obj.modifiers.get("帧寻·几何节点.007") or obj.modifiers.new("帧寻·几何节点.007", \'NODES\')' in text
+    assert recipe_script.owned_name("材质：有机方块 这里很长很长很长") == "帧寻·材质：有机方块 这里很长很长"
