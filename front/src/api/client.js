@@ -183,6 +183,17 @@ export async function fetchRecipeScript(jobId) {
   if (!response.ok) throw new Error('脚本生成失败')
   return response.text()
 }
+/** The person's own Blender through the 帧寻 Bridge add-on (local app only): { available, connected, blender, message }. */
+export const blenderStatus = () => linkRequest('/api/blender/status')
+export const blenderAddonUrl = () => `${LINK_BASE}/api/blender/addon`
+/** Build the graph (one tree, or all) in the open Blender. */
+export const applyRecipe = (jobId, tree = null) => linkRequest(`/api/link-jobs/${jobId}/recipe/apply`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tree }),
+})
+/** 对答案: the person's tree in Blender against the graph → { done, summary, findings: [{ kind, text, node?, from?, to? }] }. */
+export const checkRecipe = (jobId, tree) => linkRequest(`/api/link-jobs/${jobId}/recipe/check`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tree }),
+})
 /** Where the nodes were dragged to on the canvas: { tree index: { node id: [x, y] } }. */
 export const saveRecipeLayout = (jobId, positions) => linkRequest(`/api/link-jobs/${jobId}/recipe/layout`, {
   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ positions }),

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchRecipeScript, getRecipe, recipeScriptUrl, saveRecipeLayout } from '../api/client'
+import { applyRecipe, blenderAddonUrl, blenderStatus, checkRecipe, fetchRecipeScript, getRecipe, recipeScriptUrl, saveRecipeLayout } from '../api/client'
 import { fmtClock } from '../lib/format'
 import { HEAD, PAD, ROW, W, asText, autoLayout, bounds, card, headerColor, rowY, socketColor, socketPoint } from './graph'
 import './recipe.css'
@@ -11,11 +11,12 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
 const localKey = (jobId) => `recipe.layout.${jobId}`
 const short = (s, n) => (s && s.length > n ? `${s.slice(0, n - 1)}…` : s || '')
 
-function NodeCard({ c, x, y, onGrab }) {
+function NodeCard({ c, x, y, onGrab, missing = false }) {
   const { node, rows, h } = c
   return (
     <g transform={`translate(${x},${y})`} className="rc-node">
-      <rect width={W} height={h} rx="7" fill="#303030" stroke={node.ref ? '#151515' : '#B4531F'} strokeDasharray={node.ref ? '' : '5 4'} />
+      <rect width={W} height={h} rx="7" fill="#303030" stroke={missing ? '#FF5A4E' : node.ref ? '#151515' : '#B4531F'}
+        strokeWidth={missing ? 3 : 1} strokeDasharray={missing || !node.ref ? '5 4' : ''} />
       <g onPointerDown={onGrab} style={{ cursor: 'grab' }}>
         <path d={`M0,7 a7,7 0 0 1 7,-7 h${W - 14} a7,7 0 0 1 7,7 v${HEAD - 7} h-${W} z`} fill={headerColor(node)} />
         <text x="10" y="19" fontSize="13" fontWeight="600" fill="#F4F4F4">{short(node.title || node.name, 15)}</text>
@@ -82,6 +83,11 @@ export default function RecipeCanvas({ jobId }) {
   const [copied, setCopied] = useState(false)
   const [scripted, setScripted] = useState('') // '' | 'copied' | 'failed'
   const [panel, setPanel] = useState(true)
+  const [bridge, setBridge] = useState(null) // /api/blender/status: the person's own Blender (local app only)
+  const [checked, setChecked] = useState(null) // 对答案 result for the shown tree: { tab, done, summary, findings }
+  const [blenderBusy, setBlenderBusy] = useState('')
+  const [blenderNote, setBlenderNote] = useState('')
+  const [connectHelp, setConnectHelp] = useState(false)
   const svgRef = useRef(null)
   const drag = useRef(null)
   const timer = useRef(0)
@@ -106,6 +112,12 @@ export default function RecipeCanvas({ jobId }) {
     }).catch((err) => setState({ loading: false, error: err.message, recipe: null }))
   }, [jobId])
 
+  const refreshBridge = useCallback(() => { blenderStatus().then(setBridge).catch(() => setBridge(null)) }, [])
+  useEffect(() => {
+    refreshBridge()
+    window.addEventListener('focus', refreshBridge) // came back from Blender: it may be connected now
+    return () => window.removeEventListener('focus', refreshBridge)
+  }, [refreshBridge])
   const recipe = state.recipe
   const tree = recipe?.trees[Math.min(tab, recipe.trees.length - 1)]
   const cards = useMemo(() => (tree ? Object.fromEntries(tree.nodes.map((n) => [n.id, card(n, tree.links)])) : {}), [tree])
@@ -226,6 +238,32 @@ export default function RecipeCanvas({ jobId }) {
     }
     setTimeout(() => setScripted(''), 2400)
   }
+  const toBlender = async () => {
+    setBlenderBusy('apply')
+    setBlenderNote('')
+    try {
+      await applyRecipe(jobId, tab)
+      setBlenderNote(`已在 Blender 里建好「${tree.name}」：去 Blender 看看，再点「对答案」核对`)
+    } catch (err) {
+      setBlenderNote(err.message)
+    } finally {
+      setBlenderBusy('')
+      refreshBridge()
+    }
+  }
+  const checkAnswer = async () => {
+    setBlenderBusy('check')
+    setBlenderNote('')
+    try {
+      setChecked({ tab, ...(await checkRecipe(jobId, tab)) })
+      setPanel(true)
+    } catch (err) {
+      setBlenderNote(err.message)
+    } finally {
+      setBlenderBusy('')
+      refreshBridge()
+    }
+  }
   const savePicture = async () => {
     const b = bounds(cards, pos)
     const clone = svgRef.current.cloneNode(true)
@@ -252,14 +290,18 @@ export default function RecipeCanvas({ jobId }) {
 
   if (state.loading) return <div className="rc-empty">正在读取节点图…</div>
   if (!recipe) return <div className="rc-empty">{state.error}<a href={window.location.pathname}>回到帧寻</a></div>
+  const result = checked && checked.tab === tab ? checked : null
+  const missingNodes = new Set((result?.findings || []).filter((f) => f.kind === 'missing_node').map((f) => f.node))
+  const missingLinks = new Set((result?.findings || []).filter((f) => f.kind === 'missing_link').map((f) => `${f.from}>${f.to}`))
   const curves = tree.links.map((l, i) => {
     const a = socketPoint(cards, pos, l.from, l.out, 'out')
     const b = socketPoint(cards, pos, l.to, l.in, 'in')
     if (!a || !b) return null
     const dx = Math.max(50, Math.abs(b.x - a.x) / 2)
+    const absent = missingLinks.has(`${l.from}>${l.to}`) // 对答案: this one isn't in their Blender
     return (
-      <path key={i} d={`M${a.x},${a.y} C${a.x + dx},${a.y} ${b.x - dx},${b.y} ${b.x},${b.y}`} fill="none" stroke={socketColor(a.type)}
-        strokeWidth="2.2" opacity={l.inferred ? 0.75 : 0.95} strokeDasharray={l.inferred ? '7 6' : ''}>
+      <path key={i} d={`M${a.x},${a.y} C${a.x + dx},${a.y} ${b.x - dx},${b.y} ${b.x},${b.y}`} fill="none" stroke={absent ? '#FF5A4E' : socketColor(a.type)}
+        strokeWidth={absent ? 3.2 : 2.2} opacity={l.inferred ? 0.75 : 0.95} strokeDasharray={absent ? '4 5' : l.inferred ? '7 6' : ''} className={absent ? 'rc-absent' : undefined}>
         {l.inferred ? <title>{`推断的连线：${l.why || '视频里没有直接看到'}`}</title> : null}
       </path>
     )
@@ -287,6 +329,14 @@ export default function RecipeCanvas({ jobId }) {
           <button type="button" onClick={() => zoom(1.2)} aria-label="放大">＋</button>
           <button type="button" onClick={fit}>适应窗口</button>
           <button type="button" onClick={relayout}>自动排列</button>
+          {bridge?.available ? (bridge.connected ? (
+            <>
+              <button type="button" className="rc-script" onClick={toBlender} disabled={Boolean(blenderBusy)} title={`当前物体：${bridge.object || '无'}（Blender ${bridge.blender}）`}>
+                {blenderBusy === 'apply' ? '正在建…' : '应用到 Blender'}
+              </button>
+              <button type="button" className="rc-check" onClick={checkAnswer} disabled={Boolean(blenderBusy)}>{blenderBusy === 'check' ? '核对中…' : '对答案'}</button>
+            </>
+          ) : <button type="button" onClick={() => { setConnectHelp(true); setPanel(true) }}>连接 Blender</button>) : null}
           <button type="button" className="rc-script" onClick={copyScript} title="粘贴到 Blender → Scripting 运行，节点自动建好">
             {scripted === 'copied' ? '脚本已复制' : scripted === 'failed' ? '复制失败，用下载' : '复制 Blender 脚本'}
           </button>
@@ -307,11 +357,31 @@ export default function RecipeCanvas({ jobId }) {
         <g className="rc-world" transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
           <rect x="-100000" y="-100000" width="200000" height="200000" fill="url(#rc-grid)" />
           {curves}
-          {tree.nodes.map((n) => <NodeCard key={n.id} c={cards[n.id]} x={pos[n.id][0]} y={pos[n.id][1]} onGrab={grabNode(n.id)} />)}
+          {tree.nodes.map((n) => <NodeCard key={n.id} c={cards[n.id]} x={pos[n.id][0]} y={pos[n.id][1]} onGrab={grabNode(n.id)} missing={missingNodes.has(n.id)} />)}
         </g>
       </svg>
       {panel ? (
         <aside className="rc-panel">
+          {blenderNote ? <p className="rc-warn">{blenderNote}</p> : null}
+          {result ? (
+            <section className="rc-result" data-done={result.done || undefined}>
+              <h4>对答案 · {result.summary}</h4>
+              <p className="rc-hint">核对的是 Blender 里「{result.theirs}」，对上 {result.matched}/{result.nodes} 个节点。{result.done ? '和教程一致，可以看效果了。' : '红色虚线是你那边还缺的，改完再点一次「对答案」。'}</p>
+              {result.findings.length ? <ul>{result.findings.map((f, i) => <li key={i} data-kind={f.kind}>{f.text}{f.time != null ? <em> {fmtClock(f.time)}</em> : null}</li>)}</ul> : null}
+            </section>
+          ) : null}
+          {connectHelp && bridge?.available && !bridge.connected ? (
+            <section>
+              <h4>连接你的 Blender</h4>
+              <ol className="rc-steps">
+                <li><a className="rc-link" href={blenderAddonUrl()} download="zhenxun_bridge.py">下载「帧寻 Bridge」插件</a></li>
+                <li>Blender → 编辑 → 偏好设置 → 插件 → 右上角下拉「从磁盘安装」→ 选这个文件</li>
+                <li>勾选启用「帧寻 Bridge」，侧栏（N）› 帧寻 显示「已连接」</li>
+                <li>回到这里，按钮会变成「应用到 Blender」「对答案」</li>
+              </ol>
+              <p className="rc-hint">插件只在本机 127.0.0.1 上通信，不联网。{bridge.message ? ` 现在：${bridge.message}` : ''}</p>
+            </section>
+          ) : null}
           {recipe.goal ? <p className="rc-goal">{recipe.goal}{recipe.software ? <small>{recipe.software} {recipe.version}</small> : null}</p> : null}
           <p className="rc-hint">拖背景移动，⌘/Ctrl + 滚轮缩放，拖节点标题调整位置。绿色底的是教程改过的参数，橙色的「待确认」是改过但没看清的值，其余是 Blender 默认值。
             {unmatched ? ` 虚线框的 ${unmatched} 个节点不在 Blender ${recipe.catalog || ''} 节点目录里，按视频里的叫法画出。` : ''}

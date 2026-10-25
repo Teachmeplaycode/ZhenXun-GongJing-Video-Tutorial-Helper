@@ -18,7 +18,8 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from modules import accounts, archive, backup, clip, compare, log, members, playback, recipe, recipe_script, spend, steps, stuck, visitors
+from modules import accounts, archive, backup, blender, clip, compare, log, members, playback, recipe, recipe_script, spend, steps, stuck, visitors
+from modules.blender import check as blender_check
 from modules.chapters.router import ChapterService
 from modules.suggest import SuggestService
 from modules.complete import CompleteService
@@ -960,6 +961,69 @@ async def recipe_blender_script(job_id: str):
     if found is None:
         raise HTTPException(404, "还没有抄作业")
     return Response(recipe_script.script(found), media_type="text/x-python; charset=utf-8")
+
+
+def local_blender() -> None:
+    """The person's own Blender is only reachable from the app on their computer, never the web demo."""
+    if visitors.enabled():
+        raise HTTPException(404, "网页版不能连接你的 Blender：在本机运行帧寻后使用")
+
+
+@app.get("/api/blender/status")
+async def blender_status():
+    """Whether the 帧寻 Bridge add-on answers on this computer (modules/blender)."""
+    if visitors.enabled():
+        return {"available": False, "connected": False, "message": "网页版不能连接本机的 Blender"}
+    return {"available": True, **(await blender.status())}
+
+
+@app.get("/api/blender/addon")
+async def blender_addon():
+    """The add-on file to install in Blender (偏好设置 → 插件 → 从磁盘安装)."""
+    return FileResponse(blender.ADDON, media_type="text/x-python", filename="zhenxun_bridge.py")
+
+
+class BlenderTree(BaseModel):
+    tree: int | None = None  # which of the graph's trees; None: all of them (apply) / the first (check)
+
+
+@app.post("/api/link-jobs/{job_id}/recipe/apply")
+async def recipe_apply(job_id: str, body: BlenderTree):
+    """Build the 抄作业 graph in the person's open Blender (the same script as 复制 Blender 脚本)."""
+    local_blender()
+    found = recipe.load(get_job(job_id).root)
+    if found is None:
+        raise HTTPException(404, "还没有抄作业")
+    if body.tree is not None:
+        found = {**found, "trees": found["trees"][body.tree:body.tree + 1],
+                 "layout": {"0": (found.get("layout") or {}).get(str(body.tree)) or {}}}
+    try:
+        got = await blender.call("run_script", timeout=60, code=recipe_script.script(found))
+    except blender.BridgeError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    log.event("blender.apply", job_id=job_id, trees=len(found["trees"]))
+    return {"ok": True, "output": got.get("output", "")}
+
+
+@app.post("/api/link-jobs/{job_id}/recipe/check")
+async def recipe_check(job_id: str, body: BlenderTree):
+    """对答案: read the person's node tree from Blender and compare it with the 抄作业 graph."""
+    local_blender()
+    found = recipe.load(get_job(job_id).root)
+    if found is None:
+        raise HTTPException(404, "还没有抄作业")
+    index = body.tree or 0
+    if not 0 <= index < len(found["trees"]):
+        raise HTTPException(422, "没有这棵节点树")
+    tree = found["trees"][index]
+    kind = {"geometry": "geometry", "material": "material", "world": "world"}.get(recipe_script._kind(tree["name"]), "")
+    try:
+        theirs = await blender.call("export_tree", target=kind)
+    except blender.BridgeError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    result = blender_check.compare(tree, theirs)
+    log.event("blender.check", job_id=job_id, tree=index, done=result["done"], findings=len(result["findings"]))
+    return result
 
 
 @app.put("/api/link-jobs/{job_id}/recipe/layout")
