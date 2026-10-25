@@ -68,7 +68,7 @@ def test_endpoints_apply_and_check_through_the_bridge(tmp_path, monkeypatch):
     assert applied["ok"] and "节点已生成" in applied["output"]
     assert fake.seen[-1]["cmd"] == "run_script" and "GeometryNodeSimulationInput" in fake.seen[-1]["code"]
     checked = client.post("/api/link-jobs/job1/recipe/check", json={"tree": 0}).json()
-    assert fake.seen[-1] == {"cmd": "export_tree", "target": "geometry"} and len(checked["findings"]) >= 3
+    assert fake.seen[-1] == {"cmd": "export_tree", "target": "geometry", "owned": "帧寻·几何节点.007"} and len(checked["findings"]) >= 3
     assert client.get("/api/blender/addon").text.startswith('"""帧寻 Bridge')
 
 
