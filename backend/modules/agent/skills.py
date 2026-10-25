@@ -53,10 +53,11 @@ RISK = {"high": "高", "medium": "中", "low": "低"}
 
 
 def definitions(web: bool = True) -> list[dict]:
+    from modules import recipe
     return [{"type": "function", "function": {
         "name": s.name, "description": s.description,
         "parameters": {"type": "object", "properties": {}, "required": []}}}
-        for s in SKILLS if web or not s.needs_web]
+        for s in SKILLS if (web or not s.needs_web) and (s.name != "copy_result" or recipe.enabled())]
 
 
 def clock(seconds) -> str:

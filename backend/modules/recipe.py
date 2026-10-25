@@ -825,4 +825,11 @@ async def run(job, llm, grab, viewers=None) -> AsyncIterator[dict | tuple]:
     yield ("result", digest(recipe), brief, nodes, {"skill": "recipe", "report": recipe}, False)
 
 
+def enabled() -> bool:
+    """抄作业 (the graph, its script, Blender, AI 修改) is off unless RECIPE_ENABLED=1: copying a whole graph
+    off a video isn't reliable enough yet (2026-10-25); step cards are the main feature. The code stays."""
+    from .settings import settings
+    return settings().get("RECIPE_ENABLED") == "1"
+
+
 WANTS = re.compile(r"抄作业|成品|最终(的)?(结果|节点|连线|连接|参数|效果)|(完整|所有|全部)的?(节点|连线|连接|参数)|节点(图|树)|连接图|蓝图|工作流")

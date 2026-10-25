@@ -26,7 +26,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev --silent',
     url: `http://localhost:${PORT}`,
-    env: { WEB_PORT: String(PORT), API_PORT: '9' }, // /api never reaches a real backend: the mock answers in the page
+    // /api never reaches a real backend: the mock answers in the page. 抄作业 is off in builds; its tests still run.
+    env: { WEB_PORT: String(PORT), API_PORT: '9', VITE_RECIPE: '1' },
     reuseExistingServer: false,
     timeout: 60_000,
   },
