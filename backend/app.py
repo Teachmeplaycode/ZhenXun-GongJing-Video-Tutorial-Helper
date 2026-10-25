@@ -894,7 +894,8 @@ async def get_compare(ids: str):
 
 @app.post("/api/compare")
 async def build_compare(body: CompareRequest):
-    """Align the step cards of 2–3 tutorials; videos without cards get them first. Counts as one question."""
+    """Align the step cards of 2–5 tutorials; videos without cards get them first, ones without steps are left
+    out while two remain. Counts as one question."""
     wanted = compare_ids(body.ids)
     jobs = [get_job(i) for i in wanted]
     if any((j.video.extra or {}).get("kind") == "images" for j in jobs):
@@ -917,9 +918,10 @@ async def build_compare(body: CompareRequest):
             await steps.build(j, complete)
         cards = [steps.load(j.root) or {} for j in jobs]
         empty = [j.video.title for j, c in zip(jobs, cards) if c.get("status") != "done"]
-        if empty:
+        if empty and len(jobs) - len(empty) < 2:
             raise HTTPException(422, f"「{empty[0][:20]}」整理不出操作步骤，可能不是教程")
-        record = await compare.build(DATA_ROOT, jobs, cards, complete)
+        kept = [(j, c) for j, c in zip(jobs, cards) if c.get("status") == "done"]  # the rest aren't tutorials: said, not fatal
+        record = await compare.build(DATA_ROOT, [j for j, _ in kept], [c for _, c in kept], complete, asked=wanted, skipped=empty)
     except LLMError as err:
         raise HTTPException(502, f"对照失败：{err.message}") from err
     log.event("compare", ids=",".join(wanted), rows=len(record["rows"]))
