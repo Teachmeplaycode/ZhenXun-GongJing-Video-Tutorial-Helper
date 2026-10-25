@@ -1,18 +1,18 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 import ContourLoader from '../components/ContourLoader'
-import FlatSculpture from '../components/FlatSculpture'
+import SculptureCanvas from '../components/SculptureCanvas'
 import BackButton from '../components/BackButton'
 import { fmtBytes } from '../lib/format'
 
 // Full-screen contour terrain during upload; it opens out of the import slide (see App).
 // link: resolving a video link instead of uploading a file (no byte progress, just the stage).
-export default function UploadMask({ maskRef, contourRef, progress, name, size, link = false, onBack }) {
+export default function UploadMask({ maskRef, contourRef, progress, name, size, link = false, mobile = false, onBack }) {
   return createPortal(
-    <div ref={maskRef} className="upload-mask">
+    <div ref={maskRef} className="upload-mask" data-mobile={mobile || undefined}>
       <div ref={contourRef} className="upload-mask__contour">
-        {/* Phones: the sculpture drawn flat; the terrain would be stretched on a tall screen. */}
-        {window.matchMedia?.('(max-width: 760px)').matches ? <FlatSculpture /> : <ContourLoader />}
+        {/* Reuse the desktop's solid, twisting sheets; portrait framing fits the phone. */}
+        {mobile ? <SculptureCanvas portrait /> : <ContourLoader />}
       </div>
       {/* Outline of the window that opens out of the import slide; App drives its geometry. */}
       <div className="upload-mask__frame" aria-hidden="true">

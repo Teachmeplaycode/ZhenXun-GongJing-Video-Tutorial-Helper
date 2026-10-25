@@ -671,3 +671,21 @@
 .upload-mask .bar[data-indeterminate] .bar__fill { width: 28%; animation: upload-scan 1.8s ease-in-out infinite; }
 @keyframes upload-scan { from { transform: translateX(-100%); } to { transform: translateX(360%); } }
 @media (prefers-reduced-motion: reduce) { .upload-mask .bar[data-indeterminate] .bar__fill { animation: none; } }
+
+/* Mobile parsing: the desktop's solid sheet sculpture between readable status areas. */
+.upload-mask[data-mobile] {
+  display: grid; grid-template-rows: auto minmax(180px, 1fr) auto; gap: 16px;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+.upload-mask[data-mobile] .upload-mask__header { position: static; grid-row: 1; gap: 8px; }
+.upload-mask[data-mobile] .upload-mask__header .btn--back { min-height: 44px; margin: 0 0 12px; }
+.upload-mask[data-mobile] .upload-mask__header h1 { font-size: 28px; font-weight: 600; line-height: 1.25; }
+.upload-mask[data-mobile] .upload-mask__header > .caption { font-size: 13px; line-height: 1.5; }
+.upload-mask[data-mobile] .upload-mask__contour { position: relative; inset: auto; grid-row: 2; min-height: 0; overflow: hidden; }
+.upload-mask[data-mobile] .upload-mask__status {
+  position: static; grid-row: 3; width: 100%; min-width: 0; padding: 16px;
+  border-radius: 6px; border: var(--border-hairline); background: var(--bg-surface); backdrop-filter: none;
+}
+.upload-mask[data-mobile] .upload-mask__name { min-width: 0; }
+.upload-mask[data-mobile] .upload-mask__row { white-space: normal; font-size: 12px; }

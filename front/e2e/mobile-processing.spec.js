@@ -54,7 +54,7 @@ test('mobile: parsing is indeterminate, then real counts, preview selection, ear
   await expect(page.getByRole('heading', { name: '正在解析链接' })).toBeVisible()
   await expect(page.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow')
   await expect(page.locator('.processing__continue')).toHaveCount(0)
-  await expect(page.locator('.upload-mask .flat-sculpture')).toBeVisible()
+  await expect(page.locator('.upload-mask .sculpture')).toBeVisible()
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/processing-parsing.png` })
   release()
   await expect(page.getByRole('heading', { name: '正在提取画面' })).toBeVisible()
@@ -173,7 +173,7 @@ test.describe('standard motion', () => {
   test('mobile: restored upload mask and navigation wipes complete without trapping the screen', async ({ page }) => {
     const { release } = await setup(page, { delayLink: true })
     await expect(page.locator('.upload-mask')).toHaveCSS('clip-path', 'none')
-    await expect(page.locator('.upload-mask .flat-sculpture')).toBeVisible()
+    await expect(page.locator('.upload-mask .sculpture')).toBeVisible()
     await expect(page.locator('.upload-mask .bar__fill')).toHaveCSS('animation-name', 'upload-scan')
     release()
     await emit(page, frames(0, 4))
