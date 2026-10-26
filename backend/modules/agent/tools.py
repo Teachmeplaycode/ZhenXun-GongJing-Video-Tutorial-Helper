@@ -238,6 +238,7 @@ class AgentTools:
         self.hd: list | None = None  # the platform's sharper tracks, asked for once (sharp())
         self.decider = decider  # modules.decide.Decider, or None: results go to the model unscreened
         self.refreshed = False
+        self.refreshing = None  # the one refresh concurrent reads wait on (step pictures are read 4 at a time)
         self.pages: dict[str, web.Page] = {}  # fetched this answer, so offset reads don't refetch
 
     async def stream(self, name: str, args: dict):
@@ -648,16 +649,24 @@ class AgentTools:
         return await once() or (await self._refresh() and await once())
 
     async def _refresh(self) -> bool:
-        """Re-acquire stream addresses once per answer (expired, or a session restored without them)."""
-        if self.refreshed or self.job.resolver is None:
+        """Re-acquire stream addresses once per answer (expired, or a session restored without them). Reads
+        running at the same time wait for that one refresh and share its outcome."""
+        if self.job.resolver is None:
             return False
-        self.refreshed = True
-        try:
-            self.job.video = await self.job.resolver.refresh(self.job.video)
-            self.job.restored = False
-            return True
-        except ResolveError:
-            return False
+        if self.refreshing is None:
+            if self.refreshed:
+                return False
+            self.refreshed = True
+
+            async def once() -> bool:
+                try:
+                    self.job.video = await self.job.resolver.refresh(self.job.video)
+                    self.job.restored = False
+                    return True
+                except ResolveError:
+                    return False
+            self.refreshing = asyncio.ensure_future(once())
+        return await asyncio.shield(self.refreshing)
 
     async def replay(self, start=0, end=None, fps=None) -> ToolResult:
         a = parse_time(start) or 0.0
