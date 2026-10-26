@@ -94,11 +94,10 @@ def test_parse_reads_the_shapes_models_wrap_lines_in():
         (115.0, "输出线性衰减属性"), (125.0, "复制点大小节点"), (133.0, "调整点乘的轴")]
 
 
-def test_a_long_video_may_have_more_steps_and_a_long_action_stays_whole():
-    assert steps.limit(100) == 30 and steps.limit(693) == 46 and steps.limit(2246) == 60
-    assert "最多 46 步" in steps.messages("t", ["[00:01 · 1s] 说：x"], 46)[0]["content"]
-    many = "\n".join(f"{i}|第{i}步|" for i in range(10, 700, 14))
-    assert len(steps.parse(many, 693)) == 46
+def test_steps_have_no_cap_and_a_long_action_stays_whole():
+    assert "最多" not in steps.messages("t", ["[00:01 · 1s] 说：x"], 693)[0]["content"]
+    many = "\n".join(f"{i}|第{i}步|" for i in range(10, 700, 7))
+    assert len(steps.parse(many, 693)) == 98  # every one inside the video, none cut
     long = "点「Download for Windows」下载 Docker Desktop 安装程序"
     assert steps.parse(f"00:05|{long}|", 60)[0]["action"] == long  # once cut at 30: 「Download for Wind」
 
@@ -118,3 +117,25 @@ def test_each_step_gets_its_own_sharper_picture_when_one_can_be_read(tmp_path):
     asyncio.run(steps.take_shots(tmp_path, cards, sharp))
     assert [c["shot"] for c in cards] == [True, False] and sorted(asked) == [(5.0, 1600), (9.0, 1600)]
     assert steps.shot_path(tmp_path, 1).read_bytes() == b"jpg"
+
+
+def test_steps_that_stop_half_way_are_followed_to_the_end(tmp_path):
+    # a 3 min Blender tutorial (2026-10-26): all 30 steps spent by 01:30, the second half had none
+    job = tutorial(tmp_path)
+    job.video.duration = 180
+    job.transcript = Transcript("done", "", [Seg(t, f"第{t}秒的操作") for t in range(5, 180, 5)])
+    seen = []
+
+    async def complete(messages):
+        seen.append(messages)
+        return "\n".join(f"{t}|前半段 {t}|" for t in range(3, 91, 3)) if len(seen) == 1 else "01:20|太早了|\n02:00|后半段|\n02:50|收尾|"
+
+    record = asyncio.run(steps.build(job, complete))
+    assert "视频全长 03:00" in seen[0][0]["content"] and len(seen) == 2
+    assert "[01:30" not in seen[1][1]["content"] and "[01:35 · 95s]" in seen[1][1]["content"]
+    assert "前面已整理到 01:30" in seen[1][0]["content"]
+    assert [s["time"] for s in record["steps"][-2:]] == [120.0, 170.0] and record["steps"][-1]["n"] == 32
+
+    seen.clear()
+    asyncio.run(steps.build(job, lambda m: seen.append(m) or asyncio.sleep(0, "30|开头|\n160|快结束|")))
+    assert len(seen) == 1  # reaching the end needs no second call
