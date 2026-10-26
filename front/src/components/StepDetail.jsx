@@ -138,19 +138,32 @@ const SPEEDS = [0.25, 0.5, 1]
 // Slow-motion replay: the frames of a few seconds played back slower than real time, or stepped
 // through one by one; the strip below jumps to any frame, and the time button seeks the video there.
 // Clicking the picture or a thumbnail enlarges it in the middle of the screen.
-export function Replay({ d, onSeek }) {
+// autoPlay: start playing at once (a replay framed by hand asked to be played); the frames are all
+// fetched up front, and playing only moves on to a frame that has arrived, so the picture never blanks.
+export function Replay({ d, onSeek, autoPlay = false }) {
   const frames = d.frames || []
   const times = d.times || []
   const [at, setAt] = useState(0)
-  const [playing, setPlaying] = useState(false)
+  const [playing, setPlaying] = useState(autoPlay)
   const [speed, setSpeed] = useState(0.25)
   const [zoom, setZoom] = useState(false)
+  const [loaded, setLoaded] = useState(() => new Set())
   const stripRef = useRef(null)
   useEffect(() => {
+    let live = true
+    const images = frames.map((src, i) => {
+      const img = new Image()
+      img.onload = img.onerror = () => { if (live) setLoaded((had) => new Set(had).add(i)) }
+      img.src = apiUrl(src)
+      return img
+    })
+    return () => { live = false; images.forEach((img) => { img.onload = img.onerror = null }) }
+  }, [frames.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
     if (!playing || frames.length < 2) return undefined
-    const t = setInterval(() => setAt((i) => (i + 1) % frames.length), 1000 / (d.fps * speed))
+    const t = setInterval(() => setAt((i) => (loaded.has((i + 1) % frames.length) ? (i + 1) % frames.length : i)), 1000 / (d.fps * speed))
     return () => clearInterval(t)
-  }, [playing, speed, d.fps, frames.length])
+  }, [playing, speed, d.fps, frames.length, loaded])
   // Keep the current thumbnail in view while stepping or playing (scroll the strip only, not the page).
   useEffect(() => {
     const strip = stripRef.current

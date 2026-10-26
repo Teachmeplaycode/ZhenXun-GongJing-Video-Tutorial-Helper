@@ -133,7 +133,7 @@ function ManualReplay({ message, onTime, onStop }) {
           </div>
         ) : null}
         {message.error ? <div className="bubble__error">{message.error}</div> : null}
-        {d.frames ? <Replay d={d} onSeek={onTime} /> : null}
+        {d.frames ? <Replay d={d} onSeek={onTime} autoPlay /> : null}
       </div>
     </div>
   )
