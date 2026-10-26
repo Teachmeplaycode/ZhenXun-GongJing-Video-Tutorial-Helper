@@ -14,8 +14,7 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 FILE = "steps.json"
-MIN_STEPS, MAX_STEPS = 30, 60  # a step per 15 s of video at most, within these
-SECONDS_PER_STEP = 15
+ROUNDS = 6  # calls at most: a reply that stops short of the end (or is cut by length) is followed on from there
 MAX_ACTION = 48  # the prompt asks for 30 characters; a longer line is kept whole up to here, not cut mid-word
 MAX_DETAIL = 80
 SHOT_WIDTH = 1600  # a step's own picture
@@ -27,12 +26,12 @@ PROMPT = ("你从软件教程里整理「操作步骤卡」：观看者跟着做
           "（例如：点「数据」选项卡里的「数据验证」）；说明不超过 60 字，写这一步要注意的设置或结果，没有就留空。"
           "只依据给出的语音和画面文字，不要编造视频里没有的操作；闲聊、片头片尾不算步骤。"
           "只要视频在演示怎么操作软件、设备或做出某个东西，就算教程，边讲边做的操作都要列出来。"
-          "最多 {limit} 步。如果这不是教程、没有可以照着做的操作，只输出：无")
+          "{span}如果这不是教程、没有可以照着做的操作，只输出：无")
 
-
-def limit(duration: float) -> int:
-    """How many steps a video of this length may have: a long one isn't cut off half way."""
-    return min(MAX_STEPS, max(MIN_STEPS, int((duration or 0) / SECONDS_PER_STEP)))
+SPAN = "视频全长 {end}，步骤不限数量，要从开头一直整理到结尾，不要中途停下。"
+TAIL = "前面已整理到 {start}，这里只给 {start} 之后的材料，接着往下整理到结尾，只列 {start} 之后的步骤。"
+# A reply whose last step falls this far short of the end is followed on from that step.
+SHORT_OF_END = 0.15
 
 Completer = Callable[[list[dict]], Awaitable[str]]
 
@@ -55,9 +54,11 @@ def _clock(t: float) -> str:
     return f"{t // 60:02d}:{t % 60:02d}"
 
 
-def timed_lines(transcript, screen) -> list[str]:
-    """Speech and on-screen text in time order, `[mm:ss] 说/屏 text`, evenly thinned to MAX_CHARS."""
+def timed_lines(transcript, screen, after: float = -1) -> list[str]:
+    """Speech and on-screen text (past `after` seconds) in time order, `[mm:ss] 说/屏 text`, evenly
+    thinned to MAX_CHARS."""
     rows = [(s.start, "说", s.text) for s in transcript or []] + [(c.start, "屏", c.text) for c in screen or []]
+    rows = [r for r in rows if r[0] > after]
     rows.sort(key=lambda r: r[0])
     lines = [f"[{_clock(t)} · {round(t)}s] {kind}：{text.strip()}" for t, kind, text in rows
              if text.strip() and not NUMBERS_ONLY.match(text)]
@@ -68,8 +69,9 @@ def timed_lines(transcript, screen) -> list[str]:
     return lines
 
 
-def messages(title: str, lines: list[str], most: int = MIN_STEPS) -> list[dict]:
-    return [{"role": "system", "content": PROMPT.format(limit=most)},
+def messages(title: str, lines: list[str], duration: float = 0, after: float = 0) -> list[dict]:
+    span = (TAIL.format(start=_clock(after)) if after else "") + (SPAN.format(end=_clock(duration)) if duration else "")
+    return [{"role": "system", "content": PROMPT.format(span=span)},
             {"role": "user", "content": f"视频标题：{title}\n语音（说）和画面文字（屏），按时间：\n" + "\n".join(lines)}]
 
 
@@ -101,7 +103,7 @@ def tidy(line: str) -> str:
     return line
 
 
-def parse(output: str, duration: float, most: int | None = None) -> list[dict]:
+def parse(output: str, duration: float) -> list[dict]:
     matches = [m for m in map(LINE.match, map(tidy, (output or "").splitlines())) if m]
     # "18:00" or "21:21" for the 18th / 21st second (the lines show both "[00:21 · 21s]"): read as minutes
     # most times run past the end, while the number before the colon always fits in the video.
@@ -121,7 +123,20 @@ def parse(output: str, duration: float, most: int | None = None) -> list[dict]:
         steps.append({"time": round(t, 1), "action": action, "detail": (m.group(3) or "").strip()[:MAX_DETAIL]})
     if len(steps) >= 3 and [s["time"] for s in steps] == [float(i) for i in range(1, len(steps) + 1)]:
         return []  # step numbers written where the times go: no time can be trusted
-    return steps[:most or limit(duration)]
+    return steps
+
+
+async def _rest(job, complete: Completer, after: float, duration: float) -> list[dict]:
+    """The steps past `after`, asked for on their own. A failed call keeps what the earlier ones found."""
+    lines = timed_lines(job.transcript.segments if job.transcript else [],
+                        job.screentext.segments if job.screentext else [], after)
+    if not lines:
+        return []
+    try:
+        output = await complete(messages(job.video.title, lines, duration, after))
+    except Exception:  # noqa: BLE001
+        return []
+    return [s for s in parse(output, duration) if s["time"] > after]
 
 
 def nearest_frame(slots, t: float):
@@ -160,12 +175,19 @@ async def build(job, complete: Completer, sharp: Sharp | None = None) -> dict:
                         job.screentext.segments if job.screentext else [])
     if not lines:
         return save(job.root, {"status": "empty", "steps": [], "message": "这个视频没有语音和画面文字，整理不出步骤"})
-    most = limit(job.video.duration or 0)
-    output = await complete(messages(job.video.title, lines, most))
-    steps = parse(output, job.video.duration or 0, most)
+    duration = job.video.duration or 0
+    output = await complete(messages(job.video.title, lines, duration))
+    steps = parse(output, duration)
     if not steps and output.strip() not in ("无", ""):
         from modules import log  # a reply in a shape parse doesn't know: keep its start to see why
         log.event("steps.unparsed", job_id=job.id, head=output.strip()[:300])
+    for _ in range(ROUNDS - 1):
+        reached = max((s["time"] for s in steps), default=0)
+        if not steps or not duration or reached >= duration * (1 - SHORT_OF_END):
+            break
+        if not (more := await _rest(job, complete, reached, duration)):
+            break
+        steps += more
     for n, step in enumerate(steps, 1):
         step["n"] = n
         step["frame"] = nearest_frame(job.slots, step["time"])
