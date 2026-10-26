@@ -324,7 +324,7 @@ Object.assign(SCENES, {
     await cam.page.locator('.source-player__video').screenshot({ path: shot })
     await cam.page.locator('button[aria-label="关闭原片"]').click().catch(() => {})
     await cam.wait(1000)
-    await cam.moveTo('button.chip-btn:has-text("图片")')
+    await cam.moveTo('.composer button:has-text("截图")')
     await cam.page.locator('.composer__bar input[type=file]').setInputFiles(shot)
     cam.mark('attached')
     await cam.wait(1500)
@@ -432,6 +432,57 @@ Object.assign(SCENES, {
     await cam.wait(1500)
     await cam.moveTo({ x: 960, y: 600 })
     await cam.scroll(1200, { ms: 2500 })
+    await cam.wait(1500)
+  },
+})
+
+// The ad (2026-10-26): step cards and comparing tutorials, on the site as it is now.
+const COMPARE_LINKS = [LINK, 'https://www.bilibili.com/video/BV1sV411t74E', 'https://www.bilibili.com/video/BV18a4y1W7rX']
+Object.assign(SCENES, {
+  // the tutorial's step cards: 工作台 → 步骤, built if they aren't yet, then read down the list
+  async steps(cam) {
+    await cam.openLatest()
+    await cam.bench('步骤')
+    if (await cam.page.locator('.step-card').count() === 0) {
+      await cam.click('.steps-tab button.btn--dark')
+      cam.mark('building')
+      await cam.page.waitForSelector('.step-card', { timeout: 120000 })
+    }
+    cam.mark('cards')
+    await cam.wait(1200)
+    const cards = cam.page.locator('.step-card')
+    const n = await cards.count()
+    for (let i = 0; i < Math.min(n, 6); i += 1) {
+      await cam.moveTo(cards.nth(i).locator('.step-card__body strong'), { ms: 520 })
+      await cam.wait(380)
+    }
+    await cam.scroll(900, { ms: 2200 })
+    await cam.wait(900)
+    await cam.click(cam.page.locator('.step-card__time').nth(Math.min(5, n - 1)))
+    cam.mark('seek')
+    await cam.wait(2500)
+  },
+  // three tutorials of the same task pasted at once on the homepage, read, then lined up by operation
+  async compare(cam) {
+    await cam.wait(1800)
+    await cam.click('.import-control__link')
+    await cam.type(COMPARE_LINKS.join(' '), { delay: 18 })
+    await cam.wait(900)
+    cam.mark('links')
+    await cam.click('.import-control__submit')
+    cam.mark('reading')
+    await cam.page.waitForSelector('.compare-stage .compare-row', { timeout: 900000 })
+    cam.mark('table')
+    await cam.wait(1500)
+    await cam.moveTo('.compare-tab__summary', { ms: 800 })
+    await cam.wait(1200)
+    await cam.scroll(700, { ms: 2000 })
+    await cam.wait(800)
+    const cells = cam.page.locator('.compare-stage .compare-cell:not(.compare-cell--none)')
+    for (let i = 0; i < Math.min(await cells.count(), 4); i += 1) {
+      await cam.moveTo(cells.nth(i), { ms: 420 })
+      await cam.wait(300)
+    }
     await cam.wait(1500)
   },
 })
