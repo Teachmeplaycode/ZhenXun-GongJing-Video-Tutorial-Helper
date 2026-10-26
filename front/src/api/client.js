@@ -291,6 +291,8 @@ export const completeQuestion = (jobId, text, { signal } = {}) => linkRequest(`/
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal,
 }).then((body) => body?.completion || '')
 export const linkFrameUrl = (jobId, index) => `${LINK_BASE}/api/link-jobs/${jobId}/frames/${index}.jpg`
+/** A step card's picture: its own sharper one when the cards were made with it, else the nearest keyframe. */
+export const stepShotUrl = (jobId, step) => (step.shot ? `${LINK_BASE}/api/link-jobs/${jobId}/steps/${step.n}.jpg` : linkFrameUrl(jobId, step.frame))
 
 /** Follow a job's events (frame / missing / status / done) from `since` until its run is done. */
 export async function streamLinkJob(jobId, since, onEvent, signal) {
