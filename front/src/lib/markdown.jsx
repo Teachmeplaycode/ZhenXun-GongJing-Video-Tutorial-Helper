@@ -39,9 +39,20 @@ const HEADING = /^(#{1,6})\s+(.*)$/
 export const toSeconds = (stamp) => stamp.split(':').reduce((acc, n) => acc * 60 + Number(n), 0)
 
 function inline(text, ctx, keyBase) {
-  return splitMath(text).flatMap((part, i) => part.type === 'math'
-    ? [<MathFormula key={`${keyBase}-math${i}`} text={part.text} display={part.display} />]
-    : inlinePlain(part.text, ctx, `${keyBase}-text${i}`))
+  const protectedText = splitMath(text).map((part) => {
+    if (part.type !== 'math') return part.text
+    const token = `\uE000math${ctx.math.size}\uE001`
+    ctx.math.set(token, part)
+    return token
+  }).join('')
+  return inlinePlain(protectedText, ctx, keyBase)
+}
+
+function plainText(text, ctx, keyBase) {
+  return text.split(/(\uE000math\d+\uE001)/).filter(Boolean).map((chunk, i) => {
+    const math = ctx.math.get(chunk)
+    return math ? <MathFormula key={`${keyBase}-math${i}`} text={math.text} display={math.display} /> : chunk
+  })
 }
 
 function inlinePlain(text, ctx, keyBase) {
@@ -49,7 +60,7 @@ function inlinePlain(text, ctx, keyBase) {
   let last = 0
   let n = 0
   for (const m of text.matchAll(INLINE)) {
-    if (m.index > last) out.push(text.slice(last, m.index))
+    if (m.index > last) out.push(...plainText(text.slice(last, m.index), ctx, `${keyBase}-${n}-before`))
     const key = `${keyBase}-${n++}`
     if (m[1] != null) out.push(<code key={key} className="md-code">{m[1]}</code>)
     else if (m[2] != null) out.push(<strong key={key}>{inline(m[2], ctx, key)}</strong>)
@@ -82,7 +93,7 @@ function inlinePlain(text, ctx, keyBase) {
     }
     last = m.index + m[0].length
   }
-  if (last < text.length) out.push(text.slice(last))
+  if (last < text.length) out.push(...plainText(text.slice(last), ctx, `${keyBase}-after`))
   return out
 }
 
@@ -191,7 +202,7 @@ function blocks(text) {
 
 /** Render `text`; `tail` (e.g. a streaming cursor) is placed at the end of the last block. */
 export function renderMarkdown(text, { onTime = null, duration = null, tail = null, pictures = false, seekTitle = '', checked = null } = {}) {
-  const ctx = { onTime, duration, pictures, seekTitle, checked }
+  const ctx = { onTime, duration, pictures, seekTitle, checked, math: new Map() }
   const list = blocks(text || '')
   return list.map((b, i) => {
     const end = i === list.length - 1 ? tail : null

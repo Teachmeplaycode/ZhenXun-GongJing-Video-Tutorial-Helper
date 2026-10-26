@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { MockApi } from './mock-api.js'
 
 const answer = [
-  String.raw`由罗尔定理得到 $f'(\xi)=0$，并满足 \(a<\xi<b\)。[00:30]`,
+  String.raw`**由罗尔定理得到 $f'(\xi)=0$**，并满足 \(a<\xi<b\)。[00:30]`,
   String.raw`$$
 \lim_{n\to\infty} n^2\left[\arctan(n+1)-\arctan n\right]=1
 $$`,
@@ -35,6 +35,8 @@ test('math: chat renders inline, display, list and table formulas while code, pr
   await expect(body.locator('.katex')).toHaveCount(5)
   await expect(body.locator('.katex-display')).toHaveCount(1)
   await expect(body.locator('.katex-error')).toHaveCount(0)
+  await expect(body.locator('strong .katex')).toHaveCount(1)
+  await expect(body).not.toContainText('**')
   await expect(body.locator('math')).toHaveCount(5)
   await expect(body.locator('.md-code')).toHaveText('$x^2$')
   await expect(body.locator('.md-pre code')).toHaveText('$$x^2$$')
