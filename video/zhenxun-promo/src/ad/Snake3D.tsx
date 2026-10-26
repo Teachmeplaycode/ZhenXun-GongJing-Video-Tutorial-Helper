@@ -129,7 +129,7 @@ export const outline = (width = 0.09, ink = '#050505') => new THREE.ShaderMateri
 });
 
 /** A mesh drawn twice: cel-shaded, and as its ink outline. */
-const Inked: React.FC<{geometry: THREE.BufferGeometry; mat: THREE.Material; line: THREE.Material; position?: THREE.Vector3; quaternion?: THREE.Quaternion; scale?: THREE.Vector3}> =
+export const Inked: React.FC<{geometry: THREE.BufferGeometry; mat: THREE.Material; line: THREE.Material; position?: THREE.Vector3; quaternion?: THREE.Quaternion; scale?: THREE.Vector3}> =
   ({geometry, mat, line, position, quaternion, scale}) => (
     <group position={position} quaternion={quaternion} scale={scale}>
       <mesh geometry={geometry} material={mat} />

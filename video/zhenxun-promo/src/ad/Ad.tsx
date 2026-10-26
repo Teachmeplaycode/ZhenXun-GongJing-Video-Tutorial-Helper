@@ -7,6 +7,7 @@ import {CutText, Halftone, KRAFT, Paper, Photo, Pin, RED, Stamp, Tape, Thread, u
 import {PAPER_EDGE} from './SnakeSheet';
 import {ThreeCanvas} from '@remotion/three';
 import {Pose, Snake, useFreeContext} from './Snake3D';
+import {Prop} from './Props3D';
 import {BLENDER, LINK, ROWS, STEPS, STUCK, TUTORIALS} from './data';
 import stepsRec from '../../public/rec/steps.json';
 import evidenceRec from '../../public/rec/evidence.json';
@@ -170,6 +171,9 @@ const Stuck: React.FC = () => (
     <Stamp x={1150} y={250} text="？" rot={12} at={140} size={70} />
     <Stamp x={150} y={700} text="？" rot={-10} at={146} size={60} />
     <Puppet poses={[[0, 'G1'], [118, 'G2']]} x={1230} y={150} h={880} at={12} z={35} />
+    <Prop kind="stopwatch" x={1700} y={40} size={190} at={30} rot={8} />
+    <Prop kind="question" x={1080} y={360} size={170} at={150} spin={0.3} />
+    <Prop kind="cursor" x={880} y={600} size={150} at={60} spin={0.2} tilt={0.1} />
     <Sfx name="pop" at={6} volume={0.35} />
     <Sfx name="pop" at={116} volume={0.3} />
     <Sfx name="pop" at={124} volume={0.3} rate={1.1} />
@@ -197,6 +201,9 @@ const Name: React.FC = () => (
       <Written text="看教程卡住了？" at={110} cps={12} style={{}} />
     </div>
     <Puppet poses={[[0, 'B1']]} x={1500} y={560} h={400} at={60} from={[0, 400]} z={45} />
+    <Prop kind="star" x={940} y={140} size={150} at={30} spin={0.9} />
+    <Prop kind="bulb" x={130} y={150} size={170} at={50} rot={-8} />
+    <Prop kind="play" x={1660} y={170} size={170} at={70} spin={0.3} />
     <SnakeActor x={1110} y={600} w={340} h={440} at={96} scale={1.4}
       pose={(t) => ({happy: beat(t, 0.4, 1.8), blink: Math.max(0, 1 - Math.abs(t - 2.4) * 8), tilt: beat(t, 2.6, 4) * 0.7, turn: -0.3})} />
     <Sfx name="pop" at={20} volume={0.3} />
@@ -222,6 +229,8 @@ const Steps: React.FC = () => {
         <Sequence from={70} layout="none"><ShotIn name="steps" rec={STEPS_REC} from={from} rate={1.15} keys={keys} w={872} h={532} /></Sequence>
       </Photo>
       <Tape x={1380} y={128} w={220} rot={2} at={76} />
+      <Prop kind="check" x={1000} y={20} size={150} at={290} spin={0.4} />
+      <Prop kind="pin" x={20} y={300} size={130} at={160} spin={0.8} />
       {STEPS.map((s, i) => (
         <React.Fragment key={s.n}>
           <Paper x={110 + (i % 2) * 18} y={370 + i * 150} w={760} h={128} rot={(i % 2 ? 1 : -1) * 1.4} torn={false} color="#FFFFFF" seed={60 + i} at={150 + i * 34} from={[-260, 0]} z={30 + i}>
@@ -276,6 +285,8 @@ const Screenshot: React.FC = () => {
         <Frame i={STUCK.frame} step />
       </Photo>
       <Pin x={750} y={262} at={92} />
+      <Prop kind="bubble" x={330} y={170} size={160} at={60} spin={0.25} rot={-6} />
+      <Prop kind="star" x={1060} y={40} size={130} at={250} spin={0.9} />
       <Sfx name="whoosh" at={80} volume={0.35} />
       <Puppet poses={[[0, 'B4']]} x={760} y={430} h={300} at={140} from={[0, 300]} z={46} />
       <Paper x={460} y={640} w={640} h={330} rot={1.5} torn={false} color="#FFFFFF" seed={72} at={210} z={32}>
@@ -324,6 +335,8 @@ const Compare: React.FC = () => {
         <Sequence from={60} layout="none"><ShotIn name="compare" rec={COMPARE_REC} from={from} rate={1.1} keys={keys} w={912} h={532} /></Sequence>
       </Photo>
       <Tape x={1360} y={156} w={200} rot={-2} at={66} />
+      <Prop kind="magnifier" x={1300} y={-10} size={170} at={120} spin={0.5} rot={-12} />
+      <Prop kind="check" x={1180} y={880} size={150} at={260} spin={0.4} />
       {/* the table, as paper strips */}
       {ROWS.map((r, i) => (
         <React.Fragment key={r.op}>
@@ -360,6 +373,8 @@ const Slogan: React.FC = () => (
       <Written text="步骤卡片 · 截图定位 · 多教程对照 · 每句都能回到原片" at={192} cps={20} style={{}} />
     </div>
     <Puppet poses={[[0, 'G6']]} x={1420} y={420} h={600} at={172} from={[0, 400]} z={45} />
+    <Prop kind="star" x={1330} y={130} size={170} at={110} spin={1} />
+    <Prop kind="cursor" x={1140} y={560} size={150} at={140} spin={0.3} tilt={0.1} />
     <Sfx name="pop" at={172} volume={0.3} />
   </>
 );
@@ -375,6 +390,9 @@ const Lockup: React.FC = () => (
       <div style={{position: 'absolute', left: 30, top: 18, fontFamily: CONSOLE, fontSize: 56, color: INK}}>linyi.work/ZhenXun</div>
     </Paper>
     <Puppet poses={[[0, 'B8']]} x={1360} y={520} h={420} at={40} from={[0, 400]} z={45} />
+    <Prop kind="play" x={1640} y={130} size={160} at={30} spin={0.4} />
+    <Prop kind="star" x={200} y={200} size={150} at={44} spin={1} />
+    <Prop kind="bulb" x={640} y={790} size={150} at={70} rot={10} />
     <Puppet poses={[[0, 'G7']]} x={1160} y={560} h={420} at={64} from={[0, 400]} z={44} />
     <SnakeActor x={110} y={620} w={300} h={420} at={84} scale={1.4} pose={(t) => ({happy: beat(t, 0.6, 2.4), turn: 0.35, blink: Math.max(0, 1 - Math.abs(t - 3.4) * 8)})} />
     <Sfx name="pop" at={50} volume={0.3} />
