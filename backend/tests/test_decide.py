@@ -73,3 +73,6 @@ def test_research_intent_falls_back_to_keywords():
     assert asyncio.run(research_wanted("这个视频讲了什么", None)) == (False, None)
     transport, _ = ollama(lambda p: {"A": 0.9, "B": 0.1})
     assert asyncio.run(research_wanted("这个说法靠谱吗", Decider(transport=transport))) == (True, 0.9)
+    transport, _ = ollama(lambda p: {"A": 0.35, "B": 0.65})
+    asked = asyncio.run(research_wanted("这不是抖音套模版吗，这还不用搜？", Decider(transport=transport)))
+    assert asked[0] and round(asked[1], 2) == 0.35  # an explicit ask is searched even when the model doubts it
