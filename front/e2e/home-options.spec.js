@@ -71,3 +71,18 @@ test('home: mobile question focus keeps the scroll position and survives rapid t
   await expect(page.getByRole('textbox', { name: '你想了解什么？' })).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
+
+test('a link typed by hand is not called wrong while it is still being typed', async ({ page }) => {
+  await new MockApi(page).install()
+  await page.goto('/')
+  const input = page.locator('.import-control__link')
+  const hint = page.locator('#import-link-hint')
+  await input.click()
+  await input.pressSequentially('htt', { delay: 60 })
+  await expect(hint).not.toHaveClass(/is-warn/) // still typing
+  await expect(hint).not.toContainText('没有识别到链接')
+  await expect(hint).toHaveClass(/is-warn/, { timeout: 3000 }) // a pause: now it is worth saying
+  await expect(hint).toContainText('没有识别到链接')
+  await input.pressSequentially('ps://www.bilibili.com/video/BV1TEST00001', { delay: 30 })
+  await expect(hint).toContainText('已识别')
+})
