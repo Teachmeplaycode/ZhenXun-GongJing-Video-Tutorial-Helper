@@ -783,6 +783,15 @@ async def job_steps(job_id: str):
     return steps.load(job.root) or {"status": "none", "steps": [], "message": ""}
 
 
+@app.get("/api/link-jobs/{job_id}/steps/{n}.jpg")
+async def step_shot(job_id: str, n: int):
+    """A step's own picture, read wider than the keyframes when the cards were made (modules/steps.py)."""
+    path = steps.shot_path(get_job(job_id).root, n)
+    if not path.is_file():
+        raise HTTPException(404, "这一步没有单独的截图")
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.post("/api/link-jobs/{job_id}/steps")
 async def build_steps(job_id: str):
     """Build the step cards with one model call; counts as a question."""
@@ -797,11 +806,11 @@ async def build_steps(job_id: str):
 
     async def complete(messages):
         with exact():  # reading steps, comments or tutorials side by side is copying, not writing
-            return "".join([d async for d in client.stream(messages, Usage(), max_tokens=2048)])
+            return "".join([d async for d in client.stream(messages, Usage(), max_tokens=4096)])
 
     steps_building.add(job.id)
     try:
-        record = await steps.build(job, complete)
+        record = await steps.build(job, complete, sharp=AgentTools(job).sharp)
     except LLMError as err:
         raise HTTPException(502, f"整理步骤失败：{err.message}") from err
     finally:
@@ -915,7 +924,7 @@ async def build_compare(body: CompareRequest):
 
     try:
         for j in missing:
-            await steps.build(j, complete)
+            await steps.build(j, complete, sharp=AgentTools(j).sharp)
         cards = [steps.load(j.root) or {} for j in jobs]
         empty = [j.video.title for j, c in zip(jobs, cards) if c.get("status") != "done"]
         if empty and len(jobs) - len(empty) < 2:

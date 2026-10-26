@@ -17,7 +17,7 @@ services:
       PUBLIC_URL: https://linyi.work/ZhenXun   # OAuth callbacks come back here
       PUBLIC_PLATFORMS: bilibili,local,alcedo,wechat_channels   # alcedo: 抖音、小红书、快手等; 视频号 needs one's own 元宝 login
       BIND_PLATFORMS: bilibili,yuanbao   # logins each account may link (QR), through CN_PROXY. 小红书 notes parse without a login; its QR login stalls on a security check from the server
-      SAMPLE_SESSIONS: d4bf4818677d,29738458d68e,fe983dcf9b59   # 先用示例视频体验: the demo account's VLOOKUP, PS 抠图, 剪映字幕 tutorials
+      SAMPLE_SESSIONS: d4bf4818677d,29738458d68e,fe983dcf9b59,70b8e95778af   # 先用示例视频体验: the demo account's VLOOKUP, PS 抠图, 剪映字幕, Blender 入门 tutorials
       ASR_BACKEND: paraformer # 百炼 paraformer-v2 (DASHSCOPE_API_KEY in .env); the local whisper is its fallback
     volumes:
       - zhenxun-data:/data
