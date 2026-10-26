@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import BrowserViewport from './BrowserViewport'
 import StreamingText from './StreamingText'
 import StepGroup, { SkillBlock } from './StepGroup'
@@ -114,7 +114,10 @@ function Footer({ message, onRegenerate }) {
 const fine = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`
 
 // A replay framed by hand on the timeline: the player straight away, no model and no steps list.
+// It plays by itself only when it was just asked for (seen while still running), not when an old
+// session is opened again with its replays in the chat.
 function ManualReplay({ message, onTime, onStop }) {
+  const fresh = useRef(message.status === 'running').current
   const call = message.parts.find((p) => p.kind === 'steps')?.calls[0]
   const d = call?.data || {}
   const [start, end] = message.range || [d.start, d.end]
@@ -133,7 +136,7 @@ function ManualReplay({ message, onTime, onStop }) {
           </div>
         ) : null}
         {message.error ? <div className="bubble__error">{message.error}</div> : null}
-        {d.frames ? <Replay d={d} onSeek={onTime} autoPlay /> : null}
+        {d.frames ? <Replay d={d} onSeek={onTime} autoPlay={fresh} /> : null}
       </div>
     </div>
   )
