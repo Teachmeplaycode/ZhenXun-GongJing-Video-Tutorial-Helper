@@ -1,12 +1,14 @@
 """How densely an import samples a video: keyframes, shot fill and the on-screen text rate.
 
-Three presets, chosen on the import screen, plus optional overrides from its "高级" panel:
+Four presets, chosen on the import screen, plus optional overrides from its "高级" panel:
 
+  auto      48 keyframes, shot fill only for short videos,       default: adapt the work to duration
+            about 300 OCR samples on long videos
   quick     32 keyframes, no shot fill, on-screen text every 2 s   short videos, a few quick questions
-  standard  48–64 keyframes, a frame for every shot up to 128,     most videos (the default)
+  standard  48–64 keyframes, a frame for every shot up to 128,     fixed standard density
             on-screen text every second (every 2 s past LONG_VIDEO)
-  fine      64–128 keyframes (about one a second), shot fill up    lectures, blackboard / slides,
-            to 256, on-screen text twice a second                    note-taking
+  fine      64–128 keyframes (about one a second), shot fill up    dense visual detail,
+            to 256, on-screen text twice a second                    frame-by-frame analysis
 
 More keyframes mostly help browsing the timeline: the agent looks closer on demand (view_frames,
 replay), and a question still sends at most LLM_MAX_IMAGES frames. The plan is saved with the session
@@ -24,6 +26,8 @@ OCR_RATES = (0, 0.5, 1, 2)  # frames per second read for on-screen text; 0 = off
 # a 20-minute tutorial at one a second took 33 minutes and queued every import behind it; a caption or
 # a menu stays up for more than 2 s, and unchanged frames are skipped anyway (modules/screentext/change.py).
 LONG_VIDEO = 360
+AUTO_OCR_SAMPLES = 300
+AUTO_MIN_FPS = 1 / 120  # extremely long recordings still get a sample at least every two minutes
 
 
 @dataclass
@@ -39,6 +43,9 @@ class Plan:
 
 
 def _preset(name: str, duration: float) -> Plan:
+    if name == "auto":
+        fps = min(0.5, max(AUTO_MIN_FPS, AUTO_OCR_SAMPLES / duration)) if duration > 0 else 0.5
+        return Plan("auto", 48, duration <= LONG_VIDEO, 128, fps)
     if name == "quick":
         return Plan("quick", 32, False, 32, 0.5)
     if name == "fine":
@@ -48,10 +55,10 @@ def _preset(name: str, duration: float) -> Plan:
 
 
 def plan(spec: dict | None, duration: float) -> Plan:
-    """The preset named in `spec` (default standard) with any valid overrides applied:
+    """The preset named in `spec` (default auto) with any valid overrides applied:
     frames 8–256, shots true/false, ocr_fps one of OCR_RATES. Anything else is ignored."""
     spec = spec or {}
-    p = _preset(str(spec.get("preset") or "standard"), duration)
+    p = _preset(str(spec.get("preset") or "auto"), duration)
     try:
         if spec.get("frames") not in (None, ""):
             p.frames = max(8, min(MAX_FRAMES, int(spec["frames"])))

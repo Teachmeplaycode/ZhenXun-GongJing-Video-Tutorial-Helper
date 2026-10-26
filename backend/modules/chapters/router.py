@@ -12,11 +12,11 @@ from modules import log
 from modules.frames import cuts
 from modules.llm import LLMError, Usage
 
-from .task import FILE, _rows, load, run_chapters, save, write_record
+from .task import FILE, _rows, load, prepare_inputs, run_chapters, save, write_record
 
 REFRESH_INTERVAL = 30.0  # coalesce arriving frames; completed producers bypass this delay
 MAX_ATTEMPTS = 3  # a temporary model failure gets two retries without polling forever
-INPUT_VERSION = 2  # older text-only caches must be regenerated with visual evidence
+INPUT_VERSION = 3  # fingerprint the selected evidence and use a text-aware image budget
 
 
 class ChapterService:
@@ -47,19 +47,15 @@ class ChapterService:
         return pending
 
     def inputs(self, job):
-        """Snapshot actual evidence, excluding progress messages that cannot improve a chapter."""
+        """Fingerprint exactly the prepared model evidence, not every arriving raw frame/text row."""
         transcript = _rows(job.transcript.segments if job.transcript else [])
         screen = _rows(job.screentext.segments if job.screentext else [])
         pictures = self.pictures(job)
         cuts_record = cuts.load(job.root)
-        frames = []
-        for timestamp, path in pictures:
-            stat = path.stat()
-            frames.append((timestamp, path.name, stat.st_size, stat.st_mtime_ns))
-        key = json.dumps([INPUT_VERSION, job.video.duration, transcript, screen,
-                          (cuts_record or {}).get('cuts', []), frames], ensure_ascii=False)
+        prepared = prepare_inputs(transcript, screen, cuts_record, job.video.duration or 0, pictures)
+        key = json.dumps([INPUT_VERSION, prepared.chunks, prepared.picture_keys], ensure_ascii=False)
         return dict(transcript=transcript, screen=screen, pictures=pictures, cuts_record=cuts_record,
-                    signature=hashlib.sha256(key.encode()).hexdigest(), pending=self.pending_sources(job))
+                    prepared=prepared, signature=hashlib.sha256(key.encode()).hexdigest(), pending=self.pending_sources(job))
 
     async def wait_inputs(self, job, timeout: float | None = None):
         """Wait only for the first usable evidence, never for every producer to finish."""
@@ -116,7 +112,7 @@ class ChapterService:
 
                 record = await run_chapters(job.root, inputs['transcript'], inputs['screen'],
                                             inputs['cuts_record'], job.video.duration or 0,
-                                            pictures=inputs['pictures'],
+                                            prepared=inputs['prepared'],
                                             complete=complete if client is not None else None, cache=False)
                 if job.id in self.deleted:
                     break
@@ -139,7 +135,7 @@ class ChapterService:
                         record['summary'] = previous['summary']
                     attempts = (previous.get('_attempts', 0) if previous.get('_inputs') == inputs['signature'] else 0) + 1
                     record.update(_inputs=inputs['signature'], _pending_sources=inputs['pending'],
-                                  _generated_at=time.time(), _attempts=attempts,
+                                  _generated_at=time.time(), _attempts=attempts, input_version=INPUT_VERSION,
                                   provisional=bool(inputs['pending']) or bool(record.get('needs_retry') and attempts < MAX_ATTEMPTS))
                     if inputs['pending'] and not record.get('needs_retry'):
                         record['message'] = '已根据现有画面和文字生成，后续内容就绪后自动补充'
@@ -155,7 +151,8 @@ class ChapterService:
         if record is None or job.id in self.deleted:
             return
         log.event('chapters', job_id=job.id, status=record['status'],
-                  count=len(record['chapters']), ms=timer.ms)
+                  count=len(record['chapters']), chosen_images=record.get('chosen_images', 0),
+                  input_version=record.get('input_version', INPUT_VERSION), attempt=record.get('_attempts', 0), ms=timer.ms)
 
     async def get(self, job_id: str):
         job = self.get_job(job_id)

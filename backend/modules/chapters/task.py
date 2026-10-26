@@ -11,6 +11,7 @@ import base64
 import json
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 from . import split
@@ -21,6 +22,8 @@ MAX_SUMMARY = 60
 PICTURES_PER_CHAPTER = 2
 MAX_PICTURES = 30
 PICTURE_WIDTH = 640
+MAX_CHAPTER_TEXT = 200
+TEXT_FOR_ONE_PICTURE = 80  # enough non-whitespace text to support a summary; still keep a visual check
 # pending · running · done · empty (nothing to split) · unavailable · failed
 FINISHED = {"done", "empty", "unavailable"}
 
@@ -113,8 +116,20 @@ def _chapter_text(transcript, screen, start: float, end: float) -> str:
 Completer = Callable[[list[dict]], Awaitable[str]]
 
 
-def _picture_url(path: Path) -> str | None:
-    """Use existing preview pixels; larger inputs are reduced, small frames never enlarged."""
+@dataclass
+class ChapterInputs:
+    chunks: list[tuple[int, float, float, str]]
+    pictures: dict[int, list[tuple[float, str]]]
+    picture_keys: list[tuple]
+
+    @property
+    def chosen_images(self) -> int:
+        return sum(len(frames) for frames in self.pictures.values())
+
+
+@lru_cache(maxsize=128)
+def _picture_data(path: Path, size: int, modified: int) -> tuple[str, int, int] | None:
+    """Bounded encoded-preview cache; size/mtime invalidate it without decoding on each UI poll."""
     import cv2
     import numpy as np
 
@@ -125,48 +140,66 @@ def _picture_url(path: Path) -> str | None:
             return None
         height, width = frame.shape[:2]
         if width > PICTURE_WIDTH:
-            frame = cv2.resize(frame, (PICTURE_WIDTH, max(1, round(height * PICTURE_WIDTH / width))),
-                               interpolation=cv2.INTER_AREA)
+            height, width = max(1, round(height * PICTURE_WIDTH / width)), PICTURE_WIDTH
+            frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
             ok, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             if not ok:
                 return None
             data = encoded.tobytes()
-        return "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii")
+        return "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"), width, height
     except (OSError, ValueError, cv2.error):
         return None
 
 
-def _chapter_pictures(spans: list[tuple[float, float]], pictures: Iterable[tuple[float, Path]]) -> dict:
-    """Choose frames around each chapter's one-third and two-thirds points, within its bounds."""
+def _chapter_pictures(chunks: list[tuple[int, float, float, str]], pictures: Iterable[tuple[float, Path]]) -> tuple[dict, list]:
+    """Keep a midpoint image with substantial text, otherwise two spread-out visual samples."""
     available = sorted((float(timestamp), Path(path)) for timestamp, path in pictures)
-    selected = {}
+    selected, keys = {}, []
     count = 0
-    for index, (start, end) in enumerate(spans):
+    for index, start, end, text in chunks:
         candidates = [(timestamp, path) for timestamp, path in available
-                      if start <= timestamp < end or (index == len(spans) - 1 and timestamp == end)]
+                      if start <= timestamp < end or (index == len(chunks) - 1 and timestamp == end)]
         frames = []
-        for fraction in range(1, PICTURES_PER_CHAPTER + 1):
-            target = start + (end - start) * fraction / (PICTURES_PER_CHAPTER + 1)
+        budget = 1 if sum(not char.isspace() for char in text) >= TEXT_FOR_ONE_PICTURE else PICTURES_PER_CHAPTER
+        for fraction in range(1, budget + 1):
+            target = start + (end - start) * fraction / (budget + 1)
             candidates.sort(key=lambda row: abs(row[0] - target))
             while candidates and count < MAX_PICTURES:
                 timestamp, path = candidates.pop(0)
                 if any(t == timestamp for t, _ in frames):
                     continue
-                url = _picture_url(path)
-                if url is not None:
+                try:
+                    stat = path.stat()
+                except OSError:
+                    continue
+                picture = _picture_data(path, stat.st_size, stat.st_mtime_ns)
+                if picture is not None:
+                    url, width, height = picture
                     frames.append((timestamp, url))
+                    keys.append((index, timestamp, str(path), stat.st_size, stat.st_mtime_ns, width, height))
                     count += 1
                     break
         if frames:
             selected[index] = sorted(frames)
         if count >= MAX_PICTURES:
             break
-    return selected
+    return selected, sorted(keys)
+
+
+def prepare_inputs(transcript, screen, cuts_record: dict | None, duration: float,
+                   pictures: Iterable[tuple[float, Path]] = ()) -> ChapterInputs:
+    """One source of truth for the model payload and its cache fingerprint."""
+    transcript, screen = _rows(transcript), _rows(screen)
+    spans = split.segment(duration, (cuts_record or {}).get('cuts') or [], transcript, screen)
+    chunks = [(i, start, end, _chapter_text(transcript, screen, start, end)[:MAX_CHAPTER_TEXT])
+              for i, (start, end) in enumerate(spans)]
+    visuals, keys = _chapter_pictures(chunks, pictures)
+    return ChapterInputs(chunks, visuals, keys)
 
 
 def _messages(chunks: list[tuple[int, float, float, str]], pictures: dict | None = None) -> list[dict]:
     """Ask the model for a title and one-line summary per chapter, one `title|summary` line each."""
-    body = "\n".join(f"{i + 1}. [{round(a, 1)}–{round(b, 1)}s] {txt[:200]}"
+    body = "\n".join(f"{i + 1}. [{round(a, 1)}–{round(b, 1)}s] {txt}"
                      for i, a, b, txt in chunks)
     content = f"以下是视频各章节的起止时间和文字内容，给每章起标题和摘要：\n{body}"
     if pictures:
@@ -201,16 +234,13 @@ def _parse(lines: str, n: int) -> list[tuple[str, str]]:
 
 async def run_chapters(root: Path, transcript, screen, cuts_record: dict | None,
                        duration: float, *, complete: Completer | None = None, cache: bool = True,
-                       pictures: Iterable[tuple[float, Path]] = ()) -> dict:
+                       pictures: Iterable[tuple[float, Path]] = (), prepared: ChapterInputs | None = None) -> dict:
     """Split, title and summarise; cache to chapters.json. Never raises."""
-    cuts = (cuts_record or {}).get("cuts") or []
-    spans = split.segment(duration, cuts, transcript or [], screen or [])
-    if not spans:
-        record = {"status": "empty", "chapters": [], "message": "视频时长未知，无法切分章节", "summary": ""}
+    prepared = prepared or prepare_inputs(transcript, screen, cuts_record, duration, pictures)
+    chunks, visuals = prepared.chunks, prepared.pictures
+    if not chunks:
+        record = {"status": "empty", "chapters": [], "message": "视频时长未知，无法切分章节", "summary": "", "chosen_images": 0}
         return write_record(root, record) if cache else record
-    chunks = [(i, start, end, _chapter_text(transcript, screen, start, end))
-              for i, (start, end) in enumerate(spans)]
-    visuals = _chapter_pictures(spans, pictures)
     evidence = {i for i, _, _, text in chunks if text.strip() or visuals.get(i)}
     titles: list[tuple[str, str]] = [("", "")] * len(chunks)
     summary = ""
@@ -240,5 +270,6 @@ async def run_chapters(root: Path, transcript, screen, cuts_record: dict | None,
                           f"已生成 {len(chapters)} 个章节" if evidence else "当前内容不足，待补充"),
               "needs_retry": needs_retry, "incomplete_chapters": incomplete,
               "generated_chapters": sorted(evidence - set(incomplete)),
+              "chosen_images": prepared.chosen_images,
               "summary": summary or _clip(" ".join(c.summary for c in chapters), 300)}
     return write_record(root, record) if cache else record

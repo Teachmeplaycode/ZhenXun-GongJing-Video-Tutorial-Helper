@@ -7,7 +7,7 @@ test('sampling: the preset (and only the overrides set) goes with the import, an
   const mock = new MockApi(page)
   await mock.install()
   await page.goto('/')
-  await expect(page.locator('.import-entry__sampling')).toHaveText(/解析设置\s*标准/)
+  await expect(page.locator('.import-entry__sampling')).toHaveText(/解析设置\s*自动/)
   await page.locator('.import-entry__sampling').click()
   await page.getByRole('radio', { name: /精细/ }).check({ force: true })
   await page.locator('.sampling__advanced summary').click()
@@ -37,3 +37,40 @@ test('sampling: keyframes added for missed shots join the timeline in time order
   const labels = await page.locator('.tl-sheet').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))
   expect(labels.slice(0, 3)).toEqual([expect.stringContaining('00:07.5'), expect.stringContaining('00:10.0'), expect.stringContaining('00:22.5')])
 })
+
+
+test('sampling: automatic is the default without overwriting saved choices', async ({ page }) => {
+  const mock = new MockApi(page)
+  await mock.install()
+  await page.goto('/')
+  await page.locator('.import-entry__sampling').click()
+  await expect(page.getByRole('radio', { name: /自动/ })).toBeChecked()
+  await page.locator('.sampling__advanced summary').click()
+  const shots = page.getByRole('checkbox', { name: /按镜头补帧/ })
+  expect(await shots.evaluate((el) => el.indeterminate)).toBe(true)
+  await page.locator('.import-control__link').fill(LINK)
+  await page.locator('.import-control__submit').click()
+  await expect.poll(() => mock.requests.find((r) => r.path === '/api/link-jobs')?.body?.sampling).toEqual({ preset: 'auto' })
+  await page.evaluate(() => localStorage.setItem('import.sampling', JSON.stringify({ preset: 'standard', frames: '', shots: null, ocr_fps: '' })))
+  await page.reload()
+  await expect(page.locator('.import-entry__sampling')).toHaveText(/解析设置\s*标准$/)
+})
+
+for (const width of [360, 390, 430]) {
+  test(`sampling: four choices fit at ${width}px with usable touch targets`, async ({ page }) => {
+    const mock = new MockApi(page)
+    await mock.install()
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('/')
+    await page.locator('.import-entry__sampling').click()
+    const labels = page.locator('.sampling__preset')
+    await expect(labels).toHaveCount(4)
+    for (const label of await labels.all()) {
+      const box = await label.boundingBox()
+      expect(box.height).toBeGreaterThanOrEqual(44)
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.x + box.width).toBeLessThanOrEqual(width)
+    }
+    await expect(page.getByRole('radio', { name: /自动/ })).toBeChecked()
+  })
+}

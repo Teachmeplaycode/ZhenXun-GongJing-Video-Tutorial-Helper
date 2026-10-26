@@ -281,6 +281,9 @@ cutting: set[str] = set()  # job ids whose shot changes are being detected
 
 async def find_cuts(job: FrameJob) -> None:
     """Detect the shot changes for the timeline's marks (modules/frames/cuts.py), cached in the job folder."""
+    if sampling.saved(job.video).get("shots") is False:
+        cuts.save(job.root, "unavailable", message="当前解析方案不扫描全片镜头，提问时仍可按需补看")
+        return
     timer = log.Timer()
     cutting.add(job.id)
 

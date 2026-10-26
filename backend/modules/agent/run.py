@@ -19,7 +19,7 @@ from modules.llm import ChatClient, LLMError, OllamaClient, ToolCall, Usage, ass
 from modules.decide import questions as dq
 from modules import recipe, stuck
 
-from . import experience, intent, locate, skills
+from . import experience, intent, locate, response_plan, skills
 
 from ..frames import images as picture_sets
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
@@ -60,13 +60,13 @@ LEAKED = "（模型在工具次数用完后仍试图调用工具，没有给出�
 LINE_SECONDS = 12         # transcript segments are merged into lines of about this length
 FRAME_WINDOW = 10         # with selected frames, speech within this many seconds of each is sent
 
-SYSTEM_PROMPT = """你是视频理解助手。用户给你的是从一段视频中按时间抽取的若干关键帧（静态画面），每张图前标注了帧号和时间点；有语音时还会附上带时间点的语音转写；画面上有字时还会附上「画面文字」：对整段视频每秒识别一次得到的字幕、花字和画面上的文字。
+SYSTEM_PROMPT = """你是视频理解助手。用户给你的是从一段视频中按时间抽取的若干关键帧（静态画面），每张图前标注了帧号和时间点；有语音时还会附上带时间点的语音转写；画面上有字时还会附上「画面文字」：按本次采样方案识别得到的字幕、花字和画面上的文字。
 
 规则：
 - 只依据这些画面、语音转写、视频标题和简介回答。你看不到连续画面，不要编造画面之间发生的事。
 - 语音转写是自动识别的，可能有同音错字、漏字或把背景音乐误识别成文字；引用时保留原话，明显不通的地方说明可能识别有误。转写只记录说话内容，不包含语气、音乐和音效。
 - 没有提供语音转写时，你不知道视频里说了什么，不要编造台词或口播。
-- 画面文字是自动识别的，可能有个别错字；它覆盖整段视频，比抽样关键帧完整得多。很多视频的对话就在烧录的字幕里：语音转写缺失、只覆盖一小部分或标明不可靠时，以画面字幕为准，并说明内容来自画面字幕。
+- 画面文字是按采样方案自动识别的，可能有个别错字；仅代表已采样时刻，未采样处或识别缺失处不能据此推断。很多视频的对话就在烧录的字幕里：语音转写缺失、只覆盖一小部分或标明不可靠时，以画面字幕为准，并说明内容来自画面字幕。
 - 每个结论后面用方括号标明依据，写明类型和时间，用户点开就能回到原视频核对：
   [画面 01:19] 关键帧或补看画面里看到的；[原声 01:13-01:24] 语音转写里说的；[画面文字 01:26] 画面上识别出的文字；
   [资料 https://…] 本次检索或打开过的网页、论文（只写工具返回过的链接）；[推断] 没有直接证据、由你根据上述内容推出来的判断。
@@ -189,7 +189,7 @@ def max_transcript_chars() -> int:
     return max(1000, int(os.environ.get("LLM_MAX_TRANSCRIPT_CHARS", "60000")))
 
 
-def pick_transcript(job: FrameJob, frames: list | None) -> tuple[list[str], str]:
+def pick_transcript(job: FrameJob, frames: list | None, *, summary: bool = False) -> tuple[list[str], str]:
     """Timed transcript lines for the request, and a note on what they cover or why there are none.
 
     `frames`: the selected slots, or None for the whole video.
@@ -215,6 +215,11 @@ def pick_transcript(job: FrameJob, frames: list | None) -> tuple[list[str], str]
     if texts:
         lines.append(f"[{clock(start)}] {' '.join(texts)}")
     note = f"{len(segments)} 句" + ("（所选帧前后各 %d 秒）" % FRAME_WINDOW if frames is not None else "")
+    if summary:
+        kept = response_plan.balanced_lines(lines, min(max_transcript_chars(), response_plan.SUMMARY_SPEECH_CHARS))
+        if kept != lines:
+            note += "，按时间均匀摘取，完整转写可按需读取"
+        return kept, note
     budget, kept = max_transcript_chars(), []
     for line in lines:
         budget -= len(line) + 1
@@ -242,7 +247,7 @@ def allowed_tools(job: FrameJob, web: bool, papers: bool, audience: tuple) -> li
     return found
 
 
-def pick_screentext(job: FrameJob, frames: list | None) -> tuple[list[str], str]:
+def pick_screentext(job: FrameJob, frames: list | None, *, summary: bool = False) -> tuple[list[str], str]:
     """Timed on-screen text lines for the request (`frames`: the selected slots, or None), and a note."""
     screen = job.screentext
     pictures = picture_sets.is_images(job.video)
@@ -269,10 +274,15 @@ def pick_screentext(job: FrameJob, frames: list | None) -> tuple[list[str], str]
         line = (f"[{picture_sets.image_label(int(c.start))}] {c.text}" if pictures
                 else f"[{clock(c.start)}] {'' if c.pos == 'bottom' else '（画面中的字）'}{c.text}")
         budget -= len(line) + 1
-        if budget < 0:
+        if budget < 0 and not summary:
             note += f"，过长只保留到 {clock(c.start)} 之前"
             break
         lines.append(line)
+    if summary:
+        kept = response_plan.balanced_lines(lines, min(max_screen_chars(), response_plan.SUMMARY_SCREEN_CHARS))
+        if kept != lines:
+            note += "，按时间均匀摘取，完整文字可按需读取"
+        return kept, note
     return lines, note
 
 
@@ -341,6 +351,9 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
         context.append(f"没有取到画面的时段：{gaps}")
     if coverage["pending"]:
         context.append(f"另有 {coverage['pending']} 帧仍在抓取中，未包含在内")
+    pending = missing_material(job)
+    if pending:
+        context.append("资料仍在补充：" + "、".join(pending) + "。本次只依据已提供的内容回答，说明范围有限，不要声称整片已完整解析。")
 
     lines, note = transcript
     if not lines and note:
@@ -355,7 +368,7 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     if lines:
         content.append({"type": "text", "text": f"语音转写（{note}）：\n" + "\n".join(lines)})
     if screen_lines:
-        title = "图片文字（每张图里识别出的文字，可能有个别错字" if pictures else "画面文字（每秒识别一次的字幕、花字和画面上的字，可能有个别错字"
+        title = "图片文字（每张图里识别出的文字，可能有个别错字" if pictures else "画面文字（按采样方案识别的字幕、花字和画面上的字，未采样时刻不作推断，可能有个别错字"
         content.append({"type": "text", "text": f"{title}；{screen_note}）：\n" + "\n".join(screen_lines)})
     feedback = [] if pictures else stuck.context(stuck.load(job.root))
     if feedback:  # modules/stuck.py: where viewers got stuck, by step card
@@ -432,14 +445,13 @@ async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
     return bool(RESEARCH_RE.search(question)), None
 
 
-WAIT_MAX = 240.0      # seconds an answer waits for the keyframes and the speech
-SCREEN_WAIT = 60.0    # and then, at most, for the screen text (OCR queues for minutes on the web demo)
+WAIT_MAX = 8.0  # only wait for the first usable evidence in the requested scope
 WAIT_STEP = 2.0
 BUSY = {"pending", "running"}
 
 
 def missing_material(job: FrameJob) -> list[str]:
-    """What an answer would be short of right now: the keyframes still being read, the speech, the screen text."""
+    """Producers still running, used for honest progress rather than a readiness barrier."""
     out = []
     if job.coverage()["pending"]:
         out.append("关键帧")
@@ -450,15 +462,14 @@ def missing_material(job: FrameJob) -> list[str]:
     return out
 
 
-async def wait_for_material(job: FrameJob, sleep=None) -> AsyncIterator[dict]:
-    """A question asked while the import is still reading: wait in the answer, saying for what, until the
-    keyframes and the speech are in (WAIT_MAX at most) and then the screen text (SCREEN_WAIT more at most).
-    Events: progress updates and a data.wait step; nothing at all when everything is already there."""
+async def wait_for_material(job: FrameJob, sleep=None, *, requested=None, images=None, ranges=None) -> AsyncIterator[dict]:
+    """Use related evidence immediately; only an empty scope waits briefly for its first input."""
     import asyncio
-
     sleep = sleep or asyncio.sleep
+    def ready():
+        return response_plan.has_evidence(job, requested, images, ranges, FRAME_WINDOW)
     waiting = missing_material(job)
-    if not waiting:
+    if ready() or not waiting:
         return
 
     def tool(kind: str, **payload) -> dict:
@@ -466,19 +477,14 @@ async def wait_for_material(job: FrameJob, sleep=None) -> AsyncIterator[dict]:
 
     yield tool("started", tool_name="data.wait")
     yield tool("input", input={"kind": "params", "params": {"waiting": "、".join(waiting)}})
-    waited, screen_waited = 0.0, 0.0
-    while True:
-        now = missing_material(job)
-        core = [x for x in now if x != "画面文字"]
-        if not now or (not core and screen_waited >= SCREEN_WAIT) or waited >= WAIT_MAX:
-            break
-        if not core:
-            screen_waited += WAIT_STEP
-        yield {"type": "progress.update", "step": f"等待{'、'.join(now)}（已等 {int(waited)} 秒）", "percent": 5}
+    waited = 0.0
+    while not ready() and missing_material(job) and waited < WAIT_MAX:
+        yield {"type": "progress.update", "step": f"等待首批可用内容（已等 {int(waited)} 秒）", "percent": 5}
         await sleep(WAIT_STEP)
         waited += WAIT_STEP
     left = missing_material(job)
-    note = (f"等了 {int(waited)} 秒，{'、'.join(left)}还没完成，先用已有的部分回答" if left else f"等了 {int(waited)} 秒，数据已齐")
+    note = ("已有可用内容，先据此回答，其他资料继续处理" if ready() else
+            "当前范围尚无可用画面或文字，不能据此判断视频内容")
     yield tool("output", stdout=note, exit_code=0, data={"waited": int(waited), "left": left})
     yield tool("completed", result_count=int(waited))
 
@@ -496,15 +502,21 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     def tool(call_id: str, kind: str, **payload) -> dict:
         return {"type": f"tool_call.{kind}", "call_id": call_id, **payload}
 
-    async for event in wait_for_material(job):  # asked mid-import: wait here for enough to answer from
+    requested_ranges = [] if picture_sets.is_images(job.video) else slowmo_ranges(question) or asked_ranges(question)
+    ranges = [(parse_time(a), parse_time(b)) for a, b in (requested_ranges or (framed or [])[-1:])]
+    ranges = [(min(a, b), max(a, b)) for a, b in ranges if a is not None and b is not None] or None
+    summary = (response_plan.is_summary(question) and not RESEARCH_RE.search(question)
+               and not (frames or images or ranges or picture_sets.is_images(job.video)))
+    async for event in wait_for_material(job, requested=frames, images=images, ranges=ranges):
         yield event
     yield {"type": "progress.update", "step": "整理画面", "percent": 10}
     steps += 1
-    chosen, notes = pick_frames(job, frames, max_images())
+    image_limit = min(max_images(), response_plan.summary_images(job)) if summary else max_images()
+    chosen, notes = pick_frames(job, frames, image_limit)
     yield tool("frames", "started", tool_name="frames.select")
     yield tool("frames", "input", input={"kind": "params", "params": {
         "scope": f"已选 {len(frames)} 帧" if frames else "整段视频",
-        "available": f"{job.coverage()['ok']}/{len(job.slots)}", "limit": max_images()}})
+        "available": f"{job.coverage()['ok']}/{len(job.slots)}", "limit": image_limit}})
     listing = "\n".join(f"{frame_no(s.index)}  {clock(s.time)}" for s in chosen) or "（没有可用画面）"
     yield tool("frames", "output", stdout="\n".join([listing, *notes]), exit_code=0)
     yield tool("frames", "completed", result_count=len(chosen))
@@ -512,7 +524,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield {"type": "progress.update", "step": "读取语音", "percent": 22}
     steps += 1
     selected = chosen if frames else None
-    transcript = pick_transcript(job, selected)
+    transcript = pick_transcript(job, selected, summary=summary)
     status = job.transcript.status if job.transcript else "none"
     yield tool("speech", "started", tool_name="transcript.read")
     yield tool("speech", "input", input={"kind": "params", "params": {
@@ -522,7 +534,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     yield tool("speech", "output", stdout="\n".join([note, *preview]), exit_code=0)
     yield tool("speech", "completed", result_count=len(lines))
 
-    screen = pick_screentext(job, selected)
+    screen = pick_screentext(job, selected, summary=summary)
     if job.screentext is not None and (screen[0] or job.screentext.status not in ("unavailable", "empty")):
         steps += 1
         yield tool("screen", "started", tool_name="screentext.read")
@@ -559,6 +571,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     audience = tools.audience()
     messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
                               images=images, located=located)
+    if summary:
+        chapters = response_plan.chapter_context(job)
+        if chapters:
+            messages[1]["content"].append({"type": "text", "text": chapters})
 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.
@@ -595,9 +611,9 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
         viewers = AUDIENCE_GUIDE if any(d["function"]["name"] in AUDIENCE_TOOLS for d in allowed) else ""
         lessons = ""
-        if experience.kinds() and not experience.selective():
+        if not summary and experience.kinds() and not experience.selective():
             lessons = experience.guide()
-        elif experience.kinds():
+        elif not summary and experience.kinds():
             steps += 1
             yield tool("lessons", "started", tool_name="experience.recall")
             picked = await experience.classify(client, question)
@@ -608,6 +624,9 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             yield tool("lessons", "completed", result_count=lessons.count("\n- "))
         messages[0] = {"role": "system", "content": SYSTEM_PROMPT + TOOL_GUIDE.format(rounds=rounds, web=viewers + (WEB_GUIDE if lookup else ""))
                        + lessons}
+    if summary:
+        messages[0]["content"] += "\n\n" + response_plan.SUMMARY_GUIDE
+    output_limit = min(max_output(), response_plan.SUMMARY_OUTPUT_TOKENS) if summary else max_output()
     prompt_tokens = completion_tokens = cached_tokens = 0
     usage_complete = {"prompt": True, "completion": True}
 
@@ -640,7 +659,8 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     steps += 1
     yield tool("route", "started", tool_name="decision.intent")
     yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
-    route = await intent.classify(question, decider)
+    route = (intent.Intent("content", None, {}, "规则：内容概览") if summary
+             else await intent.classify(question, decider))
     route_usage = getattr(route, "usage", None)
     if route_usage is not None:
         # Once per route attempt, regardless of whether it classified or fell back to keywords.
@@ -675,7 +695,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         messages.append(assistant_message("", [call]))
         messages.append(tool_message(call, result.text))
         researched = True  # the skill looked it up; don't make the model search again
-    if rounds and not skill and any(d["function"]["name"] in WEB_TOOLS for d in allowed_tools(job, web, papers, audience)):
+    if rounds and not skill and not summary and any(d["function"]["name"] in WEB_TOOLS for d in allowed_tools(job, web, papers, audience)):
         steps += 1
         yield tool("intent", "started", tool_name="decision.research_intent")
         yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})
@@ -703,26 +723,38 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         held = ""  # opening words of a round that may still turn out to be narration before tool calls
         streaming = False  # the final round's opening words are held too, in case they are tool markup
         leaked = False
+        text_guard = response_plan.SummaryText() if summary else None
         holding_all = must_research and not researched and not last  # an answer now would be unresearched
         try:
-            async for delta in client.stream(messages, usage, max_tokens=max_output(),
+            async for delta in client.stream(messages, usage, max_tokens=output_limit,
                                              tools=None if last else allowed_tools(job, web, papers, audience)):
                 text.append(delta)
                 if not streaming:
                     held += delta
-                    if holding_all or leaked or len(held) < NARRATION_CHARS:
+                    if holding_all or leaked or len(held) < (1 if summary else NARRATION_CHARS):
                         continue
-                    if last and TOOL_MARKUP.search(held):
+                    if (last or summary) and TOOL_MARKUP.search(held):
                         leaked = True
                         continue
                     streaming, delta = True, held
+                if text_guard is not None:
+                    delta = text_guard.feed(delta)
+                    leaked = text_guard.blocked
+                    if not delta:
+                        continue
                 if not answered:
                     answered = True
                     yield {"type": "progress.update", "step": "生成回答", "percent": 70}
                 yield {"type": "assistant.message.delta", "delta": delta}
+            if text_guard is not None and streaming:
+                tail = text_guard.finish()
+                leaked = text_guard.blocked
+                if tail:
+                    answered = True
+                    yield {"type": "assistant.message.delta", "delta": tail}
             if holding_all and not usage.tool_calls:
                 pass  # handled below: the unresearched answer is dropped and the model is asked again
-            elif not streaming and held and not usage.tool_calls and last and (leaked or TOOL_MARKUP.search(held)):
+            elif not streaming and held and not usage.tool_calls and (last or summary) and (leaked or TOOL_MARKUP.search(held)):
                 leaked = True  # handled below: asked again for a plain answer
             elif not streaming and held and not usage.tool_calls:
                 # A short final answer that never reached the threshold.
@@ -747,9 +779,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
             + (f"请求工具：{'、'.join(c.name for c in asked)}" if asked else f"finish_reason={usage.finish_reason}")),
             exit_code=2 if usage.finish_reason == "length" else 0)
         yield tool(call_id, "completed", result_count=len(chosen) + len(zoomed))  # images it looked at
-        if last and leaked:
+        if (last or summary) and leaked:
             if not retried_final:
                 retried_final = True
+                round_no = rounds  # a clean text-only retry, including the lightweight path
                 messages.append({"role": "user", "content": FINAL_NUDGE})
                 yield {"type": "progress.update", "step": "模型想继续调用工具，要求直接回答", "percent": 90}
                 continue
@@ -799,7 +832,7 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield {"type": "progress.update", "step": "回答较长，继续写", "percent": 90}
         usage, text = Usage(), []
         try:
-            async for delta in client.stream(messages, usage, max_tokens=max_output()):
+            async for delta in client.stream(messages, usage, max_tokens=output_limit):
                 text.append(delta)
                 yield {"type": "assistant.message.delta", "delta": delta}
         except LLMError:

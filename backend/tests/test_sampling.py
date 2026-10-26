@@ -11,8 +11,8 @@ from modules.video_source import ResolvedVideo, Stream
 
 
 def test_presets():
-    assert sampling.plan(None, 300).as_dict() == {"preset": "standard", "frames": 64, "shots": True, "cap": 128, "ocr_fps": 1}
-    assert sampling.plan(None, 600).ocr_fps == 0.5  # past LONG_VIDEO: every 2 s
+    assert sampling.plan({"preset": "standard"}, 300).as_dict() == {"preset": "standard", "frames": 64, "shots": True, "cap": 128, "ocr_fps": 1}
+    assert sampling.plan({"preset": "standard"}, 600).ocr_fps == 0.5  # past LONG_VIDEO: every 2 s
     assert sampling.plan({"preset": "quick"}, 600).as_dict() == {"preset": "quick", "frames": 32, "shots": False, "cap": 32, "ocr_fps": 0.5}
     assert sampling.plan({"preset": "fine"}, 2523).as_dict() == {"preset": "fine", "frames": 128, "shots": True, "cap": 256, "ocr_fps": 2}
     assert sampling.plan({"preset": "fine"}, 90).frames == 90  # about one a second
