@@ -173,3 +173,26 @@ def test_missing_model_configuration_does_not_request_automatic_retry(tmp_path):
     assert result["needs_retry"] is False
     assert result["incomplete_chapters"] == [0]
     assert result["generated_chapters"] == []
+
+
+@pytest.mark.parametrize("text_source", ["speech", "screen"])
+def test_substantial_text_uses_one_picture_but_sparse_and_visual_only_chapters_use_two(tmp_path, text_source):
+    frame = picture(tmp_path)
+    seen = []
+    text = [(0, 30, '这一节有足够的文字说明可支持章节总结。' * 8), (30, 60, '标题')]
+
+    async def complete(messages):
+        seen.append(messages)
+        return '一章|摘要\n二章|摘要\n三章|摘要'
+
+    result = asyncio.run(run_chapters(tmp_path, text if text_source == 'speech' else [],
+                                     text if text_source == 'screen' else [], None, 90,
+                                     pictures=[(time, frame) for time in (10, 20, 40, 50, 70, 80)], complete=complete))
+    content = seen[0][1]['content']
+    counts = {1: 0, 2: 0, 3: 0}
+    for index, part in enumerate(content):
+        if part['type'] == 'image_url':
+            chapter = int(re.search(r'第 (\d+) 章', content[index - 1]['text'])[1])
+            counts[chapter] += 1
+    assert counts == {1: 1, 2: 2, 3: 2}
+    assert result['chosen_images'] == 5

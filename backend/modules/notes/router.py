@@ -28,7 +28,7 @@ from .task import BOARD, FILE, build_note, clock, load, write
 
 MAX_BOARD_BYTES = 2_000_000
 PICTURES = 3  # sampled frames per section shown to the model
-CHAPTER_WAIT = 180.0  # seconds to wait for chapters still being built before using even stretches
+FIRST_MATERIAL_WAIT = 8.0  # wait only for the first usable evidence, never all OCR/chapters
 
 
 FIGURE_WIDTH = 1600  # px a note's figure is read at (the stream's own width when smaller)
@@ -48,13 +48,21 @@ class NotesService:
         self.router.add_api_route("/api/link-jobs/{job_id}/notes/export", self.export, methods=["GET"])
 
     # ---- generation ---------------------------------------------------------------------------
+    def _has_material(self, job) -> bool:
+        return (any(state and any(seg.text.strip() for seg in state.segments)
+                    for state in (job.transcript, job.screentext)) or
+                any(slot.status == "ok" and job.frame_path(slot.index).is_file() for slot in job.slots))
+
     async def _inputs_ready(self, job) -> dict | None:
-        """Wait for speech and on-screen text; then the chapters if they are on their way."""
-        while any(x is not None and x.status in {"pending", "running"} for x in (job.transcript, job.screentext)):
+        """Use ready evidence and any cached chapters; only an empty import waits briefly."""
+        waited = 0.0
+        while not self._has_material(job) and waited < FIRST_MATERIAL_WAIT:
+            pending = any(x is not None and x.status in {"pending", "running"}
+                          for x in (job.transcript, job.screentext)) or job.coverage()["pending"]
+            if not pending:
+                break
             await asyncio.sleep(2)
-        deadline = time.monotonic() + CHAPTER_WAIT
-        while self.chapters_busy(job.id) and time.monotonic() < deadline:
-            await asyncio.sleep(2)
+            waited += 2
         record = load_chapters(job.root)
         return record if record is not None and record.get("status") == "done" else None
 
@@ -86,7 +94,7 @@ class NotesService:
 
     async def build(self, job) -> None:
         timer = log.Timer()
-        state = {"status": "running", "message": "等待语音转写和画面文字…", "progress": {"done": 0, "total": 0}, "note": None}
+        state = {"status": "running", "message": "正在整理已有画面和文字…", "progress": {"done": 0, "total": 0}, "note": None}
         previous = load(job.root)
         if previous and previous.get("note"):
             state["previous"] = True
@@ -101,6 +109,12 @@ class NotesService:
                 return "".join(parts)
 
             chapters = await self._inputs_ready(job)
+            if not self._has_material(job):
+                raise ValueError("尚未取得可用画面或文字，请稍后再生成笔记")
+            pending = [name for name, state in (("语音", job.transcript), ("画面文字", job.screentext))
+                       if state is not None and state.status in {"pending", "running"}]
+            if job.coverage()["pending"]:
+                pending.append("画面")
             chapter_list = (chapters or {}).get("chapters") or None
 
             def progress(done, total, message):
@@ -112,7 +126,10 @@ class NotesService:
                                     chapters=chapter_list, complete=complete,
                                     grab=lambda t: self._frame(job, t), progress=progress,
                                     pictures=lambda a, b: self._pictures(job, a, b))
-            write(job.root, {"status": "done", "message": f"已整理 {len(note['sections'])} 节", "progress": {}, "note": note,
+            if pending:
+                note["coverage_note"] = "本次按已有内容整理；" + "、".join(pending) + "尚未完成，可在完成后重新生成补充。"
+                note["summary"] = note["coverage_note"] + ("\n\n" + note["summary"] if note.get("summary") else "")
+            write(job.root, {"status": "done", "message": f"已整理 {len(note['sections'])} 节" + ("（部分内容仍在处理）" if pending else ""), "progress": {}, "note": note,
                              "made": time.time()})
             (job.root / BOARD).unlink(missing_ok=True)  # a new note starts from its own layout
             log.event("notes", job_id=job.id, sections=len(note["sections"]),

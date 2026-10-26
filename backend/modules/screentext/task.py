@@ -191,12 +191,17 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
                 out.append(found)
             return out
 
+        # Publish useful OCR before the whole video finishes. Doubling the threshold bounds
+        # repeated merging to less than twice the final input size, rather than O(n²) batches.
+        publish_at = BATCH
         for i in range(0, len(files), BATCH):
             batch = files[i:i + BATCH]
             lines = await asyncio.to_thread(read_batch, batch)
             frames += [((int(f.stem) - 1) / fps, found) for f, found in zip(batch, lines)]
+            if len(frames) >= publish_at or i + BATCH >= len(files):
+                state.segments = await asyncio.to_thread(build, frames, 1 / fps)
+                publish_at = max(publish_at * 2, len(frames) + BATCH)
             job.emit({"type": "screentext", **state.summary(), "message": f"正在识别文字 {min(i + BATCH, len(files))}/{len(files)}"})
-        state.segments = build(frames, 1 / fps)
         partial = {"partial": f"；{result.detail}，后面没能读取", "gaps": f"；{result.detail}"}.get(result.kind, "")
         if state.segments:
             finish("done", f"识别到 {len(state.segments)} 段画面文字{partial}")

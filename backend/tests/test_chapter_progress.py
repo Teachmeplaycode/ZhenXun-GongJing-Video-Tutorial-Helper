@@ -173,3 +173,90 @@ def test_model_failure_does_not_erase_previous_chapters_or_retry_forever(scenari
                 assert final['chapters'][i] == chapter
 
     asyncio.run(run())
+
+
+def test_unselected_new_frame_does_not_resend_the_same_model_input(scenario, monkeypatch):
+    job, service, pending, calls = scenario
+    events = []
+    monkeypatch.setattr('modules.chapters.router.log.event', lambda name, **fields: events.append((name, fields)))
+    job.video.duration = 30
+    job.transcript.status = job.screentext.status = 'done'
+    job.slots[0].time, job.slots[1].time = 10, 20
+
+    async def run():
+        await service.build(job)
+        original = load(job.root)
+        assert original['chosen_images'] == 2
+        assert events[-1][0] == 'chapters'
+        assert events[-1][1]['chosen_images'] == 2
+        assert events[-1][1]['input_version'] == original['input_version']
+        job.add_slots([1])  # farther from both representative moments than the existing frames
+        job.slots[-1].status = 'ok'
+        job.frame_path(2).write_bytes(job.frame_path(0).read_bytes())
+        response = await service.get(job.id)
+        assert not response['updating'] and not response['provisional']
+        assert response['chapters'] == original['chapters']
+        assert len(calls) == 1 and pending == []
+
+    asyncio.run(run())
+
+
+def test_text_outside_the_model_budget_does_not_refresh_but_used_text_does(scenario):
+    job, service, pending, calls = scenario
+    job.video.duration = 30
+    job.transcript.status = job.screentext.status = 'done'
+    job.slots[0].time, job.slots[1].time = 10, 20
+    job.transcript.segments = [Segment(0, 30, '原有内容' * 60)]
+
+    async def run():
+        await service.build(job)
+        job.transcript.segments[0].text += '末尾新增内容'
+        assert not (await service.get(job.id))['updating']
+        assert len(calls) == 1 and pending == []
+        job.transcript.segments[0].text = '开头已修改' + job.transcript.segments[0].text
+        assert (await service.get(job.id))['updating']
+        await pending.pop()
+        assert len(calls) == 2 and '开头已修改' in str(calls[-1])
+
+    asyncio.run(run())
+
+
+def test_unused_cut_changes_do_not_resend_unchanged_chapter_boundaries(scenario):
+    job, service, pending, calls = scenario
+    job.video.duration = 30
+    job.transcript.status = job.screentext.status = 'done'
+    job.slots[0].time, job.slots[1].time = 10, 20
+
+    async def run():
+        await service.build(job)
+        cuts.save(job.root, 'done', [12])  # a 30-second video still has one chapter
+        assert not (await service.get(job.id))['updating']
+        assert len(calls) == 1 and pending == []
+
+    asyncio.run(run())
+
+
+def test_better_selected_frame_and_changed_selected_file_refresh_the_model(scenario):
+    job, service, pending, calls = scenario
+    job.video.duration = 30
+    job.transcript.status = job.screentext.status = 'done'
+    job.slots[0].time, job.slots[1].time = 10, 20
+    job.transcript.segments = [Segment(0, 30, '足够的章节文字' * 20)]
+
+    async def run():
+        await service.build(job)
+        assert load(job.root)['chosen_images'] == 1
+        job.add_slots([15])  # now exactly at the representative midpoint
+        job.slots[-1].status = 'ok'
+        job.frame_path(2).write_bytes(job.frame_path(0).read_bytes())
+        assert (await service.get(job.id))['updating']
+        await pending.pop()
+        assert len(calls) == 2 and '15.00 秒' in str(calls[-1])
+        # Replacing pixels at the same timestamp must invalidate the encoded-image cache too.
+        cv2.imwrite(str(job.frame_path(2)), np.ones((180, 320, 3), dtype=np.uint8) * 200)
+        assert (await service.get(job.id))['updating']
+        await pending.pop()
+        assert len(calls) == 3 and calls[-1] != calls[-2]
+        assert not (await service.get(job.id))['updating']
+
+    asyncio.run(run())
