@@ -3,8 +3,10 @@ import {AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, useCurrentFrame
 import {cameraAt, frameTransform, Key, Track} from '../camera';
 import {follow, markAt} from '../films/follow';
 import {CONSOLE, CREAM, DISPLAY, hash, INK, INK2, LIME, NIGHT, PAPER, PIXEL, SC, Sfx} from '../pv/kit';
-import {CutText, Halftone, KRAFT, Paper, Photo, Pin, RED, SHADOW, Stamp, Tape, Thread, useStep} from './paper';
+import {CutText, Halftone, KRAFT, Paper, Photo, Pin, RED, Stamp, Tape, Thread, useStep} from './paper';
 import {PAPER_EDGE} from './SnakeSheet';
+import {ThreeCanvas} from '@remotion/three';
+import {Pose, Snake, useFreeContext} from './Snake3D';
 import {BLENDER, LINK, ROWS, STEPS, STUCK, TUTORIALS} from './data';
 import stepsRec from '../../public/rec/steps.json';
 import evidenceRec from '../../public/rec/evidence.json';
@@ -90,6 +92,26 @@ const Puppet: React.FC<{poses: [number, string][]; x: number; y: number; h: numb
     );
   };
 
+/** The mascot snake, cel-shaded (三渲二, Snake3D) in its own w×h canvas, cut out like the puppets: it rises
+ *  into place on the stop-motion grid; `pose(t)` (seconds since arrival) makes it act. */
+const SnakeActor: React.FC<{x: number; y: number; w: number; h: number; at?: number; scale?: number; pose?: (t: number) => Pose; z?: number}> =
+  ({x, y, w, h, at = 0, scale = 1, pose = () => ({}), z = 46}) => {
+    const t = useStep(at);
+    const onCreated = useFreeContext();
+    if (t < 0) return null;
+    const k = clamp(t / (4 / 12));
+    return (
+      <div style={{position: 'absolute', left: x, top: y, width: w, height: h, zIndex: z, filter: PAPER_EDGE, transform: `translateY(${(1 - k) * h * 0.6}px)`, opacity: k > 0 ? 1 : 0}}>
+        <ThreeCanvas width={w} height={h} camera={{fov: 22, position: [0, 0, 64], near: 1, far: 400}}
+          gl={{alpha: true, antialias: true, preserveDrawingBuffer: true}} onCreated={onCreated}>
+          <Snake t={t} pose={{rise: 0.4 + 0.6 * k, ...pose(t)}} position={[0, -1.2, 0]} scale={scale} />
+        </ThreeCanvas>
+      </div>
+    );
+  };
+
+const beat = (t: number, a: number, b: number) => clamp((t - a) / 0.35) * clamp((b - t) / 0.35);
+
 /** A section head: an index number on lime and the line cut out in letters. */
 const Head: React.FC<{n: string; text: string; at?: number; size?: number}> = ({n, text, at = 0, size = 92}) => (
   <>
@@ -149,17 +171,13 @@ const Stuck: React.FC = () => (
     <Stamp x={150} y={700} text="？" rot={-10} at={146} size={60} />
     <Puppet poses={[[0, 'G1'], [118, 'G2']]} x={1230} y={150} h={880} at={12} z={35} />
     <Sfx name="pop" at={6} volume={0.35} />
-    <Sfx name="soft" at={12} volume={0.4} />
-    <Sfx name="click" at={34} volume={0.4} />
     <Sfx name="pop" at={116} volume={0.3} />
     <Sfx name="pop" at={124} volume={0.3} rate={1.1} />
     <Sfx name="pop" at={132} volume={0.3} rate={1.2} />
-    <Sfx name="hit" at={130} volume={0.22} />
     {/* the helper pops up from the bottom and points at the screen */}
     <Puppet poses={[[0, 'B2'], [70, 'B3']]} x={1500} y={600} h={460} at={196} from={[0, 520]} flip z={38} />
     <Sfx name="swish" at={196} volume={0.3} />
     <Stamp x={1330} y={1000} text="交给帧寻" rot={-8} at={276} size={52} color="#3A6B2A" seed={9} />
-    <Sfx name="impact" at={276} volume={0.35} />
   </>
 );
 
@@ -179,12 +197,11 @@ const Name: React.FC = () => (
       <Written text="看教程卡住了？" at={110} cps={12} style={{}} />
     </div>
     <Puppet poses={[[0, 'B1']]} x={1500} y={560} h={400} at={60} from={[0, 400]} z={45} />
-    <Img src={staticFile('snake-mark.svg')} style={{position: 'absolute', left: 1700, top: 160, width: 120, zIndex: 50, filter: SHADOW, opacity: useStep(96) >= 0 ? 1 : 0}} />
-    <Sfx name="impact" at={14} volume={0.45} />
+    <SnakeActor x={1110} y={600} w={340} h={440} at={96} scale={1.4}
+      pose={(t) => ({happy: beat(t, 0.4, 1.8), blink: Math.max(0, 1 - Math.abs(t - 2.4) * 8), tilt: beat(t, 2.6, 4) * 0.7, turn: -0.3})} />
     <Sfx name="pop" at={20} volume={0.3} />
     <Sfx name="pop" at={26} volume={0.3} rate={1.15} />
     <Sfx name="pop" at={80} volume={0.3} />
-    <Sfx name="sparkle" at={96} volume={0.25} />
   </>
 );
 
@@ -239,7 +256,6 @@ const Steps: React.FC = () => {
         </React.Fragment>
       ))}
       <Stamp x={1180} y={140} text="Blender 也一样" rot={-6} at={620} size={44} seed={17} />
-      <Sfx name="impact" at={620} volume={0.3} />
     </>
   );
 };
@@ -261,9 +277,7 @@ const Screenshot: React.FC = () => {
       </Photo>
       <Pin x={750} y={262} at={92} />
       <Sfx name="whoosh" at={80} volume={0.35} />
-      <Sfx name="soft" at={92} volume={0.4} />
       <Puppet poses={[[0, 'B4']]} x={760} y={430} h={300} at={140} from={[0, 300]} z={46} />
-      <Sfx name="sparkle" at={150} volume={0.25} />
       <Paper x={460} y={640} w={640} h={330} rot={1.5} torn={false} color="#FFFFFF" seed={72} at={210} z={32}>
         <div style={{position: 'absolute', left: 36, top: 26, fontFamily: CONSOLE, fontSize: 30, color: INK2}}>帧寻</div>
         <div style={{position: 'absolute', left: 36, top: 70, fontFamily: SC, fontWeight: 900, fontSize: 76, color: INK}}>你在第 {STUCK.step} 步</div>
@@ -272,7 +286,6 @@ const Screenshot: React.FC = () => {
       <Tape x={780} y={646} w={170} rot={-3} at={216} />
       <Sfx name="pop" at={210} volume={0.35} />
       <Stamp x={930} y={930} text={`回到原片 ${STUCK.time}`} rot={-5} at={270} size={46} seed={11} />
-      <Sfx name="impact" at={270} volume={0.35} />
       <Photo x={1130} y={240} w={720} h={430} rot={2} at={300} seed={73} z={28}>
         <Sequence from={300} layout="none"><ShotIn name="evidence" rec={EVID_REC} from={from} rate={0.78} keys={keys} w={692} h={402} /></Sequence>
       </Photo>
@@ -280,7 +293,9 @@ const Screenshot: React.FC = () => {
       <Thread a={[930, 930]} b={[1490, 252]} at={318} dur={0.7} />
       <Sfx name="swish" at={318} volume={0.2} />
       <TimeTag x={1160} y={690} text={`原片 · ${STUCK.time}`} at={330} bg={LIME} color={INK} />
-      <CutText x={1160} y={800} text="点一下回到那一秒" size={60} at={470} gap={3} seed={77} />
+      <SnakeActor x={1650} y={640} w={280} h={420} at={340} scale={1.4}
+        pose={(t) => ({lift: beat(t, 0.5, 6), look: -0.5 * beat(t, 0.5, 6), tilt: 0.2, turn: -0.35, blink: Math.max(0, 1 - Math.abs(t - 3) * 8)})} />
+      <CutText x={1130} y={810} text="点一下回到那一秒" size={54} at={470} gap={3} seed={77} />
     </>
   );
 };
@@ -327,7 +342,6 @@ const Compare: React.FC = () => {
       ))}
       <Puppet poses={[[0, 'B7']]} x={1240} y={640} h={420} at={300} from={[0, 400]} z={46} />
       <Stamp x={790} y={856} text="跳过了" rot={-9} at={352} size={46} color={RED} seed={13} />
-      <Sfx name="impact" at={352} volume={0.4} />
       <Puppet poses={[[0, 'G1'], [120, 'G4']]} x={1600} y={620} h={440} at={330} from={[0, 400]} z={45} />
     </>
   );
@@ -346,8 +360,6 @@ const Slogan: React.FC = () => (
       <Written text="步骤卡片 · 截图定位 · 多教程对照 · 每句都能回到原片" at={192} cps={20} style={{}} />
     </div>
     <Puppet poses={[[0, 'G6']]} x={1420} y={420} h={600} at={172} from={[0, 400]} z={45} />
-    <Sfx name="riser" at={22} volume={0.18} />
-    <Sfx name="impact" at={92} volume={0.45} />
     <Sfx name="pop" at={172} volume={0.3} />
   </>
 );
@@ -364,9 +376,8 @@ const Lockup: React.FC = () => (
     </Paper>
     <Puppet poses={[[0, 'B8']]} x={1360} y={520} h={420} at={40} from={[0, 400]} z={45} />
     <Puppet poses={[[0, 'G7']]} x={1160} y={560} h={420} at={64} from={[0, 400]} z={44} />
-    <Sfx name="impact" at={10} volume={0.4} />
+    <SnakeActor x={110} y={620} w={300} h={420} at={84} scale={1.4} pose={(t) => ({happy: beat(t, 0.6, 2.4), turn: 0.35, blink: Math.max(0, 1 - Math.abs(t - 3.4) * 8)})} />
     <Sfx name="pop" at={50} volume={0.3} />
-    <Sfx name="sparkle" at={70} volume={0.25} />
   </>
 );
 
