@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
+import MathText, { MathFormula } from '../components/MathText'
 import { apiUrl } from '../api/client'
 import { layoutMindmap, outlineToTree, treeToOutline } from './layout'
 
@@ -15,8 +14,7 @@ const lines = (text) => (text || '').split('\n').map((l) => l.trim()).filter(Boo
 const BRANCH = ['var(--mark-replay)', 'var(--mark-view)', 'var(--mark-cite)', 'var(--mark-chapter)', 'var(--accent-success)', 'var(--accent-processing)']
 
 function Formula({ tex }) {
-  const html = useMemo(() => katex.renderToString(tex, { throwOnError: false, displayMode: true, output: 'html' }), [tex])
-  return <div className="nb-formula" dangerouslySetInnerHTML={{ __html: html }} />
+  return <div className="nb-formula"><MathFormula text={tex} display /></div>
 }
 
 export function MindMap({ tree }) {
@@ -48,8 +46,8 @@ export function BlockView({ block: b }) {
   if (b.type === 'title') {
     return (
       <div className="nb-title">
-        <h1>{b.text || '笔记'}</h1>
-        {b.summary ? <p>{b.summary}</p> : null}
+        <h1><MathText text={b.text || '笔记'} /></h1>
+        {b.summary ? <p><MathText text={b.summary} /></p> : null}
       </div>
     )
   }
@@ -57,15 +55,15 @@ export function BlockView({ block: b }) {
     return (
       <div className="nb-section">
         <header>
-          <h2>{b.title}</h2>
+          <h2><MathText text={b.title} /></h2>
           {b.start != null ? <span className="mono-sm">{clock(b.start)}–{clock(b.end)}</span> : null}
         </header>
-        {b.points?.length ? <ul>{b.points.map((p, i) => <li key={i}>{p}</li>)}</ul> : null}
+        {b.points?.length ? <ul>{b.points.map((p, i) => <li key={i}><MathText text={p} /></li>)}</ul> : null}
         {b.formulas?.length ? <div className="nb-formulas">{b.formulas.map((f, i) => <Formula key={i} tex={f} />)}</div> : null}
         {b.examples?.length ? (
           <div className="nb-examples">
             <span className="eyebrow">例题</span>
-            <ol>{b.examples.map((e, i) => <li key={i}>{e}</li>)}</ol>
+            <ol>{b.examples.map((e, i) => <li key={i}><MathText text={e} /></li>)}</ol>
           </div>
         ) : null}
         {b.keywords?.length ? <div className="nb-keywords">{b.keywords.map((k) => <span key={k}>{k}</span>)}</div> : null}
@@ -76,12 +74,12 @@ export function BlockView({ block: b }) {
     return (
       <figure className="nb-figure">
         <img src={apiUrl(b.src)} alt={b.caption || '画面'} draggable="false" />
-        <figcaption>{b.caption}{b.time != null ? <span className="mono-sm"> · {clock(b.time)}</span> : null}</figcaption>
+        <figcaption><MathText text={b.caption} />{b.time != null ? <span className="mono-sm"> · {clock(b.time)}</span> : null}</figcaption>
       </figure>
     )
   }
   if (b.type === 'mindmap') return <MindMap tree={b.tree} />
-  return <div className="nb-text">{(b.text || '').split('\n').map((l, i) => <p key={i}>{l || ' '}</p>)}</div>
+  return <div className="nb-text"><MathText text={b.text || ' '} /></div>
 }
 
 // Edit form of a block: fields as text, one item per line. onDone(patch) commits, onCancel drops.

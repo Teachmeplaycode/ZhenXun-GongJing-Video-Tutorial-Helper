@@ -1,0 +1,1 @@
+KaTeX 0.16.22, MIT license. Copied from the project’s pinned npm katex dependency. Only WOFF2 fonts are included. Used for self-contained previews and offline print/long-image exports; no CDN or network font requests.

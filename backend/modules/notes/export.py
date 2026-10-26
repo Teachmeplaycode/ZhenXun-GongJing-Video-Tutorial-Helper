@@ -12,6 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .task import clock
+from modules.math_render import finish_page, formula_source, render_markdown
 
 # Picture addresses the note uses → (folder under the job, file name)
 SRC_RE = re.compile(r"/api/link-jobs/[\w-]+/(extra/\d{8}(?:-hd)?\.jpg|frames/\d+\.jpg|replay/[\d-]+/\d{2}\.jpg)$")
@@ -24,7 +25,7 @@ def _section_md(b: dict) -> list[str]:
     out = [head, ""]
     out += [f"- {p}" for p in b.get("points") or []]
     if b.get("formulas"):
-        out += ["", "**公式**", ""] + [f"$$\n{f}\n$$" for f in b["formulas"]]
+        out += ["", "**公式**", ""] + [f"$$\n{formula_source(f)}\n$$" for f in b["formulas"]]
     if b.get("examples"):
         out += ["", "**例题**", ""] + [f"{i + 1}. {e}" for i, e in enumerate(b["examples"])]
     return out + [""]
@@ -128,14 +129,12 @@ def to_preview_html(note: dict, board: dict | None, picture: Callable[[str], Pat
     import base64
     import html as html_lib
 
-    from markdown_it import MarkdownIt
-
     markdown, files, title = to_markdown(note, board, picture)
     for name, path in files.items():
         data = base64.b64encode(path.read_bytes()).decode()
         markdown = markdown.replace(f"(images/{name})", f"(data:image/jpeg;base64,{data})")
-    body = MarkdownIt("commonmark", {"html": False}).enable("table").render(markdown)
-    return (f"<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+    body = render_markdown(markdown)
+    return finish_page(f"<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             f"<title>{html_lib.escape(title)}</title><style>{PREVIEW_STYLE}</style></head><body><main>{body}</main></body></html>")
 
 
@@ -162,6 +161,7 @@ async def to_long_image(page: str) -> bytes:
     try:
         tab = await context.new_page()
         await tab.set_content(page, wait_until="load")
+        await tab.evaluate("async () => { await document.fonts.ready }")
         height = await tab.evaluate("document.documentElement.scrollHeight")
         if height * IMAGE_SCALE > MAX_IMAGE_PX:
             await context.close()
@@ -169,6 +169,7 @@ async def to_long_image(page: str) -> bytes:
                                                  device_scale_factor=max(0.5, MAX_IMAGE_PX / height))
             tab = await context.new_page()
             await tab.set_content(page, wait_until="load")
+            await tab.evaluate("async () => { await document.fonts.ready }")
         return await tab.screenshot(full_page=True, type="png")
     finally:
         await context.close()

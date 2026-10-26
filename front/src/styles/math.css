@@ -1,0 +1,7 @@
+.math-tex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; }
+.math-tex .katex { font-size: 1.08em; line-height: 1.4; }
+.math-tex--display { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 4px 0; margin: 8px 0; -webkit-overflow-scrolling: touch; }
+.math-tex--display .katex-display { margin: 4px 0; text-align: left; }
+.math-tex--display .katex-display > .katex { text-align: left; }
+.math-tex .katex-error { font: 0.95em var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.md-li > span:last-child, .md-table td, .md-table th { min-width: 0; }

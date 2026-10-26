@@ -77,7 +77,7 @@
 .nb-mm-text--d0 { fill: var(--bg-surface); font-weight: 600; font-size: 14px; }
 .nb-mm-text--d1 { font-weight: 600; }
 
-.nb-text { padding: 12px 14px; font-size: 15px; line-height: 1.65; }
+.nb-text { padding: 12px 14px; font-size: 15px; line-height: 1.65; white-space: pre-wrap; }
 .nb-conflict { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 12px 20px; border-bottom: var(--border-hairline); background: var(--bg-surface); font-size: 13px; }
 .nb-conflict .btn { min-height: 44px; }
 .nb-text p { margin: 0; }

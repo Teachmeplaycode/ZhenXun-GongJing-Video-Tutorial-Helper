@@ -3,6 +3,7 @@ import { applyNoteRevision, discardNoteDraft, generateNotes, getNotes, notesExpo
 import PreviewDialog from '../PreviewDialog'
 import ExportDialog from '../ExportDialog'
 import { IconBook } from '../Icons'
+import MathText from '../MathText'
 import '../../styles/conversation-notes.css'
 
 const POLL = 2000
@@ -104,7 +105,7 @@ export default function NotesTab({ video, messages = [], conversation }) {
     {note ? <div className="notes-tab__done">
       <span className="notes-tab__label">当前笔记</span>
       <h3 className="notes-tab__title">{note.title}</h3>
-      {note.summary ? <p className="body-sm notes-tab__summary">{note.summary}</p> : null}
+      {note.summary ? <p className="body-sm notes-tab__summary"><MathText text={note.summary} /></p> : null}
       <p className="caption muted">{note.sections.length} 节 · {note.sections.reduce((n, s) => n + (s.figures?.length || 0), 0)} 张配图 · 思维导图 {note.mindmap?.children?.length || 0} 个分支</p>
       <ol className="notes-tab__sections">{note.sections.slice(0, 8).map((s) => <li key={s.id}>{s.title}</li>)}{note.sections.length > 8 ? <li className="muted">…还有 {note.sections.length - 8} 节</li> : null}</ol>
       <div className="notes-tab__actions">

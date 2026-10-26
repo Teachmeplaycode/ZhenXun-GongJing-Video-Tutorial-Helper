@@ -136,6 +136,8 @@ def linkify_stamps(text: str, canonical_url: str, platform: str) -> str:
         return markdown_link(f"[{m.group(1)}]", url)
 
     protected = [(m.start(), m.end()) for m in MARKDOWN_PROTECTED.finditer(text)] + _block_code_ranges(text)
+    from modules.math_render import math_spans
+    protected += [(start, end) for start, end, _, _ in math_spans(text)]
     reference_labels = set(re.findall(r"^ {0,3}\[([^]\n]+)\]:", text, re.MULTILINE))
 
     def unprotected(match):

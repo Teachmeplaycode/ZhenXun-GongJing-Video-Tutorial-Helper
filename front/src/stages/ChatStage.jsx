@@ -284,6 +284,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     <div className="chat-shell" data-bench={bench.open || undefined}>
     <div ref={chatRef} className="chat" data-turn-rail={!compactDirectory && conversation.turns.length > 0 || undefined}>
       <TurnNavigation conversation={conversation} activeKey={activeTurnKey} compact={compactDirectory} onJump={jumpToTurn} />
+      <div className="chat__reading">
       <div ref={scrollRef} className="chat__scroll" onScroll={onScroll}
         onWheel={() => { navigationLockRef.current = false }} onTouchStart={() => { navigationLockRef.current = false }}
         onKeyDown={(e) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) navigationLockRef.current = false }}>
@@ -323,6 +324,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
           <IconArrowDown size={14} /> {running ? '回到最新' : '回到底部'}
         </button>
       ) : null}
+      </div>
       <Composer
         draft={draft}
         setDraft={setDraft}
