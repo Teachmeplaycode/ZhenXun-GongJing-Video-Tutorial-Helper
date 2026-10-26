@@ -221,3 +221,24 @@ def test_tool_markup_written_out_in_the_final_round_is_not_shown_and_asked_again
     answer = "".join(e["delta"] for e in events if e["type"] == "assistant.message.delta")
     assert "DSML" not in answer and answer == "视频在 01:24 点了「报表布局」。"
     assert len(requests) == 2 and requests[1]["messages"][-1]["content"].startswith("工具调用次数已经用完")
+
+
+def test_sharp_reads_at_once_share_one_refresh(tmp_path, monkeypatch):
+    # Step pictures are read four at a time; on a restored session every address has expired. Before, the
+    # first read refreshed and the other three gave up (live: 1 of 42 pictures).
+    class Slow(Resolver):
+        async def refresh(self, v):
+            await asyncio.sleep(0.02)
+            return await super().refresh(v)
+
+    job = make_job(tmp_path, resolver=Slow())
+    grab = grabber({"https://fresh"})
+
+    async def grab_frame(stream, t, out, width=640):
+        return await grab(stream, t, out)
+    monkeypatch.setattr("modules.agent.tools.grab_frame", grab_frame)
+    tools = AgentTools(job)
+
+    async def go():
+        return await asyncio.gather(*(tools.sharp(t, tmp_path / f"{t}.jpg", 1600) for t in (5, 9, 13, 17)))
+    assert asyncio.run(go()) == [True] * 4 and job.resolver.calls == 1
