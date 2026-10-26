@@ -32,3 +32,11 @@ export const IconArrowDown = (p) => <Icon {...p}><path d="M8 3v10M4 9l4 4 4-4" /
 export const IconSlash = (p) => <Icon {...p}><path d="M10.5 2.5l-5 11" /></Icon>
 export const IconTheme = (p) => <Icon {...p}><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor" /></Icon>
 export const IconUser = (p) => <Icon {...p}><circle cx="8" cy="5.5" r="2.5" /><path d="M3 13.5a5 5 0 0110 0" /></Icon>
+export const IconEye = (p) => <Icon {...p}><path d="M1.8 8S4 3.8 8 3.8 14.2 8 14.2 8 12 12.2 8 12.2 1.8 8 1.8 8z" /><circle cx="8" cy="8" r="2" /></Icon>
+export const IconWave = (p) => <Icon {...p}><path d="M2.5 8h1M5 5.5v5M7.5 3.5v9M10 6v4M12.5 7.2v1.6" /></Icon>
+export const IconText = (p) => <Icon {...p}><path d="M3 4h10M8 4v9M5.5 13h5" /></Icon>
+export const IconSearch = (p) => <Icon {...p}><circle cx="7" cy="7" r="4" /><path d="M10 10l3.5 3.5" /></Icon>
+export const IconSparkle = (p) => <Icon {...p}><path d="M8 2.5l1.4 3.8 3.8 1.4-3.8 1.4L8 12.9l-1.4-3.8-3.8-1.4 3.8-1.4z" /><path d="M12.8 2.6v2M11.8 3.6h2" /></Icon>
+export const IconChat = (p) => <Icon {...p}><path d="M3 3.5h10a.8.8 0 01.8.8v6a.8.8 0 01-.8.8H7l-3 2.4v-2.4H3a.8.8 0 01-.8-.8v-6a.8.8 0 01.8-.8z" /></Icon>
+export const IconCompass = (p) => <Icon {...p}><circle cx="8" cy="8" r="5.5" /><path d="M10.2 5.8L9 9 5.8 10.2 7 7z" /></Icon>
+export const IconClock = (p) => <Icon {...p}><circle cx="8" cy="8" r="5.5" /><path d="M8 5v3l2 1.5" /></Icon>

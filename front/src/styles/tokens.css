@@ -87,7 +87,7 @@
   --page-max-width: 1440px;
   --page-padding: 24px;
   --content-max-width: 960px;
-  --chat-max-width: 1120px; /* the chat is wider than other content: answers carry steps, lists and sources */
+  --chat-max-width: 880px; /* a reading column, as in Claude / Codex: long lines tire the eye */
 
   /* §12 motion */
   --dur-micro: 0.2s;
