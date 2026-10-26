@@ -8,6 +8,7 @@ import {PRODUCT_FRAMES, ProductFilm} from './films/ProductFilm';
 import {REEL_FRAMES, Reel} from './films/Reel';
 import {SnakeLoop, SnakeSheet} from './ad/SnakeSheet';
 import {StyleFrame} from './ad/StyleFrame';
+import {Ad, AD_FPS, AD_FRAMES, AD_OPENING} from './ad/Ad';
 
 export const Root: React.FC = () => (
   <>
@@ -25,6 +26,9 @@ export const Root: React.FC = () => (
     {/* The ad's lead, the mascot snake as anime (三渲二): a character sheet and a short loop. */}
     <Composition id="SnakeSheet" component={SnakeSheet} durationInFrames={240} fps={FPS} width={1920} height={1080} />
     <Composition id="SnakeLoop" component={SnakeLoop} durationInFrames={480} fps={FPS} width={1920} height={1080} />
+    {/* The 60-second ad (paper collage, one take), and its first ten seconds ending on the name. */}
+    <Composition id="Ad" component={Ad} durationInFrames={AD_FRAMES} fps={AD_FPS} width={1920} height={1080} />
+    <Composition id="AdOpening" component={Ad} durationInFrames={AD_OPENING} fps={AD_FPS} width={1920} height={1080} />
     <Composition id="StyleFrame" component={StyleFrame} durationInFrames={300} fps={FPS} width={1920} height={1080} />
   </>
 );
