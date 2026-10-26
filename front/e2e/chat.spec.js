@@ -477,6 +477,9 @@ test('frame a stretch on the timeline: replay it now, or ask about it', async ({
   const card = page.locator('.msg--manual')
   await expect(card.locator('.manual-replay__tag')).toHaveText('手动慢放')
   await expect(card.locator('.viz-replay__strip button')).toHaveCount(4)
+  // framed by hand to be played: it plays at once (the button offers 暂停), frame after frame
+  await expect(card.locator('.viz-replay__controls .btn--ghost')).toHaveText('暂停')
+  await expect(card.locator('.viz-replay__stamp')).not.toContainText(' 1/4', { timeout: 5000 })
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(4)
   expect(mock.requests.filter((r) => r.path.endsWith('/replay')).map((r) => r.body)).toEqual([{ start: a, end: b }])
   expect(mock.runsSent()).toEqual([]) // no model involved
