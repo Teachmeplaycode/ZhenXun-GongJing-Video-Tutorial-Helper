@@ -91,11 +91,13 @@ export function restoreMessages(saved, frames) {
     if (m.role === 'user') {
       const attachments = (m.frames || []).map((i) => frames.find((f) => f.index === i)).filter(Boolean)
       const images = (m.images || []).map((image) => ({ ...image, url: apiUrl(image.url) }))
-      out.push({ id: nextId(), role: 'user', text: m.content, attachments, images, savedId: m.id })
+      const command = m.command || null
+      const options = { web: m.web ?? true, papers: m.papers ?? true, images, ...(command ? { command } : {}) }
+      out.push({ id: nextId(), role: 'user', text: m.content, command, attachments, images, options, savedId: m.id })
       continue
     }
     if (m.manual === 'clip') { // a clip studio card: the request, then the card
-      out.push({ id: nextId(), role: 'user', text: m.request || '', attachments: [], images: [] })
+      out.push({ id: nextId(), role: 'user', text: m.request || '', command: m.command || null, attachments: [], images: [] })
       out.push({ ...emptyAnswer(), status: 'done', manual: 'clip', range: m.range, format: m.format, savedId: m.id })
       continue
     }
@@ -118,10 +120,10 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
   useEffect(() => () => controllerRef.current?.abort(), [])
   const running = messages.some((m) => m.role === 'assistant' && m.status === 'running')
 
-  // options: { web, papers } — the composer's switches for this question.
+  // options: { web, papers, command, images } — selected task remains separate from user-written text.
   const send = useCallback(async (question, selected, options = {}) => {
     const scope = selected.length ? { type: 'frames', frames: selected.map((f) => f.index) } : { type: 'all' }
-    const userMsg = { id: nextId(), role: 'user', text: question, attachments: selected, images: options.images || [], options }
+    const userMsg = { id: nextId(), role: 'user', text: question, command: options.command || null, attachments: selected, images: options.images || [], options }
     const aiId = nextId()
     const aiMsg = { ...emptyAnswer(), id: aiId }
     setMessages((list) => [...list, userMsg, aiMsg])
@@ -134,6 +136,7 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
           video_id: videoId,
           link: Boolean(video?.jobId),
           question,
+          ...(options.command ? { command: options.command } : {}),
           scope,
           web: options.web ?? true,
           papers: options.papers ?? true,
@@ -156,7 +159,7 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
   const regenerate = useCallback((answerId) => {
     const i = messages.findIndex((m) => m.id === answerId)
     const question = messages.slice(0, i).reverse().find((m) => m.role === 'user')
-    if (question) send(question.text, question.attachments || [], question.options || {})
+    if (question) send(question.text, question.attachments || [], { ...question.options, ...(question.command ? { command: question.command } : {}) })
   }, [messages, send])
 
   const replayRef = useRef(null) // the manual replay in progress, if any: cancelled by its own button or by stop
@@ -186,11 +189,11 @@ export function useAgentChat({ videoId, frames, coverage = null, video = null, i
   }, [video])
 
   // "我要这段的 GIF": the clip studio card, no model; the person's words stay above it.
-  const studio = useCallback((text, range, format) => {
-    const user = { id: nextId(), role: 'user', text, attachments: [], images: [] }
+  const studio = useCallback((text, range, format, options = {}) => {
+    const user = { id: nextId(), role: 'user', text, command: options.command || null, attachments: [], images: [] }
     const card = { ...emptyAnswer(), status: 'done', manual: 'clip', range, format }
     setMessages((list) => [...list, user, card])
-    if (video?.jobId) saveStudio(video.jobId, text, range, format).catch(() => {}) // kept with the session; the card works either way
+    if (video?.jobId) saveStudio(video.jobId, text, range, format, options.command).catch(() => {}) // kept with the session; the card works either way
   }, [video])
 
   return { messages, send, regenerate, stop, running, replay, cancelReplay, studio }

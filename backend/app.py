@@ -25,6 +25,7 @@ from modules.suggest import SuggestService
 from modules.complete import CompleteService
 from modules.notes.router import NotesService
 from modules.agent import browser, locate, run_agent
+from modules.agent.commands import CommandKey, compose_question
 from modules.agent.evidence import with_evidence
 from modules.agent.tools import AgentTools, TRACE_NAMES
 from modules.export.api import create_router as create_export_router
@@ -135,7 +136,8 @@ class LinkRequest(BaseModel):
 
 class AgentRequest(BaseModel):
     video_id: str  # a link job id
-    question: str
+    question: str  # only words the person entered; the selected task is separate
+    command: CommandKey | None = None
     scope: dict = {"type": "all"}  # {"type": "all"} or {"type": "frames", "frames": [index, ...]}
     web: bool = True     # composer switch: may the model search the web for this question
     papers: bool = True  # composer switch: may it search papers
@@ -1287,6 +1289,7 @@ class ReplayRequest(BaseModel):
 
 class StudioRequest(BaseModel):
     text: str
+    command: CommandKey | None = None
     start: float
     end: float
     format: str = "gif"
@@ -1302,7 +1305,8 @@ async def save_studio(job_id: str, body: StudioRequest):
     if not mine(job.id):
         return {"ok": True, "saved": False}  # a sample: the card works, but stays out of it
     store.add_message(job.id, "assistant", "", data={"manual": "clip", "request": body.text[:500],
-                                                    "range": [round(body.start, 2), round(body.end, 2)], "format": body.format})
+                                                    "range": [round(body.start, 2), round(body.end, 2)], "format": body.format,
+                                                    **({"command": body.command} if body.command else {})})
     return {"ok": True}
 
 
@@ -1364,6 +1368,7 @@ app.include_router(antifraud_router(lambda job_id: get_job(job_id), lambda: get_
 async def agent_run(body: AgentRequest):
     """SSE stream of one answer: progress / tool_call.* / assistant.message.delta / run.completed | run.error."""
     run_id = uuid.uuid4().hex[:12]
+    question = compose_question(body.command, body.question)
 
     async def stream():
         job = find_job(body.video_id)
@@ -1387,7 +1392,8 @@ async def agent_run(body: AgentRequest):
         attached = [i for i in body.images[:ATTACH_MAX] if ATTACH_ID.fullmatch(i) and (DATA_DIR / job.id / "attachments" / f"{i}.jpg").is_file()]
         if keep:
             store.add_message(job.id, "user", body.question, data={"frames": frames or [], "images": [
-                {"id": i, "url": f"/api/link-jobs/{job.id}/attachments/{i}.jpg"} for i in attached]})
+                {"id": i, "url": f"/api/link-jobs/{job.id}/attachments/{i}.jpg"} for i in attached],
+                "web": body.web, "papers": body.papers, **({"command": body.command} if body.command else {})})
         # The answer is saved as its text plus its events in order, consecutive text deltas merged,
         # so the UI can replay where text fell between tool calls. `t` is seconds since the question.
         # A disconnect (the user pressed stop) saves what arrived so far.
@@ -1396,9 +1402,10 @@ async def agent_run(body: AgentRequest):
         calls: dict[str, dict] = {}  # call_id → {name, start, ok, count, ms}
         final: dict = {}
         try:
-            async for event in with_evidence(run_agent(job, client, body.question, frames=frames, history=history, decider=get_decider(),
+            async for event in with_evidence(run_agent(job, client, question, frames=frames, history=history, decider=get_decider(),
                                          web=body.web, papers=body.papers, framed=framed,
-                                         images=[DATA_DIR / job.id / "attachments" / f"{i}.jpg" for i in attached]), job, body.question):
+                                         images=[DATA_DIR / job.id / "attachments" / f"{i}.jpg" for i in attached],
+                                         **({"command": body.command} if body.command else {})), job, question):
                 event = {**event, "t": round(time.perf_counter() - started, 2)}
                 if event["type"] == "assistant.message.delta":
                     text.append(event["delta"])
@@ -1428,7 +1435,7 @@ async def agent_run(body: AgentRequest):
             if keep:
                 store.add_message(job.id, "assistant", "".join(text), status=status, data={"events": events})
             usage = final.get("usage") or {}
-            log.event("answer", run_id=run_id, job_id=job.id, platform=job.video.platform, question=body.question[:200],
+            log.event("answer", run_id=run_id, job_id=job.id, platform=job.video.platform, question=body.question[:200], command=body.command,
                       status=status, code=final.get("code"), message=final.get("message") if status == "error" else None,
                       elapsed_ms=round((time.perf_counter() - started) * 1000), model=final.get("model"),
                       prompt_tokens=usage.get("prompt"), completion_tokens=usage.get("completion"),

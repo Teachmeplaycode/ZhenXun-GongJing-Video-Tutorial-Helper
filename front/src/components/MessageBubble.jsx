@@ -8,6 +8,7 @@ import { fmtElapsed, fmtTime, frameNo } from '../lib/format'
 import { host, isVisibleStep, stepKind } from '../lib/steps'
 import EvidenceSummary, { useCiteChips } from './EvidenceSummary'
 import SkillReports, { skillReports } from './SkillReports'
+import { commandFor } from '../lib/commands'
 
 const MAX_THUMBS = 5
 const URL_RE = /https?:\/\/[^\s<>()（）[\]，。；、"'“”]+/g
@@ -142,9 +143,13 @@ function ManualReplay({ message, onTime, onStop }) {
 // onRegenerate: ask the same question again (null while another answer is running).
 export default function MessageBubble({ message, onStop, onTime = null, duration = null, onRegenerate = null, pictures = false, renderStudio = null }) {
   if (message.role === 'user') {
+    const command = commandFor(message.command || message.options?.command)
     return (
       <div className="msg msg--user">
         <div className="bubble bubble--user">
+          {command ? <div className="message-command" data-command={command.key}>
+            <span>{command.kind === 'skill' ? '技能' : '任务'}</span><strong>/{command.key}</strong>
+          </div> : null}
           <Attachments frames={message.attachments} />
           {message.images?.length ? (
             <div className="attach-row">
@@ -156,7 +161,10 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
               ))}
             </div>
           ) : null}
-          <div className="bubble__text">{message.text}</div>
+          {message.text ? <div className={command ? 'message-command__input' : undefined}>
+            {command ? <span className="message-command__input-label">补充问题</span> : null}
+            <div className="bubble__text">{message.text}</div>
+          </div> : null}
           {message.options && (message.options.web === false || message.options.papers === false) ? (
             <div className="bubble__options mono-sm">
               {[message.options.web === false && '不联网', message.options.papers === false && '不查论文'].filter(Boolean).join(' · ')}

@@ -118,7 +118,7 @@ test('the 联网 switch travels with the question', async ({ page }) => {
   expect([second.web, second.papers]).toEqual([false, true])
 })
 
-test('"/" opens the task menu and fills the chosen task', async ({ page }) => {
+test('"/" opens the task menu and selects a task separately from user text', async ({ page }) => {
   await start(page)
   await enterChat(page)
   const input = page.locator('.composer__input')
@@ -126,13 +126,15 @@ test('"/" opens the task menu and fills the chosen task', async ({ page }) => {
   await expect(page.locator('.slash-menu__item')).toHaveCount(10)
   await input.press('ArrowDown')
   await input.press('Enter')
-  await expect(input).toHaveValue('按时间顺序列出视频里的关键事件和画面变化，每条注明时间点。')
+  await expect(input).toHaveValue('')
+  await expect(page.locator('.composer__command')).toHaveAttribute('data-command', '时间线')
   await expect(page.locator('.slash-menu')).toHaveCount(0)
   await input.fill('/核')
   await expect(page.locator('.slash-menu__item')).toHaveText([/科普核查/, /核实/])
   await input.fill('/慢放')
   await input.press('Enter')
-  await expect(input).toHaveValue(/^慢放复看 00:00 到 00:02/)
+  await expect(input).toHaveValue('')
+  await expect(page.locator('.composer__command')).toHaveAttribute('data-command', '慢放')
 })
 
 test('the timeline folds away, remembers it, and opens for 选帧 and for times', async ({ page }) => {

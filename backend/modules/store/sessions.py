@@ -124,12 +124,19 @@ class SessionStore:
             SELECT s.id, s.created, s.updated, s.video, s.slots, json_extract(s.transcript, '$.status') AS transcript,
                    (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id AND m.role = 'user') AS questions,
                    (SELECT content FROM messages m WHERE m.session_id = s.id AND m.role = 'user'
-                     ORDER BY m.id DESC LIMIT 1) AS last_question
+                     ORDER BY m.id DESC LIMIT 1) AS last_question,
+                   (SELECT json_extract(m.data, '$.command') FROM messages m WHERE m.session_id = s.id AND m.role = 'user'
+                     ORDER BY m.id DESC LIMIT 1) AS last_command
             FROM sessions s WHERE ? IS NULL OR s.owner = ? ORDER BY s.updated DESC LIMIT ?""", (owner, owner, limit)).fetchall()
         items = []
         for row in rows:
             video, slots = json.loads(row["video"]), json.loads(row["slots"])
             ok = [s["index"] for s in slots if s["status"] == "ok"]
+            last_question = row["last_question"] or ""
+            if not last_question and row["last_command"]:
+                from modules.agent.commands import command_label
+                command = command_label(row["last_command"])
+                last_question = f"/{command}" if command else ""
             items.append({
                 "id": row["id"], "created": row["created"], "updated": row["updated"],
                 "title": video["title"], "author": video["author"], "platform": video["platform"],
@@ -137,7 +144,7 @@ class SessionStore:
                 "kind": video.get("kind") or "video", "image_count": video.get("image_count") or 0,
                 "frames_ok": len(ok), "frames_total": len(slots),
                 "cover_index": ok[len(ok) // 2] if ok else None, "transcript": row["transcript"],
-                "questions": row["questions"], "last_question": row["last_question"] or "",
+                "questions": row["questions"], "last_question": last_question,
             })
         return items
 
@@ -200,7 +207,11 @@ class SessionStore:
         rows = self.messages(session_id)
         for question, answer in zip(rows, rows[1:]):
             if question["role"] == "user" and answer["role"] == "assistant" and answer["status"] == "done" and answer["content"]:
-                pairs.append([{"role": "user", "content": question["content"]},
+                content = question["content"]
+                if question.get("command"):
+                    from modules.agent.commands import compose_question
+                    content = compose_question(question["command"], content)
+                pairs.append([{"role": "user", "content": content},
                               {"role": "assistant", "content": answer["content"]}])
         return [m for pair in pairs[-turns:] for m in pair]
 
