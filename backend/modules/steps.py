@@ -1,10 +1,11 @@
-"""Step cards for a tutorial: the things the viewer has to do, in order, each at its second of the video.
+"""Step cards for any video, each at its second of the video: for a tutorial the things the viewer has
+to do, in order; for anything else (a talk, a review, a vlog, a film) how its content moves on.
 
 One model call over the timed speech and screen text, asked for one `seconds|action|detail` line per
 step. Times outside the video and lines that don't parse are dropped; each step gets the sampled
 frame closest to its time, and — when a sharper read is possible — its own picture at that second, wider
 than the 640 px keyframes (steps/<n>.jpg), so small print on the card can be read. Built when asked (it
-costs a call, and most videos that aren't tutorials have no steps), cached as steps.json in the job folder.
+costs a call), cached as steps.json in the job folder with its `kind`: "operation" or "content".
 """
 from __future__ import annotations
 
@@ -21,15 +22,22 @@ SHOT_WIDTH = 1600  # a step's own picture
 SHOTS = "steps"  # its folder in the job
 MAX_CHARS = 14000  # of timed text sent; a long tutorial keeps its lines evenly spread
 
-PROMPT = ("你从软件教程里整理「操作步骤卡」：观看者跟着做时必须亲手完成的操作，按视频里的先后顺序。"
-          "每步一行，格式：时间|动作|说明。时间写成 mm:ss，照抄材料里讲到或演示这个操作的那一行的时间，不要写步骤序号。动作不超过 30 字，以动词开头，写清点哪个菜单、按钮，或输入什么"
-          "（例如：点「数据」选项卡里的「数据验证」）；说明不超过 60 字，写这一步要注意的设置或结果，没有就留空。"
-          "只依据给出的语音和画面文字，不要编造视频里没有的操作；闲聊、片头片尾不算步骤。"
-          "只要视频在演示怎么操作软件、设备或做出某个东西，就算教程，边讲边做的操作都要列出来。"
-          "{span}如果这不是教程、没有可以照着做的操作，只输出：无")
+PROMPT = ("你把视频整理成「步骤卡」，按视频里的先后顺序。第一行先写类型：类型|操作 或 类型|内容。"
+          "只要视频在演示怎么操作软件、设备或做出某个东西，就是「操作」：列出观看者跟着做时必须亲手完成的操作，边讲边做的操作都要列出来，"
+          "动作以动词开头，写清点哪个菜单、按钮，或输入什么（例如：点「数据」选项卡里的「数据验证」）。"
+          "其他视频（讲解、评测、访谈、vlog、影视等）是「内容」：按内容推进列出每个环节，动作写这一段讲了什么、发生了什么"
+          "（例如：对比两款耳机的降噪效果）。"
+          "之后每步一行，格式：时间|动作|说明。时间写成 mm:ss，照抄材料里讲到或演示这一步的那一行的时间，不要写步骤序号。动作不超过 30 字；"
+          "说明不超过 60 字，写这一步要注意的设置、结论或结果，没有就留空。"
+          "只依据给出的语音和画面文字，不要编造视频里没有的内容；闲聊、片头片尾不算步骤。"
+          "{span}只有材料里读不出任何内容时，才只输出：无")
+KIND = re.compile(r"^\s*\**\s*类型\s*[|｜:：]\s*(操作|内容)")
+KINDS = {"操作": "operation", "内容": "content"}
 
 SPAN = "视频全长 {end}，步骤不限数量，要从开头一直整理到结尾，不要中途停下。"
 TAIL = "前面已整理到 {start}，这里只给 {start} 之后的材料，接着往下整理到结尾，只列 {start} 之后的步骤。"
+# Continuations keep the kind the first reply chose.
+TAIL_KIND = "这个视频的类型已定为「{kind}」。"
 # A reply whose last step falls this far short of the end is followed on from that step.
 SHORT_OF_END = 0.15
 
@@ -69,8 +77,9 @@ def timed_lines(transcript, screen, after: float = -1) -> list[str]:
     return lines
 
 
-def messages(title: str, lines: list[str], duration: float = 0, after: float = 0) -> list[dict]:
-    span = (TAIL.format(start=_clock(after)) if after else "") + (SPAN.format(end=_clock(duration)) if duration else "")
+def messages(title: str, lines: list[str], duration: float = 0, after: float = 0, kind: str = "") -> list[dict]:
+    span = ((TAIL.format(start=_clock(after)) if after else "") + (SPAN.format(end=_clock(duration)) if duration else "")
+            + (TAIL_KIND.format(kind=next((k for k, v in KINDS.items() if v == kind), kind)) if kind else ""))
     return [{"role": "system", "content": PROMPT.format(span=span)},
             {"role": "user", "content": f"视频标题：{title}\n语音（说）和画面文字（屏），按时间：\n" + "\n".join(lines)}]
 
@@ -103,6 +112,14 @@ def tidy(line: str) -> str:
     return line
 
 
+def kind_of(output: str) -> str:
+    """The kind the reply's first lines name; a reply without one is read as a tutorial's."""
+    for line in (output or "").splitlines()[:3]:
+        if m := KIND.match(line.replace("**", "")):
+            return KINDS[m.group(1)]
+    return "operation"
+
+
 def parse(output: str, duration: float) -> list[dict]:
     matches = [m for m in map(LINE.match, map(tidy, (output or "").splitlines())) if m]
     # "18:00" or "21:21" for the 18th / 21st second (the lines show both "[00:21 · 21s]"): read as minutes
@@ -126,14 +143,14 @@ def parse(output: str, duration: float) -> list[dict]:
     return steps
 
 
-async def _rest(job, complete: Completer, after: float, duration: float) -> list[dict]:
+async def _rest(job, complete: Completer, after: float, duration: float, kind: str) -> list[dict]:
     """The steps past `after`, asked for on their own. A failed call keeps what the earlier ones found."""
     lines = timed_lines(job.transcript.segments if job.transcript else [],
                         job.screentext.segments if job.screentext else [], after)
     if not lines:
         return []
     try:
-        output = await complete(messages(job.video.title, lines, duration, after))
+        output = await complete(messages(job.video.title, lines, duration, after, kind))
     except Exception:  # noqa: BLE001
         return []
     return [s for s in parse(output, duration) if s["time"] > after]
@@ -177,7 +194,7 @@ async def build(job, complete: Completer, sharp: Sharp | None = None) -> dict:
         return save(job.root, {"status": "empty", "steps": [], "message": "这个视频没有语音和画面文字，整理不出步骤"})
     duration = job.video.duration or 0
     output = await complete(messages(job.video.title, lines, duration))
-    steps = parse(output, duration)
+    steps, kind = parse(output, duration), kind_of(output)
     if not steps and output.strip() not in ("无", ""):
         from modules import log  # a reply in a shape parse doesn't know: keep its start to see why
         log.event("steps.unparsed", job_id=job.id, head=output.strip()[:300])
@@ -185,14 +202,14 @@ async def build(job, complete: Completer, sharp: Sharp | None = None) -> dict:
         reached = max((s["time"] for s in steps), default=0)
         if not steps or not duration or reached >= duration * (1 - SHORT_OF_END):
             break
-        if not (more := await _rest(job, complete, reached, duration)):
+        if not (more := await _rest(job, complete, reached, duration, kind)):
             break
         steps += more
     for n, step in enumerate(steps, 1):
         step["n"] = n
         step["frame"] = nearest_frame(job.slots, step["time"])
     if not steps:
-        return save(job.root, {"status": "empty", "steps": [], "message": "没有找到可以照着做的操作步骤，这可能不是教程"})
+        return save(job.root, {"status": "empty", "steps": [], "message": "这段视频里读不出可以列成步骤的内容"})
     if sharp is not None:
         await take_shots(job.root, steps, sharp)
-    return save(job.root, {"status": "done", "steps": steps, "message": f"{len(steps)} 步"})
+    return save(job.root, {"status": "done", "kind": kind, "steps": steps, "message": f"{len(steps)} 步"})
