@@ -29,13 +29,13 @@ const MOVE = 40; // frames the camera takes from one board to the next
 const LEAD = 26; // a board starts landing this many frames before the camera arrives
 
 // Boards: where they lie on the desk and when the camera reaches them.
-const BOARDS = [
+const BOARDS: {at: number; x: number; y: number; rot: number; lead?: number}[] = [
   {at: 0, x: 0, y: 0, rot: 0},
   {at: 330, x: GAP, y: -180, rot: -1.2},
   {at: 600, x: GAP * 2, y: 40, rot: 0.8},
   {at: 1320, x: GAP * 3, y: -120, rot: -0.6},
   {at: 2160, x: GAP * 4, y: 60, rot: 0.9},
-  {at: 2880, x: GAP * 5, y: -160, rot: -0.8},
+  {at: 2880, x: GAP * 5, y: -160, rot: -0.8, lead: MOVE + 8}, // the dark sheet is down before the camera turns to it: it darkens with the move, not in a step
   {at: 3240, x: GAP * 6, y: 0, rot: 0},
 ];
 
@@ -274,7 +274,7 @@ const Screenshot: React.FC = () => {
       <Stamp x={930} y={930} text={`回到原片 ${STUCK.time}`} rot={-5} at={270} size={46} seed={11} />
       <Sfx name="impact" at={270} volume={0.35} />
       <Photo x={1130} y={240} w={720} h={430} rot={2} at={300} seed={73} z={28}>
-        <Sequence from={300} layout="none"><ShotIn name="evidence" rec={EVID_REC} from={from} rate={1} keys={keys} w={692} h={402} /></Sequence>
+        <Sequence from={300} layout="none"><ShotIn name="evidence" rec={EVID_REC} from={from} rate={0.78} keys={keys} w={692} h={402} /></Sequence>
       </Photo>
       <Pin x={1490} y={252} color="#FFFFFF" at={308} />
       <Thread a={[930, 930]} b={[1490, 252]} at={318} dur={0.7} />
@@ -336,19 +336,19 @@ const Compare: React.FC = () => {
 /** 48–54 s: the line, on dark paper. */
 const Slogan: React.FC = () => (
   <>
-    <Paper x={40} y={60} w={1840} h={960} rot={-1} color={NIGHT} seed={101} at={0} from={[0, -30]} grain={0.14} />
-    <Paper x={140} y={620} w={1500} h={34} rot={-2} color={LIME} seed={102} at={60} torn={false} z={39} />
+    <Paper x={40} y={60} w={1840} h={960} rot={-1} color={NIGHT} seed={101} at={0} from={[0, 0]} grain={0.14} />
+    <Paper x={140} y={620} w={1500} h={34} rot={-2} color={LIME} seed={102} at={82} torn={false} z={39} />
     <div style={{position: 'absolute', left: 170, top: 210, zIndex: 50}}>
-      <Written text="平台的总结，帮你看完。" at={10} cps={14} style={{fontFamily: SC, fontWeight: 900, fontSize: 92, color: CREAM}} />
+      <Written text="平台的总结，帮你看完。" at={32} cps={14} style={{fontFamily: SC, fontWeight: 900, fontSize: 92, color: CREAM}} />
     </div>
-    <CutText x={170} y={400} text="帧寻帮你照着做完" size={120} at={70} gap={4} colors={[[LIME, INK], [CREAM, INK], [INK, LIME]]} seed={103} />
+    <CutText x={170} y={400} text="帧寻帮你照着做完" size={120} at={92} gap={4} colors={[[LIME, INK], [CREAM, INK], [INK, LIME]]} seed={103} />
     <div style={{position: 'absolute', left: 176, top: 730, zIndex: 50, fontFamily: PIXEL, fontSize: 44, color: CREAM, opacity: 0.86}}>
-      <Written text="步骤卡片 · 截图定位 · 多教程对照 · 每句都能回到原片" at={170} cps={20} style={{}} />
+      <Written text="步骤卡片 · 截图定位 · 多教程对照 · 每句都能回到原片" at={192} cps={20} style={{}} />
     </div>
-    <Puppet poses={[[0, 'G6']]} x={1420} y={420} h={600} at={150} from={[0, 400]} z={45} />
-    <Sfx name="riser" at={0} volume={0.18} />
-    <Sfx name="impact" at={70} volume={0.45} />
-    <Sfx name="pop" at={150} volume={0.3} />
+    <Puppet poses={[[0, 'G6']]} x={1420} y={420} h={600} at={172} from={[0, 400]} z={45} />
+    <Sfx name="riser" at={22} volume={0.18} />
+    <Sfx name="impact" at={92} volume={0.45} />
+    <Sfx name="pop" at={172} volume={0.3} />
   </>
 );
 
@@ -384,7 +384,7 @@ export const Ad: React.FC = () => {
         transform: `scale(${cam.zoom}) rotate(${-cam.rot}deg) translate(${-cam.x}px, ${-cam.y}px)`}}>
         {BOARDS.map((b, i) => {
           const View = VIEWS[i];
-          const start = Math.max(0, b.at - LEAD);
+          const start = Math.max(0, b.at - (b.lead ?? LEAD));
           const end = BOARDS[i + 1] ? BOARDS[i + 1].at + 10 : AD_FRAMES;
           return (
             <div key={i} style={{position: 'absolute', left: b.x, top: b.y, width: W, height: H, transform: `rotate(${b.rot}deg)`}}>
