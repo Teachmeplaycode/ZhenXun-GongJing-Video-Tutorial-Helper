@@ -19,7 +19,7 @@ from pathlib import Path
 
 import httpx
 
-from .frames import FrameJob
+from .frames import FrameJob, sampling
 from .video_source.base import ResolveError, Stream
 
 LOCAL = "local"
@@ -82,7 +82,7 @@ async def find(job: FrameJob, fresh: bool = False) -> Playable | None:
         stream = None if fresh else _combined(job)
         if stream is None:
             try:
-                job.video = await resolver.refresh(job.video)
+                job.video = sampling.preserve(job.video, await resolver.refresh(job.video))
             except (ResolveError, NotImplementedError):
                 return None
             stream = _combined(job)

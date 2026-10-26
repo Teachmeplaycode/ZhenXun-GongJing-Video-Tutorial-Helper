@@ -33,6 +33,7 @@ import { EvidenceContext } from './lib/evidence'
 import { mockUpload } from './api/mock'
 import { restoreMessages } from './api/useAgentChat'
 import { pickFrameCount, syntheticFrames } from './lib/video'
+import { startClientOcr } from './lib/clientOcr'
 import { token } from './lib/tokens'
 import { DUR, EASE, prefersReducedMotion } from './lib/motion'
 import { fmtTime, makeRunId } from './lib/format'
@@ -138,6 +139,12 @@ export default function App() {
   }, [])
   const sourceJob = video?.jobId
   const analysisDone = analysis.index
+  const ocrMode = video?.ocrMode || 'server'
+  const ocrActive = ['pending', 'running'].includes(analysis.screentext?.status)
+  useEffect(() => {
+    if (!sourceJob || !ocrActive || !['hybrid', 'local'].includes(ocrMode)) return undefined
+    return startClientOcr(sourceJob, { mode: ocrMode })
+  }, [sourceJob, ocrMode, ocrActive])
   useEffect(() => {
     setPlayer(null)
     if (!sourceJob) return undefined
@@ -371,7 +378,7 @@ export default function App() {
       } else if (ev.type === 'transcript') {
         setAnalysis((a) => ({ ...a, transcript: { status: ev.status, message: ev.message, count: ev.count } }))
       } else if (ev.type === 'screentext') {
-        setAnalysis((a) => ({ ...a, screentext: { status: ev.status, message: ev.message, count: ev.count } }))
+        setAnalysis((a) => ({ ...a, screentext: { ...ev } }))
       } else if (ev.type === 'done') {
         // Frames are finished: chat can start; the stream stays open while speech is still transcribing.
         setCoverage(ev.coverage)
@@ -419,7 +426,7 @@ export default function App() {
       signal.throwIfAborted()
       const v = job.video
       setMeta({ ...baseMeta, name: link || images ? v.title || v.video_id : file.name, duration: v.duration, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video', description: v.description || '', tags: v.tags || [], stats: v.stats || {} })
-      setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description })
+      setVideo({ videoId: job.job_id, jobId: job.job_id, task, title: v.title, description: v.description, ocrMode: sampling?.ocr_fps === 0 ? 'server' : v.ocr_mode || 'server' })
       setFrames(byTime(job.slots.map((slot) => ({ index: slot.index, time: slot.time, src: null, status: 'pending' }))))
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: job.slots.length, transcript: job.transcript, screentext: job.screentext || null })
       if (v.notes?.length) setNotice(v.notes.join('；'))
@@ -668,7 +675,7 @@ export default function App() {
       setRunId(makeRunId())
       setMaskMounted(false)
       setMeta({ name: v.title || v.video_id, size: 0, type: 'link', duration: v.duration, width: 0, height: 0, link: v.platform !== 'local', backend: true, sample: false, platform: v.platform, videoId: v.video_id, author: v.author, part: v.part, partCount: v.parts.length, kind: v.kind || 'video', description: v.description || '', tags: v.tags || [], stats: v.stats || {} })
-      setVideo({ videoId: id, jobId: id, task: saved.task, title: v.title, description: v.description })
+      setVideo({ videoId: id, jobId: id, task: saved.task, title: v.title, description: v.description, ocrMode: v.ocr_mode || 'server' })
       setFrames(nextFrames)
       setCoverage(saved.coverage)
       setAnalysis({ ...EMPTY_ANALYSIS, meta: true, total: saved.slots.length, frames: saved.coverage.ok, missing: saved.coverage.missing, index: true, transcript: saved.transcript, screentext: saved.screentext || null })
@@ -738,8 +745,8 @@ export default function App() {
         : [...list, frame].sort((a, b) => a.index - b.index),
     )
 
-  // Uploads are deleted once processed, so only link jobs can re-sample.
-  const canRetry = Boolean(video?.jobId) && meta?.platform !== 'local'
+  // Kept uploads can retry OCR too; the backend checks that the original source still exists.
+  const canRetry = Boolean(video?.jobId)
   const showSculpture = stage !== 'chat' && stage !== 'pictures'
   const homeScene = stage === 'idle' || stage === 'uploading'
   const sculptureEnabled = !mobile && (!homeScene || !snakeOnly)

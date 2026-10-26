@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from modules.frames import FrameJob
-from modules.frames import instruments
+from modules.frames import instruments, sampling
 from modules.frames import replay as slowmo
 from modules.frames.grabber import grab_frame
 from modules import stuck
@@ -671,7 +671,7 @@ class AgentTools:
 
             async def once() -> bool:
                 try:
-                    self.job.video = await self.job.resolver.refresh(self.job.video)
+                    self.job.video = sampling.preserve(self.job.video, await self.job.resolver.refresh(self.job.video))
                     self.job.restored = False
                     return True
                 except ResolveError:

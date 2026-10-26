@@ -463,6 +463,19 @@
 .sampling__preset strong { font-size: var(--fs-body-sm); font-weight: 500; }
 .sampling__preset small { font-size: 11px; color: var(--text-secondary); }
 .app--idle .sampling__hint { margin: var(--sp-4) 0; }
+/* Processing location stays separate from the video's sampling density. */
+.sampling__processing { display: flex; flex-direction: column; gap: var(--sp-6); padding: var(--sp-12) 0; border-top: var(--border-hairline); border-bottom: var(--border-hairline); }
+.sampling__processing h4 { margin: 0; font-size: var(--fs-body-sm); font-weight: 500; }
+.sampling__modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-6); }
+.sampling__mode { position: relative; display: flex; min-height: 60px; min-width: 0; flex-direction: column; justify-content: center; gap: var(--sp-4); padding: var(--sp-8) var(--sp-12); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; transition: border-color var(--dur-micro), color var(--dur-micro), background-color var(--dur-micro); }
+.sampling__mode input { position: absolute; opacity: 0; pointer-events: none; }
+.sampling__mode strong { font-size: var(--fs-body-sm); font-weight: 500; }
+.sampling__mode small { font-size: var(--fs-caption); line-height: 1.5; }
+.sampling__mode[data-on] { border-color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 5%, var(--bg-surface)); color: var(--text-primary); }
+.sampling__mode:hover { color: var(--text-primary); }
+.sampling__mode:has(input:focus-visible) { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.sampling__scope { margin: 0; font-size: var(--fs-caption); color: var(--text-secondary); line-height: 1.6; }
+
 .app--idle .import-entry__footer { justify-content: center; margin-top: var(--sp-12); }
 .app--idle .import-entry__footer .import-entry__sample { font-weight: 400; color: var(--text-secondary); font-size: var(--fs-caption); }
 
@@ -526,6 +539,10 @@
   .app--idle .sampling__presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app--idle .sampling__preset { padding: var(--sp-8); }
   .sampling__preset small { font-size: 10px; }
+  .sampling__modes { grid-template-columns: 1fr; }
+  .sampling__mode { min-height: 52px; flex-direction: row; justify-content: space-between; align-items: center; gap: var(--sp-8); padding: var(--sp-8) var(--sp-12); }
+  .sampling__mode strong { flex: none; }
+  .sampling__mode small { text-align: right; }
   .app--idle .recent .session-item__row { align-items: flex-start; gap: var(--sp-8); }
 }
 

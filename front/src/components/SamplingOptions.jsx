@@ -1,4 +1,5 @@
 import React from 'react'
+import { OCR_MODES, normalizeOcrMode } from '../lib/ocrMode'
 
 // How densely an import samples the video (backend modules/frames/sampling.py): four presets as one
 // segmented control with the chosen one explained, and, folded away, the numbers behind them. value: { preset, frames, shots, ocr_fps } — empty fields
@@ -13,14 +14,14 @@ const OCR = [
   { value: '', label: '跟随预设' }, { value: '0', label: '不识别' }, { value: '0.5', label: '每 2 秒' },
   { value: '1', label: '每秒' }, { value: '2', label: '每秒 2 次' },
 ]
-export const DEFAULT_SAMPLING = { preset: 'auto', frames: '', shots: null, ocr_fps: '' }
+export const DEFAULT_SAMPLING = { preset: 'auto', frames: '', shots: null, ocr_fps: '', ocr_mode: 'hybrid' }
 
 export const presetLabel = (v) => PRESETS.find((p) => p.key === v.preset)?.label || '自动'
 export const customized = (v) => v.frames !== '' || v.shots !== null || v.ocr_fps !== ''
 
 // What the backend gets: the preset plus only the overrides actually set.
 export function samplingSpec(v) {
-  const spec = { preset: v.preset }
+  const spec = { preset: v.preset, ocr_mode: normalizeOcrMode(v.ocr_mode) }
   if (v.frames !== '' && Number.isFinite(Number(v.frames))) spec.frames = Number(v.frames)
   if (v.shots !== null) spec.shots = v.shots
   if (v.ocr_fps !== '') spec.ocr_fps = Number(v.ocr_fps)
@@ -30,6 +31,7 @@ export function samplingSpec(v) {
 export default function SamplingOptions({ value, onChange, onClose }) {
   const set = (patch) => onChange({ ...value, ...patch })
   const automaticShots = value.preset === 'auto' && value.shots === null
+  const mode = normalizeOcrMode(value.ocr_mode)
   return (
     <div id="import-sampling" className="import-options sampling" data-exit>
       <div className="sampling__head"><div><h3>视频解析设置</h3><p>不确定怎么选？使用自动；已有的预设和自定义选择会保留。</p></div>{onClose ? <button type="button" className="import-settings__done" onClick={onClose}>完成</button> : null}</div>
@@ -42,6 +44,19 @@ export default function SamplingOptions({ value, onChange, onClose }) {
         ))}
       </div>
       <p className="sampling__hint">{PRESETS.find((p) => p.key === value.preset)?.hint}</p>
+      <div className="sampling__processing">
+        <h4>画面文字处理位置</h4>
+        <div className="sampling__modes" role="radiogroup" aria-label="画面文字处理位置" aria-describedby="sampling-mode-hint">
+          {OCR_MODES.map((item) => (
+            <label key={item.key} className="sampling__mode" data-on={mode === item.key || undefined}>
+              <input type="radio" name="ocr-mode" value={item.key} checked={mode === item.key} onChange={() => set({ ocr_mode: item.key })} />
+              <strong>{item.label}</strong><small>{item.use}</small>
+            </label>
+          ))}
+        </div>
+        <p id="sampling-mode-hint" className="sampling__hint">{OCR_MODES.find((item) => item.key === mode)?.hint}</p>
+        <p className="sampling__scope">仅决定画面文字在哪里识别；上传、语音转写和 AI 回答仍使用服务器。</p>
+      </div>
       <details className="sampling__advanced" open={customized(value) || undefined}>
         <summary>自定义参数{customized(value) ? '（已修改）' : ''}</summary>
         <div className="sampling__fields">
@@ -62,7 +77,7 @@ export default function SamplingOptions({ value, onChange, onClose }) {
               onChange={(e) => set({ shots: e.target.checked })} />
             按镜头补帧{automaticShots ? '：跟随时长，长视频关闭' : '：每个镜头至少一张'}
           </label>
-          {customized(value) ? <button type="button" className="link-btn" onClick={() => onChange({ ...DEFAULT_SAMPLING, preset: value.preset })}>恢复预设</button> : null}
+          {customized(value) ? <button type="button" className="link-btn" onClick={() => onChange({ ...DEFAULT_SAMPLING, preset: value.preset, ocr_mode: mode })}>恢复预设</button> : null}
         </div>
         <p className="caption muted">关键帧越多，时间轴越细，导入也会更久。提问时仍可按需查看细节。</p>
       </details>

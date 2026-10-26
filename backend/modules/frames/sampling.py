@@ -38,6 +38,8 @@ class Plan:
     cap: int          # keyframes in all once shots are filled
     ocr_fps: float    # on-screen text rate; 0 = not read
 
+    ocr_mode: str = "server"  # old API clients retain server processing
+
     def as_dict(self) -> dict:
         return asdict(self)
 
@@ -59,6 +61,8 @@ def plan(spec: dict | None, duration: float) -> Plan:
     frames 8–256, shots true/false, ocr_fps one of OCR_RATES. Anything else is ignored."""
     spec = spec or {}
     p = _preset(str(spec.get("preset") or "auto"), duration)
+    if spec.get("ocr_mode") in {"hybrid", "local", "server"}:
+        p.ocr_mode = spec["ocr_mode"]
     try:
         if spec.get("frames") not in (None, ""):
             p.frames = max(8, min(MAX_FRAMES, int(spec["frames"])))
@@ -79,3 +83,11 @@ def plan(spec: dict | None, duration: float) -> Plan:
 def saved(video) -> dict:
     """The plan a session was imported with (empty for sessions from before presets)."""
     return (getattr(video, "extra", None) or {}).get("sampling") or {}
+
+
+def preserve(original, refreshed):
+    """Refreshing signed stream URLs must not replace the import's user-selected plan."""
+    spec = saved(original)
+    if spec:
+        refreshed.extra["sampling"] = dict(spec)
+    return refreshed

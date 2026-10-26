@@ -37,6 +37,7 @@ from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, cr
 from modules.store import SessionStore
 from modules.settings import overlay as settings_overlay, vault as settings_vault
 from modules.screentext import ScreenText, run_screentext
+from modules.screentext.hybrid import ClientOCRService
 from modules.factcheck.api import create_router as create_factcheck_router
 from modules.transcript import Transcript, run_transcript
 from modules.antifraud.router import create_router as antifraud_router
@@ -248,13 +249,13 @@ def announce_queue() -> None:
             job.emit({"type": "screentext", **job.screentext.summary(), "queued": ahead})
 
 
-async def read_screen(job: FrameJob) -> None:
+@asynccontextmanager
+async def ocr_recognition_slot(job: FrameJob):
+    """Only CPU recognition occupies a slot for hybrid/local imports."""
     global ocr_slots
     if ocr_slots is None:
         ocr_slots = asyncio.Semaphore(OCR_SLOTS)
-    timer = log.Timer()
-    busy = ocr_slots.locked()
-    if busy:
+    if ocr_slots.locked() and job.id not in ocr_queue:
         ocr_queue.append(job.id)
         announce_queue()
     try:
@@ -262,18 +263,32 @@ async def read_screen(job: FrameJob) -> None:
             if job.id in ocr_queue:
                 ocr_queue.remove(job.id)
                 announce_queue()
-            await run_screentext(job)
+            yield
+    finally:
+        if job.id in ocr_queue:
+            ocr_queue.remove(job.id)
+            announce_queue()
+
+
+async def read_screen(job: FrameJob) -> None:
+    timer = log.Timer()
+    try:
+        mode = sampling.saved(job.video).get("ocr_mode", "server")
+        if mode in {"hybrid", "local"}:
+            await run_screentext(job, server_gate=lambda: ocr_recognition_slot(job))
+        else:
+            # Legacy imports retain their established queue and retry behavior.
+            async with ocr_recognition_slot(job):
+                await run_screentext(job)
     except Exception as exc:
         log.error("screentext", exc, job_id=job.id)
         raise
     finally:
-        if job.id in ocr_queue:  # cancelled while waiting
-            ocr_queue.remove(job.id)
-            announce_queue()
         store.save_screentext(job)
         t = job.screentext
         log.event("screentext", job_id=job.id, status=t.status, segments=len(t.segments), skipped=t.skipped,
-                  message=(t.message if t.status != "done" else ""), ms=timer.ms)
+                  message=(t.message if t.status != "done" else ""), ms=timer.ms,
+                  processing=t.processing)
 
 
 cutting: set[str] = set()  # job ids whose shot changes are being detected
@@ -288,12 +303,14 @@ async def find_cuts(job: FrameJob) -> None:
     cutting.add(job.id)
 
     async def refresh():
-        job.video = await job.resolver.refresh(job.video)
+        job.video = sampling.preserve(job.video, await job.resolver.refresh(job.video))
         return job.video.streams
 
     try:
         if not job.video.streams and job.video.platform != LOCAL:  # restored after a restart: no addresses yet
-            _, job.video = await registry.resolve(job.video.canonical_url, job.video.part)
+            previous_video = job.video
+            _, refreshed_video = await registry.resolve(job.video.canonical_url, job.video.part)
+            job.video = sampling.preserve(previous_video, refreshed_video)
             job.restored = False
         record = await cuts.run(job.root, job.video.streams, job.video.duration or 0, refresh=refresh)
     except Exception as exc:
@@ -697,12 +714,20 @@ async def retry_missing(job_id: str):
         spawn(again())
         return {"retrying": len(indexes), "transcript": False, "screentext": True, "since": since}
     if job.video.platform == LOCAL:
-        raise HTTPException(409, "本地上传的视频处理完已删除，不能补抓，请重新上传")
+        kept = next((path for path in job.root.glob(f"{SOURCE}.*") if path.is_file()), None)
+        if kept is None:
+            raise HTTPException(409, "本地上传的视频已删除，请重新上传后再试")
+        job.video.streams = [Stream(str(kept), {}, "local-file")]
+        job.video.audio_streams = [Stream(str(kept), {}, "local-file")]
+        job.restored = False
     redo_transcript = job.transcript.status == "failed"
     redo_screen = job.screentext.status == "failed"
     if job.restored and (redo_transcript or redo_screen or any(s.status == "missing" and s.reason != "trial" for s in job.slots)):
         # Rebuilt after a restart without stream addresses: resolve the link again first.
+        saved_sampling = dict(sampling.saved(job.video))
         _, job.video = await registry.resolve(job.video.canonical_url, job.video.part)
+        if saved_sampling:
+            job.video.extra["sampling"] = saved_sampling
         job.restored = False
     since = len(job.events)
     indexes = await job.retry_missing()
@@ -1329,6 +1354,8 @@ async def job_transcript(job_id: str):
     """Transcript status and timed segments."""
     return get_job(job_id).transcript.as_dict()
 
+
+app.include_router(ClientOCRService(lambda job_id: own_job(job_id)).router)
 
 app.include_router(antifraud_router(lambda job_id: get_job(job_id), lambda: get_llm()))
 
