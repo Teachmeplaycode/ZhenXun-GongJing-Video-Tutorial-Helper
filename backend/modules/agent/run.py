@@ -19,7 +19,7 @@ from modules.llm import ChatClient, LLMError, OllamaClient, ToolCall, Usage, ass
 from modules.decide import questions as dq
 from modules import recipe, stuck
 
-from . import experience, intent, locate, response_plan, skills
+from . import commands, experience, intent, locate, response_plan, skills
 
 from ..frames import images as picture_sets
 from .tools import TRACE_NAMES, AgentTools, ToolResult, definitions, fine_clock, parse_time
@@ -498,7 +498,7 @@ async def wait_for_material(job: FrameJob, sleep=None, *, requested=None, images
 async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: str, *,
                     frames: list[int] | None = None, history: list[dict] | None = None, decider=None,
                     web: bool = True, papers: bool = True, framed: list[tuple[float, float]] | None = None,
-                    images: list | None = None) -> AsyncIterator[dict]:
+                    images: list | None = None, command: str | None = None) -> AsyncIterator[dict]:
     """`web` / `papers`: the composer's switches for this question (both still subject to LLM_WEB).
     `framed`: stretches the user replayed by hand on the timeline right before asking (oldest first)."""
     """Yield §9.2 events. Errors end the stream with `run.error` instead of raising."""
@@ -665,8 +665,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     steps += 1
     yield tool("route", "started", tool_name="decision.intent")
     yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
-    route = (intent.Intent("content", None, {}, "规则：内容概览") if summary
-             else await intent.classify(question, decider))
+    selected_kind = commands.FORCED_KINDS.get(command)
+    route = (intent.Intent(selected_kind, None, {}, "已选任务") if selected_kind else
+             intent.Intent("content", None, {}, "规则：内容概览") if summary else
+             await intent.classify(question, decider))
     route_usage = getattr(route, "usage", None)
     if route_usage is not None:
         # Once per route attempt, regardless of whether it classified or fell back to keywords.
@@ -705,8 +707,10 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         steps += 1
         yield tool("intent", "started", tool_name="decision.research_intent")
         yield tool("intent", "input", input={"kind": "params", "params": {"question": question, "asks": dq.RESEARCH}})
-        must_research, p = await research_wanted(question, decider)
-        how = f"决策模型：要查资料的概率 {p:.2f}" if p is not None else "关键词匹配（决策模型不可用）"
+        must_research, p = ((True, None) if command in commands.RESEARCH_COMMANDS
+                            else await research_wanted(question, decider))
+        how = ("已选任务要求检索" if command in commands.RESEARCH_COMMANDS else
+               f"决策模型：要查资料的概率 {p:.2f}" if p is not None else "关键词匹配（决策模型不可用）")
         yield tool("intent", "output", stdout=f"{'需要' if must_research else '不需要'}先查资料再回答\n{how}", exit_code=0,
                    data={"p": p, "needed": must_research})
         yield tool("intent", "completed", result_count=1)

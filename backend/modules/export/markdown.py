@@ -420,7 +420,13 @@ def _answer_block(message: dict, video: dict, index: int, slots: list[dict], dat
     events = message.get("events") or []
     text = message.get("content") or ""
     label = "问" if message.get("role") == "user" else "答"
-    out: list[str] = [f"### {index}. {label}", "", linkify_stamps(text, canonical_url, platform), ""]
+    out: list[str] = [f"### {index}. {label}", ""]
+    if label == "问" and message.get("command"):
+        from modules.agent.commands import command_label
+        command = command_label(message["command"])
+        if command:
+            out.extend([f"**任务：/{command}**", ""])
+    out.extend([linkify_stamps(text, canonical_url, platform), ""])
 
     # Keyframes the user attached to the question are on the user message; the answer follows.
     frames = message.get("frames") or []

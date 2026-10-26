@@ -262,9 +262,9 @@ export function saveBlob(blob, name) {
 }
 
 /** Keep a clip studio card with its session (backend /studio). */
-export async function saveStudio(jobId, text, [start, end], format) {
+export async function saveStudio(jobId, text, [start, end], format, command = null) {
   const res = await fetch(`${LINK_BASE}/api/link-jobs/${jobId}/studio`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, start, end, format }) })
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, start, end, format, ...(command ? { command } : {}) }) })
   if (!res.ok) throw new Error('保存截取卡片失败')
 }
 

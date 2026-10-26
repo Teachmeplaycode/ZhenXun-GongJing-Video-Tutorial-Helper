@@ -108,6 +108,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replayRequest?.key])
   const [draft, setDraft] = useState('')
+  const [command, setCommand] = useState(null)
   const [following, setFollowing] = useState(true)
   const scrollRef = useRef(null)
   const followRef = useRef(true)
@@ -153,28 +154,34 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     .filter((s) => !asked.includes(s.question))
   const hints = [...suggestions.map((s) => s.question), ...asked]
 
-  const ask = (question, switches) => {
-    if ((!question && !clip) || running) return
+  const ask = (question, switches = {}) => {
+    const chosenCommand = switches.command || null
+    if ((!question && !clip && !chosenCommand) || running) return false
     followRef.current = true
     setFollowing(true)
     // "我要这段的 GIF": the clip studio, not the model. Its stretch: the times written, else the
     // stretch framed on the timeline, else around the last time an answer cited, else the start.
-    const wants = !pictures && question ? clipIntent(question) : null
+    const wants = pictures ? null : chosenCommand === 'GIF'
+      ? clipIntent(question) || { format: /mp4|视频|有声|声音/i.test(question) ? 'mp4' : 'gif' }
+      : chosenCommand ? null : question ? clipIntent(question) : null
     if (wants && video?.jobId) {
       const last = cited.length ? cited[cited.length - 1].time : null
       const range = rangeIn(question, duration ?? Infinity) || (clip ? [clip.start, clip.end] : null)
         || (last !== null ? [Math.max(0, last - 1), last + 2] : [0, Math.min(3, duration || 3)])
-      studio(question, range, wants.format)
+      studio(question, range, wants.format, { command: chosenCommand })
       setDraft('')
+      setCommand(null)
       onClearClip?.()
-      return
+      return true
     }
     // A framed stretch: say so in the question, which makes the agent replay it before answering.
     const q = clip ? `慢放 ${fineClock(clip.start)} 到 ${fineClock(clip.end)}：${question || '这段发生了什么？'}` : question
     send(q, selected, switches)
     setDraft('')
+    setCommand(null)
     onClearSelection()
     onClearClip?.()
+    return true
   }
 
   const scopeNote = pictures
@@ -189,7 +196,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
       onSelect={onChapterSelect} onHover={onChapterHover} />,
     steps: <StepsTab video={video} onSeek={onSeek} onBusy={(b) => setBusyTabs((t) => ({ ...t, steps: b }))}
-      onStuck={(s) => setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`)} />,
+      onStuck={(s) => { setCommand('卡点'); setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`) }} />,
     compare: <CompareTab video={video} onSeek={onSeek} onOpenSession={onOpenSession} onBusy={(b) => setBusyTabs((t) => ({ ...t, compare: b }))} />,
     notes: <NotesTab video={video} messages={messages} />,
   }
@@ -234,6 +241,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
       <Composer
         draft={draft}
         setDraft={setDraft}
+        command={command}
+        setCommand={setCommand}
         running={running}
         onSend={ask}
         onStop={stop}

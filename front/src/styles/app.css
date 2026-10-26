@@ -1563,3 +1563,37 @@ span.ev-chip { cursor: help; }
 .md-table th, .md-table td { padding: var(--sp-8) var(--sp-12); text-align: left; vertical-align: top; border-bottom: var(--border-hairline); }
 .md-table th { background: var(--bg-surface-alt); font-weight: 600; white-space: nowrap; }
 .md-table tr:last-child td { border-bottom: 0; }
+
+
+/* Chosen tasks stay separate from a person's own question, before and after sending. */
+.composer__command { border-bottom: var(--border-hairline); padding-bottom: var(--sp-8); animation: composer-command-in 160ms var(--ease-enter); }
+.composer__command-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-8); min-width: 0; }
+.command-chip { display: inline-flex; align-items: center; gap: var(--sp-8); min-width: 0; min-height: 44px; padding-left: var(--sp-10); border: 1px solid color-mix(in srgb, var(--accent-active) 55%, var(--border-default)); border-radius: 8px; background: color-mix(in srgb, var(--accent-active) 12%, var(--bg-surface)); }
+.command-chip__kind { font-size: var(--fs-caption); color: var(--text-secondary); }
+.command-chip strong { font-size: var(--fs-body-sm); font-weight: 600; white-space: nowrap; }
+.command-chip__remove { display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--text-secondary); cursor: pointer; }
+.command-chip__remove:hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent); color: var(--text-primary); }
+.composer__instruction-toggle { min-height: 44px; flex: none; padding: 0 var(--sp-8); border: 0; border-radius: 6px; background: none; color: var(--text-secondary); font-size: var(--fs-caption); cursor: pointer; }
+.composer__instruction-toggle:hover { background: var(--bg-surface-alt); color: var(--text-primary); }
+.composer__instruction { margin-top: var(--sp-8); padding: var(--sp-10) var(--sp-12); border-radius: 6px; background: var(--bg-surface-alt); }
+.composer__instruction > span { font-size: var(--fs-caption); color: var(--text-tertiary); }
+.composer__instruction p { margin: var(--sp-4) 0 0; font-size: var(--fs-body-sm); line-height: 1.6; color: var(--text-secondary); overflow-wrap: anywhere; }
+.command-chip__remove:focus-visible, .composer__instruction-toggle:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.slash-menu { max-height: min(420px, 55vh); overflow-y: auto; overscroll-behavior: contain; }
+.slash-menu__item { min-height: 44px; align-items: center; }
+.message-command { display: inline-flex; align-items: center; align-self: flex-start; gap: var(--sp-8); min-height: 28px; padding: 2px var(--sp-8); border: 1px solid color-mix(in srgb, var(--accent-active) 55%, var(--border-default)); border-radius: 6px; background: color-mix(in srgb, var(--accent-active) 12%, var(--bg-surface)); }
+.message-command > span, .message-command__input-label { font-size: var(--fs-caption); color: var(--text-secondary); }
+.message-command strong { font-size: var(--fs-body-sm); font-weight: 600; }
+.message-command__input { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+@keyframes composer-command-in { from { opacity: 0; transform: translateY(3px); } }
+@media (max-width: 640px) {
+  .composer__command-head { gap: var(--sp-4); }
+  .command-chip { gap: var(--sp-6); padding-left: var(--sp-8); }
+  .composer__instruction-toggle { padding: 0 var(--sp-6); }
+  .slash-menu__item { gap: var(--sp-8); }
+  .slash-menu__hint { line-height: 1.45; }
+}
+@media (prefers-reduced-motion: reduce) { .composer__command { animation: none; } }
+
+.composer__instruction small { display: block; margin-top: var(--sp-6); font-size: var(--fs-caption); color: var(--text-secondary); }
+.composer__bar .chip-btn[aria-controls='composer-task-menu'] { min-width: 44px; min-height: 44px; }

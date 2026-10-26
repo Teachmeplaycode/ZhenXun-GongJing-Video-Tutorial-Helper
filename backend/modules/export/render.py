@@ -91,6 +91,11 @@ def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: 
     out = ['<section class="qa">']
     label = "问" if message.get("role") == "user" else "答"
     out.append(f"<h3>{index}. {label}</h3>")
+    if label == "问" and message.get("command"):
+        from modules.agent.commands import command_label
+        command = command_label(message["command"])
+        if command:
+            out.append(f'<p class="command"><strong>任务：</strong>/{_esc(command)}</p>')
     out.append(f'<div class="answer">{_text_html(text, canonical_url, platform)}</div>')
 
     frames = [i for i in message.get("frames") or []
