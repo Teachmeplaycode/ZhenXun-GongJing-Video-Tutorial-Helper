@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { buildStepComments, buildSteps, getStepComments, getSteps, linkFrameUrl } from '../../api/client'
+import { buildStepComments, buildSteps, getStepComments, getSteps, stepShotUrl } from '../../api/client'
 import { fmtClock } from '../../lib/format'
 import { IconFilm } from '../Icons'
 import Working from '../Working'
@@ -104,7 +104,7 @@ export default function StepsTab({ video, onSeek = null, onStuck = null, onBusy 
             {list.map((s) => (
               <li key={`${s.n}-${s.time}`} className="step-card">
                 <button type="button" className="step-card__shot" onClick={() => onSeek?.(s.time)} aria-label={`回到 ${fmtClock(s.time)}`}>
-                  {s.frame != null ? <img src={linkFrameUrl(jobId, s.frame)} alt="" loading="lazy" /> : <span />}
+                  {s.frame != null || s.shot ? <img src={stepShotUrl(jobId, s)} alt="" loading="lazy" /> : <span />}
                   <span className="step-card__no mono-sm">{String(s.n).padStart(2, '0')}</span>
                 </button>
                 <div className="step-card__body">
