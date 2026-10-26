@@ -14,7 +14,7 @@ def test_route_and_continuation_are_counted_once(tmp_path, monkeypatch, how):
     monkeypatch.setenv("LLM_TOOLS", "off")
     calls = []
 
-    async def route(*args):
+    async def route(*args, **kwargs):
         calls.append(1)
         return intent.Intent("content", None, {}, how, usage={"prompt_tokens": 11, "completion_tokens": 2})
 
@@ -42,7 +42,7 @@ def test_route_and_continuation_are_counted_once(tmp_path, monkeypatch, how):
 def test_partial_route_usage_preserves_unknown_in_authoritative_total(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM_TOOLS", "off")
 
-    async def route(*args):
+    async def route(*args, **kwargs):
         return intent.Intent("content", None, {}, "关键词", usage={"prompt_tokens": 7, "completion_tokens": None})
 
     class Client:
@@ -65,7 +65,7 @@ def test_partial_route_usage_preserves_unknown_in_authoritative_total(tmp_path, 
 def test_answer_error_keeps_route_and_partial_answer_usage(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM_TOOLS", "off")
 
-    async def route(*args):
+    async def route(*args, **kwargs):
         return intent.Intent("content", None, {}, "主模型回退", usage={"prompt_tokens": 11, "completion_tokens": 2})
 
     class Client:

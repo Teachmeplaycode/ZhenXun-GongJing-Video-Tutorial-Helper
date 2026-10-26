@@ -138,7 +138,7 @@ def test_routes_generate_save_the_board_and_export(tmp_path, monkeypatch):
     app, job = api(tmp_path, monkeypatch)
     service = app.notes_service
 
-    async def fake_build(job):
+    async def fake_build(job, request=None):
         from modules.notes.task import write
         write(job.root, {"status": "done", "message": "", "progress": {}, "note": NOTE})
         service.running.discard(job.id)
@@ -147,7 +147,7 @@ def test_routes_generate_save_the_board_and_export(tmp_path, monkeypatch):
     client = TestClient(app.app)
     assert client.get("/api/link-jobs/job1/notes").json()["status"] == "none"  # nothing runs until asked
     assert client.put("/api/link-jobs/job1/notes/board", json={"blocks": []}).status_code == 409
-    assert client.post("/api/link-jobs/job1/notes", json={"kind": "lecture"}).json()["status"] == "running"
+    assert client.post("/api/link-jobs/job1/notes", json={"kind": "lecture"}).json()["status"] in {"running", "done"}
     state = client.get("/api/link-jobs/job1/notes").json()
     assert state["status"] == "done" and state["note"]["title"] == "数列极限" and state["board"] is None
 

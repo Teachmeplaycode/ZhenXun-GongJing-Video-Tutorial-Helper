@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { getNotes, notesExportUrl, notesImageUrl, saveNoteBoard } from '../api/client'
 import PreviewDialog from '../components/PreviewDialog'
 import { BlockEdit, BlockView } from './blocks'
-import { bounds, defaultBoard, flow, readingOrder } from './layout'
+import { bounds, defaultBoard, flow, readingOrder, settleRevision } from './layout'
 import './notes.css'
 
 const MIN_ZOOM = 0.15
@@ -30,6 +30,9 @@ export default function NoteEditor({ jobId }) {
   const future = useRef([])
   const saveTimer = useRef(0)
   const latest = useRef(null)
+  const revision = useRef(null)
+  const saving = useRef(null)
+  const conflicted = useRef(false)
   const [needsFlow, setNeedsFlow] = useState(false)
 
   // ---- load --------------------------------------------------------------------------------
@@ -42,8 +45,12 @@ export default function NoteEditor({ jobId }) {
         return
       }
       setState({ loading: false, error: '', note: r.note })
+      revision.current = r.revision || null
       document.title = `${r.note.title} · 笔记`
-      if (r.board?.blocks) setBoard({ version: 1, viewport: r.board.viewport || { x: 40, y: 40, zoom: 0.8 }, blocks: r.board.blocks })
+      if (r.board?.blocks) {
+        setBoard({ ...r.board, version: 1, viewport: r.board.viewport || { x: 40, y: 40, zoom: 0.8 }, blocks: r.board.blocks })
+        if (r.board.needs_measure) setNeedsFlow(true)
+      }
       else {
         setBoard(defaultBoard(r.note))
         setNeedsFlow(true) // place the blocks again once their real heights are known
@@ -61,18 +68,32 @@ export default function NoteEditor({ jobId }) {
   // ---- save ----------------------------------------------------------------------------------
   const save = useCallback(async () => {
     clearTimeout(saveTimer.current)
-    const b = latest.current
-    if (!b) return
-    setSaveState('saving')
-    try {
-      await saveNoteBoard(jobId, b)
-      if (latest.current === b) setSaveState('saved')
-    } catch {
-      setSaveState('error')
-    }
+    saveTimer.current = 0
+    if (conflicted.current) return false
+    if (saving.current) return saving.current
+    if (!latest.current) return true
+    saving.current = (async () => {
+      let sent
+      setSaveState('saving')
+      try {
+        do {
+          sent = latest.current
+          const result = await saveNoteBoard(jobId, sent, revision.current)
+          revision.current = result.revision || revision.current
+        } while (latest.current !== sent)
+        setSaveState('saved')
+        return true
+      } catch (err) {
+        conflicted.current = err.status === 409
+        setSaveState(conflicted.current ? 'conflict' : 'error')
+        return false
+      }
+    })()
+    try { return await saving.current } finally { saving.current = null }
   }, [jobId])
   const schedule = useCallback((b) => {
     latest.current = b
+    if (conflicted.current) return
     setSaveState('pending')
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(save, SAVE_DELAY)
@@ -111,8 +132,12 @@ export default function NoteEditor({ jobId }) {
       if (stopped) return
       measure()
       setNeedsFlow(false)
-      commit((b) => ({ ...b, blocks: flow(b.blocks, heights.current) }), { history: false })
-      requestAnimationFrame(() => fit())
+      const fitNewBoard = !board.needs_measure
+      commit((b) => {
+        const { needs_measure, changed_blocks, ...copy } = b
+        return { ...copy, blocks: needs_measure ? settleRevision(b.blocks, heights.current, changed_blocks) : flow(b.blocks, heights.current) }
+      }, { history: false })
+      if (fitNewBoard) requestAnimationFrame(() => fit())
     }))
     return () => { stopped = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -267,16 +292,16 @@ export default function NoteEditor({ jobId }) {
   })
 
   const exportMarkdown = async () => {
-    await save()
+    if (!await save()) return
     window.location.href = notesExportUrl(jobId)
   }
   const [shown, setShown] = useState(null) // { kind: 'page' | 'image', src } — the export previewed
   const previewExport = async (kind) => {
-    await save() // the export reads the saved board
+    if (!await save()) return // the export reads the saved board
     setShown({ kind, src: kind === 'image' ? notesImageUrl(jobId) : `${notesExportUrl(jobId)}?preview=1&t=${Date.now()}` })
   }
   const print = async () => {
-    await save()
+    if (!await save()) return
     window.print()
   }
 
@@ -284,7 +309,7 @@ export default function NoteEditor({ jobId }) {
   if (state.error || !board) return <div className="nb-page nb-page--message"><p>{state.error}</p></div>
 
   const v = board.viewport
-  const savedLabel = { saved: '已保存', pending: '有改动', saving: '保存中…', error: '保存失败，稍后自动重试' }[saveState]
+  const savedLabel = { saved: '已保存', pending: '有改动', saving: '保存中…', error: '保存失败，请重试', conflict: '版本已更新，保存已暂停' }[saveState]
   return (
     <div className="nb-page">
       <header className="nb-bar">
@@ -307,6 +332,10 @@ export default function NoteEditor({ jobId }) {
           <button type="button" className="btn btn--dark" onClick={exportMarkdown}>导出 Markdown</button>
         </div>
       </header>
+
+      {saveState === 'conflict' ? <div className="nb-conflict" role="alert">笔记已在其他页面更新。此页改动尚未保存，请保留需要的内容后重新载入。
+        <button type="button" className="btn btn--ghost" onClick={() => window.location.reload()}>重新载入</button>
+      </div> : null}
 
       {shown ? (
         <PreviewDialog title={shown.kind === 'image' ? '笔记长图' : '导出预览'} src={shown.src} image={shown.kind === 'image'} onClose={() => setShown(null)}>

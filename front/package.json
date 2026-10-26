@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "predev": "node scripts/prepare-ocr-assets.mjs",
     "prebuild": "node scripts/prepare-ocr-assets.mjs",
-    "test:ocr": "node --test test/clientOcr.test.mjs"
+    "test:ocr": "node --test test/clientOcr.test.mjs",
+    "test:notes": "node --test test/conversationTurns.test.mjs test/noteRevisionLayout.test.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",

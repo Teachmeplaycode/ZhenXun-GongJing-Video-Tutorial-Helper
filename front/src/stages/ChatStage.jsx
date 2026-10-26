@@ -7,6 +7,8 @@ import StepsTab from '../components/bench/StepsTab'
 import CompareTab from '../components/bench/CompareTab'
 import { IconArrowDown } from '../components/Icons'
 import { useAgentChat } from '../api/useAgentChat'
+import { useConversationSelection } from '../api/useConversationSelection'
+import TurnNavigation from '../components/TurnNavigation'
 import { completeQuestion, fetchSuggestions, uploadAttachment } from '../api/client'
 import AnimatedContent from '../components/react-bits/AnimatedContent'
 import { WORKSPACE_CONTENT } from '../config/workspace'
@@ -74,6 +76,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   // text are read; until then, and if they can't be made, the general ones.
   const [tailored, setTailored] = useState([])
   const jobId = video?.jobId
+  const conversationSelection = useConversationSelection(jobId, messages)
   const fresh = !messages.length
   useEffect(() => {
     if (!jobId || !fresh) return undefined
@@ -103,6 +106,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     if (!replayRequest || running || replayRequest.key < openedAt.current) return
     followRef.current = true
     setFollowing(true)
+    navigationLockRef.current = false
     replay(replayRequest.start, replayRequest.end)
     // only a new request replays, not a re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -113,6 +117,74 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   const scrollRef = useRef(null)
   const followRef = useRef(true)
   const jumpRef = useRef(null)
+  const chatRef = useRef(null)
+  const messageRefs = useRef(new Map())
+  const navigationLockRef = useRef(false)
+  const targetTimerRef = useRef(0)
+  const [compactDirectory, setCompactDirectory] = useState(true)
+  const [activeTurnKey, setActiveTurnKey] = useState(null)
+  const latestTurns = useRef(conversationSelection.turns)
+  latestTurns.current = conversationSelection.turns
+  const turnIdentity = conversationSelection.turns.map((turn) => `${turn.key}:${turn.anchorId}`).join('|')
+
+  useLayoutEffect(() => {
+    const chat = chatRef.current
+    if (!chat) return undefined
+    const measure = () => setCompactDirectory(chat.clientWidth < 680)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(chat)
+    return () => observer.disconnect()
+  }, [])
+
+  // Read the actual visible question, including after images or tool panels change height.
+  // Token updates don't reattach observers or cache increasingly stale absolute positions.
+  useEffect(() => {
+    const scroll = scrollRef.current
+    if (!scroll) return undefined
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const turns = latestTurns.current
+      if (!turns.length) return
+      const top = scroll.getBoundingClientRect().top + 48
+      let current = turns[0].key
+      for (const turn of turns) {
+        const node = messageRefs.current.get(turn.anchorId)
+        if (node && node.getBoundingClientRect().top <= top) current = turn.key
+        else break
+      }
+      if (followRef.current && scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < STICK_THRESHOLD) current = turns.at(-1).key
+      setActiveTurnKey((old) => old === current ? old : current)
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
+    scroll.addEventListener('scroll', schedule, { passive: true })
+    const observer = new ResizeObserver(schedule)
+    observer.observe(scroll)
+    if (scroll.firstElementChild) observer.observe(scroll.firstElementChild)
+    schedule()
+    return () => { scroll.removeEventListener('scroll', schedule); observer.disconnect(); cancelAnimationFrame(frame) }
+  }, [turnIdentity, active])
+  useEffect(() => () => clearTimeout(targetTimerRef.current), [])
+
+  const jumpToTurn = useCallback((key) => {
+    const turn = latestTurns.current.find((item) => item.key === key)
+    const node = turn && messageRefs.current.get(turn.anchorId)
+    const scroll = scrollRef.current
+    if (!node || !scroll) return
+    navigationLockRef.current = true
+    followRef.current = false
+    setFollowing(false)
+    setActiveTurnKey(key)
+    const top = Math.max(0, node.getBoundingClientRect().top - scroll.getBoundingClientRect().top + scroll.scrollTop - 8)
+    const far = Math.abs(top - scroll.scrollTop) > scroll.clientHeight * 2
+    scroll.scrollTo({ top, behavior: prefersReducedMotion() || far ? 'auto' : 'smooth' })
+    node.focus({ preventScroll: true })
+    messageRefs.current.forEach((element) => element.removeAttribute('data-turn-target'))
+    node.setAttribute('data-turn-target', '')
+    clearTimeout(targetTimerRef.current)
+    targetTimerRef.current = setTimeout(() => node.removeAttribute('data-turn-target'), 900)
+  }, [])
 
   useEffect(() => {
     if (!active) stop()
@@ -122,8 +194,8 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   const onScroll = () => {
     const el = scrollRef.current
     const near = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_THRESHOLD
-    followRef.current = near
-    setFollowing(near)
+    followRef.current = near && !navigationLockRef.current
+    setFollowing(followRef.current)
   }
   useLayoutEffect(() => {
     const el = scrollRef.current
@@ -136,6 +208,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   }, [following])
   const jumpToEnd = () => {
     const el = scrollRef.current
+    navigationLockRef.current = false
     followRef.current = true
     setFollowing(true)
     el.scrollTo({ top: el.scrollHeight, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
@@ -157,6 +230,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
   const ask = (question, switches = {}) => {
     const chosenCommand = switches.command || null
     if ((!question && !clip && !chosenCommand) || running) return false
+    navigationLockRef.current = false
     followRef.current = true
     setFollowing(true)
     // "我要这段的 GIF": the clip studio, not the model. Its stretch: the times written, else the
@@ -190,6 +264,11 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
 
   const chapterList = chapters?.status === 'done' ? chapters.chapters || [] : []
   const [busyTabs, setBusyTabs] = useState({}) // tabs with a job running: a pulsing dot on the tab and the handle
+  const conversation = {
+    ...conversationSelection,
+    onJump: (key) => { jumpToTurn(key); if (window.matchMedia('(max-width: 900px)').matches) setBenchOpen(false) },
+    onReview: () => { conversationSelection.onSelectingChange(true); setBenchTab('notes') },
+  }
   const panels = {
     // Phones: the frame grid lives here (the timeline is gone); a choice made in it closes the workbench.
     ...(framesPanel ? { frames: React.cloneElement(framesPanel, { onClose: () => setBenchOpen(false) }) } : {}),
@@ -198,13 +277,16 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     steps: <StepsTab video={video} onSeek={onSeek} onBusy={(b) => setBusyTabs((t) => ({ ...t, steps: b }))}
       onStuck={(s) => { setCommand('卡点'); setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`) }} />,
     compare: <CompareTab video={video} onSeek={onSeek} onOpenSession={onOpenSession} onBusy={(b) => setBusyTabs((t) => ({ ...t, compare: b }))} />,
-    notes: <NotesTab video={video} messages={messages} />,
+    notes: <NotesTab video={video} messages={messages} conversation={conversation} />,
   }
 
   return (
     <div className="chat-shell" data-bench={bench.open || undefined}>
-    <div className="chat">
-      <div ref={scrollRef} className="chat__scroll" onScroll={onScroll}>
+    <div ref={chatRef} className="chat" data-turn-rail={!compactDirectory && conversation.turns.length > 0 || undefined}>
+      <TurnNavigation conversation={conversation} activeKey={activeTurnKey} compact={compactDirectory} onJump={jumpToTurn} />
+      <div ref={scrollRef} className="chat__scroll" onScroll={onScroll}
+        onWheel={() => { navigationLockRef.current = false }} onTouchStart={() => { navigationLockRef.current = false }}
+        onKeyDown={(e) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) navigationLockRef.current = false }}>
         <div className="chat__thread">
           {!messages.length ? (
             <AnimatedContent className="chat__empty" distance={12} duration={0.5}>
@@ -225,9 +307,12 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
             </AnimatedContent>
           ) : (
             messages.map((m) => (
-              <MessageBubble key={m.id} message={m} onStop={stop} onTime={onSeek} duration={duration} pictures={pictures}
+              <div key={m.id} className="chat__message-anchor" data-message-id={m.id} tabIndex={-1}
+                ref={(node) => { if (node) messageRefs.current.set(m.id, node); else messageRefs.current.delete(m.id) }}>
+              <MessageBubble message={m} onStop={stop} onTime={onSeek} duration={duration} pictures={pictures}
                 renderStudio={(msg) => <ClipStudio jobId={video?.jobId} title={video?.title} duration={duration} frames={frames} range={msg.range} format={msg.format} />}
-                onRegenerate={m.role === 'assistant' && !running ? () => { followRef.current = true; regenerate(m.id) } : null} />
+                onRegenerate={m.role === 'assistant' && !running ? () => { navigationLockRef.current = false; followRef.current = true; regenerate(m.id) } : null} />
+              </div>
             ))
           )}
           <div className="chat__anchor" />

@@ -78,6 +78,8 @@
 .nb-mm-text--d1 { font-weight: 600; }
 
 .nb-text { padding: 12px 14px; font-size: 15px; line-height: 1.65; }
+.nb-conflict { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 12px 20px; border-bottom: var(--border-hairline); background: var(--bg-surface); font-size: 13px; }
+.nb-conflict .btn { min-height: 44px; }
 .nb-text p { margin: 0; }
 
 .nb-edit { padding: 14px; display: flex; flex-direction: column; gap: 10px; cursor: default; user-select: text; }

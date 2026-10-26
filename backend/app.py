@@ -458,7 +458,8 @@ def suggested(job) -> list[str]:
 complete_service = CompleteService(lambda job_id: get_job(job_id), lambda: get_llm(), last_question, suggested)
 app.include_router(complete_service.router)
 notes_service = NotesService(lambda job_id: get_job(job_id), spawn, lambda: get_llm(),
-                             chapters_busy=lambda job_id: job_id in chapter_service.running)
+                             chapters_busy=lambda job_id: job_id in chapter_service.running,
+                             get_messages=lambda job_id: store.messages(job_id), own_job=lambda job_id: own_job(job_id))
 app.include_router(notes_service.router)
 
 

@@ -111,6 +111,7 @@ async function linkRequest(path, init = {}) {
   if (!response.ok) {
     const err = new Error(errorText(body) || (response.status >= 500 ? '解析服务未启动或暂时不可用' : `请求失败（HTTP ${response.status}）`))
     err.code = errorCode(body)
+    err.status = response.status
     throw err
   }
   return body
@@ -376,16 +377,22 @@ export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform
 export const fetchAntifraudReport = (jobId, { signal } = {}) =>
   linkRequest(`/api/link-jobs/${jobId}/antifraud`, { signal })
 
-// ---- lecture notes (backend modules/notes) -------------------------------------------------------
-/** { status: none | running | done | failed, message, progress: { done, total }, note } */
+// ---- notes and reviewable revisions (backend modules/notes) --------------------------------------
+/** Current note/board, generation status, a pending draft, and recoverable revision metadata. */
 export const getNotes = (jobId, { signal } = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, { signal })
-/** Start (or redo) generating the note; resolves to the same shape as getNotes, status running. */
-export const generateNotes = (jobId, { kind = 'lecture' } = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }),
+export const generateNotes = (jobId, options = {}) => linkRequest(`/api/link-jobs/${jobId}/notes`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(options),
+})
+export const applyNoteRevision = (jobId, revisionId, baseRevision) => linkRequest(`/api/link-jobs/${jobId}/notes/revisions/${encodeURIComponent(revisionId)}/apply`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base_revision: baseRevision }),
+})
+export const discardNoteDraft = (jobId) => linkRequest(`/api/link-jobs/${jobId}/notes/draft`, { method: 'DELETE' })
+export const restoreNoteRevision = (jobId, revisionId, baseRevision) => linkRequest(`/api/link-jobs/${jobId}/notes/revisions/${encodeURIComponent(revisionId)}/restore`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base_revision: baseRevision }),
 })
 /** Save the editor's board (blocks and their places); returns { saved: seconds }. */
-export const saveNoteBoard = (jobId, board) => linkRequest(`/api/link-jobs/${jobId}/notes/board`, {
-  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(board),
+export const saveNoteBoard = (jobId, board, baseRevision) => linkRequest(`/api/link-jobs/${jobId}/notes/board`, {
+  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...board, ...(baseRevision ? { base_revision: baseRevision } : {}) }),
 })
 export const notesExportUrl = (jobId) => `${LINK_BASE}/api/link-jobs/${jobId}/notes/export`
 /** The note as one long PNG (a phone keeps it in its photos). */

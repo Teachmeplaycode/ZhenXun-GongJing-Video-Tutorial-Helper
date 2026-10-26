@@ -227,3 +227,31 @@ def test_single_seconds_point_is_ready_for_automatic_frame_reading():
     assert [(float(a), float(b)) for a, b in ranges] == [(90, 110)]
     # A compound Chinese time is left intact rather than turning its seconds suffix into a new point.
     assert not asked_ranges(compose_question('细看', '看1分40秒的按钮'))
+
+
+def test_process_task_adapts_to_a_pv_without_classifying_it_as_software(tmp_path, monkeypatch):
+    from modules.agent import run
+    from modules.agent.commands import compose_question
+    from tests.test_tools import make_job as tool_job
+    monkeypatch.setenv('LLM_TOOLS', 'off')
+    monkeypatch.setattr(run.experience, 'kinds', lambda: [])
+    async def no_classifier(*args, **kwargs):
+        raise AssertionError('explicit process task must not add a classification call')
+    monkeypatch.setattr(run.intent, 'classify', no_classifier)
+    seen = []
+    class Client:
+        config = type('Config', (), {'model': 'test'})()
+        async def stream(self, messages, usage, **kwargs):
+            seen.append(messages)
+            usage.prompt_tokens, usage.completion_tokens, usage.finish_reason = 100, 10, 'stop'
+            yield '开场远景建立空间，随后切到人物近景。'
+    job = tool_job(tmp_path)
+    job.video.title = '游戏 PV'
+    async def go():
+        return [e async for e in run.run_agent(job, Client(), compose_question('卡点', '关注开场分镜'), command='卡点')]
+    events = asyncio.run(go())
+    assert len(seen) == 1 and events[-1]['type'] == 'run.completed'
+    guide = seen[0][-1]['content']
+    assert '影视、PV' in guide and '景别、构图、运镜' in guide
+    effective = compose_question('卡点', '关注开场分镜')
+    assert '影视讲镜头' in effective and '点了哪个按钮' not in effective
