@@ -13,7 +13,7 @@ from fastapi import HTTPException
 
 from .revisions import board_context, effective_note
 from .task import (OVERVIEW_PROMPT, PARALLEL, SECTION_PROMPT, _image_parts, clock,
-                   mindmap_from, parse_json, section_from, stretch_text)
+                   mindmap_from, parse_json, section_from, steps_text, stretch_text)
 
 MAX_SELECTED_MESSAGES = 120
 MAX_DISCUSSION_CHARS = 48000
@@ -146,7 +146,7 @@ def _planned_sections(reply, duration: float, base: dict | None) -> list[dict]:
 
 
 async def build_discussion_note(*, title, duration, transcript, screen, chapters, turns, instruction,
-                                current_note, current_board, complete, grab, pictures=None, progress=None):
+                                current_note, current_board, complete, grab, pictures=None, progress=None, steps=None):
     """Return a complete edited note plus the section ids changed by this revision."""
     if not duration or not math.isfinite(duration) or duration <= 0:
         raise ValueError("视频时长未知，无法定位讨论中的画面")
@@ -184,7 +184,8 @@ async def build_discussion_note(*, title, duration, transcript, screen, chapters
                 "本次整理目标": (plan or {}).get("goal", ""), "用户补充要求": instruction,
                 "所选对话（用于确定关注点与讨论结论）": discussion,
                 "原小节（以用户已改内容为基底）": _section_context(originals[topic["target_id"]]) if topic["target_id"] in originals else None,
-                "原素材语音": speech or "尚无可用转写", "原素材画面文字": shown or "尚无可用文字"}
+                "原素材语音": speech or "尚无可用转写", "原素材画面文字": shown or "尚无可用文字",
+                **({"已整理的步骤": cards} if (cards := steps_text(steps, start, end)) else {})}
         rules = (SECTION_PROMPT + "\n这是基于用户所选对话的主题笔记，不是按时间顺序概述视频。"
                  "围绕用户问题组织具体结论，保留与问题有关的手改信息。"
                  "明确区分原视频事实、讨论中的分析判断和延伸建议；判断写‘分析：’，建议写‘延伸建议：’。"
