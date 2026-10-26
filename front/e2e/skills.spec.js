@@ -106,3 +106,20 @@ test('skills: 抄作业 sums up the finished node graph, opened, and opens it on
   await expect(card.locator('.recipe__notes').first()).toContainText(recipe.version_notes[0].text.slice(0, 10))
   await page.screenshot({ path: 'test-results/recipe.png', fullPage: false })
 })
+
+test('skills: a skill is its own block in the answer, and the answer may use tables, code and 知识', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const text = '## 结论\n部分正确：要看具体药物 [原声 00:12]。\n\n| 药物 | 和西柚 |\n|---|---|\n| 硝苯地平 | 明显受影响 [知识] |\n| 氨氯地平 | 影响较小 [知识] |\n\n> 吃药前请咨询医生。\n\n```\nCYP3A4 被抑制 → 血药浓度升高\n```'
+  const answer = await ask(page, [skillAnswer('skill.factcheck', science, text)], '这个视频说得对吗')
+  const block = answer.locator('.skill-block')
+  await expect(block).toContainText('技能')
+  await expect(block).toContainText('科普核查')
+  await expect(block).toContainText('1 条说法')
+  await expect(answer.locator('.step-group')).toHaveCount(0) // the skill was the only step: no empty fold
+  await expect(answer.locator('.md-table tbody tr')).toHaveCount(2)
+  await expect(answer.locator('.md-pre')).toContainText('CYP3A4')
+  await expect(answer.locator('.md-quote')).toHaveText('吃药前请咨询医生。')
+  await expect(answer.locator('.ev-chip--knowledge')).toHaveCount(2)
+  await expect(page.locator('.msg--user .bubble--user')).toHaveCSS('border-radius', '18px')
+  await page.screenshot({ path: 'test-results/chat-skill.png' })
+})

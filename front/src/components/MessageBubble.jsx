@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
-import Avatar from './Avatar'
 import BrowserViewport from './BrowserViewport'
 import StreamingText from './StreamingText'
-import StepGroup from './StepGroup'
+import StepGroup, { SkillBlock } from './StepGroup'
 import { Replay } from './StepDetail'
 import { IconCheck, IconCopy, IconRefresh } from './Icons'
 import { fmtElapsed, fmtTime, frameNo } from '../lib/format'
-import { host, isVisibleStep } from '../lib/steps'
+import { host, isVisibleStep, stepKind } from '../lib/steps'
 import EvidenceSummary, { useCiteChips } from './EvidenceSummary'
 import SkillReports, { skillReports } from './SkillReports'
 
@@ -120,7 +119,6 @@ function ManualReplay({ message, onTime, onStop }) {
   const [start, end] = message.range || [d.start, d.end]
   return (
     <div className="msg msg--assistant msg--manual">
-      <Avatar role="assistant" />
       <div className="bubble bubble--assistant manual-replay">
         <div className="manual-replay__head">
           <span className="manual-replay__tag">手动慢放</span>
@@ -165,7 +163,6 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
             </div>
           ) : null}
         </div>
-        <Avatar role="user" />
       </div>
     )
   }
@@ -173,7 +170,6 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
   if (message.manual === 'clip') {
     return (
       <div className="msg msg--assistant msg--studio">
-        <Avatar role="assistant" />
         <div className="bubble bubble--assistant">{renderStudio?.(message)}</div>
       </div>
     )
@@ -185,11 +181,14 @@ export default function MessageBubble({ message, onStop, onTime = null, duration
   const [cites, setCites] = useCiteChips()
   return (
     <div className="msg msg--assistant">
-      <Avatar role="assistant" />
       <div className={`bubble bubble--assistant${cites ? '' : ' bubble--cites-off'}`}>
         {parts.map((part, i) => (part.kind === 'steps' ? (
-          <StepGroup key={part.id} part={part} working={streaming && i === parts.length - 1}
-            progress={message.progress?.step} onSeek={onTime} />
+          <React.Fragment key={part.id}>
+            {part.calls.some((c) => isVisibleStep(c) && stepKind(c) !== 'skill') || !part.calls.length ? (
+              <StepGroup part={part} working={streaming && i === parts.length - 1} progress={message.progress?.step} onSeek={onTime} />
+            ) : null}
+            {part.calls.filter((c) => stepKind(c) === 'skill').map((c) => <SkillBlock key={c.id} call={c} progress={message.progress?.step} />)}
+          </React.Fragment>
         ) : (
           <StreamingText key={`t${i}`} text={part.text} streaming={streaming && i === lastText && i === parts.length - 1}
             onTime={onTime} duration={duration} pictures={pictures} evidence={message.evidence} />

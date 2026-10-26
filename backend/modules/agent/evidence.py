@@ -6,6 +6,7 @@ The answer cites with typed markers (SYSTEM_PROMPT in run.py):
   [原声 01:13-01:24]      what is said then (speech recognition)
   [画面文字 01:26]         text on screen then (on-screen text recognition)
   [资料 https://…]         an outside source this run actually opened or found
+  [知识]                   the model's own general knowledge: not from the video, not looked up this run
   [推断]                   the model's own reasoning, no direct evidence
   [01:23]                 an untyped moment (older answers): any of the first three will do
 
@@ -25,10 +26,10 @@ from ..frames import FrameJob
 from .tools import parse_time
 
 STAMP = r"\d{1,2}:\d{2}(?::\d{2})?"
-MARKER = re.compile(rf"\[(?:(画面文字|画面|原声|资料|推断)(?:\s*([^\[\]]*))?|({STAMP}))\]")
+MARKER = re.compile(rf"\[(?:(画面文字|画面|原声|资料|知识|推断)(?:\s*([^\[\]]*))?|({STAMP}))\]")
 SPAN = re.compile(rf"({STAMP})(?:\s*[-–—~至到]\s*({STAMP}))?")
 URL = re.compile(r"https?://[^\s<>()（）\[\]，。；、\"'“”]+")
-KINDS = {"画面": "frame", "原声": "speech", "画面文字": "screentext", "资料": "source", "推断": "inference"}
+KINDS = {"画面": "frame", "原声": "speech", "画面文字": "screentext", "资料": "source", "知识": "knowledge", "推断": "inference"}
 NAMES = {v: k for k, v in KINDS.items()} | {"moment": "时间点"}
 LOOKED = {"frames.view", "frames.replay", "frames.motion"}  # tools that look at a stretch again
 SLACK = 1.5          # seconds a text citation may sit outside the recognised segment
@@ -53,7 +54,7 @@ def parse(text: str) -> list[dict]:
         elif item["kind"] == "source":
             found = URL.search(rest)
             item["url"] = found.group(0).rstrip(".,;:") if found else ""
-        elif item["kind"] != "inference":
+        elif item["kind"] not in ("inference", "knowledge"):
             span = SPAN.search(rest)
             if span:
                 item["start"] = seconds(span.group(1))
@@ -89,7 +90,7 @@ def check(job: FrameJob, items: list[dict], looked: list[tuple[float, float]], u
     for item in items:
         reason = ""
         kind, start, end = item["kind"], item["start"], item["end"]
-        if kind == "inference":
+        if kind in ("inference", "knowledge"):
             pass
         elif kind == "source":
             if not item["url"]:

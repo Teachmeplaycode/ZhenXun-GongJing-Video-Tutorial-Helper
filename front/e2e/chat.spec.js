@@ -83,6 +83,9 @@ test('an answer shows its steps inline, then the text, sources and footer', asyn
 
   // Narration before the tool call ("我来查一下资料。") stayed out of the answer.
   await expect(answer.locator('.streaming-text')).not.toContainText('我来查一下资料')
+  await answer.locator('.step-group .thought-line__head').click()
+  await expect(answer.locator('.step__mark[data-kind="web"]').first()).toBeVisible() // each step shows its kind
+  await page.screenshot({ path: 'test-results/chat-steps.png' })
 })
 
 test('a search step opens to verdicts per result', async ({ page }) => {

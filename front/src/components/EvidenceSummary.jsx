@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-const ORDER = [['frame', '画面'], ['speech', '原声'], ['screentext', '画面文字'], ['moment', '时间点'], ['source', '资料'], ['inference', '推断']]
+const ORDER = [['frame', '画面'], ['speech', '原声'], ['screentext', '画面文字'], ['moment', '时间点'], ['source', '资料'], ['knowledge', '知识'], ['inference', '推断']]
 
 const CITES_KEY = 'zhenxun.cites.v1'
 const readCites = () => {

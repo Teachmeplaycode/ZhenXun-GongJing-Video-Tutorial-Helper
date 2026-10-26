@@ -21,6 +21,23 @@ export const isVisibleStep = (call) => !call.tool?.startsWith('vision.')
 
 const RISK = { high: '高', medium: '中', low: '低' }
 
+/** What kind of step a call is, for its icon: look / listen / read text / web / papers / viewers / skill / think. */
+export function stepKind(call) {
+  const t = call.tool || ''
+  if (t.startsWith('skill.')) return 'skill'
+  if (t.startsWith('web.') || t === 'browser.use') return 'web'
+  if (t.startsWith('papers.')) return 'paper'
+  if (t.startsWith('audience.')) return 'audience'
+  if (t.startsWith('transcript.')) return 'speech'
+  if (t.startsWith('screentext.') || t === 'knowledge.lookup') return 'text'
+  if (t.startsWith('frames.') || t === 'screenshot.locate') return 'look'
+  if (t === 'data.wait') return 'wait'
+  return 'think'
+}
+
+/** The skill a call ran (backend modules/agent/skills.py), for its own block in the answer. */
+export const SKILL_NAMES = { 'skill.factcheck': '科普核查', 'skill.antifraud': '反诈识别', 'skill.recipe': '抄作业' }
+
 /** { verb, target, meta } for a call; `meta` is the outcome once known. */
 export function describeStep(call) {
   const p = call.input?.params || {}
