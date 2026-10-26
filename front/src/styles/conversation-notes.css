@@ -1,0 +1,39 @@
+.notes-tab__label { color: var(--text-secondary); font-size: 11px; letter-spacing: .08em; }
+.notes-tab__generation, .notes-source, .notes-history, .notes-revision { padding: 20px 16px; border-top: var(--border-hairline); }
+.notes-tab__generation { display: grid; gap: 10px; }
+.notes-tab__generation p, .notes-source p, .notes-revision p { margin: 0; line-height: 1.65; }
+.notes-tab__generation .notes-tab__bar:not([aria-valuenow]) span { width: 100%; opacity: .35; }
+.notes-source { display: grid; gap: 14px; }
+.notes-source h4, .notes-revision h4 { margin: 0; font-size: 16px; }
+.notes-source__conversation { display: grid; gap: 12px; padding-top: 16px; border-top: var(--border-hairline); min-width: 0; }
+.notes-source__heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.notes-source__selection-actions { display: flex; flex-wrap: wrap; gap: 0 14px; }
+.notes-source .link-btn, .notes-history summary { min-height: 44px; display: inline-flex; align-items: center; }
+.notes-source__turns { max-height: 340px; overflow: auto; overscroll-behavior: contain; border-top: var(--border-hairline); }
+.notes-turn { display: flex; align-items: flex-start; border-bottom: var(--border-hairline); }
+.notes-turn[data-selected] { background: color-mix(in srgb, var(--accent-active-dim) 10%, transparent); }
+.notes-turn__check { display: grid; place-items: center; flex: 0 0 44px; min-height: 48px; cursor: pointer; }
+.notes-turn__check input { width: 17px; height: 17px; accent-color: var(--accent-active-dim); }
+.notes-turn__content { flex: 1; display: grid; gap: 5px; padding: 12px 8px 14px 0; min-height: 44px; border: 0; background: none; color: inherit; text-align: left; min-width: 0; cursor: pointer; font: inherit; }
+.notes-turn__number { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.notes-turn__content strong { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.notes-turn__answer { font-size: 12px; line-height: 1.6; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; white-space: pre-wrap; }
+.notes-turn__reason { color: var(--text-secondary); font-size: 11px; }
+.notes-source__instruction { display: grid; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+.notes-source__instruction textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 86px; border: var(--border-hairline); border-radius: 4px; background: var(--bg-primary, transparent); color: var(--text-primary); padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.65; }
+.notes-source__instruction textarea:focus-visible { outline: 2px solid var(--accent-active-dim); outline-offset: 2px; }
+.notes-revision { display: grid; gap: 12px; border-left: 3px solid var(--accent-active-dim); }
+.notes-revision__changes, .notes-revision__preview-changes ul { padding-left: 20px; margin: 0; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.notes-revision__preview-changes { flex-basis: 100%; max-height: 130px; overflow: auto; font-size: 12px; }
+.notes-revision__preview-changes strong { display: block; margin-bottom: 4px; }
+.notes-revision-preview .export-dialog__actions { flex-wrap: wrap; }
+.notes-revision-preview .export-dialog__actions .btn { min-height: 44px; height: auto; padding-top: 8px; padding-bottom: 8px; }
+.notes-history summary { cursor: pointer; gap: 8px; font-size: 13px; }
+.notes-history__item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: var(--border-hairline); }
+.notes-history__item > span { flex: 1; min-width: 0; display: grid; gap: 5px; }
+.notes-history__item strong { font-size: 13px; overflow-wrap: anywhere; }
+.notes-history__item small { color: var(--text-secondary); font-size: 11px; }
+.notes-tab .btn { min-height: 44px; white-space: normal; }
+.notes-tab > .bench__error { margin: 12px 16px; }
+@media (max-width: 760px) { .notes-source__instruction textarea { font-size: 16px; } .notes-source__conversation > .btn { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .notes-tab__bar span { transition: none; } }

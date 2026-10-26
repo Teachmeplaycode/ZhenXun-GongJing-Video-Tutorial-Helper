@@ -22,7 +22,7 @@ export const WORKSPACE_CONTENT = {
     { label: '跨帧对照', title: '核查说法', description: '逐条核对视频里的说法，给出依据。', task: '核查这份内容中的主要说法，并给出依据', mark: '03' },
   ],
   suggestions: [
-    { title: '操作步骤', description: '按顺序列出每一步和时间', question: '按顺序列出操作步骤，每步标上时间' },
+    { title: '过程拆解', description: '拆解关键过程，解释前后衔接', question: '拆解视频的关键过程，解释前后衔接并标上时间' },
     { title: '快速理解', description: '梳理主题、人物和主要事件', question: '总结这段视频的主要内容' },
     { title: '生成报告', description: '按时间顺序整理关键片段', question: '整理关键片段并写成分析报告' },
   ],

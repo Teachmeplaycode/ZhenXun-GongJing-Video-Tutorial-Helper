@@ -6,12 +6,12 @@ import '../styles/export.css'
 
 // What an export will look like, before it's downloaded: the page the backend renders, in a frame —
 // or, with `image`, the long picture of it (long-press to keep it on a phone).
-export default function PreviewDialog({ title, src, image = false, onClose, children }) {
+export default function PreviewDialog({ title, src, image = false, onClose, children, className = '' }) {
   useEscape(onClose)
   const [state, setState] = React.useState(image ? 'loading' : 'ready')
   return createPortal(
     <div className="overlay preview-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="preview-dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`preview-dialog ${className}`} role="dialog" aria-modal="true" aria-label={title}>
         <header className="export-dialog__head">
           <strong>{title}</strong>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭"><IconClose size={14} /></button>

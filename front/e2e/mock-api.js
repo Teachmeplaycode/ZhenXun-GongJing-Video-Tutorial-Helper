@@ -262,7 +262,10 @@ export class MockApi {
       })
     }
     m = path.match(/^\/api\/sessions\/(\w+)$/)
-    if (m && req.method() === 'GET') return json(this.sessions.find((s) => s.summary.id === m[1]).detail)
+    if (m && req.method() === 'GET') {
+      const session = this.sessions.find((s) => s.summary.id === m[1])
+      return session ? json(session.detail) : json({ detail: '会话不存在' }, 404)
+    }
     if (m && req.method() === 'DELETE') {
       this.sessions = this.sessions.filter((s) => s.summary.id !== m[1])
       return json({ ok: true })
@@ -287,11 +290,15 @@ export class MockApi {
       this.addSession('job1', { title: video().title })
       return json(this.snapshot('job1'))
     }
-    if (path === '/api/videos') return json(this.snapshot('upload1', { v: video({ platform: 'local', video_id: 'clip.mp4', title: 'clip' }) }))
+    if (path === '/api/videos') {
+      this.addSession('upload1', { title: 'clip' })
+      return json(this.snapshot('upload1', { v: video({ platform: 'local', video_id: 'clip.mp4', title: 'clip' }) }))
+    }
     if (path === '/api/images' && req.method() === 'POST') {
       // Uploaded pictures (backend modules/frames/images.py): an image job, no speech, text per picture.
       this.pictures = true
       this.uploadedImages = (req.postDataBuffer()?.toString('latin1').match(/filename="/g) || []).length
+      this.addSession('job1', { title: this.pictureVideo().title })
       return json({ ...this.snapshot('job1', { v: this.pictureVideo() }), transcript: { status: 'none', message: '图集没有语音', count: 0 } })
     }
     m = path.match(/^\/api\/link-jobs\/(\w+)\/events$/)

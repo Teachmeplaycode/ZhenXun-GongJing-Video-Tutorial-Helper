@@ -56,7 +56,7 @@ def images(client):
 
 def test_summary_skips_model_routing_and_covers_both_ends(ready_job, monkeypatch):
     routes = []
-    async def classify(question, decider):
+    async def classify(question, decider, **kwargs):
         routes.append(question)
         return intent.Intent("content", None, {}, "test")
     monkeypatch.setattr(intent, "classify", classify)
@@ -82,7 +82,7 @@ def test_visual_summary_uses_sixteen_frames_when_text_is_missing_or_partial(read
 @pytest.mark.parametrize("question", ["总结每一页的参数和操作步骤", "联网核实后总结这个视频", "逐帧总结视频内容", "总结完整公式推导", "网上查一下再总结", "查查并总结这个视频", "搜集相关内容再概括", "总结这句话能信吗", "总结第3页"])
 def test_detailed_or_research_requests_keep_the_full_path(ready_job, monkeypatch, question):
     routes = []
-    async def classify(question, decider):
+    async def classify(question, decider, **kwargs):
         routes.append(question)
         return intent.Intent("content", None, {}, "test")
     monkeypatch.setattr(intent, "classify", classify)
@@ -94,7 +94,7 @@ def test_detailed_or_research_requests_keep_the_full_path(ready_job, monkeypatch
 
 def test_explicit_frame_selection_keeps_every_selected_frame(ready_job, monkeypatch):
     routes = []
-    async def classify(question, decider):
+    async def classify(question, decider, **kwargs):
         routes.append(question)
         return intent.Intent("content", None, {}, "test")
     monkeypatch.setattr(intent, "classify", classify)

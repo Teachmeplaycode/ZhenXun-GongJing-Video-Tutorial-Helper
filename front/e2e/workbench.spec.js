@@ -38,7 +38,7 @@ test('notes: generate, then open the editor; the Q&A export moved into the tab',
   const mock = await enterChat(page)
   await openBench(page, '笔记')
   await expect(page.getByRole('button', { name: '还没有问答' })).toBeDisabled()
-  await page.getByRole('button', { name: '生成笔记' }).click()
+  await page.getByRole('button', { name: '整理整段视频' }).click()
   await expect(page.getByText('正在整理笔记…')).toBeVisible()
   await expect(page.locator('.notes-tab__title')).toHaveText('柚子与药物笔记', { timeout: 10_000 })
   await expect(page.locator('.notes-tab__done')).toContainText('2 节 · 1 张配图')

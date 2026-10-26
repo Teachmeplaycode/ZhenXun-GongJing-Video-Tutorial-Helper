@@ -1,0 +1,48 @@
+/* A quiet index of the actual conversation, attached to the reading column. */
+.chat[data-turn-rail] .chat__scroll { padding-right: var(--sp-80); }
+.chat__message-anchor { min-width: 0; outline: none; }
+.chat__message-anchor[data-turn-target] { animation: turn-target 800ms ease-out; }
+@keyframes turn-target { from { background: color-mix(in srgb, var(--accent-active) 18%, transparent); } to { background: transparent; } }
+.turn-rail { position: absolute; z-index: 7; right: var(--sp-32); top: var(--sp-8); bottom: 200px; width: 44px; display: flex; flex-direction: column; align-items: center; }
+.turn-rail__toggle, .turn-rail__mark { display: grid; place-items: center; width: 44px; min-height: 44px; flex: none; border: 0; color: var(--text-secondary); background: transparent; cursor: pointer; }
+.turn-rail__toggle:hover, .turn-rail__toggle[aria-expanded='true'] { color: var(--text-primary); background: var(--bg-surface-alt); }
+.turn-rail__marks { min-height: 0; overflow-y: auto; scrollbar-width: none; width: 44px; }
+.turn-rail__mark span { width: 14px; height: 2px; background: var(--border-strong); border-radius: var(--radius-xs); transition: width 160ms ease, background 160ms ease; }
+.turn-rail__mark:hover span, .turn-rail__mark:focus-visible span { width: 24px; background: var(--text-secondary); }
+.turn-rail__mark[aria-current='location'] span { width: 26px; height: 3px; background: var(--text-primary); }
+.turn-rail__mark[data-selected] span { background: var(--accent-active-dim); }
+.turn-rail__count { padding-top: var(--sp-8); font: 10px var(--font-mono); color: var(--text-secondary); }
+.turn-rail__preview { position: absolute; top: var(--sp-40); right: 50px; width: 240px; padding: var(--sp-12) var(--sp-16); border: var(--border-hairline); border-radius: var(--radius-sm); background: var(--bg-surface); box-shadow: 0 6px 24px color-mix(in srgb, var(--text-primary) 10%, transparent); pointer-events: none; }
+.turn-rail__preview > span { font-size: var(--fs-caption); color: var(--text-secondary); }
+.turn-rail__preview p { margin: var(--sp-6) 0 0; font-size: var(--fs-body-sm); line-height: 1.5; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.turn-nav-entry { flex: none; border-bottom: var(--border-hairline); }
+.turn-nav-entry__button { display: flex; align-items: center; gap: var(--sp-8); min-height: 44px; border: 0; padding: 0 var(--sp-4); background: transparent; color: var(--text-primary); cursor: pointer; font: inherit; font-size: var(--fs-caption); }
+.turn-nav-entry__button > span { color: var(--text-secondary); }
+.turn-directory { position: absolute; z-index: 12; right: var(--sp-80); top: var(--sp-8); bottom: var(--sp-16); width: min(360px, calc(100% - 48px)); display: flex; flex-direction: column; border: var(--border-hairline); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: 0 10px 40px color-mix(in srgb, var(--text-primary) 12%, transparent); overflow: hidden; }
+.turn-directory__head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-8); padding: var(--sp-12) var(--sp-16); border-bottom: var(--border-hairline); }
+.turn-directory__head > div { display: flex; gap: var(--sp-10); align-items: baseline; }
+.turn-directory__head strong { font-size: var(--fs-body-sm); }
+.turn-directory__head span { font-size: var(--fs-caption); color: var(--text-secondary); }
+.turn-directory .icon-btn { width: 44px; height: 44px; }
+.turn-directory__tools { display: flex; gap: var(--sp-16); padding: 0 var(--sp-16); border-bottom: var(--border-hairline); flex: none; }
+.turn-directory__tools .link-btn { min-height: 44px; }
+.turn-directory__list { flex: 1; min-height: 0; padding: var(--sp-8); margin: 0; overflow: auto; overscroll-behavior: contain; list-style: none; }
+.turn-directory__list > li { display: flex; border-radius: var(--radius-sm); }
+.turn-directory__list > li[data-active] { background: color-mix(in srgb, var(--accent-active) 13%, var(--bg-surface)); }
+.turn-directory__item { flex: 1; min-width: 0; min-height: 64px; display: flex; align-items: flex-start; gap: var(--sp-12); text-align: left; border: 0; padding: var(--sp-12) var(--sp-8); background: transparent; color: var(--text-primary); font: inherit; cursor: pointer; }
+.turn-directory__item:hover { background: var(--bg-surface-alt); }
+.turn-directory__number { font: var(--fs-caption) var(--font-mono); color: var(--text-secondary); padding-top: var(--sp-2); min-width: 24px; }
+.turn-directory__copy { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+.turn-directory__question { font-size: var(--fs-body-sm); line-height: 1.5; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.turn-directory__status { font-size: var(--fs-caption); color: var(--text-secondary); }
+.turn-directory__check { min-width: 44px; min-height: 64px; display: flex; justify-content: center; align-items: flex-start; padding-top: var(--sp-16); cursor: pointer; }
+.turn-directory input { width: 17px; height: 17px; accent-color: var(--text-primary); }
+.turn-directory__footer { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-8); padding: var(--sp-12) var(--sp-16); border-top: var(--border-hairline); font-size: var(--fs-caption); }
+.turn-directory__footer .btn { min-height: 44px; }
+.turn-directory__error { margin: 0; padding: var(--sp-8) var(--sp-16); color: var(--accent-error); font-size: var(--fs-caption); }
+.turn-directory__error button { margin-left: var(--sp-8); min-height: 44px; }
+.turn-directory__backdrop { position: fixed; z-index: 99; inset: 0; background: color-mix(in srgb, var(--bg-inverse) 30%, transparent); }
+.turn-directory--compact { position: fixed; z-index: 100; top: auto; left: var(--sp-12); right: var(--sp-12); bottom: max(var(--sp-12), env(safe-area-inset-bottom)); width: auto; max-height: min(80dvh, 680px); border-radius: var(--radius-md); }
+.turn-directory--compact .turn-directory__list { flex: 0 1 auto; }
+.turn-rail button:focus-visible, .turn-directory button:focus-visible, .turn-nav-entry button:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .chat__message-anchor[data-turn-target] { animation: none; } .turn-rail__mark span { transition: none; } }

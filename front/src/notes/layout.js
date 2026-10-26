@@ -57,6 +57,35 @@ export function flow(blocks, heights) {
   return out
 }
 
+// After an AI revision, keep the person's columns and spacing. Only push blocks obstructed by
+// expanded/new content, carrying a moved section's pictures with it. Existing overlaps unrelated
+// to this revision are left alone; the editor's measured heights determine the actual clearance.
+export function settleRevision(blocks, heights, changedIds) {
+  const changed = new Set(changedIds || [])
+  const original = new Map(blocks.map((block) => [block.id, block]))
+  const moved = new Set()
+  const placed = []
+  const byId = new Map()
+  const height = (block) => heights[block.id] ?? estimateHeight(block)
+  const affected = (block) => changed.has(block.id) || changed.has(block.section) || moved.has(block.id)
+  for (const source of [...blocks].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    const block = { ...source }
+    const parent = block.section && byId.get(block.section)
+    if (parent) block.y += parent.y - original.get(parent.id).y
+    for (const previous of placed) {
+      if (original.get(previous.id).y >= source.y) continue
+      if (!affected(block) && !affected(previous)) continue
+      if (block.x >= previous.x + previous.w || previous.x >= block.x + block.w) continue
+      const end = previous.y + height(previous)
+      if (block.y < end + GAP) block.y = end + GAP
+    }
+    if (block.y !== source.y) moved.add(block.id)
+    byId.set(block.id, block)
+    placed.push(block)
+  }
+  return blocks.map((block) => byId.get(block.id))
+}
+
 // Top to bottom; blocks whose tops are within 40 px form a row, read left to right (as the export).
 export function readingOrder(blocks) {
   const rows = []

@@ -4,54 +4,9 @@ import PreviewDialog from './PreviewDialog'
 import { createPortal } from 'react-dom'
 import { IconBook, IconClose } from './Icons'
 import { exportSessionUrl, getSession } from '../api/client'
-import { fmtTime } from '../lib/format'
+import { exportItems, withSavedIds } from '../lib/conversationTurns'
+export { exportItems } from '../lib/conversationTurns'
 import '../styles/export.css'
-
-// Map the current view to durable rows in order. Keep local streaming state and never replace the
-// chat with a restored snapshot; a running answer remains pending even if an older row matches.
-function withSavedIds(messages, saved) {
-  let cursor = 0
-  return messages.map((message) => {
-    if (message.status === 'running') return { ...message, savedId: null }
-    const index = saved.findIndex((row, i) => i >= cursor && row.role === message.role
-      && (message.savedId != null ? row.id === message.savedId
-        : (row.manual || null) === (message.manual || null) && (row.content || '') === (message.text || '')))
-    if (index < 0) return { ...message, savedId: null }
-    cursor = index + 1
-    return { ...message, savedId: saved[index].id }
-  })
-}
-
-// The conversation as exportable turns: Q&A pairs (a question and the answer that followed) and
-// hand-framed replays. Each turn carries the saved rows' backend ids, so a partial export can name
-// exactly what to include; turns still being answered (or not yet saved) cannot be picked yet.
-export function exportItems(messages) {
-  const items = []
-  for (let i = 0; i < messages.length; i += 1) {
-    const m = messages[i]
-    if (m.manual === 'clip' || (m.role === 'user' && messages[i + 1]?.manual === 'clip')) continue // clip cards aren't notes
-    if (m.manual === 'replay') {
-      const replay = m.parts?.flatMap((part) => part.calls || []).find((call) => call.tool === 'frames.replay')?.data
-      const [start, end] = m.range || [replay?.start, replay?.end]
-      items.push({
-        key: m.id, kind: 'manual', ids: [m.savedId].filter(Boolean),
-        title: start != null && end != null ? `手动慢放 ${fmtTime(start)}–${fmtTime(end)}` : '手动慢放',
-        pending: m.savedId == null || m.status === 'running',
-      })
-      continue
-    }
-    if (m.role === 'user') {
-      items.push({ key: m.id, kind: 'qa', ids: [m.savedId].filter(Boolean), question: m.text || '', answer: null, pending: m.savedId == null })
-    } else if (m.role === 'assistant' && items.length && items.at(-1).kind === 'qa' && !items.at(-1).answer) {
-      items.at(-1).answer = m
-      items.at(-1).pending = items.at(-1).pending || m.status === 'running' || m.savedId == null
-      if (m.savedId != null) items.at(-1).ids.push(m.savedId)
-    } else if (m.role === 'assistant') {
-      items.push({ key: m.id, kind: 'qa', ids: [m.savedId].filter(Boolean), question: '', answer: m, pending: m.savedId == null || m.status === 'running' })
-    }
-  }
-  return items
-}
 
 /** Pick the turns and the format, then download the Markdown bundle or open the PDF print page. */
 export default function ExportDialog({ sessionId, messages, onClose }) {

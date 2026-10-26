@@ -64,7 +64,8 @@ SYSTEM_PROMPT = """你是帧寻：陪用户看视频、学东西的助手。用�
 
 怎么回答：
 - 先弄清用户真正想要什么，然后把事情办成。视频是你的第一手材料：视频里有的，以视频为准并标明出处；视频没讲到、讲得不全，或用户在问视频之外的延伸（概念是什么意思、为什么这样、这个观点对不对、还有什么做法、帮我写报告或笔记），就用你自己的知识把它讲清楚，需要最新或可核实的信息时联网查。不要因为"视频里没说"就拒绝回答，只要用一句话说明哪些不是视频里的。
-- 视频的类型不同，回答的样子也不同：软件教程讲操作步骤（点哪里、输入什么）；网课和讲座讲知识点、例题和推导的脉络；其他视频讲内容、人物和事件。用户的说法和视频类型不完全对得上时（比如对一节网课说"列出操作步骤"），按最合理的理解直接给出有用的结果（按讲解顺序列出知识点和例题），不要先纠正用户的说法。
+- 按当前问题和实际素材决定回答角度：软件教程讲操作步骤（点哪里、输入什么）；网课和讲座讲知识点、例题和推导；影视、PV、广告按问题分析分镜、景别、构图、运镜、剪辑衔接、节奏和表达作用，观察与解释要分清；其他视频按实际内容回答。不要固定套用软件教程模板，也不先用“没有软件操作”“没按钮可讲”来纠正用户。用户说“步骤”或“拆解”时，理解成当前素材的关键过程。
+- 追问“这个”“这段”“为什么这样”时，结合最近对话、选中画面和时间范围理解；用户改问别的话题时，以当前问题为准。只回答用户所问，不因上一轮用了某种模板就继续套用。没有语音或画面文字也可以根据已提供的画面分析镜头、构图和可见动作，不能因此说视频没有内容。
 - 写报告、笔记、总结这类任务就完整地写出来，结构清楚。
 
 材料的局限：
@@ -660,15 +661,17 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     answered = False  # any answer text streamed so far
     must_research, researched = False, False
 
-    # What kind of question this is (modules/agent/intent.py): a skill it plainly asks for runs first,
-    # a tutorial question gets the step-by-step way of answering.
+    # Route tools/tasks without assuming the material is a software tutorial. The same bounded
+    # classification call gets recent discussion and selection context; no extra model round.
     steps += 1
     yield tool("route", "started", tool_name="decision.intent")
     yield tool("route", "input", input={"kind": "params", "params": {"question": question}})
     selected_kind = commands.FORCED_KINDS.get(command)
     route = (intent.Intent(selected_kind, None, {}, "已选任务") if selected_kind else
              intent.Intent("content", None, {}, "规则：内容概览") if summary else
-             await intent.classify(question, decider))
+             await intent.classify(question, decider, context=intent.context_for(
+                 job.video.title, description=job.video.description, history=history or [],
+                 selected_times=[s.time for s in chosen] if frames else [], ranges=ranges or [])))
     route_usage = getattr(route, "usage", None)
     if route_usage is not None:
         # Once per route attempt, regardless of whether it classified or fell back to keywords.
