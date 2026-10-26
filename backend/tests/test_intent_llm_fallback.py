@@ -43,7 +43,7 @@ def test_main_model_classifies_when_the_decider_is_unavailable(monkeypatch):
     monkeypatch.setattr("modules.llm.create_client", lambda config: main_model("tutorial"))
     got = asyncio.run(intent.classify("视频里第几秒点了哪个按钮", None))
     assert (got.kind, got.how, got.p) == ("tutorial", "主模型回退", None)
-    assert got.sure and got.skill is None and got.note.startswith("这是软件或操作教程类问题")
+    assert got.sure and got.skill is None and got.note.startswith("这是教程操作类问题")
     assert got.usage == {"prompt_tokens": 11, "completion_tokens": 2}
     assert got.elapsed_ms >= 0
     assert got.as_data()["usage"] == got.usage and got.as_data()["elapsed_ms"] == got.elapsed_ms

@@ -23,11 +23,11 @@ from dataclasses import dataclass
 
 CRITERIA = {
     "tutorial": "软件或操作教程类问题：问某一步怎么操作、第几秒点了哪个按钮或菜单、输入了什么、设置在哪里、为什么报错或卡住",
-    "content": "视频内容问答：问视频讲了什么、某段画面、台词、人物、事件或细节",
+    "content": "视频内容问答：问视频讲了什么、某段画面、台词、人物、事件或细节；总结、梳理知识点、写笔记或分析报告、解释视频里的概念、就视频的观点提问或延伸",
     "science": "核查整个视频：问这个视频的健康、医学、营养、科学说法整体对不对、靠不靠谱，或要求把视频的说法都核查、辟谣一遍",
     "verify": "核实某一个具体说法或数据：问视频里某句话、某个数字、某个出处是否属实，需要查资料",
     "fraud": "诈骗风险：问视频是不是骗局、能不能信、有没有风险、会不会被骗，是不是在引流或卖假货",
-    "chat": "和这个视频无关的闲聊或一般问题",
+    "chat": "和这个视频完全无关的闲聊或一般问题（总结、报告、知识点、视频里的概念都不算）",
 }
 QUESTION = "用户在看一个视频时提出了下面的问题。这个问题属于哪一类？"
 NAMES = {"tutorial": "教程操作", "content": "视频内容", "science": "科普核查", "verify": "核实说法", "fraud": "反诈识别", "chat": "与视频无关"}
@@ -35,6 +35,7 @@ SKILL = {"science": "check_science", "fraud": "check_fraud"}
 CONFIDENT = 0.6
 
 KEYWORDS = [  # order matters: the first that matches wins
+    ("content", re.compile(r"总结|概括|梳理|报告|笔记|知识点|讲了什么|主要内容|关键片段|重点")),
     ("fraud", re.compile(r"骗|诈|传销|引流|能信吗|可信吗|有没有风险|割韭菜|杀猪盘|理财陷阱")),
     ("science", re.compile(r"科普核查|(视频|这个|整个|全部|这些|它|博主|作者).{0,8}(说得对|对不对|靠谱|科学吗|伪科学|谣言|核查|辟谣)|"
                            r"(核查|辟谣).{0,6}(视频|这个|全部|一遍)")),
@@ -42,12 +43,13 @@ KEYWORDS = [  # order matters: the first that matches wins
     ("tutorial", re.compile(r"按钮|菜单|点击|点了|点哪|第几秒|哪一步|步骤|怎么操作|怎么设置|在哪设置|快捷键|报错|出错|卡住|选项|输入了|界面")),
 ]
 
-TUTORIAL_NOTE = ("这是软件或操作教程类问题。按操作顺序回答：每一步写清第几秒、点了哪个按钮或菜单、输入了什么，"
+TUTORIAL_NOTE = ("这是教程操作类问题。如果视频是网课或讲座、没有软件操作，就按讲解顺序列出知识点、例题和关键结论（带时间），不要说「这不是软件教程」；"
+                 "如果是软件教程，按操作顺序回答：每一步写清第几秒、点了哪个按钮或菜单、输入了什么，"
                  "按钮和菜单的名字照画面上的文字原样写；界面细节以画面和画面文字为准，语音只作补充；"
                  "关键一步只有一两张关键帧或看不清时，先用 view_frames 补看再回答；问到出错或卡住时，指出最可能出错的一步和原因。"
                  "用户说自己这里没有某个节点、菜单或功能，或问某个术语时：先用 lookup_software 查软件自带的目录，"
                  "不是自带的再用 web_search 搜是哪个插件或扩展，回答写清插件名、怎么安装（Blender 4.2 起多数在扩展平台，旧插件用 zip 安装）和出处链接，不要凭印象编。")
-CHAT_NOTE = "这个问题和视频内容无关：简短回答，并说明你主要是根据这个视频来回答问题的。"
+CHAT_NOTE = "这个问题和视频本身关系不大：直接用你的知识正常回答（需要最新信息时联网查），依据标 [知识] 或 [资料]；不要拒绝，也不必反复强调视频。"
 
 # The main chat model as the second decider: on Linux/cloud there is usually no local Ollama.
 LLM_FALLBACK_TIMEOUT = 5.0      # seconds; past this the question goes to the keyword rules
@@ -215,6 +217,15 @@ async def _by_main_model(question: str, *, client=None) -> tuple[Intent | None, 
 
 
 async def classify(question: str, decider=None, *, client=None) -> Intent:
+    """`_classify`, then one correction: a summary, report or notes asked for is about the video, whatever a
+    model called it (2026-10-26 the composer's own 「整理关键片段并写成分析报告」 came back as unrelated and was refused)."""
+    got = await _classify(question, decider, client=client)
+    if got.kind == "chat" and KEYWORDS[0][1].search(question):
+        got.kind, got.how = "content", got.how + "，按关键词改为视频内容"
+    return got
+
+
+async def _classify(question: str, decider=None, *, client=None) -> Intent:
     """Pick a kind, optionally through a caller-owned (e.g. metered) main-model client.
 
     The injected client is never closed here. Existing two-positional-argument callers keep the
