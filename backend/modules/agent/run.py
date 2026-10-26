@@ -48,6 +48,10 @@ WEB_GUIDE = """
 # The user asks for a lookup: an answer must not come before a web or paper tool has actually run.
 # Decided by the decision model; this keyword match is the fallback when it is unavailable.
 RESEARCH_RE = re.compile(r"查一?下|查查|搜|上网|网上|联网|核实|核查|论文|文献|资料|出处|来源|最新")
+# Without the decision model (DECISION=off on the web demo): questions whose answer lies outside the
+# video too — what it was made with, the music, who someone is, where something comes from.
+OUTSIDE_RE = re.compile(r"(?:哪个|哪款|什么|啥)(?:模板|特效|滤镜|插件|软件|工具|功能|AI|ai|App|app)"
+                        r"|(?:哪个|哪款|什么|啥)\S{0,8}?(?:做|生成|制作)(?:出来)?的|背景音乐|BGM|bgm|这首歌|什么歌|是谁|出自|原作")
 WEB_TOOLS = {"web_search", "fetch_page", "search_papers", "browse"}
 AUDIENCE_TOOLS = {"read_comments", "read_danmaku"}  # a question about viewers is answered by these, not a web search
 AUDIENCE_GUIDE = """
@@ -451,7 +455,7 @@ async def research_wanted(question: str, decider) -> tuple[bool, float | None]:
             return p >= 0.5 or bool(RESEARCH_RE.search(question)), p  # "这还不用搜？" is an ask, whatever p says
         except Exception:
             pass
-    return bool(RESEARCH_RE.search(question)), None
+    return bool(RESEARCH_RE.search(question) or OUTSIDE_RE.search(question)), None
 
 
 WAIT_MAX = 8.0  # only wait for the first usable evidence in the requested scope

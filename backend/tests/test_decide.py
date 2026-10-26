@@ -71,6 +71,12 @@ def test_research_intent_falls_back_to_keywords():
     decider = Decider(transport=httpx.MockTransport(down))
     assert asyncio.run(research_wanted("帮我上网核实一下", decider)) == (True, None)
     assert asyncio.run(research_wanted("这个视频讲了什么", None)) == (False, None)
+    made = ["这个奶蛙跳舞视频是用剪映哪个功能做的？", "这是抖音哪个模板？", "这首背景音乐叫什么？", "这个人是谁？",
+            "这个特效是什么AI做的？", "这个角色出自哪部动画？"]
+    own = ["第3步怎么做？", "总结一下这个视频", "这个镜头用了什么运镜？", "02:10 他手里拿的是什么？", "帮我整理成笔记",
+           "这个公式是怎么推出来的？", "我做到这一步卡住了，下一步点哪？", "这个Blender教程里眼睛是怎么做的？"]
+    assert [asyncio.run(research_wanted(q, None))[0] for q in made] == [True] * len(made)
+    assert [asyncio.run(research_wanted(q, None))[0] for q in own] == [False] * len(own)
     transport, _ = ollama(lambda p: {"A": 0.9, "B": 0.1})
     assert asyncio.run(research_wanted("这个说法靠谱吗", Decider(transport=transport))) == (True, 0.9)
     transport, _ = ollama(lambda p: {"A": 0.35, "B": 0.65})
