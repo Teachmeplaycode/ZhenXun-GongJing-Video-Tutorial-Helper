@@ -299,6 +299,7 @@ img { display: block; }
 /* ---------- stage 3: chat ---------- */
 .chat { position: relative; height: 100%; display: flex; flex-direction: column; gap: var(--sp-12); max-width: var(--chat-max-width); margin: 0 auto; }
 .chat__scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-anchor: none; scrollbar-width: thin; }
+.chat__reading { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .chat__thread { display: flex; flex-direction: column; gap: var(--sp-16); padding-bottom: var(--sp-8); }
 .chat__anchor { overflow-anchor: auto; height: 1px; }
 .chat__empty { display: flex; flex-direction: column; gap: var(--sp-16); padding: var(--sp-48) 0 var(--sp-24); }
@@ -789,10 +790,10 @@ img { display: block; }
 .bubble__options { color: var(--text-inverse-dim); }
 
 .chat__jump {
-  /* bottom-right corner, clear of the reading column's captions */
-  position: absolute; right: var(--sp-24); bottom: calc(100px + var(--sp-24)); z-index: 3;
+  /* Anchored inside the reading pane, so any composer height leaves pills and attachments clear. */
+  position: absolute; right: var(--sp-24); bottom: var(--sp-12); z-index: 3;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--text-primary) 12%, transparent);
-  display: inline-flex; align-items: center; gap: var(--sp-6); height: 30px; padding: 0 var(--sp-12);
+  display: inline-flex; align-items: center; gap: var(--sp-6); min-height: 44px; padding: 0 var(--sp-12);
   border: var(--border-hairline); border-radius: var(--radius-pill); background: var(--bg-surface); color: var(--text-primary);
   font-size: var(--fs-caption); cursor: pointer;
 }

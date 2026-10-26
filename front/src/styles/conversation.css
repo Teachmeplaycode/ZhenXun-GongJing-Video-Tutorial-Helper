@@ -1,6 +1,9 @@
 /* A quiet index of the actual conversation, attached to the reading column. */
 .chat[data-turn-rail] .chat__scroll { padding-right: var(--sp-80); }
 .chat__message-anchor { min-width: 0; outline: none; }
+.turn-rail { pointer-events: none; }
+.turn-rail button { pointer-events: auto; }
+.chat[data-turn-rail] .chat__jump { right: 88px; }
 .chat__message-anchor[data-turn-target] { animation: turn-target 800ms ease-out; }
 @keyframes turn-target { from { background: color-mix(in srgb, var(--accent-active) 18%, transparent); } to { background: transparent; } }
 .turn-rail { position: absolute; z-index: 7; right: var(--sp-32); top: var(--sp-8); bottom: 200px; width: 44px; display: flex; flex-direction: column; align-items: center; }

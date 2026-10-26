@@ -1,4 +1,6 @@
 import React from 'react'
+import { MathFormula } from '../components/MathText'
+import { splitMath } from './math'
 
 // A small Markdown subset rendered straight to React elements (never HTML strings): paragraphs,
 // headings, bulleted / numbered lists with indentation, tables, code blocks, quotes, rules,
@@ -37,6 +39,12 @@ const HEADING = /^(#{1,6})\s+(.*)$/
 export const toSeconds = (stamp) => stamp.split(':').reduce((acc, n) => acc * 60 + Number(n), 0)
 
 function inline(text, ctx, keyBase) {
+  return splitMath(text).flatMap((part, i) => part.type === 'math'
+    ? [<MathFormula key={`${keyBase}-math${i}`} text={part.text} display={part.display} />]
+    : inlinePlain(part.text, ctx, `${keyBase}-text${i}`))
+}
+
+function inlinePlain(text, ctx, keyBase) {
   const out = []
   let last = 0
   let n = 0
@@ -126,6 +134,20 @@ function blocks(text) {
       continue
     }
     const fence = line.match(FENCE)
+    const mathOpen = line.match(/^\s*(\$\$|\\\[)/)
+    if (mathOpen) {
+      const closing = mathOpen[1] === '$$' ? '$$' : '\\]'
+      let expression = lines[i].trimStart()
+      let endLine = i
+      while (!expression.slice(mathOpen[1].length).includes(closing) && endLine + 1 < lines.length) expression += '\n' + lines[++endLine]
+      const parts = splitMath(expression)
+      if (parts[0]?.type === 'math' && parts[0].display) {
+        para = null
+        result.push({ kind: 'math', parts })
+        i = endLine
+        continue
+      }
+    }
     const heading = line.match(HEADING)
     const item = line.match(LIST)
     if (fence) {
@@ -174,6 +196,8 @@ export function renderMarkdown(text, { onTime = null, duration = null, tail = nu
   return list.map((b, i) => {
     const end = i === list.length - 1 ? tail : null
     const key = `b${i}`
+    if (b.kind === 'math') return <div key={key} className="md-math">{b.parts.map((part, j) => part.type === 'math'
+      ? <MathFormula key={j} text={part.text} display={part.display} /> : <React.Fragment key={j}>{inline(part.text, ctx, `${key}-${j}`)}</React.Fragment>)}{end}</div>
     if (b.kind === 'h') {
       return <p key={key} className={`md-h md-h--${Math.min(b.level, 3)}`}>{inline(b.text, ctx, key)}{end}</p>
     }

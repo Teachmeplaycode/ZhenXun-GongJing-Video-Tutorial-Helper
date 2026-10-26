@@ -10,6 +10,7 @@ import io
 import html
 import zipfile
 from pathlib import Path
+from modules.math_render import finish_page, protect_math, restore_math
 
 from .markdown import ImageRef, STAMP_RE, clock, collect_image_refs, collect_sources, image_relative_path, safe_http_url, select_messages, stamp_to_seconds, time_link
 
@@ -71,6 +72,7 @@ def _img_tag(api_path: str, label: str, base_url: str) -> str:
 
 def _text_html(text: str, canonical_url: str, platform: str) -> str:
     """Escape all prose, then create real links only for recognized timestamps."""
+    text, maths = protect_math(text)
     chunks, cursor = [], 0
     for match in STAMP_RE.finditer(text):
         chunks.append(_esc(text[cursor:match.start()]))
@@ -79,7 +81,7 @@ def _text_html(text: str, canonical_url: str, platform: str) -> str:
         chunks.append(f'<a href="{_esc(href)}">{label}</a>' if href else label)
         cursor = match.end()
     chunks.append(_esc(text[cursor:]))
-    return "".join(chunks)
+    return restore_math("".join(chunks), maths)
 
 
 def _answer_html(message: dict, video: dict, index: int, job_id: str, base_url: str,
@@ -220,7 +222,7 @@ def build_print_html(video: dict, task: str, messages: list[dict], slots: list[d
     @page { size: A4; margin: 1.8cm; }
     @media print { body { max-width: none; padding: 0; } }
     """
-    return (
+    return finish_page(
         "<!DOCTYPE html>\n"
         '<html lang="zh-CN"><head><meta charset="utf-8">'
         f"<title>{_esc(title)} · 笔记</title>"
