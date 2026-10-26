@@ -599,6 +599,7 @@ test('a hand-framed replay comes back with its session', async ({ page }) => {
   await page.locator('.history .session-item', { hasText: '有手动慢放的会话' }).locator('.session-item__open').click()
   await expect(page.locator('.msg--manual .manual-replay__head')).toContainText('01:00.0 – 01:01.0')
   await expect(page.locator('.msg--manual .viz-replay__strip button')).toHaveCount(3)
+  await expect(page.locator('.msg--manual .viz-replay__controls .btn--ghost')).toHaveText('慢放') // an old replay waits to be played
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(3)
   await page.locator('.timeline__legend[data-kind="replay"] .timeline__legend-clear').click()
   await expect(page.locator('.tl-sheet.is-extra[data-kind="replay"]')).toHaveCount(0) // off the timeline
