@@ -1,7 +1,8 @@
 import React from 'react'
 
 // A small Markdown subset rendered straight to React elements (never HTML strings): paragraphs,
-// headings, bulleted / numbered lists with indentation, **bold**, *italic*, `code`. Times such as
+// headings, bulleted / numbered lists with indentation, tables, code blocks, quotes, rules,
+// **bold**, *italic*, `code`. Times such as
 // [04:34] or 06:10 become buttons that point the timeline at that moment. Partial input from a
 // stream renders fine: an unclosed marker simply shows as text until its closing half arrives.
 
@@ -15,8 +16,8 @@ const INLINE = new RegExp(
     `(?<![\\d:])${TIME.source}(?![\\d:])`, // 5 time
     '第\\s*(\\d{1,3})\\s*张', // 6 a picture of a picture set
     // 7, 8 a typed citation (backend modules/agent/evidence.py): [画面 01:19] [原声 01:13-01:24]
-    // [画面文字 01:26] [资料 https://…] [推断]. It starts at its "[", before any time or link inside it.
-    '\\[(画面文字|画面|原声|资料|推断)([^\\[\\]\\n]*)\\]',
+    // [画面文字 01:26] [资料 https://…] [知识] [推断]. It starts at its "[", before any time or link inside it.
+    '\\[(画面文字|画面|原声|资料|知识|推断)([^\\[\\]\\n]*)\\]',
   ].join('|'),
   'g',
 )
@@ -77,7 +78,7 @@ function inline(text, ctx, keyBase) {
   return out
 }
 
-const KIND = { 画面: 'frame', 原声: 'speech', 画面文字: 'screentext', 资料: 'source', 推断: 'inference' }
+const KIND = { 画面: 'frame', 原声: 'speech', 画面文字: 'screentext', 资料: 'source', 知识: 'knowledge', 推断: 'inference' }
 const KIND_TITLE = { 画面: '原片画面', 原声: '视频原声（语音转写）', 画面文字: '画面里的文字（文字识别）' }
 
 // One typed citation: what kind of evidence, when, and whether it held up when the answer was checked.
@@ -86,6 +87,7 @@ function Evidence({ kind, rest, marker, ctx }) {
   const failed = check && !check.ok
   const cls = `ev-chip ev-chip--${KIND[kind]}${failed ? ' is-missing' : ''}`
   if (kind === '推断') return <span className={cls} title="没有直接证据，是根据视频内容推出的判断">推断</span>
+  if (kind === '知识') return <span className={cls} title="模型自己的知识：不是视频里讲的，也没有在这次回答里联网核实">知识</span>
   if (kind === '资料') {
     const url = (rest.match(/https?:\/\/\S+/) || [''])[0].replace(/[.,;:]+$/, '')
     if (failed || !url) return <span className={cls} title={`该结论缺少可核对的资料：${check?.reason || '没有给出链接'}`}>资料{url ? ` · ${shortUrl(url)}` : ''}</span>
@@ -105,15 +107,47 @@ function Evidence({ kind, rest, marker, ctx }) {
 }
 const TIME_IN = /(\d{1,2}:\d{2}(?::\d{2})?)/
 
-// Lines → blocks: { kind: 'p' | 'h' | 'li', ... }. Consecutive plain lines form one paragraph.
+// Lines → blocks: { kind: 'p' | 'h' | 'li' | 'code' | 'table' | 'quote' | 'hr', ... }. Consecutive plain lines form one paragraph.
+const FENCE = /^\s*```\s*([\w+-]*)\s*$/
+const ROW = /^\s*\|(.*)\|\s*$/
+const RULE_ROW = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/
+const cells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
+
 function blocks(text) {
   const result = []
   let para = null
-  for (const raw of text.split('\n')) {
-    const line = raw.replace(/\s+$/, '')
+  let code = null
+  const lines = text.split('\n')
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].replace(/\s+$/, '')
+    if (code) { // inside a fenced block until its closing fence (a stream may not have it yet)
+      if (FENCE.test(line)) code = null
+      else code.lines.push(lines[i])
+      continue
+    }
+    const fence = line.match(FENCE)
     const heading = line.match(HEADING)
     const item = line.match(LIST)
-    if (!line.trim()) {
+    if (fence) {
+      para = null
+      code = { kind: 'code', lang: fence[1], lines: [] }
+      result.push(code)
+    } else if (ROW.test(line) && i + 1 < lines.length && RULE_ROW.test(lines[i + 1])) {
+      para = null
+      const table = { kind: 'table', head: cells(line), rows: [] }
+      i += 1
+      while (i + 1 < lines.length && ROW.test(lines[i + 1])) { i += 1; table.rows.push(cells(lines[i])) }
+      result.push(table)
+    } else if (!line.trim()) {
+      para = null
+    } else if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      para = null
+      result.push({ kind: 'hr' })
+    } else if (/^\s*>\s?/.test(line)) {
+      const quoted = line.replace(/^\s*>\s?/, '')
+      const last = result[result.length - 1]
+      if (last?.kind === 'quote' && !para) last.lines.push(quoted)
+      else result.push({ kind: 'quote', lines: [quoted] })
       para = null
     } else if (heading) {
       para = null
@@ -142,6 +176,24 @@ export function renderMarkdown(text, { onTime = null, duration = null, tail = nu
     const key = `b${i}`
     if (b.kind === 'h') {
       return <p key={key} className={`md-h md-h--${Math.min(b.level, 3)}`}>{inline(b.text, ctx, key)}{end}</p>
+    }
+    if (b.kind === 'code') {
+      return <pre key={key} className="md-pre" data-lang={b.lang || undefined}><code>{b.lines.join('\n')}</code>{end}</pre>
+    }
+    if (b.kind === 'hr') return <hr key={key} className="md-hr" />
+    if (b.kind === 'quote') {
+      return <blockquote key={key} className="md-quote">{b.lines.map((l, j) => <React.Fragment key={j}>{j ? <br /> : null}{inline(l, ctx, `${key}-${j}`)}</React.Fragment>)}{end}</blockquote>
+    }
+    if (b.kind === 'table') {
+      return (
+        <div key={key} className="md-table-wrap">
+          <table className="md-table">
+            <thead><tr>{b.head.map((c, j) => <th key={j}>{inline(c, ctx, `${key}-h${j}`)}</th>)}</tr></thead>
+            <tbody>{b.rows.map((r, j) => <tr key={j}>{b.head.map((_, k) => <td key={k}>{inline(r[k] || '', ctx, `${key}-${j}-${k}`)}</td>)}</tr>)}</tbody>
+          </table>
+          {end}
+        </div>
+      )
     }
     if (b.kind === 'li') {
       return (

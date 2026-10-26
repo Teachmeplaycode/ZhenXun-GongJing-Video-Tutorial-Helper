@@ -69,7 +69,7 @@ def test_a_tutorial_question_is_answered_step_by_step(tmp_path):
     events = asyncio.run(go())
     route = next(e for e in events if e.get("call_id") == "route" and e["type"] == "tool_call.output")
     assert route["data"]["kind"] == "tutorial" and route["stdout"].startswith("教程操作（关键词")
-    assert seen[0]["messages"][-1]["content"].startswith("（回答方式）这是软件或操作教程类问题")
+    assert seen[0]["messages"][-1]["content"].startswith("（回答方式）这是教程操作类问题")
 
 
 def test_a_fraud_question_runs_the_skill_first_and_the_model_answers_from_it(tmp_path, monkeypatch):
@@ -95,3 +95,22 @@ def test_a_fraud_question_runs_the_skill_first_and_the_model_answers_from_it(tmp
     first = seen[0]["messages"]
     assert first[-2]["tool_calls"][0]["function"]["name"] == "check_fraud" and first[-1]["content"] == "反诈识别完成：综合风险高。"
     assert len(seen) == 1  # answered from the skill, no further rounds forced
+
+
+def test_summaries_and_reports_are_about_the_video_not_small_talk():
+    # 2026-10-26: the composer's own 「整理关键片段并写成分析报告」 was routed as unrelated and refused
+    from modules.agent import intent
+    for q in ("整理关键片段并写成分析报告", "总结这段视频的主要内容", "帮我梳理一下知识点", "写一份学习笔记"):
+        assert intent.by_keywords(q).kind == "content", q
+
+
+def test_a_model_calling_a_report_unrelated_is_overruled():
+    import asyncio
+    from modules.agent import intent
+
+    class Decider:
+        async def choice(self, state, question, criteria, task=""):
+            from types import SimpleNamespace
+            return SimpleNamespace(choice="chat", probabilities={"chat": 0.8, "content": 0.2})
+    got = asyncio.run(intent.classify("整理关键片段并写成分析报告", Decider()))
+    assert got.kind == "content" and "改为视频内容" in got.how
