@@ -101,6 +101,7 @@ class FrameJob:
         self.events: list[dict] = []
         self._waiters: set[asyncio.Event] = set()
         self._refresh_lock = asyncio.Lock()
+        self.detail_lock = asyncio.Lock()  # serialize on-demand full-size frame cache writes
         self._refreshes = 0
         self._max_refreshes = max_refreshes
         self._fallback_added = False

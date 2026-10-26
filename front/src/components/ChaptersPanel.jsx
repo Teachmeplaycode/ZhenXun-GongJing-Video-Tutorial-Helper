@@ -24,8 +24,11 @@ export default function ChaptersPanel({ data = null, onSeek = null, embedded = f
     return !v
   })
   const open = embedded || folded
-  if (!data) return embedded ? <p className="bench__note muted">章节会在导入完成后自动生成。</p> : null
+  if (!data) return embedded ? <p className="bench__note muted">有可用画面或文字后，章节会自动生成。</p> : null
   const list = data.status === 'done' ? data.chapters || [] : []
+  const showStatus = data.status === 'done' && (data.provisional || data.updating || data.needs_retry)
+  const statusMessage = data.message || (data.updating ? '正在根据新增内容更新章节'
+    : data.provisional ? '已根据现有内容生成，后续自动补充' : '部分章节摘要暂未生成，已有章节仍可使用')
   return (
     <section className="chapters" data-open={open || undefined} data-embedded={embedded || undefined} aria-label="视频章节目录">
       <header className="chapters__head">
@@ -41,9 +44,14 @@ export default function ChaptersPanel({ data = null, onSeek = null, embedded = f
           </button>
         )}
       </header>
+      {open && showStatus ? (
+        <p className="bench__note chapters__note" role="status">
+          {statusMessage}
+        </p>
+      ) : null}
       {open && embedded && data.status === 'running' ? (
         <div className="steps-tab__working">
-          <Working label="正在生成章节目录" hint="导入完成后自动开始：等语音转写和画面文字读完，再切分章节、起标题。长视频要一两分钟。" />
+          <Working label="正在生成章节目录" hint="先用已有画面和文字生成，语音与画面文字处理完成后会自动补充。" />
         </div>
       ) : null}
       {open && data.summary ? <p className="chapters__overview body-sm">{data.summary}</p> : null}

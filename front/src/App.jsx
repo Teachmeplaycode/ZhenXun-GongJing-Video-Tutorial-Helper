@@ -197,7 +197,7 @@ export default function App() {
     poll(0)
     return () => { stopped = true; clearTimeout(timer) }
   }, [video?.jobId, inChat])
-  // Chapters: built in the background after the transcript lands; poll until they settle.
+  // Chapters use available frames/text first; keep that list while later evidence updates it.
   useEffect(() => {
     setChaptersData(null)
     const jobId = video?.jobId
@@ -209,7 +209,7 @@ export default function App() {
         const r = await fetchChapters(jobId)
         if (stopped) return
         setChaptersData(r)
-        if (r.status === 'running') timer = setTimeout(() => poll(tries + 1), 3000)
+        if (r.status === 'running' || r.provisional || r.updating) timer = setTimeout(() => poll(tries + 1), 3000)
       } catch {
         if (!stopped) timer = setTimeout(() => poll(tries + 1), 3000)
       }

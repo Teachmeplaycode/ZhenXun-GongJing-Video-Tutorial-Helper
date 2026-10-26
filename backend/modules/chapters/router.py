@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import time
 
 from fastapi import APIRouter
@@ -10,9 +12,11 @@ from modules import log
 from modules.frames import cuts
 from modules.llm import LLMError, Usage
 
-from .task import FILE, load, run_chapters, save, write_record
+from .task import FILE, _rows, load, run_chapters, save, write_record
 
-SIDE_WAIT = 30.0  # seconds the screen text and shot cuts get once the speech is in
+REFRESH_INTERVAL = 30.0  # coalesce arriving frames; completed producers bypass this delay
+MAX_ATTEMPTS = 3  # a temporary model failure gets two retries without polling forever
+INPUT_VERSION = 2  # older text-only caches must be regenerated with visual evidence
 
 
 class ChapterService:
@@ -29,20 +33,42 @@ class ChapterService:
         self.router = APIRouter()
         self.router.add_api_route('/api/link-jobs/{job_id}/chapters', self.get, methods=['GET'])
 
-    async def wait_inputs(self, job, timeout: float | None = None, side: float = SIDE_WAIT):
-        """The speech first (chapters are cut and titled from it); then the screen text and the shot cuts
-        for at most `side` seconds more: on the web demo's 4 cores OCR queues for minutes and the cut pass
-        took 162 s for a 9-minute video, and a chapter list without them beats waiting for them."""
-        # Producers own their duration-based timeouts; a long video is not a failure.
+    def pictures(self, job):
+        return [(slot.time, job.frame_path(slot.index)) for slot in job.in_time_order()
+                if slot.status == 'ok' and job.frame_path(slot.index).is_file()]
+
+    def pending_sources(self, job):
+        pending = [name for name in ('transcript', 'screentext')
+                   if getattr(job, name) is not None and getattr(job, name).status in {'pending', 'running'}]
+        if job.running or job.filling or any(slot.status == 'pending' for slot in job.slots):
+            pending.append('frames')
+        if job.id in self.cutting:
+            pending.append('cuts')
+        return pending
+
+    def inputs(self, job):
+        """Snapshot actual evidence, excluding progress messages that cannot improve a chapter."""
+        transcript = _rows(job.transcript.segments if job.transcript else [])
+        screen = _rows(job.screentext.segments if job.screentext else [])
+        pictures = self.pictures(job)
+        cuts_record = cuts.load(job.root)
+        frames = []
+        for timestamp, path in pictures:
+            stat = path.stat()
+            frames.append((timestamp, path.name, stat.st_size, stat.st_mtime_ns))
+        key = json.dumps([INPUT_VERSION, job.video.duration, transcript, screen,
+                          (cuts_record or {}).get('cuts', []), frames], ensure_ascii=False)
+        return dict(transcript=transcript, screen=screen, pictures=pictures, cuts_record=cuts_record,
+                    signature=hashlib.sha256(key.encode()).hexdigest(), pending=self.pending_sources(job))
+
+    async def wait_inputs(self, job, timeout: float | None = None):
+        """Wait only for the first usable evidence, never for every producer to finish."""
         deadline = time.monotonic() + timeout if timeout is not None else None
-        side_deadline = None
         while deadline is None or time.monotonic() < deadline:
-            t, s = job.transcript, job.screentext
-            if t is None or t.status not in {'pending', 'running'}:
-                side_deadline = side_deadline or time.monotonic() + side
-                rest = (s is None or s.status not in {'pending', 'running'}) and job.id not in self.cutting
-                if rest or time.monotonic() >= side_deadline:
-                    return
+            if (self.pictures(job) or
+                    any(text.strip() for state in (job.transcript, job.screentext) if state
+                        for _, _, text in _rows(state.segments)) or not self.pending_sources(job)):
+                return
             await asyncio.sleep(2)
         raise TimeoutError('章节输入尚未准备完成')
 
@@ -72,9 +98,11 @@ class ChapterService:
             while job.id not in self.deleted:
                 revision = self.revisions.get(job.id, 0)
                 if cuts.load(job.root) is None and job.id not in self.cutting:
-                    self.spawn(self.ensure_cuts(job))  # alongside: wait_inputs gives it SIDE_WAIT seconds
+                    self.spawn(self.ensure_cuts(job))
                     await asyncio.sleep(0)  # let it start and mark the job as cutting
                 await self.wait_inputs(job)
+                inputs = self.inputs(job)
+                previous = load(job.root) or {}
                 try:
                     client = self.get_client()
                 except LLMError:
@@ -82,18 +110,39 @@ class ChapterService:
 
                 async def complete(messages):
                     parts = []
-                    async for delta in client.stream(messages, Usage(), max_tokens=2048):
+                    async for delta in client.stream(messages, Usage(), max_tokens=4096):
                         parts.append(delta)
                     return ''.join(parts)
 
-                record = await run_chapters(job.root,
-                                            job.transcript.segments if job.transcript else [],
-                                            job.screentext.segments if job.screentext else [],
-                                            cuts.load(job.root), job.video.duration or 0,
+                record = await run_chapters(job.root, inputs['transcript'], inputs['screen'],
+                                            inputs['cuts_record'], job.video.duration or 0,
+                                            pictures=inputs['pictures'],
                                             complete=complete if client is not None else None, cache=False)
                 if job.id in self.deleted:
                     break
                 if revision == self.revisions.get(job.id, 0):
+                    # A failed refresh must not replace a previously successful chapter with a placeholder.
+                    incomplete = set(record.get('incomplete_chapters', []))
+                    generated = set(record.get('generated_chapters', []))
+                    old_generated = set(previous.get('generated_chapters', []))
+                    old_chapters = {(c['start'], c['end']): c
+                                    for i, c in enumerate(previous.get('chapters', []))
+                                    if i in old_generated}
+                    for i in incomplete:
+                        chapter = record['chapters'][i]
+                        old = old_chapters.get((chapter['start'], chapter['end']))
+                        if old is not None:
+                            record['chapters'][i] = old
+                            generated.add(i)
+                    record['generated_chapters'] = sorted(generated)
+                    if incomplete and previous.get('summary'):
+                        record['summary'] = previous['summary']
+                    attempts = (previous.get('_attempts', 0) if previous.get('_inputs') == inputs['signature'] else 0) + 1
+                    record.update(_inputs=inputs['signature'], _pending_sources=inputs['pending'],
+                                  _generated_at=time.time(), _attempts=attempts,
+                                  provisional=bool(inputs['pending']) or bool(record.get('needs_retry') and attempts < MAX_ATTEMPTS))
+                    if inputs['pending'] and not record.get('needs_retry'):
+                        record['message'] = '已根据现有画面和文字生成，后续内容就绪后自动补充'
                     write_record(job.root, record)
                     break
         except Exception as exc:
@@ -114,6 +163,27 @@ class ChapterService:
             return {"status": "unavailable", "chapters": [], "message": "图集没有章节", "summary": ""}
         record = load(job.root)
         if record is not None:
-            return record
+            inputs = self.inputs(job)
+            stale = record.get('_inputs') != inputs['signature']
+            finished_source = set(record.get('_pending_sources', [])) - set(inputs['pending'])
+            elapsed = time.time() - record.get('_generated_at', 0)
+            retryable = record.get('needs_retry') and record.get('_attempts', 0) < MAX_ATTEMPTS
+            if stale and (not inputs['pending'] or finished_source or
+                          elapsed >= REFRESH_INTERVAL):
+                self.start(job)
+            elif retryable and elapsed >= REFRESH_INTERVAL:
+                self.start(job)
+            updating = job.id in self.running
+            provisional = bool(inputs['pending']) or stale or bool(retryable)
+            if updating:
+                message = '正在补充章节，已有章节仍可使用'
+            elif record.get('needs_retry'):
+                message = ('部分章节摘要暂未生成，稍后自动重试' if retryable else
+                           '部分章节摘要暂未生成，已有章节仍可使用')
+            elif provisional:
+                message = '已根据现有画面和文字生成，后续内容就绪后自动补充'
+            else:
+                message = (f"已生成 {len(record['chapters'])} 个章节" if record['status'] == 'done' else record.get('message', ''))
+            return {**record, 'provisional': provisional, 'updating': updating, 'message': message}
         self.start(job)
         return {'status': 'running', 'chapters': [], 'message': ''}

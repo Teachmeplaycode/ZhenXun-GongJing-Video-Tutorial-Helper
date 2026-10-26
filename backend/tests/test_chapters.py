@@ -119,6 +119,7 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setitem(app.jobs, "job1", job)
     app.chapter_service.running.clear()
     app.chapter_service.deleted.clear()
+    app.cutting.clear()
     from modules.frames import cuts
     cuts.save(job.root, "done", [])
     return app, job, store
@@ -155,16 +156,18 @@ def test_app_generates_chapters_from_real_job_states(api, monkeypatch):
     assert job.id not in app.chapter_service.running
 
 
-def test_chapters_wait_for_pending_inputs_and_cuts(api, monkeypatch):
+def test_chapters_wait_only_until_the_first_input_arrives(api, monkeypatch):
     app, job, _ = api
     real_sleep = asyncio.sleep
     job.transcript.status = "pending"
+    job.transcript.segments = []
     app.cutting.add(job.id)
     waits = []
 
     async def finish_inputs(_):
         waits.append(True)
         job.transcript.status = "done"
+        job.transcript.segments = [Segment(0, 20, '首段文字')]
         app.cutting.discard(job.id)
         await real_sleep(0)
 
@@ -223,6 +226,7 @@ def test_inputs_can_run_longer_than_ten_minutes(api, monkeypatch):
     app, job, _ = api
     from modules.chapters import router
     job.transcript.status = 'running'
+    job.transcript.segments = []
     ticks = iter([0, 700, 1400, 2100])
     monkeypatch.setattr(router.time, 'monotonic', lambda: next(ticks, 9999))
     waits = []
@@ -230,6 +234,7 @@ def test_inputs_can_run_longer_than_ten_minutes(api, monkeypatch):
     async def finish(_):
         waits.append(True)
         job.transcript.status = 'done'
+        job.transcript.segments = [Segment(0, 20, '迟到的首段文字')]
 
     monkeypatch.setattr(router.asyncio, 'sleep', finish)
     asyncio.run(app.chapter_service.wait_inputs(job))
@@ -317,7 +322,7 @@ def test_restored_session_runs_missing_cut_detection_before_build(api, monkeypat
     assert 100 in {c['end'] for c in load(job.root)['chapters']}
 
 
-def test_chapters_wait_for_the_speech_but_only_briefly_for_screen_text_and_cuts(api, monkeypatch):
+def test_available_speech_does_not_wait_for_screen_text_and_cuts(api, monkeypatch):
     app, job, _ = api
     job.transcript.status = "done"
     job.screentext.status = "running"   # OCR still queued on the server
@@ -330,5 +335,5 @@ def test_chapters_wait_for_the_speech_but_only_briefly_for_screen_text_and_cuts(
 
     monkeypatch.setattr(app.asyncio, "sleep", tick)
     asyncio.run(app.chapter_service.wait_inputs(job))
-    assert 30 <= clock[0] <= 32  # SIDE_WAIT, not until OCR and cuts end
+    assert clock[0] == 0  # existing evidence is enough; late OCR/cuts refresh the result
     app.cutting.discard(job.id)

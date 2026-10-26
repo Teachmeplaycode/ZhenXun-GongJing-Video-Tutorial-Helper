@@ -146,6 +146,64 @@ test('timeline: a long press on a sheet opens the frame viewer, without picking 
   await expect(page.locator('.tl-sheet.is-selected')).toHaveCount(0)
 })
 
+test('frame viewer: reads the source frame and offers native-size scrolling', async ({ page }) => {
+  const errors = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  page.on('console', (message) => {
+    // playwright.config.js deliberately disables WebGL; the app's existing static fallback logs this.
+    const expectedWebGL = /^THREE\.WebGLRenderer: (A WebGL context could not be created\. Reason:  disabled by enterprise policy or commandline switch|Error creating WebGL context\.)/.test(message.text())
+    if (message.type() === 'error' && !expectedWebGL) errors.push(message.text())
+  })
+  await enterChat(page)
+  await expect(page).toHaveURL(/localhost:5199/)
+  await expect(page).toHaveTitle(/帧寻/)
+  await expect(page.locator('vite-error-overlay')).toHaveCount(0)
+  await page.route('**/api/link-jobs/job1/frames/*.jpg?detail=true', (route) => route.fulfill({
+    status: 200, contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><rect width="1920" height="1080" fill="#243339"/><text x="90" y="120" fill="white" font-size="36">Original frame: 1920 x 1080</text></svg>',
+  }))
+  const box = await page.locator('.tl-sheet').nth(3).boundingBox()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height - 8)
+  await page.mouse.down()
+  await page.waitForTimeout(650)
+  await page.mouse.up()
+  const viewer = page.getByRole('dialog', { name: /放大查看/ })
+  await expect(viewer.getByRole('status')).toHaveText('原帧 1920×1080')
+  await expect(viewer.locator('img')).toHaveAttribute('src', /^blob:/)
+  await viewer.getByRole('button', { name: '原始尺寸' }).click()
+  await expect(viewer.locator('.lightbox__viewport')).toHaveClass(/is-native/)
+  expect(await viewer.locator('img').evaluate((img) => img.getBoundingClientRect().width)).toBe(1920)
+  if (process.env.CODEX_QA_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.CODEX_QA_SCREENSHOT_DIR}/detail-native.png` })
+  await viewer.getByRole('button', { name: '适应窗口' }).click()
+  await expect(viewer.locator('.lightbox__viewport')).not.toHaveClass(/is-native/)
+  if (process.env.CODEX_QA_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.CODEX_QA_SCREENSHOT_DIR}/detail-desktop.png` })
+  await page.setViewportSize({ width: 390, height: 844 })
+  // Phones replace the timeline with the workbench frame picker; its viewer unmounts.
+  await expect(page.locator('.timeline')).toHaveCount(0)
+  await expect(viewer).toHaveCount(0)
+  await expect(page.locator('.composer__input')).toBeVisible()
+  if (process.env.CODEX_QA_SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.CODEX_QA_SCREENSHOT_DIR}/detail-mobile-app.png` })
+  expect(errors).toEqual([])
+})
+
+test('frame viewer: an unavailable source keeps the preview and can still advance', async ({ page }) => {
+  await enterChat(page)
+  await page.route('**/api/link-jobs/job1/frames/*.jpg?detail=true', (route) => route.fulfill({ status: 503, body: 'unavailable' }))
+  const box = await page.locator('.tl-sheet').nth(3).boundingBox()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height - 8)
+  await page.mouse.down()
+  await page.waitForTimeout(650)
+  await page.mouse.up()
+  const viewer = page.getByRole('dialog', { name: /放大查看/ })
+  await expect(viewer.getByRole('status')).toHaveText('高清帧暂不可用，显示预览')
+  const src = await viewer.locator('img').getAttribute('src')
+  expect(src).toMatch(/\/frames\/3\.jpg$/)
+  await expect(viewer.getByRole('button', { name: '原始尺寸' })).toHaveCount(0)
+  await page.keyboard.press('ArrowRight')
+  await expect(viewer.locator('img')).not.toHaveAttribute('src', src)
+  await expect(viewer.locator('img')).toBeVisible()
+})
+
 test('timeline: a typed interval replays or attaches, and explains what it rejects', async ({ page }) => {
   const mock = await enterChat(page)
   await page.getByRole('button', { name: '输入区间' }).click()
