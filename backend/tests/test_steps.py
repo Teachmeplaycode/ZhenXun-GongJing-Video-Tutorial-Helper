@@ -92,3 +92,29 @@ def test_parse_reads_the_shapes_models_wrap_lines_in():
     assert [(s["time"], s["action"]) for s in got] == [
         (56.0, "调整网格分段"), (72.0, "使用点实例节点"), (96.0, "新建矢量运算节点"),
         (115.0, "输出线性衰减属性"), (125.0, "复制点大小节点"), (133.0, "调整点乘的轴")]
+
+
+def test_a_long_video_may_have_more_steps_and_a_long_action_stays_whole():
+    assert steps.limit(100) == 30 and steps.limit(693) == 46 and steps.limit(2246) == 60
+    assert "最多 46 步" in steps.messages("t", ["[00:01 · 1s] 说：x"], 46)[0]["content"]
+    many = "\n".join(f"{i}|第{i}步|" for i in range(10, 700, 14))
+    assert len(steps.parse(many, 693)) == 46
+    long = "点「Download for Windows」下载 Docker Desktop 安装程序"
+    assert steps.parse(f"00:05|{long}|", 60)[0]["action"] == long  # once cut at 30: 「Download for Wind」
+
+
+def test_each_step_gets_its_own_sharper_picture_when_one_can_be_read(tmp_path):
+    import asyncio
+    cards = [{"n": 1, "time": 5.0}, {"n": 2, "time": 9.0}]
+    asked = []
+
+    async def sharp(t, out, width):
+        asked.append((t, width))
+        if t > 8:
+            return False  # this one can't be read: the keyframe stays
+        out.write_bytes(b"jpg")
+        return True
+
+    asyncio.run(steps.take_shots(tmp_path, cards, sharp))
+    assert [c["shot"] for c in cards] == [True, False] and sorted(asked) == [(5.0, 1600), (9.0, 1600)]
+    assert steps.shot_path(tmp_path, 1).read_bytes() == b"jpg"

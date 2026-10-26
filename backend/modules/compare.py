@@ -86,7 +86,7 @@ def parse(output: str, videos: list[dict]) -> dict:
                     step = None  # a step already placed in an earlier row
                 if step is not None:
                     used[i].add(step["n"])
-                picked.append(None if step is None else {k: step.get(k) for k in ("n", "time", "action", "frame")})
+                picked.append(None if step is None else {k: step.get(k) for k in ("n", "time", "action", "frame", "shot")})
             note = cells[2 + n] if len(cells) > 2 + n else ""
             if op and any(picked) and len(rows) < MAX_ROWS:
                 rows.append({"op": op, "cells": picked, "note": note[:60]})

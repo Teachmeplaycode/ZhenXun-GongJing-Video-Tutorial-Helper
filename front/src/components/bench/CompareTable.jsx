@@ -1,5 +1,5 @@
 import React from 'react'
-import { linkFrameUrl } from '../../api/client'
+import { stepShotUrl } from '../../api/client'
 import { fmtClock } from '../../lib/format'
 
 // The comparison of 2–5 tutorials (backend modules/compare.py): each video with its label and what it
@@ -34,7 +34,7 @@ export default function CompareTable({ result, currentId = null, onJump }) {
                 return c ? (
                   <button key={v.id} type="button" className="compare-cell" onClick={() => onJump?.(v, c)}
                     title={`${v.label} 第 ${c.n} 步：${c.action}${v.id === currentId ? '' : '（打开那个教程）'}`}>
-                    {c.frame != null ? <img src={linkFrameUrl(v.id, c.frame)} alt="" loading="lazy" /> : <span className="compare-cell__blank" />}
+                    {c.frame != null || c.shot ? <img src={stepShotUrl(v.id, c)} alt="" loading="lazy" /> : <span className="compare-cell__blank" />}
                     <span className="compare-cell__tag mono-sm">{v.label} · {fmtClock(c.time)}</span>
                   </button>
                 ) : <span key={v.id} className="compare-cell compare-cell--none mono-sm">{v.label} 没讲</span>
