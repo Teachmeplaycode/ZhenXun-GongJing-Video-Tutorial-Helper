@@ -10,6 +10,7 @@ from pathlib import Path
 from ..video_source import Stream
 
 FRAME_WIDTH = 640
+DETAIL_WIDTH = 3840  # retain 1080p / 4K source pixels for small UI text; never upscale
 
 
 @dataclass
@@ -48,7 +49,8 @@ async def grab_frame(stream: Stream, time_sec: float, out: Path, timeout: float 
     args = [
         "ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y", *before,
         "-ss", f"{max(0.0, time_sec):.3f}", i, url,
-        "-frames:v", "1", "-an", "-vf", f"scale='min({width},iw)':-2", "-q:v", "4", str(tmp),
+        "-frames:v", "1", "-an", "-vf", f"scale='min({width},iw)':-2",
+        "-q:v", "2" if width > FRAME_WIDTH else "4", str(tmp),
     ]
     try:
         proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)

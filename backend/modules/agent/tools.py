@@ -632,21 +632,32 @@ class AgentTools:
                     self.hd = await resolver.hd_streams(self.job.video)
                 except Exception:  # noqa: BLE001 — the import's streams still work
                     self.hd = []
-            heights = [s.height for s in self.hd if s.height] or [s.height for s in self.job.video.streams if s.height]
-            self.job.video.extra["read_height"] = max(heights, default=0)  # what small print is read at
 
         async def once() -> bool:
             for stream in [s for s in self.hd if not s.expired()]:  # any failure: on to the import's own
                 if (await grab_frame(stream, t, out, width=width)).ok:
+                    self.job.video.extra["read_height"] = stream.height
                     return True
             for stream in [s for s in self.job.video.streams if not s.expired()]:
                 result = await grab_frame(stream, t, out, width=width)
                 if result.ok:
+                    self.job.video.extra["read_height"] = stream.height
                     return True
                 if result.kind != "forbidden":
                     return False
             return False
-        return await once() or (await self._refresh() and await once())
+        if await once():
+            return True
+        if not await self._refresh():
+            return False
+        # Refresh the high-resolution tracks too, not just the preview tracks.
+        resolver = self.job.resolver
+        if resolver is not None and hasattr(resolver, "hd_streams"):
+            try:
+                self.hd = await resolver.hd_streams(self.job.video)
+            except Exception:  # noqa: BLE001
+                self.hd = []
+        return await once()
 
     async def _refresh(self) -> bool:
         """Re-acquire stream addresses once per answer (expired, or a session restored without them). Reads

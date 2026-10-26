@@ -631,11 +631,45 @@ async def job_events(job_id: str, since: int = 0):
 
 
 @app.get("/api/link-jobs/{job_id}/frames/{index}.jpg")
-async def job_frame(job_id: str, index: int):
+async def job_frame(job_id: str, index: int, detail: bool = False):
     job = get_job(job_id)
     path = job.frame_path(index)
     if not (0 <= index < len(job.slots)) or job.slots[index].status != "ok" or not path.is_file():
         raise HTTPException(404, "该帧尚未获取")
+    if detail and not images.is_images(job.video):
+        import cv2
+        from modules.frames.grabber import DETAIL_WIDTH
+
+        # Separate cache: thumbnails keep loading quickly, and retrying a slot at another
+        # timestamp cannot show the previous frame's full-size image.
+        folder = job.root / "detail"
+        folder.mkdir(exist_ok=True)
+        binding_key = ""
+        if job.video.platform == "bilibili":
+            from hashlib import sha256
+            from modules.settings import settings
+
+            # A new binding can unlock a sharper source immediately. Store only its
+            # one-way fingerprint, never the login itself, in the detail cache name.
+            binding_key = "-" + sha256(settings().get("BILIBILI_COOKIE", "").strip().encode()).hexdigest()[:16]
+        target = folder / f"{index}-{round(job.slots[index].time * 1000)}{binding_key}.jpg"
+        async with job.detail_lock:
+            cached = await asyncio.to_thread(cv2.imread, str(target)) if target.is_file() else None
+            # A low-resolution fallback should be retried after the person logs in to the
+            # video platform; don't permanently cache that fallback as the best source.
+            fresh = cached is not None and (cached.shape[1] >= 1920 or time.time() - target.stat().st_mtime < 60)
+            if not fresh:
+                available = await AgentTools(job).sharp(job.slots[index].time, target, DETAIL_WIDTH)
+                if not available and cached is None:
+                    raise HTTPException(503, "暂时无法读取高清帧，仍可查看预览图")
+                if available:
+                    cached = await asyncio.to_thread(cv2.imread, str(target))
+            if cached is None:
+                raise HTTPException(503, "高清帧无法读取，仍可查看预览图")
+            height, width = cached.shape[:2]
+        return FileResponse(target, media_type="image/jpeg", headers={
+            "Cache-Control": "private, no-store", "X-Frame-Width": str(width), "X-Frame-Height": str(height),
+        })
     return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import gsap from 'gsap'
 import { IconChevron, IconClose } from './Icons'
@@ -14,8 +14,38 @@ export default function FrameLightbox({ items, at, onAt, onClose, onSeek = null 
   const boxRef = useRef(null)
   const closeRef = useRef(null)
   const item = items[at]
+  const [detail, setDetail] = useState(null)
+  const [nativeSize, setNativeSize] = useState(false)
+  const canReadDetail = /\/api\/link-jobs\/[^/]+\/frames\/\d+\.jpg(?:\?.*)?$/.test(item?.src || '') && !item?.label
+  const current = detail?.key === item?.src ? detail : null
   const many = items.length > 1
   const go = (k) => onAt((at + k + items.length) % items.length)
+
+  useEffect(() => {
+    setNativeSize(false)
+    if (!canReadDetail || !item?.src) return undefined
+    const controller = new AbortController()
+    let objectUrl
+    const key = item.src
+    setDetail({ key, status: 'loading' })
+    const load = async () => {
+      try {
+        const response = await fetch(`${key}${key.includes('?') ? '&' : '?'}detail=true`, { signal: controller.signal })
+        if (!response.ok) throw new Error('detail unavailable')
+        const blob = await response.blob()
+        if (controller.signal.aborted) return
+        objectUrl = URL.createObjectURL(blob)
+        setDetail({ key, status: 'ready', src: objectUrl })
+      } catch (error) {
+        if (error.name !== 'AbortError' && !controller.signal.aborted) setDetail({ key, status: 'failed' })
+      }
+    }
+    load()
+    return () => {
+      controller.abort()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [item?.src, canReadDetail])
 
   useEffect(() => {
     const back = document.activeElement
@@ -44,12 +74,27 @@ export default function FrameLightbox({ items, at, onAt, onClose, onSeek = null 
     <div className="lightbox" role="dialog" aria-modal="true" aria-label={`放大查看 ${item.label || fine(item.time)}`}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <figure ref={boxRef} className="lightbox__box">
-        <img src={item.src} alt={`画面 ${item.label || fine(item.time)}`} />
+        <div className={`lightbox__viewport${nativeSize ? ' is-native' : ''}`}>
+          <img src={current?.src || item.src} alt={`画面 ${item.label || fine(item.time)}`}
+            onLoad={(e) => {
+              if (current?.status === 'ready' && !current.size && e.currentTarget.getAttribute('src') === current.src) {
+                const size = `${e.currentTarget.naturalWidth}×${e.currentTarget.naturalHeight}`
+                setDetail((d) => d?.key === item.src ? { ...d, size } : d)
+              }
+            }}
+            onError={() => { if (current?.src) setDetail({ key: item.src, status: 'failed' }) }} />
+        </div>
         <figcaption className="lightbox__bar">
           {item.tag ? <span className="lightbox__tag" data-kind={item.kind || undefined}>{item.tag}</span> : null}
           <span className="mono-sm">{item.label || fine(item.time)}</span>
           {many ? <span className="mono-sm lightbox__count">{at + 1} / {items.length}</span> : null}
+          {canReadDetail ? <span className="lightbox__quality" role="status">
+            {current?.status === 'ready' ? `原帧 ${current.size || ''}` : current?.status === 'failed' ? '高清帧暂不可用，显示预览' : '正在读取高清帧…'}
+          </span> : null}
           <span className="lightbox__spacer" />
+          {current?.status === 'ready' ? <button type="button" className="lightbox__btn" onClick={() => setNativeSize((v) => !v)}>
+            {nativeSize ? '适应窗口' : '原始尺寸'}
+          </button> : null}
           {onSeek ? (
             <button type="button" className="lightbox__btn" onClick={() => { onSeek(item.time); onClose() }}>在时间轴上定位</button>
           ) : null}
