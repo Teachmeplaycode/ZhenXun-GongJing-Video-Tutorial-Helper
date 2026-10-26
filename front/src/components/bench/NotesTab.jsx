@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { applyNoteRevision, discardNoteDraft, generateNotes, getNotes, notesExportUrl, notesImageUrl, restoreNoteRevision } from '../../api/client'
+import { applyNoteRevision, discardNoteDraft, generateNotes, getNotes, getSteps, notesExportUrl, notesImageUrl, restoreNoteRevision } from '../../api/client'
 import PreviewDialog from '../PreviewDialog'
 import ExportDialog from '../ExportDialog'
 import { IconBook } from '../Icons'
@@ -10,7 +10,8 @@ const POLL = 2000
 const generating = (s) => s?.generation?.status === 'running' || s?.status === 'running'
 const versionDate = (v) => v ? new Date(v * 1000).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
 
-export default function NotesTab({ video, messages = [], conversation }) {
+// stepsToNotes: bumped by 导入笔记 on the steps tab; each bump starts a note (or a revision) with the step cards.
+export default function NotesTab({ video, messages = [], conversation, stepsToNotes = 0 }) {
   const jobId = video?.jobId
   const [state, setState] = useState(null)
   const [error, setError] = useState('')
@@ -19,6 +20,9 @@ export default function NotesTab({ video, messages = [], conversation }) {
   const [exportOpen, setExportOpen] = useState(false)
   const [preview, setPreview] = useState(null)
   const [imageSrc, setImageSrc] = useState(null)
+  const [stepCount, setStepCount] = useState(0) // built step cards, offered as material
+  const [withSteps, setWithSteps] = useState(true)
+  const importAsked = useRef(0)
   const timer = useRef(0)
   const mounted = useRef(false)
   const activeJob = useRef(jobId)
@@ -75,8 +79,9 @@ export default function NotesTab({ video, messages = [], conversation }) {
       if (mounted.current && activeJob.current === jobId) { mutating.current = false; setBusy(false) }
     }
   }
-  const start = (source) => mutate(() => generateNotes(jobId, {
+  const start = (source, useSteps = withSteps && stepCount > 0) => mutate(() => generateNotes(jobId, {
     source,
+    ...(useSteps ? { use_steps: true } : {}),
     ...(source === 'conversation' ? { message_ids: conversation.messageIds, instruction: instruction.trim() } : {}),
     ...(state?.revision ? { base_revision: state.revision } : {}),
   }))
@@ -88,6 +93,22 @@ export default function NotesTab({ video, messages = [], conversation }) {
     const result = await mutate(() => discardNoteDraft(jobId))
     if (result) setPreview(null)
   }
+  useEffect(() => {
+    setStepCount(0)
+    if (!jobId) return undefined
+    const ctrl = new AbortController()
+    getSteps(jobId, { signal: ctrl.signal })
+      .then((r) => setStepCount(r?.status === 'done' ? (r.steps || []).length : 0)).catch(() => {})
+    return () => ctrl.abort()
+  }, [jobId, stepsToNotes])
+  useEffect(() => { if (stepsToNotes) importAsked.current = stepsToNotes }, [stepsToNotes])
+  useEffect(() => {
+    if (!importAsked.current || !state || !stepCount || busy) return
+    importAsked.current = 0
+    if (generating(state) || state.draft) { setError('先等当前生成完成，或处理待确认的修订，再导入步骤。'); return }
+    setWithSteps(true)
+    start('video', true)
+  }, [state, stepCount, busy]) // eslint-disable-line react-hooks/exhaustive-deps
   const openEditor = () => window.open(`${window.location.pathname}#/notes/${jobId}`, '_blank', 'noopener')
   if (!jobId) return <p className="bench__note muted">导入视频后可以生成笔记。</p>
   const note = state?.note
@@ -139,6 +160,8 @@ export default function NotesTab({ video, messages = [], conversation }) {
     </section> : null}
     <section className="notes-source" aria-label="笔记来源">
       <h4>整理内容</h4>
+      {stepCount ? <label className="notes-source__steps"><input type="checkbox" checked={withSteps} onChange={(e) => setWithSteps(e.target.checked)} />
+        把已整理的 {stepCount} 张步骤卡作为素材</label> : null}
       <button type="button" className="btn btn--ghost" disabled={!canGenerate} onClick={() => start('video')}>{note ? '重新整理整段视频' : '整理整段视频'}</button>
       <div className="notes-source__conversation">
         <div className="notes-source__heading"><strong>根据对话{note ? '更新' : '整理'}</strong><span className="caption muted">已选 {chosenCount} 轮</span></div>

@@ -19,6 +19,7 @@
 .notes-turn__content strong { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .notes-turn__answer { font-size: 12px; line-height: 1.6; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; white-space: pre-wrap; }
 .notes-turn__reason { color: var(--text-secondary); font-size: 11px; }
+.notes-source__steps { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .notes-source__instruction { display: grid; gap: 8px; font-size: 12px; color: var(--text-secondary); }
 .notes-source__instruction textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 86px; border: var(--border-hairline); border-radius: 4px; background: var(--bg-primary, transparent); color: var(--text-primary); padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.65; }
 .notes-source__instruction textarea:focus-visible { outline: 2px solid var(--accent-active-dim); outline-offset: 2px; }

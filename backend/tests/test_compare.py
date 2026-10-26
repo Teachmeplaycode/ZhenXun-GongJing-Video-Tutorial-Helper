@@ -47,7 +47,7 @@ def test_endpoint_builds_missing_steps_then_compares_and_caches(tmp_path, monkey
     class Model:
         async def stream(self, messages, usage, **kwargs):
             asked.append(messages[0]["content"][:6])
-            yield "75|输入公式|\n69|跨表框选|" if messages[0]["content"].startswith("你从软件教程") else ANSWER
+            yield "75|输入公式|\n69|跨表框选|" if messages[0]["content"].startswith("你把视频整理") else ANSWER
 
     monkeypatch.setattr(app, "get_llm", lambda: Model())
     client = TestClient(app.app)

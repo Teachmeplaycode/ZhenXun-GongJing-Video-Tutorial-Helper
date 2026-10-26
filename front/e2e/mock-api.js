@@ -313,6 +313,7 @@ export class MockApi {
         return route.fulfill({ status: 200, contentType: 'application/zip', body: 'PK' })
       } else if (req.method() === 'POST') {
         // Writing takes one status check: running now, done on the next GET.
+        this.notesAsked = body
         this.notes = { status: 'running', message: '已整理第 1 节', progress: { done: 1, total: 4 }, note: null }
         return json({ ...this.notes, board: null })
       } else if (this.notes.status === 'running') {

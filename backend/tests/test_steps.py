@@ -64,7 +64,7 @@ def test_build_numbers_steps_puts_each_on_its_nearest_frame_and_caches(tmp_path)
     assert "[00:12 · 12s] 屏：数据验证" in seen[0][1]["content"]
     assert steps.load(job.root) == record
     none = asyncio.run(steps.build(job, lambda m: asyncio.sleep(0, "无")))
-    assert none["status"] == "empty" and "不是教程" in none["message"]
+    assert none["status"] == "empty" and "读不出" in none["message"]
 
 
 def test_endpoints_build_on_post_and_serve_the_cache(tmp_path, monkeypatch):
@@ -139,3 +139,17 @@ def test_steps_that_stop_half_way_are_followed_to_the_end(tmp_path):
     seen.clear()
     asyncio.run(steps.build(job, lambda m: seen.append(m) or asyncio.sleep(0, "30|开头|\n160|快结束|")))
     assert len(seen) == 1  # reaching the end needs no second call
+
+
+def test_any_video_gets_steps_and_says_which_kind():
+    assert steps.kind_of("类型|内容\n00:05|介绍两款耳机|") == "content"
+    assert steps.kind_of("**类型：操作**\n00:05|点开设置|") == "operation"
+    assert steps.kind_of("00:05|点开设置|") == "operation"  # an old-style reply is a tutorial's
+    assert [s["action"] for s in steps.parse("类型|内容\n00:05|介绍两款耳机|\n01:10|对比降噪|", 120)] == ["介绍两款耳机", "对比降噪"]
+    assert "已定为「内容」" in steps.messages("t", ["[00:01 · 1s] 说：x"], 120, 60, "content")[0]["content"]
+
+
+def test_a_talk_is_kept_as_content_steps(tmp_path):
+    job = tutorial(tmp_path)
+    record = asyncio.run(steps.build(job, lambda m: asyncio.sleep(0, "类型|内容\n00:12|讲数据验证的用处|\n00:40|讲序列来源|")))
+    assert record["status"] == "done" and record["kind"] == "content" and len(record["steps"]) == 2

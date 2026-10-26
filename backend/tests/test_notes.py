@@ -231,3 +231,18 @@ def test_a_section_without_a_usable_moment_gets_its_middle_frame():
     note = asyncio.run(build_note(title="课", duration=600, transcript=TRANSCRIPT, screen=SCREEN, chapters=CHAPTERS,
                                   complete=complete, grab=grab))
     assert [s["figures"][0]["time"] for s in note["sections"]] == [60.0, 210.0, 450.0] and sorted(grabbed) == [60.0, 210.0, 450.0]
+
+
+def test_step_cards_are_material_for_the_section_they_fall_in():
+    calls = []
+    cards = [{"time": 130, "action": "代入例题七", "detail": "n 取 100"}, {"time": 420, "action": "套用夹逼准则", "detail": ""}]
+
+    async def grab(t):
+        return None
+
+    asyncio.run(build_note(title="视频", duration=600, transcript=TRANSCRIPT, screen=SCREEN, chapters=CHAPTERS,
+                           complete=fake_model(calls), grab=grab, steps=cards))
+    by_start = {float(c[1]["content"].split("本节时间：")[1].split("–")[0]): c[1]["content"] for c in calls[:3]}
+    assert "【已整理的步骤】" not in by_start[0.0]
+    assert "【已整理的步骤】\n[02:10] 代入例题七（n 取 100）" in by_start[120.0] and "夹逼准则" not in by_start[120.0].split("【已整理的步骤】")[1]
+    assert "[07:00] 套用夹逼准则" in by_start[300.0]

@@ -991,10 +991,10 @@ async def build_compare(body: CompareRequest):
         for j in missing:
             await steps.build(j, complete, sharp=AgentTools(j).sharp)
         cards = [steps.load(j.root) or {} for j in jobs]
-        empty = [j.video.title for j, c in zip(jobs, cards) if c.get("status") != "done"]
+        empty = [j.video.title for j, c in zip(jobs, cards) if c.get("status") != "done" or c.get("kind") == "content"]
         if empty and len(jobs) - len(empty) < 2:
             raise HTTPException(422, f"「{empty[0][:20]}」整理不出操作步骤，可能不是教程")
-        kept = [(j, c) for j, c in zip(jobs, cards) if c.get("status") == "done"]  # the rest aren't tutorials: said, not fatal
+        kept = [(j, c) for j, c in zip(jobs, cards) if c.get("status") == "done" and c.get("kind") != "content"]  # the rest aren't tutorials: said, not fatal
         record = await compare.build(DATA_ROOT, [j for j, _ in kept], [c for _, c in kept], complete, asked=wanted, skipped=empty)
     except LLMError as err:
         raise HTTPException(502, f"对照失败：{err.message}") from err

@@ -108,6 +108,12 @@ def stretch_text(transcript, screen, start: float, end: float, limit: int = SECT
     return speech_text[: limit - min(len(screen_text), room)], screen_text[:room]
 
 
+def steps_text(steps: list[dict] | None, start: float, end: float) -> str:
+    """The step cards (modules/steps) inside [start, end), one `[mm:ss] action（detail）` line each."""
+    return "\n".join(f"[{clock(s['time'])}] {s['action']}" + (f"（{s['detail']}）" if s.get("detail") else "")
+                     for s in steps or [] if start <= float(s.get("time", -1)) < end)
+
+
 SECTION_PROMPT = """你是认真负责的视频笔记整理者。根据这一段的视频画面、语音转写和画面文字，按实际内容整理笔记。
 要求：
 - 先理解素材类型：可以是电影、镜头分析、知识讲解、生活记录、教程或其他内容，不预设为软件教程或课堂。
@@ -115,6 +121,7 @@ SECTION_PROMPT = """你是认真负责的视频笔记整理者。根据这一段
 - 数学、物理等公式用 LaTeX 写在 formulas 里（不加 $ 符号），文字说明写在 points 里。
 - figures 选 1 到 3 个能支撑本节内容的清楚画面。time 用秒数，必须在本节时间范围内。
 - 附带的画面是本节抽样的几帧（标了时间）；语音转写缺失或很少时，以画面为主。没有公式、例题就将对应数组留空。
+- 给了【已整理的步骤】时，它是从这段视频整理出的步骤卡：按它的顺序把操作或内容环节写进要点，配图优先选步骤所在的时间；与语音、画面文字不一致时以原素材为准。
 只输出一个 JSON 对象，不要其他文字：
 {"title": "本节标题，不超过 20 字",
  "points": ["要点，一句话，不超过 60 字", "……3 到 8 条"],
@@ -226,7 +233,7 @@ def _image_parts(pictures: list[tuple[str, Path]]) -> list[dict]:
 
 async def build_note(*, title: str, duration: float, transcript, screen, chapters: list[dict] | None,
                      complete: Completer, grab: FrameGrab, progress: Progress | None = None,
-                     pictures: Pictures | None = None) -> dict:
+                     pictures: Pictures | None = None, steps: list[dict] | None = None) -> dict:
     """The note as a dict (see Section); raises only if there is nothing to write about."""
     parts = spans(duration, chapters)
     if not parts:
@@ -245,13 +252,14 @@ async def build_note(*, title: str, duration: float, transcript, screen, chapter
     async def one(i: int, start: float, end: float, hint: str) -> Section:
         speech, shown = stretch_text(transcript, screen, start, end)
         images = _image_parts(pictures(start, end)) if pictures else []
-        if not speech and not shown and not images:
+        if not speech and not shown and not images and not steps_text(steps, start, end):
             step(f"第 {i + 1} 节没有可整理的内容")
             return Section(f"s{i + 1}", hint or f"第 {i + 1} 节", start, end,
                            points=["这一段没有读到语音、画面文字和画面，无法整理。"])
         user = (f"本节时间：{start:.1f}–{end:.1f} 秒（{clock(start)}–{clock(end)}）。"
                 + (f"章节标题参考：{hint}\n" if hint else "\n")
-                + f"\n【语音转写】\n{speech or '（无）'}\n\n【画面文字】\n{shown or '（无）'}")
+                + f"\n【语音转写】\n{speech or '（无）'}\n\n【画面文字】\n{shown or '（无）'}"
+                + (f"\n\n【已整理的步骤】\n{cards}" if (cards := steps_text(steps, start, end)) else ""))
         content = [{"type": "text", "text": user}, *images] if images else user
         async with gate:
             try:

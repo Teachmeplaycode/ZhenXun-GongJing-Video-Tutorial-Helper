@@ -264,6 +264,7 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
 
   const chapterList = chapters?.status === 'done' ? chapters.chapters || [] : []
   const [busyTabs, setBusyTabs] = useState({}) // tabs with a job running: a pulsing dot on the tab and the handle
+  const [stepsToNotes, setStepsToNotes] = useState(0) // bumped by 导入笔记 on the steps tab: the notes tab starts a note from them
   const conversation = {
     ...conversationSelection,
     onJump: (key) => { jumpToTurn(key); if (window.matchMedia('(max-width: 900px)').matches) setBenchOpen(false) },
@@ -275,9 +276,13 @@ export default function ChatStage({ active, video, frames, duration = null, onSe
     chapters: <ChaptersPanel data={chapters} onSeek={onSeek} embedded active={activeChapter}
       onSelect={onChapterSelect} onHover={onChapterHover} />,
     steps: <StepsTab video={video} onSeek={onSeek} onBusy={(b) => setBusyTabs((t) => ({ ...t, steps: b }))}
-      onStuck={(s) => { setCommand('卡点'); setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`) }} />,
+      onStuck={(s, kind) => {
+        if (kind === 'content') { setDraft(`第 ${s.n} 步「${s.action}」这里我没看懂，能展开讲讲吗？`); return }
+        setCommand('卡点'); setDraft(`我做到第 ${s.n} 步「${s.action}」卡住了，下一步该怎么做？（可以附上截图）`)
+      }}
+      onToNotes={() => { setStepsToNotes((n) => n + 1); setBenchTab('notes') }} />,
     compare: <CompareTab video={video} onSeek={onSeek} onOpenSession={onOpenSession} onBusy={(b) => setBusyTabs((t) => ({ ...t, compare: b }))} />,
-    notes: <NotesTab video={video} messages={messages} conversation={conversation} />,
+    notes: <NotesTab video={video} messages={messages} conversation={conversation} stepsToNotes={stepsToNotes} />,
   }
 
   return (

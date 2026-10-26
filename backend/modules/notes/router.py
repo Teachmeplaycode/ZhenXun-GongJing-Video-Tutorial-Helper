@@ -22,6 +22,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from modules import log
 from modules.agent.tools import AgentTools
+from modules import steps as step_cards
 from modules.chapters import load as load_chapters
 from modules.llm import LLMError, Usage
 
@@ -102,10 +103,16 @@ class NotesService:
             inside = [inside[round(i * step)] for i in range(n)]
         return [(f"画面 · {clock(s.time)}", job.frame_path(s.index)) for s in inside]
 
+    @staticmethod
+    def _steps(job) -> list[dict]:
+        """The video's step cards, when they have been built: material a note may draw on."""
+        record = step_cards.load(job.root) or {}
+        return record.get("steps") or [] if record.get("status") == "done" else []
+
     async def build(self, job, request: dict | None = None) -> None:
         timer = log.Timer()
         previous = load(job.root)
-        request = request or {"source": "video", "message_ids": [], "instruction": "", "turns": []}
+        request = request or {"source": "video", "message_ids": [], "instruction": "", "turns": [], "use_steps": False}
         base_board = load(job.root, BOARD)
         base_note = (previous or {}).get("note")
         base_revision = fingerprint(base_note, base_board)
@@ -153,7 +160,8 @@ class NotesService:
                           transcript=job.transcript.segments if job.transcript else [],
                           screen=job.screentext.segments if job.screentext else [],
                           chapters=chapter_list, complete=complete, grab=grab,
-                          progress=progress, pictures=lambda a, b: self._pictures(job, a, b))
+                          progress=progress, pictures=lambda a, b: self._pictures(job, a, b),
+                          steps=self._steps(job) if request.get("use_steps") else None)
             if request["source"] == "conversation" or base_note or request["instruction"]:
                 turns = request.get("turns") or [{
                     "question": {"id": 0, "content": "结合原视频整体修订这份笔记，保留当前手改内容与批注，补齐相关要点。"},
@@ -204,18 +212,22 @@ class NotesService:
             original_ids = {s["id"] for s in (effective_note(base_note, base_board) or {}).get("sections") or []}
             changes = [("改写小节：" if s["id"] in original_ids else "新增小节：") + s["title"]
                        for s in note["sections"] if s["id"] in changed]
+            used_steps = len(inputs["steps"] or [])
+            if used_steps:
+                changes.append(f"参考了 {used_steps} 张步骤卡")
             made = time.time()
             result = {"id": uuid.uuid4().hex, "note": note, "board": board, "changes": changes,
                       "base_revision": base_revision, "created": made, "source": request["source"],
-                      "message_ids": request["message_ids"], "instruction": request["instruction"]}
+                      "message_ids": request["message_ids"], "instruction": request["instruction"], "used_steps": used_steps}
             current = load(job.root) or {}
             if current.get("note"):
                 current["draft"] = result
                 current.update(status="done", message="修订已生成，请预览后更新当前笔记", progress={})
             else:
                 current.update(status="done", note=note, draft=None, made=made,
-                               source=request["source"], message_ids=request["message_ids"],
-                               message=f"已整理 {len(note['sections'])} 节" + ("（部分内容仍在处理）" if pending else ""), progress={})
+                               source=request["source"], message_ids=request["message_ids"], used_steps=used_steps,
+                               message=f"已整理 {len(note['sections'])} 节" + (f"，参考了 {used_steps} 张步骤卡" if used_steps else "")
+                               + ("（部分内容仍在处理）" if pending else ""), progress={})
             current["generation"] = {"id": generation_id, "status": "done", "message": current["message"], "progress": {}}
             write(job.root, current)
             log.event("notes", job_id=job.id, sections=len(note["sections"]),
@@ -256,6 +268,11 @@ class NotesService:
         body = body or {}
         source = body.get("source", "video")
         instruction = body.get("instruction", "")
+        use_steps = body.get("use_steps", False)
+        if not isinstance(use_steps, bool):
+            raise HTTPException(422, "use_steps 应为 true 或 false")
+        if use_steps and not self._steps(job):
+            raise HTTPException(409, "还没有整理好的步骤，先在「步骤」里整理")
         if not isinstance(source, str) or source not in {"video", "conversation"} or not isinstance(instruction, str) or len(instruction) > 2000:
             raise HTTPException(422, "笔记来源或整理要求格式不对（要求最多 2000 字）")
         state = self._state(job)
@@ -274,7 +291,7 @@ class NotesService:
         frame_times = {s.index: s.time for s in job.slots}
         for turn in turns:
             turn["question"] = {**turn["question"], "frame_times": [frame_times[i] for i in turn["question"].get("frames", []) if i in frame_times]}
-        request = {"source": source, "instruction": instruction.strip(), "message_ids": [m[role]["id"] for m in turns for role in ("question", "answer")], "turns": turns}
+        request = {"source": source, "use_steps": use_steps, "instruction": instruction.strip(), "message_ids": [m[role]["id"] for m in turns for role in ("question", "answer")], "turns": turns}
         self.running.add(job.id)
         try:
             self.spawn(self.build(job, request))

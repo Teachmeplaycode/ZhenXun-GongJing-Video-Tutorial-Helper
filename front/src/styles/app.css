@@ -1120,7 +1120,8 @@ img { display: block; }
 
 /* notes tab */
 .steps-tab { display: flex; flex-direction: column; }
-.steps-tab__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-8); padding: var(--sp-16) var(--sp-16) var(--sp-8); }
+.steps-tab__head { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-8); padding: var(--sp-16) var(--sp-16) var(--sp-8); }
+.steps-tab__head .eyebrow { margin-right: auto; }
 .steps-tab__list { list-style: none; margin: 0; padding: 0 var(--sp-16); display: flex; flex-direction: column; gap: var(--sp-10); }
 .step-card { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-10); padding: var(--sp-8); border: var(--border-hairline); border-radius: 10px; background: var(--surface-1, var(--bg-elevated, transparent)); }
 .step-card__shot { position: relative; padding: 0; border: 0; border-radius: 6px; overflow: hidden; aspect-ratio: 16 / 9; background: var(--grid-line); cursor: pointer; }

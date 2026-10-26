@@ -333,3 +333,21 @@ def test_topic_note_uses_questions_and_manual_content_instead_of_tutorial_templa
     assert result["sections"][0]["points"] == ["分析：低机位强化体量"]
     assert changed[0] == "s1" and len(changed) == 2
     assert result["sections"][0]["figures"][0]["src"].endswith("00001000.jpg")
+
+
+def test_steps_go_into_a_note_only_when_asked_and_built(env, monkeypatch):
+    service, job, client, _ = env
+    assert client.post("/api/link-jobs/j/notes", json={"source": "video", "use_steps": True}).status_code == 409
+    assert client.post("/api/link-jobs/j/notes", json={"source": "video", "use_steps": "yes"}).status_code == 422
+    from modules import steps
+    steps.save(job.root, {"status": "done", "kind": "content", "steps": [{"n": 1, "time": 5, "action": "介绍低机位", "detail": ""}]})
+    given = []
+
+    async def build(**inputs):
+        given.append(inputs["steps"])
+        return note("镜头笔记")
+
+    monkeypatch.setattr("modules.notes.router.build_note", build)
+    done = client.post("/api/link-jobs/j/notes", json={"source": "video", "use_steps": True}).json()
+    assert given == [[{"n": 1, "time": 5, "action": "介绍低机位", "detail": ""}]]
+    assert done["used_steps"] == 1 and "参考了 1 张步骤卡" in done["message"]
