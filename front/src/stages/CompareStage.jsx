@@ -2,10 +2,19 @@ import React, { useEffect, useRef, useState } from 'react'
 import { buildCompare, createLinkJob, getLinkJob } from '../api/client'
 import CompareTable from '../components/bench/CompareTable'
 import Working from '../components/Working'
+import { startClientOcr } from '../lib/clientOcr'
 
 const POLL = 4000 // ms between looks at the videos being read
 const settled = (s) => !['pending', 'running'].includes(s?.status)
 const STATUS = { resolving: '解析链接', reading: '抓画面、转写语音', ready: '已读完', failed: '失败' }
+
+function BrowserOcrJob({ id, mode }) {
+  useEffect(() => {
+    if (!id || !['hybrid', 'local'].includes(mode)) return undefined
+    return startClientOcr(id, { mode })
+  }, [id, mode])
+  return null
+}
 
 // Several tutorial links pasted on the homepage: each is imported as its own session, and once their
 // speech and screen text are read, their step cards are lined up side by side (backend modules/compare.py).
@@ -25,7 +34,7 @@ export default function CompareStage({ links, sampling = null, onOpenSession }) 
       for (let i = 0; i < links.length; i += 1) {
         try {
           const job = await createLinkJob(links[i], { sampling })
-          update(i, { id: job.job_id, title: job.video?.title || links[i], status: 'reading' })
+          update(i, { id: job.job_id, title: job.video?.title || links[i], status: 'reading', ocrMode: sampling?.ocr_fps === 0 ? 'server' : job.video?.ocr_mode || 'server' })
         } catch (err) {
           update(i, { status: 'failed', error: err.message })
         }
@@ -72,6 +81,7 @@ export default function CompareStage({ links, sampling = null, onOpenSession }) 
   const jump = (v, cell) => onOpenSession?.(v.id, cell.time)
   return (
     <section className="compare-stage" aria-label="教程对照">
+      {items.filter(it => it.status === 'reading' && it.id).map(it => <BrowserOcrJob key={it.id} id={it.id} mode={it.ocrMode} />)}
       <header className="compare-stage__head">
         <span className="eyebrow">教程对照 · {links.length} 个</span>
         <h2>{phase === 'done' ? '对照好了' : phase === 'failed' ? '没能对照' : '正在读这几个教程'}</h2>

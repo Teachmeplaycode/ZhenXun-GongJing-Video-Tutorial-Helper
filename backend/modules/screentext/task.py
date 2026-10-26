@@ -8,9 +8,11 @@ it as timed captions, which the model gets like the speech transcript. Frames ar
 from __future__ import annotations
 
 import asyncio
+import os
 import shutil
 import time
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -25,6 +27,18 @@ FPS = 1
 HEIGHT = 540        # frames are scaled to this height for OCR
 TARGET_HEIGHT = 480  # preferred stream height: subtitles stay legible, the download stays small
 BATCH = 40          # frames recognized per thread hop (progress is reported between batches)
+READ_SLOTS = max(1, int(os.environ.get("OCR_READ_SLOTS", "2")))
+_read_slots: asyncio.Semaphore | None = None
+
+
+@asynccontextmanager
+async def sampling_slot():
+    """Bound full-clip decoders independently of the CPU recognition queue."""
+    global _read_slots
+    if _read_slots is None:
+        _read_slots = asyncio.Semaphore(READ_SLOTS)
+    async with _read_slots:
+        yield
 
 # pending · running · done · empty (no text on screen) · unavailable (no OCR here) · failed
 FINISHED = {"done", "empty", "unavailable"}
@@ -36,6 +50,7 @@ class ScreenText:
     message: str = ""
     segments: list[Caption] = field(default_factory=list)
 
+    processing: dict | None = None  # actual frame work done by browser/server
     skipped: int = 0  # frames whose picture hadn't changed, so their text was not read again
 
     @property
@@ -43,7 +58,8 @@ class ScreenText:
         return self.status == "running"
 
     def summary(self) -> dict:
-        return {"status": self.status, "message": self.message, "count": len(self.segments)}
+        return {"status": self.status, "message": self.message, "count": len(self.segments),
+                **({"processing": self.processing} if self.processing is not None else {})}
 
     def as_dict(self) -> dict:
         return {**self.summary(), "segments": [c.as_dict() for c in self.segments]}
@@ -55,8 +71,8 @@ class ScreenText:
         segments = [Caption(s["start"], s["end"], s["text"], s.get("pos", "bottom")) for s in data.get("segments") or []]
         status = data.get("status", "pending")
         if status in ("pending", "running"):
-            return cls("failed", "识别被中断（后端重启），可以重试", segments)
-        return cls(status, data.get("message", ""), segments)
+            return cls("failed", "识别被中断（后端重启），可以重试", segments, processing=data.get("processing"))
+        return cls(status, data.get("message", ""), segments, processing=data.get("processing"))
 
 
 async def _frames_from(stream: Stream, folder: Path, offset: float, timeout: float,
@@ -68,6 +84,10 @@ async def _frames_from(stream: Stream, folder: Path, offset: float, timeout: flo
     proc = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
     try:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+    except asyncio.CancelledError:
+        proc.kill()
+        await proc.wait()
+        raise
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
@@ -129,7 +149,8 @@ ReadFrames = Callable[[Stream, Path, float], Awaitable[GrabResult]]
 Recognize = Callable[[str], list]
 
 
-async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recognize: Recognize | None = None) -> None:
+async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recognize: Recognize | None = None,
+                         server_gate=None) -> None:
     """Fill `job.screentext`; never raises. Emits `screentext` events with status and message."""
     state: ScreenText = job.screentext
 
@@ -140,12 +161,17 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
     fps = float(sampling.saved(job.video).get("ocr_fps", FPS))  # the rate chosen on import (modules/frames/sampling)
     if fps <= 0:
         return finish("unavailable", "导入时关闭了画面文字识别，只看抽样画面")
-    recognize = recognize or (ocr.recognizer() if ocr.available() else None)  # one reader per video: it remembers boxes
-    if recognize is None:
+    mode = sampling.saved(job.video).get("ocr_mode", "server")
+    if mode not in {"hybrid", "local", "server"}:
+        mode = "server"
+    recognize = recognize if mode == "local" else recognize or (ocr.recognizer() if ocr.available() else None)
+    if recognize is None and mode == "server":
         return finish("unavailable", "本机不支持画面文字识别（需要 macOS），只看抽样画面")
 
-    state.status, state.segments = "running", []
-    job.emit({"type": "screentext", **state.summary(), "message": "正在读取画面"})
+    state.status, state.segments, state.message = "running", [], "正在读取画面"
+    state.processing = ({"mode": mode, "done": 0, "total": 0, "local": 0, "server": 0}
+                        if mode in {"hybrid", "local"} else None)
+    job.emit({"type": "screentext", **state.summary()})
     folder = job.root / "screentext"
     # about playback time: a throttled source (YouTube) streams no faster than it plays
     timeout = max(120.0, job.video.duration * 1.2)
@@ -155,7 +181,8 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
             started = _now()
             for stream in pick_streams(job.video.streams):
                 shutil.rmtree(folder, ignore_errors=True)
-                result = await (read(stream, folder, timeout) if fps == FPS else read(stream, folder, timeout, fps=fps))
+                async with sampling_slot():
+                    result = await (read(stream, folder, timeout) if fps == FPS else read(stream, folder, timeout, fps=fps))
                 if result.ok or result.kind not in ("forbidden", "timeout"):  # refused or stalled: try the next address
                     break
             if result is None or result.ok or result.kind not in ("forbidden", "timeout") or attempt:
@@ -166,7 +193,7 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
                 await asyncio.sleep(STALL_PAUSE)  # the CDN stopped sending for a while (-rw_timeout): once more
                 continue
             try:  # every address refused (expired): re-acquire them once
-                job.video = await job.resolver.refresh(job.video)
+                job.video = sampling.preserve(job.video, await job.resolver.refresh(job.video))
             except ResolveError as exc:
                 return finish("failed", f"视频地址获取失败：{exc.message}")
         if result is None or not result.ok:
@@ -191,23 +218,37 @@ async def run_screentext(job: FrameJob, *, read: ReadFrames = read_frames, recog
                 out.append(found)
             return out
 
-        # Publish useful OCR before the whole video finishes. Doubling the threshold bounds
-        # repeated merging to less than twice the final input size, rather than O(n²) batches.
-        publish_at = BATCH
-        for i in range(0, len(files), BATCH):
-            batch = files[i:i + BATCH]
-            lines = await asyncio.to_thread(read_batch, batch)
-            frames += [((int(f.stem) - 1) / fps, found) for f, found in zip(batch, lines)]
-            if len(frames) >= publish_at or i + BATCH >= len(files):
-                state.segments = await asyncio.to_thread(build, frames, 1 / fps)
-                publish_at = max(publish_at * 2, len(frames) + BATCH)
-            job.emit({"type": "screentext", **state.summary(), "message": f"正在识别文字 {min(i + BATCH, len(files))}/{len(files)}"})
+        if mode in {"hybrid", "local"}:
+            from .hybrid import run_distributed
+
+            async def publish(readings):
+                state.segments = await asyncio.to_thread(build, readings, 1 / fps)
+                job.emit({"type": "screentext", **state.summary()})
+
+            frames = await run_distributed(job, files, fps, mode,
+                                           read_batch if recognize is not None and mode != "local" else None,
+                                           publish, server_gate)
+        else:
+            # Publish useful OCR before the whole video finishes. Doubling the threshold bounds
+            # repeated merging to less than twice the final input size, rather than O(n²) batches.
+            publish_at = BATCH
+            for i in range(0, len(files), BATCH):
+                batch = files[i:i + BATCH]
+                lines = await asyncio.to_thread(read_batch, batch)
+                frames += [((int(f.stem) - 1) / fps, found) for f, found in zip(batch, lines)]
+                if len(frames) >= publish_at or i + BATCH >= len(files):
+                    state.segments = await asyncio.to_thread(build, frames, 1 / fps)
+                    publish_at = max(publish_at * 2, len(frames) + BATCH)
+                job.emit({"type": "screentext", **state.summary(), "message": f"正在识别文字 {min(i + BATCH, len(files))}/{len(files)}"})
         partial = {"partial": f"；{result.detail}，后面没能读取", "gaps": f"；{result.detail}"}.get(result.kind, "")
         if state.segments:
             finish("done", f"识别到 {len(state.segments)} 段画面文字{partial}")
         else:
             finish("empty", "画面上没有识别到文字")
+    except asyncio.CancelledError:
+        finish("failed", "画面文字识别已中止，可以重试")
+        raise
     except Exception as exc:  # decoding / OCR failures are reported, not raised
-        return finish("failed", f"画面文字识别失败：{type(exc).__name__}")
+        return finish("failed", str(exc)[:180] if isinstance(exc, ValueError) else f"画面文字识别失败：{type(exc).__name__}")
     finally:
         shutil.rmtree(folder, ignore_errors=True)

@@ -15,7 +15,7 @@ test('sampling: the preset (and only the overrides set) goes with the import, an
   await expect(page.locator('.import-entry__sampling')).toHaveText(/解析设置\s*精细 · 自定义/)
   await page.locator('.import-control__link').fill(LINK)
   await page.locator('.import-control__submit').click()
-  await expect.poll(() => mock.requests.find((r) => r.path === '/api/link-jobs')?.body?.sampling).toEqual({ preset: 'fine', ocr_fps: 0 })
+  await expect.poll(() => mock.requests.find((r) => r.path === '/api/link-jobs')?.body?.sampling).toEqual({ preset: 'fine', ocr_mode: 'hybrid', ocr_fps: 0 })
 
   await page.reload()
   await expect(page.locator('.import-entry__sampling')).toHaveText(/解析设置\s*精细 · 自定义/)
@@ -50,7 +50,7 @@ test('sampling: automatic is the default without overwriting saved choices', asy
   expect(await shots.evaluate((el) => el.indeterminate)).toBe(true)
   await page.locator('.import-control__link').fill(LINK)
   await page.locator('.import-control__submit').click()
-  await expect.poll(() => mock.requests.find((r) => r.path === '/api/link-jobs')?.body?.sampling).toEqual({ preset: 'auto' })
+  await expect.poll(() => mock.requests.find((r) => r.path === '/api/link-jobs')?.body?.sampling).toEqual({ preset: 'auto', ocr_mode: 'hybrid' })
   await page.evaluate(() => localStorage.setItem('import.sampling', JSON.stringify({ preset: 'standard', frames: '', shots: null, ocr_fps: '' })))
   await page.reload()
   await expect(page.locator('.import-entry__sampling')).toHaveText(/解析设置\s*标准$/)

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { IconArrowRight, IconClose, IconFilm, IconImage, IconLink, IconUpload, IconChevron } from '../components/Icons'
 import { linkFrameUrl, looksLikeLink } from '../api/client'
 import { extractLinks } from '../lib/links'
+import { normalizeOcrMode } from '../lib/ocrMode'
 import { fmtBytes, fmtClock } from '../lib/format'
 import { linkPlatform, platformName } from '../lib/platforms'
 import { BRAND, WORKSPACE_CONTENT } from '../config/workspace'
@@ -16,7 +17,8 @@ const MAX_LINKS = 5 // several links at once: tutorials of the same task, compar
 const SAMPLING_KEY = 'import.sampling'
 const loadSampling = () => {
   try {
-    return { ...DEFAULT_SAMPLING, ...JSON.parse(localStorage.getItem(SAMPLING_KEY) || '{}') }
+    const saved = JSON.parse(localStorage.getItem(SAMPLING_KEY) || '{}')
+    return { ...DEFAULT_SAMPLING, ...saved, ocr_mode: normalizeOcrMode(saved?.ocr_mode) }
   } catch {
     return DEFAULT_SAMPLING
   }

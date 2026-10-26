@@ -23,11 +23,16 @@ export function speechStep(t) {
   }
 }
 
-// On-screen text (subtitles, captions) read once per second across the whole video.
+// On-screen text follows the import sampling plan; counts below refer to actual OCR sample frames.
 export function screenStep(t) {
   if (!t) return { state: 'pending', value: '' }
+  const work = t.processing
+  const progress = work?.total > 0
+    ? work.mode === 'local' ? `本机 ${work.done}/${work.total} 张`
+      : `${work.done}/${work.total} 张 · 本机 ${work.local} · 服务器 ${work.server}`
+    : ''
   switch (t.status) {
-    case 'running': return { state: 'running', value: t.message || '识别中' }
+    case 'running': return { state: 'running', value: progress || t.message || '识别中' }
     case 'done': return { state: 'done', value: `${t.count} 段` }
     case 'empty': return { state: 'done', value: '画面没有文字' }
     case 'unavailable': return { state: 'warn', value: '本机不支持' }

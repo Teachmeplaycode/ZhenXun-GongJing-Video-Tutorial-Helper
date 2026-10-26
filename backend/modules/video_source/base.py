@@ -67,6 +67,8 @@ class ResolvedVideo:
 
     def public(self) -> dict:
         """Client-safe view: no stream addresses or headers."""
+        sampling = self.extra.get("sampling")
+        mode = sampling.get("ocr_mode") if isinstance(sampling, dict) else None
         return {
             "platform": self.platform,
             "video_id": self.video_id,
@@ -82,6 +84,7 @@ class ResolvedVideo:
             "notes": self.notes,
             "stream_count": len(self.streams),
             "has_audio": bool(self.audio_streams),
+            "ocr_mode": mode if mode in ("hybrid", "local", "server") else "server",
             "stats": self.extra.get("stats") or {},
             "tags": self.extra.get("tags") or [],
             "kind": self.extra.get("kind") or "video",  # "images": an image post or uploaded pictures

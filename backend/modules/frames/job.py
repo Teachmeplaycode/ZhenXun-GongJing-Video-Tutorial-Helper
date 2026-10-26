@@ -258,7 +258,8 @@ class FrameJob:
             if self._refreshes < self._max_refreshes:
                 self._refreshes += 1
                 try:
-                    self.video = await self.resolver.refresh(self.video)
+                    from .sampling import preserve
+                    self.video = preserve(self.video, await self.resolver.refresh(self.video))
                     self._fallback_added = False
                     self._generation += 1
                     self.emit({"type": "status", "message": "播放地址已重新获取"})

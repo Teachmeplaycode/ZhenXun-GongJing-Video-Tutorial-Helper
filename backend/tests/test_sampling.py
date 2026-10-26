@@ -11,10 +11,10 @@ from modules.video_source import ResolvedVideo, Stream
 
 
 def test_presets():
-    assert sampling.plan({"preset": "standard"}, 300).as_dict() == {"preset": "standard", "frames": 64, "shots": True, "cap": 128, "ocr_fps": 1}
+    assert sampling.plan({"preset": "standard"}, 300).as_dict() == {"preset": "standard", "frames": 64, "shots": True, "cap": 128, "ocr_fps": 1, "ocr_mode": "server"}
     assert sampling.plan({"preset": "standard"}, 600).ocr_fps == 0.5  # past LONG_VIDEO: every 2 s
-    assert sampling.plan({"preset": "quick"}, 600).as_dict() == {"preset": "quick", "frames": 32, "shots": False, "cap": 32, "ocr_fps": 0.5}
-    assert sampling.plan({"preset": "fine"}, 2523).as_dict() == {"preset": "fine", "frames": 128, "shots": True, "cap": 256, "ocr_fps": 2}
+    assert sampling.plan({"preset": "quick"}, 600).as_dict() == {"preset": "quick", "frames": 32, "shots": False, "cap": 32, "ocr_fps": 0.5, "ocr_mode": "server"}
+    assert sampling.plan({"preset": "fine"}, 2523).as_dict() == {"preset": "fine", "frames": 128, "shots": True, "cap": 256, "ocr_fps": 2, "ocr_mode": "server"}
     assert sampling.plan({"preset": "fine"}, 90).frames == 90  # about one a second
 
 
@@ -38,7 +38,7 @@ def test_on_screen_text_follows_the_saved_rate_or_is_off(tmp_path):
         folder.mkdir(parents=True, exist_ok=True)
         return screen.GrabResult(False, "error", "stop here")
 
-    job = FrameJob("j", video(sampling={"ocr_fps": 2}), None, tmp_path / "j", count=2)
+    job = FrameJob("j", video(sampling={"ocr_fps": 2, "ocr_mode": "server"}), None, tmp_path / "j", count=2)
     job.screentext = ScreenText()
     asyncio.run(screen.run_screentext(job, read=read, recognize=lambda p: []))
     assert asked == [2.0]
