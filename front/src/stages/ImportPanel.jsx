@@ -93,6 +93,14 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
     setEntry('upload')
   }
 
+  // Typing a link by hand passes through "h", "ht", "http…": not links yet, but not mistakes either.
+  // The warning waits until the typing pauses.
+  const [typing, setTyping] = useState(false)
+  useEffect(() => {
+    if (!typing) return undefined
+    const t = setTimeout(() => setTyping(false), 700)
+    return () => clearTimeout(t)
+  }, [link, typing])
   const isLink = entry === 'link' && looksLikeLink(link)
   const links = entry === 'link' ? extractLinks(link) : []
   const mode = entry === 'upload' ? (pics.length ? 'images' : file ? 'file' : 'empty') : links.length > 1 ? 'links' : isLink ? 'link' : 'empty'
@@ -101,7 +109,7 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
     ? (links.length > MAX_LINKS ? `识别到 ${links.length} 个链接，一次最多对照 ${MAX_LINKS} 个` : `识别到 ${links.length} 个链接 · 分别解析，再把同一个操作对成一行`)
     : mode === 'link'
       ? `${source?.name || '链接'} · 已识别，导入后即可提问；贴多个讲同一操作的教程链接可以对照`
-      : link.trim() ? '没有识别到链接，请粘贴完整的分享链接或分享文案' : publicDemo ? DEMO_SOURCES : SOURCES
+      : link.trim() && !typing ? '没有识别到链接，请粘贴完整的分享链接或分享文案' : publicDemo ? DEMO_SOURCES : SOURCES
   const submit = () => {
     if (mode === 'images') onStart({ images: pics, task })
     else if (mode === 'file') onStart({ file, task, sampling: samplingSpec(sampling) })
@@ -196,12 +204,12 @@ export default function ImportPanel({ showMascot = false, active = true, onStart
                       value={link}
                       placeholder="粘贴视频或图文链接；贴几个同主题教程可以对照"
                       aria-label="内容链接"
-                      aria-describedby="import-link-hint" aria-invalid={Boolean(link.trim() && !isLink) || links.length > MAX_LINKS}
-                      onChange={(event) => { setLink(event.target.value); setError(''); onClearError?.() }}
+                      aria-describedby="import-link-hint" aria-invalid={Boolean(link.trim() && !isLink && !typing) || links.length > MAX_LINKS}
+                      onChange={(event) => { setLink(event.target.value); setTyping(true); setError(''); onClearError?.() }}
                       onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && (mode === 'link' || mode === 'links')) { event.preventDefault(); submit() } }}
                     />
                   </span>
-                  <small id="import-link-hint" className={(link.trim() && mode !== 'link' && mode !== 'links') || links.length > MAX_LINKS ? 'is-warn' : ''}>{hint}</small>
+                  <small id="import-link-hint" className={(link.trim() && !typing && mode !== 'link' && mode !== 'links') || links.length > MAX_LINKS ? 'is-warn' : ''}>{hint}</small>
                 </span>
               </div>
             )}
