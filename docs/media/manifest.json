@@ -58,16 +58,95 @@
       "at_seconds": 20
     },
     {
-      "file": "zhenxun-demo-cut.mp4",
-      "source": "out/v4/zhenxun-demo-cut.mp4",
-      "source_sha256": "9f816d5f48043e1557a2348ea36d3689ce18785a37bf81dba22b7fdf93f8c736",
-      "sha256": "085881edc3810f3e7fa3b19b54f8476dabf1355c63ea4d03dc6f2f5de9ff7479"
+      "file": "zhenxun-demo.mp4",
+      "source": "~/Movies/完整了.mp4 (the user's own edit, 2560×1440 120 fps)",
+      "source_sha256": "48e7f5766fd9f780479e2e59adb3ee67f84f92157da806aff214298b4eddc909",
+      "sha256": "4e6a6fc04176837d8f63abb6544b6734a4497b19ad67b33a3a119e41e2dc01ee",
+      "prepared_on": "2026-10-30"
     },
     {
-      "file": "zhenxun-reel.mp4",
-      "source": "out/v4/zhenxun-reel.mp4",
-      "source_sha256": "f7e32642a2a046342858eefb90c6595eef66e038fbdc4d09ec93e0bff33339bd",
-      "sha256": "a1cbe35c82a30eff23d6d5d85f4b5ac4f94ba3d357b1cfeaec25ddf22ca668c0"
+      "file": "gif/01-import.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-01.mp4",
+      "source_sha256": "32039d6c7361aef76b6b4373de93faa026bc148f5dcf4ee2d3d8967f12197c8b",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/02-ask.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-02.mp4",
+      "source_sha256": "f979d2a7db12e81844937d0701294e117a68ce6197830b79b0e335ddcffff6a2",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/03-evidence.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-03.mp4",
+      "source_sha256": "257a097d25c123c19d3357a80811966912edbbf9671db87798e0b3e7cd1386fb",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/04-look-again.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-04.mp4",
+      "source_sha256": "c0617452a191e6d6040c496bcf0bf7f58c999d30d80de270c40fc01f895e2a8e",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/05-web-search.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-05.mp4",
+      "source_sha256": "4209585362dacf685808292bb4bbd39f3ded7ee5098457d4ad24c0ea8153a13b",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/06-gif.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-06.mp4",
+      "source_sha256": "3417e3ba541620ace5985fe6759f42088dd1110bc2ae6b955849f73a95b83617",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/07-steps.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-07.mp4",
+      "source_sha256": "bc293505ab980efedb6f470dc5b8fb12074e07d728974b8af44c662e34b012ee",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/08-comments.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-08.mp4",
+      "source_sha256": "487ac790122a10a3d026f74a2725cbc16835c7319fd35d03c9d3ec5c1daff8e6",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/09-stuck-to-notes.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-09.mp4",
+      "source_sha256": "554ef754583586ee2aeda3d11de18a9d1fb03899cca3ee1c3ecb788e0d492ffb",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/10-replay.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-10.mp4",
+      "source_sha256": "81fcd6b7e105c6eee65d01c8fe4daaaa6dbc6aa03ddb8f30b78a127b7e526655",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/11-notes.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-11.mp4",
+      "source_sha256": "af770df84cb03c1b86fbec1177d9e98e3ca98d1b747cfaf689f2ac4098adba94",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/12-storyboard.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-12.mp4",
+      "source_sha256": "885f67f6d9a5067221f351b4a4da1410f94076a1023e689bfb69e73b894ada35",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/13-post.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-13.mp4",
+      "source_sha256": "8670b1df801600095525b60099dfca71966004262727a471021a4c2276aa2866",
+      "prepared_on": "2026-10-30"
+    },
+    {
+      "file": "gif/14-phone.gif",
+      "source": "MyTargetProject-promo/video/zhenxun-promo/out/demo3/clip-14.mp4",
+      "source_sha256": "bb20b95323b1bf432e81c98da0d1a2277bfa95b35c044b2eb50ec5a2ed54c5de",
+      "prepared_on": "2026-10-30"
     }
   ]
 }
