@@ -339,7 +339,10 @@ ATTACHED_NOTE = ("用户随问题附上了 {n} 张自己的图片——不是视
 
 def build_messages(job: FrameJob, frames: list, question: str, history: list[dict], scope_all: bool,
                    transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], ""),
-                   images: list | None = None, located: dict | None = None) -> list[dict]:
+                   images: list | None = None, located: dict | None = None,
+                   prelook: list[dict] | None = None) -> list[dict]:
+    """`prelook`: ready-made parts of the up-front close look (lead text + labelled frames), only
+    known after the zoom tools have run — with it the final user message ends with the question."""
     video = job.video
     coverage = job.coverage()
     pictures = picture_sets.is_images(video)
@@ -398,12 +401,19 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
     # video), so the provider's context cache serves it from the second question on; the conversation and
     # this question come after it. Measured on an Excel tutorial, three questions in a row: 4-11 % of the
     # prompt read from the cache before, most of it after (see the commit).
+    # The final user message is assembled from named groups, not by scanning text or guessing which
+    # part is last: [scope, the question, the attachments] without a pre-look (the original shape),
+    # [scope, the attachments, the pre-look, the question] with one — the pre-look frames are only
+    # known after the zoom tools run, so they arrive here as ready-made parts (`prelook`).
+    question_part = {"type": "text", "text": f"问题：{question}"}
+    attachments = attached_parts(images or [], located)
+    final = ([{"type": "text", "text": scope}, question_part, *attachments] if prelook is None
+             else [{"type": "text", "text": scope}, *attachments, *prelook, question_part])
     return [{"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": content},
             {"role": "assistant", "content": MATERIAL_READ},
             *past,
-            {"role": "user", "content": [{"type": "text", "text": scope}, {"type": "text", "text": f"问题：{question}"},
-                                         *attached_parts(images or [], located)]}]
+            {"role": "user", "content": final}]
 
 
 LOCATED_NOTE = "按画面文字和画面相似度自动比对，和你的截图 {i} 最像的视频画面：{matches}。这只是线索，请对照画面自己确认是哪一步"
@@ -582,12 +592,6 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
     rounds = tool_rounds()
     tools = AgentTools(job, decider=decider, llm=client)
     audience = tools.audience()
-    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
-                              images=images, located=located)
-    if summary:
-        chapters = response_plan.chapter_context(job)
-        if chapters:
-            messages[1]["content"].append({"type": "text", "text": chapters})
 
     # A question naming a time range gets a closer look at it up front: a small local model
     # rarely decides on its own that the sampled frames are too sparse there.
@@ -611,14 +615,20 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question: 
         yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0, data=result.data)
         yield tool(tid, "completed", result_count=result.count)
         zoomed += result.images
+    prelook = None
     if zoomed:
-        question_part = messages[-1]["content"].pop()  # keep the question last
         spans = "、".join(f"{fine_clock(float(a))}–{fine_clock(float(b))}" for a, b in slow)
         lead = (f"用户提问前刚在时间轴上手动慢放了 {spans}，下面是这段的逐帧画面（标了精确时间）。问题里说的"
                 "「这段」「慢放的部分」「刚才」指的就是它；不用再调用 replay 看同一段：" if by_hand
                 else "问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用再调用 replay 看同一段：" if slow
                 else "问题所问时间段的加密画面：")
-        messages[-1]["content"] += [{"type": "text", "text": lead}] + image_message(zoomed)["content"] + [question_part]
+        prelook = [{"type": "text", "text": lead}, *image_message(zoomed)["content"]]
+    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
+                              images=images, located=located, prelook=prelook)
+    if summary:
+        chapters = response_plan.chapter_context(job)
+        if chapters:
+            messages[1]["content"].append({"type": "text", "text": chapters})
     if rounds:
         allowed = allowed_tools(job, web, papers, audience)
         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
