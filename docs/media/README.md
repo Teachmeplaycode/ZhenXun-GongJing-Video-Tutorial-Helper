@@ -1,23 +1,19 @@
 # 演示视频素材
 
-素材来自项目 `feat/promo-video` 分支对应的宣传片工程。找到的本地文件保存在相邻目录 `MyTargetProject-visitors/video/zhenxun-promo/`；原录屏与成片是未纳入 Git 的本地资产，本次将精选的压缩版复制进当前仓库，README 不依赖外部工作目录。
+| 文件 | 来源 | 处理 |
+| --- | --- | --- |
+| `zhenxun-demo.mp4` | 项目作者剪辑的完整演示（2560×1440，120 fps，177 秒） | 压缩为 1080p、30 fps，保留完整时长与音轨 |
+| `zhenxun-demo-poster.jpg` | 同上，第 9 秒 | 静帧 |
+| `gif/01-…gif` – `gif/14-…gif` | 宣传片工程 `feat/promo-video` 的 `DemoClip01`–`DemoClip14` 合成（`out/demo3/clip-*.mp4`），每段一个功能 | 完整时长，560 px 宽、6 fps、96 色；不含音效 |
 
-| 当前文件 | 原文件（相对宣传片工程） | 时长 | 处理 |
-| --- | --- | --- | --- |
-| `zhenxun-demo-cut.mp4` | `out/v4/zhenxun-demo-cut.mp4` | 78.229 秒 | 1080p → 720p，保留完整时长与音轨 |
-| `zhenxun-reel.mp4` | `out/v4/zhenxun-reel.mp4` | 87.317 秒 | 1080p → 720p，保留完整时长与音轨 |
-| `demo-cut-poster.jpg` | 实机操作剪辑 | 第 22 秒 | 从原片提取 |
-| `reel-poster.jpg` | 功能巡览 | 第 10 秒 | 从原片提取 |
+录屏于 2026-10-27 在线上站 linyi.work/ZhenXun 用 `record/record.mjs` 的 `sc-*` 场景录制，演示视频来自 `datas/yanshi.txt` 的案例；操作按原速播放，等待解析或生成的时间被剪去。
 
-打开 [index.html](index.html) 可本地播放两部影片；GitHub README 使用封面链接到 MP4，具体内嵌播放支持取决于 Markdown 阅读器。
-
-两部成片沿用原有配乐、字幕、加速和镜头运动。源录屏拍摄于 2026-10-22，不能将加速演示视为实际响应速度；当前功能入口和文案可能已变化。对应原工程的音效来源说明保存在 `feat/promo-video:video/zhenxun-promo/public/sfx/CREDITS.md`。
-
-压缩命令（对每部原片执行）：
+`manifest.json` 记录每个文件的来源路径与 SHA-256。处理命令：
 
 ```bash
-ffmpeg -i SOURCE.mp4 -vf scale=1280:-2 -c:v libx264 -preset fast -crf 26 \
-  -c:a aac -b:a 96k -movflags +faststart OUTPUT.mp4
+# 完整演示
+ffmpeg -i 完整了.mp4 -vf "fps=30,scale=1920:-2:flags=lanczos" -c:v libx264 -preset slow -crf 25 \
+  -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart zhenxun-demo.mp4
+# 每段 GIF
+ffmpeg -i clip-NN.mp4 -an -vf "fps=6,scale=560:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" NN-name.gif
 ```
-
-`manifest.json` 记录原素材相对路径、静帧位置和 SHA-256，可核对来源。原文件没有改动。
