@@ -1,0 +1,53 @@
+/* Settings panel: reuses the history drawer shell (.history, .history__panel). */
+
+.settings-panel { width: min(440px, 100vw); }
+
+.settings-tabs {
+  display: flex; gap: var(--sp-2); padding: var(--sp-8) var(--sp-16);
+  border-bottom: var(--border-hairline);
+}
+.settings-tab {
+  padding: var(--sp-6) var(--sp-12); border: 0; background: none;
+  font-size: var(--fs-body-sm); color: var(--text-secondary); cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+.settings-tab:hover { color: var(--text-primary); background: var(--bg-surface-alt); }
+.settings-tab.is-active { color: var(--text-primary); background: var(--bg-surface-alt); font-weight: 600; }
+
+.settings-body {
+  flex: 1; overflow-y: auto; padding: var(--sp-8) var(--sp-16) var(--sp-24);
+  display: flex; flex-direction: column; gap: var(--sp-12);
+}
+
+.settings-fields {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--sp-12);
+}
+.settings-field {
+  display: flex; flex-direction: column; gap: var(--sp-4);
+  padding: var(--sp-16); border: var(--border-hairline); border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+.settings-field__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-8); }
+.settings-field__label { font-weight: 600; color: var(--text-primary); }
+.settings-field__code { font-family: var(--font-mono); font-size: var(--fs-mono-sm); color: var(--text-tertiary); }
+.settings-field__control { display: flex; align-items: center; gap: var(--sp-8); }
+.settings-field__control input { flex: 1; }
+.settings-field input, .settings-field select {
+  width: 100%; padding: var(--sp-6) var(--sp-8); border: var(--border-hairline);
+  border-radius: var(--radius-xs); background: var(--bg-canvas); color: var(--text-primary);
+  font-size: var(--fs-body-sm); font-family: var(--font-sans);
+}
+.settings-field input:focus-visible, .settings-field select:focus-visible {
+  outline: 2px solid var(--border-focus); outline-offset: 1px;
+}
+.settings-field__hint { margin: 0; }
+.settings-field__source { margin: 0; }
+
+.settings-actions { display: flex; justify-content: flex-end; padding-top: var(--sp-4); }
+.settings-saved {
+  margin: 0; padding: var(--sp-8) var(--sp-12); border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--accent-active) 12%, transparent);
+  color: var(--text-primary); font-size: var(--fs-body-sm);
+}
+.settings-readonly { margin: 0; }

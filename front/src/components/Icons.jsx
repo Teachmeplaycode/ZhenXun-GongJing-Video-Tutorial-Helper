@@ -40,3 +40,4 @@ export const IconSparkle = (p) => <Icon {...p}><path d="M8 2.5l1.4 3.8 3.8 1.4-3
 export const IconChat = (p) => <Icon {...p}><path d="M3 3.5h10a.8.8 0 01.8.8v6a.8.8 0 01-.8.8H7l-3 2.4v-2.4H3a.8.8 0 01-.8-.8v-6a.8.8 0 01.8-.8z" /></Icon>
 export const IconCompass = (p) => <Icon {...p}><circle cx="8" cy="8" r="5.5" /><path d="M10.2 5.8L9 9 5.8 10.2 7 7z" /></Icon>
 export const IconClock = (p) => <Icon {...p}><circle cx="8" cy="8" r="5.5" /><path d="M8 5v3l2 1.5" /></Icon>
+export const IconSettings = (p) => <Icon {...p}><circle cx="8" cy="8" r="2.5" /><path d="M8 2v2M8 12v2M14 8h-2M4 8H2M12.2 3.8l-1.4 1.4M5.2 10.8l-1.4 1.4M12.2 12.2l-1.4-1.4M5.2 5.2L3.8 3.8" /></Icon>

@@ -124,6 +124,27 @@ export function lectureNote() {
   }
 }
 
+const SETTINGS_GROUPS = [
+  { id: 'model', label: '模型与 API', fields: [
+    { name: 'LLM_PROVIDER', label: '模型服务', type: 'select', options: [{ value: 'deepseek', label: 'DeepSeek / OpenAI 兼容' }, { value: 'ollama', label: '本地 Ollama' }], default: 'deepseek', hint: 'OpenAI 兼容的云端服务，或本机的 Ollama。' },
+    { name: 'LLM_BASE_URL', label: '服务地址', type: 'url', hint: 'DeepSeek 默认 https://api.deepseek.com；Ollama 默认 http://localhost:11434。' },
+    { name: 'LLM_MODEL', label: '模型名', type: 'text', hint: 'DeepSeek 用 deepseek-flash；Ollama 用 qwen3.5:9b（需支持图片）。' },
+    { name: 'LLM_API_KEY', label: 'API Key', type: 'secret', aliases: ['DEEPSEEK_API_KEY'], hint: 'Ollama 不需要。留空保留原值，点「清除」删除。' },
+    { name: 'TAVILY_API_KEY', label: 'Tavily Key', type: 'secret', hint: '联网搜索备用（tavily.com）。' },
+    { name: 'OPENALEX_API_KEY', label: 'OpenAlex Key', type: 'secret', hint: '论文检索，带 key 约 1000 次/天。' },
+    { name: 'CN_PROXY', label: '国内代理', type: 'url', hint: '小红书、视频号等需要国内 IP 的平台走这个代理。' },
+  ] },
+  { id: 'runtime', label: '本地运行', fields: [
+    { name: 'OLLAMA_NUM_CTX', label: 'Ollama 上下文长度', type: 'number', default: '65536', hint: 'Ollama 的上下文窗口。' },
+    { name: 'LLM_FIRST_TOKEN_TIMEOUT', label: '首字超时（秒）', type: 'number', hint: '等第一个字的最长时间。' },
+    { name: 'LLM_TEMPERATURE', label: '采样温度', type: 'number', hint: '默认 0.3。' },
+    { name: 'DECISION', label: '决策模块', type: 'select', options: [{ value: '', label: '开启' }, { value: 'off', label: '关闭' }], hint: '过滤搜索结果、拦截注入。' },
+    { name: 'DECISION_MODEL', label: '决策模型', type: 'text', hint: 'Ollama 里的决策模型。' },
+    { name: 'KEEP_UPLOADS', label: '保留上传原文件', type: 'select', options: [{ value: 'on', label: '保留' }, { value: 'off', label: '处理后删除' }], default: 'on', hint: '保留后可回放原视频。' },
+    { name: 'BROWSER', label: '浏览器操作', type: 'select', options: [{ value: '', label: '需要时启动' }, { value: 'off', label: '关闭' }], hint: '扫码登录和部分平台解析要用无头浏览器。' },
+  ] },
+]
+
 export class MockApi {
   constructor(page) {
     this.page = page
@@ -144,6 +165,23 @@ export class MockApi {
     this.steps = null // the step cards once built (POST /steps); null: not yet
     this.samples = [] // ids of saved sessions offered as samples (public site)
     this.mediaBroken = false // /media answers 502 (an expired platform link)
+    this.settingsError = null // when set, the next PUT /api/settings answers 400 with it
+    this.settingsValues = {
+      LLM_PROVIDER: { value: 'deepseek', source: 'env', overridden_by_env: false },
+      LLM_BASE_URL: { value: '', source: null, overridden_by_env: false },
+      LLM_MODEL: { value: 'deepseek-flash', source: 'env', overridden_by_env: false },
+      LLM_API_KEY: { configured: true, source: 'env', overridden_by_env: false },
+      TAVILY_API_KEY: { configured: false, source: null, overridden_by_env: false },
+      OPENALEX_API_KEY: { configured: false, source: null, overridden_by_env: false },
+      CN_PROXY: { value: '', source: null, overridden_by_env: false },
+      OLLAMA_NUM_CTX: { value: '65536', source: null, overridden_by_env: false },
+      LLM_FIRST_TOKEN_TIMEOUT: { value: '', source: null, overridden_by_env: false },
+      LLM_TEMPERATURE: { value: '', source: null, overridden_by_env: false },
+      DECISION: { value: '', source: null, overridden_by_env: false },
+      DECISION_MODEL: { value: '', source: null, overridden_by_env: false },
+      KEEP_UPLOADS: { value: 'on', source: null, overridden_by_env: false },
+      BROWSER: { value: '', source: null, overridden_by_env: false },
+    }
     this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
     this.notes = { status: 'none', message: '', progress: {}, note: null } // what /notes answers
     this.shotTimes = [] // moments of shot-fill keyframes the job adds after its uniform pass
@@ -447,6 +485,28 @@ export class MockApi {
         { type: 'tool_call.output', call_id: 'manual1', stdout: '复看', exit_code: 0, data, t: 0.4 },
         { type: 'tool_call.completed', call_id: 'manual1', result_count: 4, t: 0.4 },
       ] })
+    }
+    if (path === '/api/settings' && req.method() === 'GET') {
+      return json({ groups: SETTINGS_GROUPS, values: this.settingsValues, public: this.publicDemo, readonly: this.publicDemo })
+    }
+    if (path === '/api/settings' && req.method() === 'PUT') {
+      if (this.publicDemo) return json({ message: '公开演示不能修改服务器配置' }, 403)
+      if (this.settingsError) { const e = this.settingsError; this.settingsError = null; return json({ message: e }, 400) }
+      const fields = {}
+      for (const g of SETTINGS_GROUPS) for (const f of g.fields) fields[f.name] = f
+      for (const [k, v] of Object.entries(body.values || {})) {
+        const f = fields[k]
+        if (!f) return json({ message: `未知的配置项：${k}` }, 400)
+        if (f.type === 'secret') { if (v) this.settingsValues[k] = { configured: true, source: 'local', overridden_by_env: false } }
+        else this.settingsValues[k] = { value: v, source: 'local', overridden_by_env: false }
+      }
+      for (const k of (body.clear || [])) {
+        const f = fields[k]
+        if (!f) return json({ message: `未知的配置项：${k}` }, 400)
+        if (f.type === 'secret') this.settingsValues[k] = { configured: false, source: null, overridden_by_env: false }
+        else this.settingsValues[k] = { value: '', source: null, overridden_by_env: false }
+      }
+      return json({ values: this.settingsValues })
     }
     if (path === '/api/accounts') return json({ accounts: this.accounts })
     m = path.match(/^\/api\/accounts\/(\w+)\/login$/)

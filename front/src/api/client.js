@@ -367,6 +367,18 @@ export const pasteCookie = (platform, cookie) => linkRequest(`/api/accounts/${pl
 
 export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform}`, { method: 'DELETE' })
 
+// ---- Settings (model/API/runtime; written to gitignored backend/.env.local) -------------
+
+/** { groups, values, public, readonly }: values are desensitised (secrets report `configured` only). */
+export const getSettings = () => linkRequest('/api/settings')
+
+/** Save settings: `values` to set, `clear` to remove. Secrets keep their old value when sent empty. */
+export const saveSettings = (values, clear = []) => linkRequest('/api/settings', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ values, clear }),
+})
+
 // ---- Anti-fraud analysis ----------------------------------------------------------------
 
 /**
