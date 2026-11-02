@@ -36,7 +36,9 @@ from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, create_client, exact
 from modules.store import SessionStore
-from modules.settings import overlay as settings_overlay, vault as settings_vault
+from modules.settings import (overlay as settings_overlay, vault as settings_vault, write_local, source_of,
+                             read_local, SETTINGS_GROUPS, SETTINGS_FIELDS, SECRET_FIELDS, is_configured,
+                             settings as all_settings)
 from modules.screentext import ScreenText, run_screentext
 from modules.screentext.hybrid import ClientOCRService
 from modules.factcheck.api import create_router as create_factcheck_router
@@ -66,6 +68,9 @@ jobs: dict[str, FrameJob] = {}  # active jobs; saved sessions are restored on de
 tasks: set[asyncio.Task] = set()
 llm: ChatClient | OllamaClient | None = None
 decider: Decider | None = None
+# Clients replaced by a settings change. We do not close the one in use: a stream still holding it
+# finishes its answer; the new request gets a fresh client. These are closed on shutdown.
+_stale_llm: list = []
 
 
 @asynccontextmanager
@@ -80,6 +85,11 @@ async def lifespan(_: FastAPI):
     await registry.aclose()
     if llm is not None:
         await llm.aclose()
+    for old in _stale_llm:
+        try:
+            await old.aclose()
+        except Exception:
+            pass
     if decider is not None:
         await decider.aclose()
     await accounts.shutdown()
@@ -392,6 +402,18 @@ def get_llm() -> ChatClient | OllamaClient:
     if llm is None:
         llm = create_client(LLMConfig.from_env())
     return llm
+
+
+def reset_llm() -> None:
+    """Drop the cached client so the next call builds one from the current settings.
+
+    The client in use by an in-flight answer is not closed: it is moved to `_stale_llm` and closed
+    on shutdown. A settings change must not cut off a stream that is still answering.
+    """
+    global llm
+    if llm is not None:
+        _stale_llm.append(llm)
+    llm = None
 
 
 def get_decider() -> Decider | None:
@@ -1493,6 +1515,82 @@ def platform_or_404(platform: str) -> str:
 def login_owner() -> str:
     """Whose QR logins these are: the signed-in person in the web demo, nobody in particular locally."""
     return visitors.current.get() if visitors.enabled() else ""
+
+
+# Changing any of these rebuilds the cached LLM client on the next request.
+_LLM_CLIENT_FIELDS = {"LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY",
+                      "OLLAMA_NUM_CTX", "LLM_FIRST_TOKEN_TIMEOUT"}
+
+
+class SettingsUpdate(BaseModel):
+    values: dict[str, str] = {}
+    clear: list[str] = []
+
+
+def _settings_view() -> dict:
+    """Current settings, desensitised: secrets report only whether they are set, never the value."""
+    env = all_settings()
+    out: dict[str, dict] = {}
+    for name, field in SETTINGS_FIELDS.items():
+        source, overridden = source_of(name)
+        if field.get("type") == "secret":
+            out[name] = {"configured": is_configured(env, field), "source": source, "overridden_by_env": overridden}
+        else:
+            out[name] = {"value": env.get(name, ""), "source": source, "overridden_by_env": overridden}
+    return out
+
+
+def _validate_settings(values: dict[str, str], clear: list[str]) -> dict[str, str | None]:
+    """Turn a SettingsUpdate into .env.local writes, or raise HTTPException(400).
+
+    Secrets: a non-empty value writes; an empty/missing value keeps the old one; listing in `clear`
+    removes it. Other fields: any value (including '') writes; `clear` removes it.
+    """
+    updates: dict[str, str | None] = {}
+    for name in clear:
+        if name not in SETTINGS_FIELDS:
+            raise HTTPException(400, f"未知的配置项：{name}")
+        updates[name] = None
+    for name, value in values.items():
+        if name not in SETTINGS_FIELDS:
+            raise HTTPException(400, f"未知的配置项：{name}")
+        field = SETTINGS_FIELDS[name]
+        ftype = field.get("type")
+        if ftype == "number" and value:
+            try:
+                float(value)
+            except ValueError:
+                raise HTTPException(400, f"{field['label']} 要是数字")
+        if ftype == "select" and value:
+            allowed = [o["value"] for o in field.get("options", [])]
+            if value not in allowed:
+                raise HTTPException(400, f"{field['label']} 的值不对")
+        if ftype == "secret":
+            if value:
+                updates[name] = value
+        else:
+            updates[name] = value
+    return updates
+
+
+@app.get("/api/settings")
+async def get_settings(request: Request):
+    local_only(request)
+    return {"groups": SETTINGS_GROUPS, "values": _settings_view(),
+            "public": visitors.enabled(), "readonly": visitors.enabled()}
+
+
+@app.put("/api/settings")
+async def update_settings(body: SettingsUpdate, request: Request):
+    local_only(request)
+    if visitors.enabled():
+        raise HTTPException(403, "公开演示不能修改服务器配置")
+    updates = _validate_settings(body.values, body.clear)
+    if updates:
+        write_local(updates)
+        if any(name in _LLM_CLIENT_FIELDS for name in updates):
+            reset_llm()
+    return {"values": _settings_view()}
 
 
 class CookieBody(BaseModel):

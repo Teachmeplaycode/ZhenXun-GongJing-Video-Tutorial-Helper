@@ -4,13 +4,13 @@ import SculptureCanvas from './components/SculptureCanvas'
 import TimelineSculpture from './components/TimelineSculpture'
 import BackButton from './components/BackButton'
 import { HistoryDrawer } from './components/SessionList'
-import AccountsDrawer from './components/AccountsDrawer'
+import SettingsPanel from './components/SettingsPanel'
 import MemberDialog from './components/MemberDialog'
 import GuideDialog from './components/GuideDialog'
 import DocsDialog from './components/DocsDialog'
 import ProfileDrawer from './components/ProfileDrawer'
 import FramePicker from './components/FramePicker'
-import { IconBook, IconHistory, IconTheme, IconUser } from './components/Icons'
+import { IconBook, IconHistory, IconSettings, IconTheme, IconUser } from './components/Icons'
 import { THEME_LABEL, useTheme } from './lib/theme'
 import HeroOrnaments from './components/HeroOrnaments'
 import Wordmark from './components/Wordmark'
@@ -104,7 +104,10 @@ export default function App() {
   const [sessions, setSessions] = useState([])
   const [sessionsError, setSessionsError] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [accountsOpen, setAccountsOpen] = useState(null) // null: closed; '' or a platform id to put first
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsTab, setSettingsTab] = useState('model') // model | accounts | runtime
+  const [settingsFocus, setSettingsFocus] = useState(null) // a platform id to put first in the accounts tab
+  const openSettings = (tab = 'model', focus = null) => { setSettingsTab(tab); setSettingsFocus(focus); setSettingsOpen(true) }
   const [publicDemo, setPublicDemo] = useState(false) // the web demo: no platform logins
   const [samples, setSamples] = useState([]) // finished tutorials to open at once (public site)
   // The web demo's account: { user, oauth }; the sign-in dialog when open: { mode, reason }.
@@ -855,6 +858,9 @@ export default function App() {
           <button type="button" className="btn btn--ghost btn--history" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
             <IconHistory size={14} /> 历史
           </button>
+          <button type="button" className="btn btn--ghost btn--accounts" onClick={() => openSettings('model')} aria-haspopup="dialog" title="设置：模型、平台账号、本地运行">
+            <IconSettings size={14} /> 设置
+          </button>
           <button type="button" className="btn btn--ghost btn--accounts btn--theme" onClick={(e) => cycleTheme(e.currentTarget)}
             title={`主题：${THEME_LABEL[themeChoice]}（点击切换）`} aria-label={`主题：${THEME_LABEL[themeChoice]}`}>
             <IconTheme size={14} /><span className="btn--theme__label">{THEME_LABEL[themeChoice]}</span>
@@ -872,7 +878,7 @@ export default function App() {
               <IconUser size={14} /> 登录
             </button>
           )) : (
-            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => setAccountsOpen('')} aria-haspopup="dialog">
+            <button type="button" className="btn btn--ghost btn--accounts" onClick={() => openSettings('accounts')} aria-haspopup="dialog">
               <IconUser size={14} /> 账号
             </button>
           )}
@@ -906,7 +912,7 @@ export default function App() {
             slideRef={slideRef}
             externalError={importError}
             onClearError={() => setImportError('')}
-            onShowAccounts={publicDemo ? null : (platform) => setAccountsOpen(platform || '')}
+            onShowAccounts={publicDemo ? null : (platform) => openSettings('accounts', platform || null)}
             publicDemo={publicDemo}
             samples={samples}
             onOpenSample={openSession}
@@ -983,7 +989,7 @@ export default function App() {
       ) : null}
       {clipToast ? <div className="clip-toast" role="status" data-error={clipToast.error || undefined}>{clipToast.text}</div> : null}
       <ProfileDrawer open={profileOpen && Boolean(member?.user)} user={member?.user} onClose={() => setProfileOpen(false)}
-        onAccounts={() => { setProfileOpen(false); setAccountsOpen('') }}
+        onAccounts={() => { setProfileOpen(false); openSettings('accounts') }}
         onHistory={() => { setProfileOpen(false); setHistoryOpen(true) }}
         onRegister={() => { setProfileOpen(false); setMemberDialog({ mode: 'register', reason: '注册后，游客期间导入的视频会一起保留。' }) }}
         onSignOut={() => signOut().finally(() => window.location.reload())} />
@@ -999,8 +1005,8 @@ export default function App() {
         <MemberDialog mode={memberDialog.mode} reason={memberDialog.reason} oauth={member?.oauth || []}
           onDone={() => window.location.reload()} onClose={() => setMemberDialog(null)} />
       ) : null}
-      <AccountsDrawer open={(!publicDemo || Boolean(member?.user)) && accountsOpen != null} focus={accountsOpen || null}
-        mine={publicDemo} onClose={() => setAccountsOpen(null)} />
+      <SettingsPanel open={settingsOpen} initialTab={settingsTab} accountFocus={settingsFocus}
+        onClose={() => setSettingsOpen(false)} publicDemo={publicDemo} />
 
       <HistoryDrawer
         open={historyOpen}

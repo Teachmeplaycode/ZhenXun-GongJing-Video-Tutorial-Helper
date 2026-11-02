@@ -57,7 +57,7 @@ def temperature() -> float:
     if EXACT.get() is not None:
         return EXACT.get()
     try:
-        return float(os.environ.get("LLM_TEMPERATURE", "0.3"))
+        return float(settings().get("LLM_TEMPERATURE", "0.3"))
     except ValueError:
         return 0.3
 

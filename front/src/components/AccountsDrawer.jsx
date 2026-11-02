@@ -188,22 +188,31 @@ function AccountCard({ account, onChange, mine = false }) {
   )
 }
 
+// The account list, reusable inside the Settings panel's "平台账号" tab.
+export function AccountsList({ focus = null, mine = false }) {
+  const [accounts, setAccounts] = useState([])
+  const [error, setError] = useState('')
+  useEffect(() => {
+    listAccounts().then((list) => { setAccounts(list); setError('') }).catch((err) => setError(err.message))
+  }, [])
+  const replace = useCallback((next) => setAccounts((list) => list.map((a) => (a.id === next.id ? next : a))), [])
+  const ordered = focus ? [...accounts].sort((a, b) => (b.id === focus) - (a.id === focus)) : accounts
+  return (
+    <>
+      {error ? <p className="history__empty">{error}</p> : null}
+      <ul className="account-list">
+        {ordered.map((a) => <AccountCard key={a.id} account={a} onChange={replace} mine={mine} />)}
+      </ul>
+    </>
+  )
+}
+
 // `mine`: the web demo, where these are the signed-in person's own logins (scan only, kept encrypted,
 // used only for their own imports).
 export default function AccountsDrawer({ open, focus = null, onClose, mine = false }) {
   useEscape(onClose, open)
   const rootRef = useRef(null)
-  const [accounts, setAccounts] = useState([])
-  const [error, setError] = useState('')
   useStaggeredDrawer(rootRef, open)
-
-  useEffect(() => {
-    if (!open) return
-    listAccounts().then((list) => { setAccounts(list); setError('') }).catch((err) => setError(err.message))
-  }, [open])
-
-  const replace = useCallback((next) => setAccounts((list) => list.map((a) => (a.id === next.id ? next : a))), [])
-  const ordered = focus ? [...accounts].sort((a, b) => (b.id === focus) - (a.id === focus)) : accounts
 
   return (
     <div ref={rootRef} className="history" data-open={open || undefined} aria-hidden={!open} inert={open ? undefined : ''}>
@@ -220,10 +229,7 @@ export default function AccountsDrawer({ open, focus = null, onClose, mine = fal
             绑定你自己的平台账号后，解析时会用你的登录（比如 B 站可以看 1080P 和需要登录的视频）。登录凭证加密保存，只用于你自己导入的视频，随时可以解除绑定。
           </p>
         ) : null}
-        {error ? <p className="history__empty">{error}</p> : null}
-        <ul className="account-list">
-          {open ? ordered.map((a) => <AccountCard key={a.id} account={a} onChange={replace} mine={mine} />) : null}
-        </ul>
+        {open ? <AccountsList focus={focus} mine={mine} /> : null}
       </aside>
     </div>
   )
