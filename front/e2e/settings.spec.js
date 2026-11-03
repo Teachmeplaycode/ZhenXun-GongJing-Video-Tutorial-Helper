@@ -141,7 +141,7 @@ for (const [width, theme] of [[1440, 'light'], [360, 'light'], [360, 'dark']]) {
   test(`设置 ${width}px ${theme} 无横向溢出和页面错误`, async ({ page }) => {
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()) })
+    page.on('console', (msg) => { if (msg.type() === 'error' || msg.text().startsWith('GSAP target')) errors.push(msg.text()) })
     await page.setViewportSize({ width, height: 960 })
     await page.addInitScript((value) => localStorage.setItem('gongjing.theme', value), theme)
     await start(page)
