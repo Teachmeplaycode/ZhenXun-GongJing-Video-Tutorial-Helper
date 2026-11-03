@@ -155,3 +155,17 @@ for (const [width, theme] of [[1440, 'light'], [360, 'light'], [360, 'dark']]) {
     await page.screenshot({ path: join(process.env.SETTINGS_QA_DIR || join(tmpdir(), 'zhenxun-settings-qa'), `settings-${width}-${theme}.png`) })
   })
 }
+
+test.describe('设置面板正常动画', () => {
+  test.use({ reducedMotion: 'no-preference' })
+  test('打开后焦点进入面板并在关闭时归还入口', async ({ page }) => {
+    await start(page)
+    await page.locator(SETTINGS_BTN).click()
+    const close = page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '关闭', exact: true })
+    await expect(close).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('tab', { name: '模型与 API' })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.locator(SETTINGS_BTN)).toBeFocused()
+  })
+})
