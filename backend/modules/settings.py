@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import tempfile
+import threading
 from contextvars import ContextVar
 from pathlib import Path
 
@@ -26,8 +28,8 @@ def parse_assignment(line: str) -> tuple[str, str]:
 def read_env_file(path: Path) -> dict[str, str]:
     """Minimal .env reader: NAME=value lines, `#` comments; no variable expansion."""
     try:
-        lines = path.read_text().splitlines()
-    except OSError:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+    except (OSError, UnicodeError):
         return {}
     pairs = (parse_assignment(line.strip()) for line in lines if "=" in line and not line.strip().startswith("#"))
     return {name: value for name, value in pairs if name}
@@ -61,54 +63,51 @@ def read_local() -> dict[str, str]:
     return read_env_file(LOCAL_FILE)
 
 
-def write_local(updates: dict[str, str | None]) -> dict[str, str]:
-    """Set (or with None, remove) keys in .env.local, keeping the other lines.
+_write_lock = threading.RLock()
 
-    Atomic (temp file + os.replace), UTF-8, mode 0600. Returns the resulting file contents as a dict.
-    Never called in the public demo: app.py guards the route, and the web demo stores per-person
-    settings through settings.vault instead.
-    """
-    lines = LOCAL_FILE.read_text(encoding="utf-8").splitlines() if LOCAL_FILE.exists() else []
-    out: list[str] = []
-    done: set[str] = set()
-    for line in lines:
-        name = parse_assignment(line.strip())[0] if "=" in line and not line.strip().startswith("#") else ""
-        if name in updates:
-            done.add(name)
-            if updates[name] is not None:
-                out.append(f'{name}={updates[name]}')
-            continue
-        out.append(line)
-    out += [f'{k}={v}' for k, v in updates.items() if k not in done and v is not None]
-    if not any(not l.startswith("#") for l in out):
-        out.insert(0, "# Written by the Settings panel; real environment variables still win. Do not commit.")
-    tmp = LOCAL_FILE.with_name(LOCAL_FILE.name + ".tmp")
-    tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
-    os.replace(tmp, LOCAL_FILE)  # atomic on the same filesystem
-    try:
-        os.chmod(LOCAL_FILE, 0o600)
-    except OSError:
-        pass
-    return read_local()
+
+def write_local(updates: dict[str, str | None]) -> dict[str, str]:
+    """Merge local edits under a lock, then atomically replace with a private UTF-8 file."""
+    for key, value in updates.items():
+        if not key.isidentifier() or value is not None and any(
+            ord(c) < 32 or c in "\u0085\u2028\u2029" for c in value
+        ):
+            raise ValueError("invalid local setting")
+    with _write_lock:
+        lines = LOCAL_FILE.read_text(encoding="utf-8-sig").splitlines() if LOCAL_FILE.exists() else []
+        out, done = [], set()
+        for line in lines:
+            name = parse_assignment(line.strip())[0] if "=" in line and not line.lstrip().startswith("#") else ""
+            if name in updates:
+                if name not in done and updates[name] is not None:
+                    out.append(f"{name}={updates[name]}")
+                done.add(name)
+            else:
+                out.append(line)
+        out.extend(f"{key}={value}" for key, value in updates.items() if key not in done and value is not None)
+        if not out:
+            out.append("# Local settings; environment variables take precedence. Do not commit.")
+        LOCAL_FILE.parent.mkdir(parents=True, exist_ok=True)
+        fd, temp_name = tempfile.mkstemp(prefix=LOCAL_FILE.name + ".", dir=LOCAL_FILE.parent)
+        temp = Path(temp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
+                stream.write("\n".join(out) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temp, LOCAL_FILE)
+        finally:
+            temp.unlink(missing_ok=True)
+        return read_local()
 
 
 def source_of(key: str) -> tuple[str | None, bool]:
-    """Where `key`'s effective value comes from, and whether an environment variable overrides the file.
-
-    Source is one of: "overlay" (per-request), "environment", "local" (.env.local), "accounts"
-    (.env.accounts), "env" (.env), or None. `overridden_by_env` is True when a real environment
-    variable is set (it wins over every file), so a file edit would not take effect.
-    """
-    if (overlay.get() or {}).get(key):
-        return "overlay", bool(os.environ.get(key))
-    if os.environ.get(key):
-        return "environment", True
-    if read_env_file(LOCAL_FILE).get(key):
-        return "local", False
-    if read_env_file(ACCOUNTS_FILE).get(key):
-        return "accounts", False
-    if read_env_file(ENV_FILE).get(key):
-        return "env", False
+    """Report the effective source, including explicit empty environment overrides."""
+    for source, layer in (("overlay", overlay.get() or {}), ("environment", os.environ),
+                          ("local", read_local()), ("accounts", read_env_file(ACCOUNTS_FILE)),
+                          ("env", read_env_file(ENV_FILE))):
+        if key in layer:
+            return source, source == "environment"
     return None, False
 
 
@@ -124,7 +123,7 @@ SETTINGS_GROUPS: list[dict] = [
         {"name": "LLM_MODEL", "label": "模型名", "type": "text",
          "hint": "DeepSeek 用 deepseek-flash；Ollama 用 qwen3.5:9b（需支持图片）。"},
         {"name": "LLM_API_KEY", "label": "API Key", "type": "secret", "aliases": ["DEEPSEEK_API_KEY"],
-         "hint": "Ollama 不需要。留空保留原值，点「清除」删除。"},
+         "hint": "Ollama 不需要。留空保留原值，清除只移除本地保存值，其他来源的密钥可能仍然生效。"},
         {"name": "TAVILY_API_KEY", "label": "Tavily Key", "type": "secret",
          "hint": "联网搜索备用（tavily.com）。"},
         {"name": "OPENALEX_API_KEY", "label": "OpenAlex Key", "type": "secret",
@@ -134,22 +133,17 @@ SETTINGS_GROUPS: list[dict] = [
     ]},
     {"id": "runtime", "label": "本地运行", "fields": [
         {"name": "OLLAMA_NUM_CTX", "label": "Ollama 上下文长度", "type": "number", "default": "65536",
-         "hint": "Ollama 的上下文窗口。"},
-        {"name": "LLM_FIRST_TOKEN_TIMEOUT", "label": "首字超时（秒）", "type": "number",
+         "min": 1024, "max": 262144, "step": 1, "hint": "上下文越长，内存占用越高。"},
+        {"name": "LLM_FIRST_TOKEN_TIMEOUT", "label": "首字超时（秒）", "type": "number", "min": 1, "max": 900,
          "hint": "等第一个字的最长时间；Ollama 默认 300，云端默认 90。"},
-        {"name": "LLM_TEMPERATURE", "label": "采样温度", "type": "number",
+        {"name": "LLM_TEMPERATURE", "label": "采样温度", "type": "number", "min": 0, "max": 2, "step": 0.1,
          "hint": "默认 0.3；基准测试用 0 让两次结果更接近。"},
-        {"name": "DECISION", "label": "决策模块", "type": "select",
-         "options": [{"value": "", "label": "开启"}, {"value": "off", "label": "关闭"}],
+        {"name": "DECISION", "label": "本机决策模型", "type": "select", "default": "on",
+         "options": [{"value": "on", "label": "开启"}, {"value": "off", "label": "关闭"}],
          "hint": "过滤搜索结果、拦截注入、判断是否查资料；关闭后退回简单规则。"},
-        {"name": "DECISION_MODEL", "label": "决策模型", "type": "text",
-         "hint": "Ollama 里的决策模型，默认 qwen3.5:9b。"},
-        {"name": "KEEP_UPLOADS", "label": "保留上传原文件", "type": "select",
-         "options": [{"value": "on", "label": "保留"}, {"value": "off", "label": "处理后删除"}],
-         "default": "on", "hint": "保留后可回放原视频；公开服务器可设为删除。"},
-        {"name": "BROWSER", "label": "浏览器操作", "type": "select",
-         "options": [{"value": "", "label": "需要时启动"}, {"value": "off", "label": "关闭"}],
-         "hint": "扫码登录和部分平台解析要用无头浏览器；关闭后只能用 Cookie。"},
+        {"name": "BROWSER", "label": "浏览器查证", "type": "select", "default": "on",
+         "options": [{"value": "on", "label": "需要时启动"}, {"value": "off", "label": "关闭"}],
+         "hint": "控制 AI 回答中的浏览器查证，不影响平台扫码登录。"},
     ]},
 ]
 

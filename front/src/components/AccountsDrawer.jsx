@@ -28,33 +28,40 @@ function QrLogin({ account, onDone, mine = false }) {
   const [error, setError] = useState('')
   const [left, setLeft] = useState(0)
   const live = useRef(null)
+  const generation = useRef(0)
 
   const begin = useCallback(async () => {
+    const current = ++generation.current
     setError('')
     setLogin(null)
     if (live.current) cancelLogin(live.current)
     try {
       const l = await startLogin(account.id)
+      if (generation.current !== current) { cancelLogin(l.id); return }
       live.current = l.id
       setLogin(l)
       setLeft(l.expires_in)
     } catch (err) {
-      setError(err.message)
+      if (generation.current === current) setError(err.message)
     }
   }, [account.id])
 
   useEffect(() => {
     begin()
-    return () => { if (live.current) cancelLogin(live.current) }
+    return () => { generation.current++; if (live.current) cancelLogin(live.current); live.current = null }
   }, [begin])
 
   const id = login?.id
   const state = login?.state
   useEffect(() => {
     if (!id || state === 'done' || state === 'expired' || state === 'error') return undefined
+    let cancelled = false, pending = false
     const t = setInterval(async () => {
+      if (pending) return
+      pending = true
       try {
         const next = await pollLogin(id)
+        if (cancelled) return
         setLogin((cur) => (cur && cur.id === id ? { ...cur, ...next } : cur))
         setLeft(next.expires_in)
         if (next.state === 'done') {
@@ -62,10 +69,10 @@ function QrLogin({ account, onDone, mine = false }) {
           onDone(next.account)
         }
       } catch (err) {
-        setLogin((cur) => (cur ? { ...cur, state: 'error', message: err.message } : cur))
-      }
+        if (!cancelled) setLogin((cur) => (cur ? { ...cur, state: 'error', message: err.message } : cur))
+      } finally { pending = false }
     }, POLL_MS)
-    return () => clearInterval(t)
+    return () => { cancelled = true; clearInterval(t) }
   }, [id, state, onDone])
 
   if (error) {

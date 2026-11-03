@@ -25,7 +25,7 @@ def files(tmp_path, monkeypatch):
 
 def _client():
     import app
-    return TestClient(app.app)
+    return TestClient(app.app, base_url="http://127.0.0.1", client=("127.0.0.1", 45123))
 
 
 def test_get_desensitises_secrets(files):
@@ -145,6 +145,6 @@ def test_non_llm_change_keeps_client(files, monkeypatch):
     monkeypatch.setattr(app, "_stale_llm", [])
     client = _client()
     r = client.put("/api/settings", headers={"Origin": "http://localhost:5173"},
-                   json={"values": {"KEEP_UPLOADS": "off"}, "clear": []})
+                   json={"values": {"BROWSER": "off"}, "clear": []})
     assert r.status_code == 200
     assert app.llm is sentinel

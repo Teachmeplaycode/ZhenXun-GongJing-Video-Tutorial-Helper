@@ -138,10 +138,8 @@ const SETTINGS_GROUPS = [
     { name: 'OLLAMA_NUM_CTX', label: 'Ollama 上下文长度', type: 'number', default: '65536', hint: 'Ollama 的上下文窗口。' },
     { name: 'LLM_FIRST_TOKEN_TIMEOUT', label: '首字超时（秒）', type: 'number', hint: '等第一个字的最长时间。' },
     { name: 'LLM_TEMPERATURE', label: '采样温度', type: 'number', hint: '默认 0.3。' },
-    { name: 'DECISION', label: '决策模块', type: 'select', options: [{ value: '', label: '开启' }, { value: 'off', label: '关闭' }], hint: '过滤搜索结果、拦截注入。' },
-    { name: 'DECISION_MODEL', label: '决策模型', type: 'text', hint: 'Ollama 里的决策模型。' },
-    { name: 'KEEP_UPLOADS', label: '保留上传原文件', type: 'select', options: [{ value: 'on', label: '保留' }, { value: 'off', label: '处理后删除' }], default: 'on', hint: '保留后可回放原视频。' },
-    { name: 'BROWSER', label: '浏览器操作', type: 'select', options: [{ value: '', label: '需要时启动' }, { value: 'off', label: '关闭' }], hint: '扫码登录和部分平台解析要用无头浏览器。' },
+    { name: 'DECISION', label: '决策模块', type: 'select', options: [{ value: 'on', label: '开启' }, { value: 'off', label: '关闭' }], hint: '过滤搜索结果、拦截注入。' },
+    { name: 'BROWSER', label: '浏览器操作', type: 'select', options: [{ value: 'on', label: '需要时启动' }, { value: 'off', label: '关闭' }], hint: '扫码登录和部分平台解析要用无头浏览器。' },
   ] },
 ]
 
@@ -178,8 +176,6 @@ export class MockApi {
       LLM_FIRST_TOKEN_TIMEOUT: { value: '', source: null, overridden_by_env: false },
       LLM_TEMPERATURE: { value: '', source: null, overridden_by_env: false },
       DECISION: { value: '', source: null, overridden_by_env: false },
-      DECISION_MODEL: { value: '', source: null, overridden_by_env: false },
-      KEEP_UPLOADS: { value: 'on', source: null, overridden_by_env: false },
       BROWSER: { value: '', source: null, overridden_by_env: false },
     }
     this.suggestions = { status: 'failed', questions: [] } // no tailored questions: the general cards show
@@ -487,7 +483,7 @@ export class MockApi {
       ] })
     }
     if (path === '/api/settings' && req.method() === 'GET') {
-      return json({ groups: SETTINGS_GROUPS, values: this.settingsValues, public: this.publicDemo, readonly: this.publicDemo })
+      return json({ groups: this.publicDemo ? [] : SETTINGS_GROUPS, values: this.publicDemo ? {} : this.settingsValues, public: this.publicDemo, readonly: this.publicDemo })
     }
     if (path === '/api/settings' && req.method() === 'PUT') {
       if (this.publicDemo) return json({ message: '公开演示不能修改服务器配置' }, 403)
@@ -497,7 +493,7 @@ export class MockApi {
       for (const [k, v] of Object.entries(body.values || {})) {
         const f = fields[k]
         if (!f) return json({ message: `未知的配置项：${k}` }, 400)
-        if (f.type === 'secret') { if (v) this.settingsValues[k] = { configured: true, source: 'local', overridden_by_env: false } }
+        if (f.type === 'secret') { if (v) this.settingsValues[k] = { configured: true, local_configured: true, source: 'local', overridden_by_env: false } }
         else this.settingsValues[k] = { value: v, source: 'local', overridden_by_env: false }
       }
       for (const k of (body.clear || [])) {

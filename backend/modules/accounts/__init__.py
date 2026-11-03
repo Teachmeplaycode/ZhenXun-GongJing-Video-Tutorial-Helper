@@ -62,7 +62,7 @@ def save(values: dict[str, str | None]) -> None:
     if keep is not None:
         keep(values)
         return
-    lines = ACCOUNTS_FILE.read_text().splitlines() if ACCOUNTS_FILE.exists() else []
+    lines = ACCOUNTS_FILE.read_text(encoding="utf-8-sig").splitlines() if ACCOUNTS_FILE.exists() else []
     out, done = [], set()
     for line in lines:
         name = parse_assignment(line.strip())[0] if "=" in line and not line.strip().startswith("#") else ""
@@ -75,7 +75,7 @@ def save(values: dict[str, str | None]) -> None:
     out += [f'{k}="{_clean(v)}"' for k, v in values.items() if k not in done and v is not None]
     if not lines:
         out.insert(0, "# 在界面上扫码登录后自动写入；优先于 .env。不要提交到 git。")
-    ACCOUNTS_FILE.write_text("\n".join(out) + "\n")
+    ACCOUNTS_FILE.write_text("\n".join(out) + "\n", encoding="utf-8")
     os.chmod(ACCOUNTS_FILE, 0o600)
 
 

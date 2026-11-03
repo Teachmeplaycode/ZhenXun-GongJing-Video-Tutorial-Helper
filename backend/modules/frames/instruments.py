@@ -8,6 +8,8 @@ Plain OpenCV/NumPy on the Mac; no model, no training.
 """
 from __future__ import annotations
 
+from modules import cv_compat as cv_io
+
 import asyncio
 import math
 from dataclasses import dataclass, field
@@ -261,7 +263,7 @@ def period_of(signal: np.ndarray, fps: float) -> float | None:
 
 
 def analyze(files: list[Path], start: float, fps: float, out: Path) -> Reading:
-    colors = [cv2.imread(str(f)) for f in files]
+    colors = [cv_io.imread(str(f)) for f in files]
     colors = [c for c in colors if c is not None]
     grays = [cv2.GaussianBlur(cv2.cvtColor(c, cv2.COLOR_BGR2GRAY), (5, 5), 0) for c in colors]
     times = [start + i / fps for i in range(len(grays))]
@@ -282,14 +284,14 @@ def analyze(files: list[Path], start: float, fps: float, out: Path) -> Reading:
     if heat.max() > 0:
         norm = (heat / heat.max() * 255).astype(np.uint8)
         overlay = cv2.addWeighted(colors[len(colors) // 2], 0.55, cv2.applyColorMap(norm, cv2.COLORMAP_JET), 0.45, 0)
-        cv2.imwrite(str(out / "heat.jpg"), overlay)
+        cv_io.imwrite(str(out / "heat.jpg"), overlay)
         images.append(("运动热力图（红黄 = 这段时间里动得最多的地方，蓝 = 不动）", out / "heat.jpg"))
     step = max(1, len(colors) // 8)
     picked = colors[::step][:8]
     if len(picked) >= 2:
         weights = np.linspace(0.3, 1.0, len(picked))
         trail = sum(w * c.astype(np.float32) for w, c in zip(weights, picked)) / weights.sum()
-        cv2.imwrite(str(out / "trail.jpg"), trail.astype(np.uint8))
+        cv_io.imwrite(str(out / "trail.jpg"), trail.astype(np.uint8))
         images.append(("运动轨迹叠影（同一段的 8 帧叠在一起，越清晰的越晚，模糊拖影 = 移动路径）", out / "trail.jpg"))
     region = where(heat > max(1.0, 0.3 * heat.max())) if heat.max() > 0 else "几乎没有运动"
     return Reading(round(start, 2), round(start + span, 2), fps, len(grays), cam, cam_detail, rel,

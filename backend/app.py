@@ -14,6 +14,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
@@ -36,9 +38,9 @@ from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, create_client, exact
 from modules.store import SessionStore
-from modules.settings import (overlay as settings_overlay, vault as settings_vault, write_local, source_of,
-                             read_local, SETTINGS_GROUPS, SETTINGS_FIELDS, SECRET_FIELDS, is_configured,
-                             settings as all_settings)
+from modules.settings import overlay as settings_overlay, vault as settings_vault, settings as all_settings, SETTINGS_GROUPS, write_local
+from modules import cv_compat as cv_io, local_config
+from modules.local_config import SettingsUpdate
 from modules.screentext import ScreenText, run_screentext
 from modules.screentext.hybrid import ClientOCRService
 from modules.factcheck.api import create_router as create_factcheck_router
@@ -441,7 +443,7 @@ def sse(event: dict) -> str:
 async def health():
     try:
         model = get_llm().config.model
-    except LLMError:
+    except (LLMError, ValueError):
         model = None
     platforms = [r.platform for r in registry.resolvers]
     if visitors.enabled():
@@ -699,7 +701,7 @@ async def job_frame(job_id: str, index: int, detail: bool = False):
             binding_key = "-" + sha256(settings().get("BILIBILI_COOKIE", "").strip().encode()).hexdigest()[:16]
         target = folder / f"{index}-{round(job.slots[index].time * 1000)}{binding_key}.jpg"
         async with job.detail_lock:
-            cached = await asyncio.to_thread(cv2.imread, str(target)) if target.is_file() else None
+            cached = await asyncio.to_thread(cv_io.imread, str(target)) if target.is_file() else None
             # A low-resolution fallback should be retried after the person logs in to the
             # video platform; don't permanently cache that fallback as the best source.
             fresh = cached is not None and (cached.shape[1] >= 1920 or time.time() - target.stat().st_mtime < 60)
@@ -708,7 +710,7 @@ async def job_frame(job_id: str, index: int, detail: bool = False):
                 if not available and cached is None:
                     raise HTTPException(503, "暂时无法读取高清帧，仍可查看预览图")
                 if available:
-                    cached = await asyncio.to_thread(cv2.imread, str(target))
+                    cached = await asyncio.to_thread(cv_io.imread, str(target))
             if cached is None:
                 raise HTTPException(503, "高清帧无法读取，仍可查看预览图")
             height, width = cached.shape[:2]
@@ -815,7 +817,7 @@ async def upload_attachment(job_id: str, file: UploadFile = File(...)):
     folder = DATA_DIR / job.id / "attachments"
     folder.mkdir(parents=True, exist_ok=True)
     attachment_id = uuid.uuid4().hex[:12]
-    cv2.imwrite(str(folder / f"{attachment_id}.jpg"), image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    cv_io.imwrite(str(folder / f"{attachment_id}.jpg"), image, [cv2.IMWRITE_JPEG_QUALITY, 85])
     return {"id": attachment_id, "url": f"/api/link-jobs/{job.id}/attachments/{attachment_id}.jpg",
             "width": image.shape[1], "height": image.shape[0]}
 
@@ -1522,75 +1524,38 @@ _LLM_CLIENT_FIELDS = {"LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY"
                       "OLLAMA_NUM_CTX", "LLM_FIRST_TOKEN_TIMEOUT"}
 
 
-class SettingsUpdate(BaseModel):
-    values: dict[str, str] = {}
-    clear: list[str] = []
-
-
-def _settings_view() -> dict:
-    """Current settings, desensitised: secrets report only whether they are set, never the value."""
-    env = all_settings()
-    out: dict[str, dict] = {}
-    for name, field in SETTINGS_FIELDS.items():
-        source, overridden = source_of(name)
-        if field.get("type") == "secret":
-            out[name] = {"configured": is_configured(env, field), "source": source, "overridden_by_env": overridden}
-        else:
-            out[name] = {"value": env.get(name, ""), "source": source, "overridden_by_env": overridden}
-    return out
-
-
-def _validate_settings(values: dict[str, str], clear: list[str]) -> dict[str, str | None]:
-    """Turn a SettingsUpdate into .env.local writes, or raise HTTPException(400).
-
-    Secrets: a non-empty value writes; an empty/missing value keeps the old one; listing in `clear`
-    removes it. Other fields: any value (including '') writes; `clear` removes it.
-    """
-    updates: dict[str, str | None] = {}
-    for name in clear:
-        if name not in SETTINGS_FIELDS:
-            raise HTTPException(400, f"未知的配置项：{name}")
-        updates[name] = None
-    for name, value in values.items():
-        if name not in SETTINGS_FIELDS:
-            raise HTTPException(400, f"未知的配置项：{name}")
-        field = SETTINGS_FIELDS[name]
-        ftype = field.get("type")
-        if ftype == "number" and value:
-            try:
-                float(value)
-            except ValueError:
-                raise HTTPException(400, f"{field['label']} 要是数字")
-        if ftype == "select" and value:
-            allowed = [o["value"] for o in field.get("options", [])]
-            if value not in allowed:
-                raise HTTPException(400, f"{field['label']} 的值不对")
-        if ftype == "secret":
-            if value:
-                updates[name] = value
-        else:
-            updates[name] = value
-    return updates
+@app.exception_handler(RequestValidationError)
+async def settings_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path == "/api/settings":
+        return JSONResponse({"code": "invalid_settings", "message": "设置格式有误，请检查输入"}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.get("/api/settings")
 async def get_settings(request: Request):
-    local_only(request)
-    return {"groups": SETTINGS_GROUPS, "values": _settings_view(),
-            "public": visitors.enabled(), "readonly": visitors.enabled()}
+    if visitors.enabled():
+        return {"groups": [], "values": {}, "public": True, "readonly": True}
+    local_config.local_only(request)
+    return {"groups": SETTINGS_GROUPS, "values": local_config.view(),
+            "public": False, "readonly": False}
 
 
 @app.put("/api/settings")
 async def update_settings(body: SettingsUpdate, request: Request):
-    local_only(request)
     if visitors.enabled():
         raise HTTPException(403, "公开演示不能修改服务器配置")
-    updates = _validate_settings(body.values, body.clear)
+    local_config.local_only(request)
+    updates = local_config.validate(body.values, body.clear)
     if updates:
-        write_local(updates)
-        if any(name in _LLM_CLIENT_FIELDS for name in updates):
+        before = all_settings()
+        try:
+            write_local(updates)
+        except (OSError, ValueError):
+            raise HTTPException(500, "无法保存设置，请检查本地配置文件的编码和写入权限") from None
+        after = all_settings()
+        if any(before.get(name) != after.get(name) for name in _LLM_CLIENT_FIELDS):
             reset_llm()
-    return {"values": _settings_view()}
+    return {"values": local_config.view()}
 
 
 class CookieBody(BaseModel):

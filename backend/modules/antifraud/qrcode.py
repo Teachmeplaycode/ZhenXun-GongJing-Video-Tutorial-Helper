@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+from modules import cv_compat as cv_io
+
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,7 +46,7 @@ def decode_qrcode_image(path: Path | str) -> list[str]:
     if not p.exists():
         return []
     try:
-        img = cv2.imread(str(p))
+        img = cv_io.imread(str(p))
         if img is None:
             return []
         detector = cv2.QRCodeDetector()

@@ -337,7 +337,7 @@ test('the web demo: a signed-in person links their own platform login by QR only
   })
   await page.locator('.member-chip').click()
   await page.getByRole('dialog', { name: '我的' }).getByRole('button', { name: /平台账号/ }).click()
-  const drawer = page.getByRole('dialog', { name: '平台账号' })
+  const drawer = page.getByRole('dialog', { name: '设置', exact: true })
   await expect(drawer).toContainText('只用于你自己导入的视频')
   const bili = drawer.locator('.account-card', { hasText: 'B 站' })
   await expect(bili.getByRole('button', { name: '扫码绑定' })).toBeVisible()

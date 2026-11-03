@@ -25,18 +25,21 @@ import signal
 import socket
 import subprocess
 import sys
-import threading
+import hashlib
+import json
 import time
 import urllib.request
 import webbrowser
 from pathlib import Path
 
+from scripts.launcher_processes import ProcessGroup
+
 ROOT = Path(__file__).resolve().parent
 BACKEND = ROOT / "backend"
 FRONT = ROOT / "front"
 
-API_PORT = int(os.environ.get("API_PORT", "8000"))
-WEB_PORT = int(os.environ.get("WEB_PORT", "5173"))
+API_PORT = 8000
+WEB_PORT = 5173
 HOST = "127.0.0.1"
 
 IS_WIN = sys.platform == "win32"
@@ -81,7 +84,7 @@ def _run_quiet(args: list[str], timeout: float = 5) -> str:
     try:
         r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
         return (r.stdout or "").strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except (OSError, subprocess.TimeoutExpired):
         return ""
 
 
@@ -97,7 +100,7 @@ def check_uv() -> None:
     uv = shutil.which("uv")
     if uv:
         ver = _run_quiet(["uv", "--version"])
-        ok(f"uv {ver.split()[-1] if ver else '?'}")
+        ok(f"uv {ver.split()[1] if len(ver.split()) > 1 else '?'}")
     else:
         if IS_WIN:
             fail("没有 uv：pip install uv，或 PowerShell iwr https://astral.sh/uv/install.ps1 | iex")
@@ -111,7 +114,10 @@ def check_node() -> None:
     node = shutil.which("node")
     if node:
         ver = _run_quiet(["node", "--version"])
-        major = int(ver.lstrip("v").split(".")[0]) if ver else 0
+        try:
+            major = int(ver.lstrip("v").split(".")[0]) if ver else 0
+        except ValueError:
+            major = 0
         if major >= 20:
             ok(f"node {ver}")
         else:
@@ -143,9 +149,12 @@ def check_tools() -> None:
 # ── port checks ──────────────────────────────────────────────────────────
 
 def port_in_use(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(0.5)
-        return s.connect_ex((HOST, port)) == 0
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.bind((HOST, port))
+        except OSError:
+            return True
+    return False
 
 
 def check_ports() -> None:
@@ -159,70 +168,51 @@ def check_ports() -> None:
 
 # ── dependency installation ──────────────────────────────────────────────
 
+def backend_python() -> Path:
+    return BACKEND / ".venv" / ("Scripts/python.exe" if IS_WIN else "bin/python")
+
+
+def child_environment() -> dict[str, str]:
+    return {**os.environ, "PYTHONUTF8": "1", "PYTHONUNBUFFERED": "1",
+            "API_PORT": str(API_PORT), "WEB_PORT": str(WEB_PORT),
+            "VITE_API_BASE": "", "VITE_BASE": "/", "PUBLIC_DEMO": "off"}
+
+
 def install_deps() -> bool:
     print(f"{BOLD}依赖{RESET}")
-    uv = shutil.which("uv")
-    if not uv:
-        fail("没有 uv，无法安装后端依赖")
+    env = child_environment()
+    command = ["uv", "sync", "--frozen", "--python", "3.12"]
+    if not IS_MAC:
+        command += ["--extra", "cloud"]
+    if subprocess.run(command, cwd=BACKEND, env=env).returncode:
+        fail("后端依赖安装失败，请检查网络后重试")
         return False
-    r = subprocess.run(["uv", "sync", "--quiet"], cwd=BACKEND)
-    if r.returncode == 0:
-        ok("后端依赖（uv sync）")
-    else:
-        fail("uv sync 失败")
-        return False
-    need_install = not (FRONT / "node_modules" / ".package-lock.json").exists()
-    if not need_install:
-        lock = FRONT / "package-lock.json"
-        installed = FRONT / "node_modules" / ".package-lock.json"
-        try:
-            need_install = lock.stat().st_mtime > installed.stat().st_mtime
-        except OSError:
-            need_install = True
-    if need_install:
+    ok("后端依赖（锁定版本，Windows/Linux 含语音转写和 OCR）")
+    lock_hash = hashlib.sha256((FRONT / "package-lock.json").read_bytes() + (FRONT / "package.json").read_bytes()).hexdigest()
+    marker = FRONT / "node_modules" / ".zhenxun-lock.sha256"
+    installed = marker.read_text(encoding="ascii").strip() if marker.exists() else ""
+    if installed != lock_hash:
+        if (FRONT / "node_modules").is_symlink():
+            fail("前端使用共享依赖链接，请先独立安装，或验收时用 --skip-install")
+            return False
         npm = shutil.which("npm")
-        if not npm:
-            fail("没有 npm，无法安装前端依赖")
+        if not npm or subprocess.run([npm, "ci"], cwd=FRONT, env=env, shell=IS_WIN).returncode:
+            fail("前端依赖安装失败，请检查 Node.js 和网络后重试")
             return False
-        r = subprocess.run(["npm", "install", "--silent"], cwd=FRONT, shell=IS_WIN)
-        if r.returncode == 0:
-            ok("前端依赖（npm install）")
-        else:
-            fail("npm install 失败")
-            return False
-    else:
-        ok("前端依赖已是最新")
+        marker.write_text(lock_hash, encoding="ascii")
+    ok("前端依赖（package-lock.json）")
+    # The QR login flows need a browser; this is idempotent when already cached.
+    if subprocess.run([str(backend_python()), "-m", "playwright", "install", "--only-shell", "chromium"],
+                      cwd=BACKEND, env=env).returncode:
+        warn("浏览器组件下载失败，扫码和网页查证暂不可用，可稍后重新启动补装")
     return True
 
 
-# ── process management ───────────────────────────────────────────────────
-
-children: list[subprocess.Popen] = []
-cleanup_done = False
+processes = ProcessGroup()
 
 
 def cleanup() -> None:
-    global cleanup_done
-    if cleanup_done:
-        return
-    cleanup_done = True
-    print(f"\n{DIM}正在停止…{RESET}")
-    for p in children:
-        try:
-            if IS_WIN:
-                p.send_signal(signal.CTRL_BREAK_EVENT)
-            else:
-                p.terminate()
-        except (OSError, ProcessLookupError):
-            pass
-    for p in children:
-        try:
-            p.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            try:
-                p.kill()
-            except (OSError, ProcessLookupError):
-                pass
+    processes.stop()
 
 
 def on_signal(signum, frame):
@@ -231,97 +221,96 @@ def on_signal(signum, frame):
 
 # ── health check ─────────────────────────────────────────────────────────
 
-def wait_for_health(port: int, timeout: float = 60) -> bool:
-    url = f"http://{HOST}:{port}/api/health"
+def wait_for_health(port: int, timeout: float = 60, *, frontend: bool = False) -> bool:
+    path = "/" if frontend else "/api/health"
+    url = f"http://{HOST}:{port}{path}"
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
+        if any(child.poll() is not None for child in processes.children):
+            return False
         try:
-            with urllib.request.urlopen(url, timeout=2) as r:
-                if r.status == 200:
+            with opener.open(url, timeout=1) as response:
+                data = response.read()
+                if response.status == 200 and (b"<html" in data.lower() if frontend else json.loads(data).get("ok") is True):
                     return True
-        except (OSError, urllib.error.URLError):
+        except (OSError, ValueError):
             pass
-        time.sleep(0.5)
+        time.sleep(0.2)
     return False
 
 
 # ── main ─────────────────────────────────────────────────────────────────
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="启动 GongJ!ng?")
+    global API_PORT, WEB_PORT, failures, warnings, processes
+    failures = warnings = 0
+    processes = ProcessGroup()
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+    parser = argparse.ArgumentParser(description="启动帧寻本地版")
     parser.add_argument("--check", action="store_true", help="只检查环境，不启动")
     parser.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
-    parser.add_argument("--skip-install", action="store_true", help="跳过依赖安装")
+    parser.add_argument("--skip-install", action="store_true", help="使用已安装的依赖，不联网安装")
     args = parser.parse_args()
-
-    print(f"\n{BOLD}GongJ!ng? 启动检查{RESET}")
+    print(f"\n{BOLD}GongJ!ng? 帧寻本地启动检查{RESET}", flush=True)
+    try:
+        API_PORT = int(os.environ.get("API_PORT", "8000"))
+        WEB_PORT = int(os.environ.get("WEB_PORT", "5173"))
+        if not (1 <= API_PORT <= 65535 and 1 <= WEB_PORT <= 65535 and API_PORT != WEB_PORT):
+            raise ValueError
+    except ValueError:
+        fail("API_PORT 和 WEB_PORT 必须是 1–65535 之间不同的整数端口")
+        return 1
     check_tools()
     check_ports()
-    print()
-
-    if failures > 0:
-        print(f"{RED}{failures} 项必须先处理{RESET}（另有 {warnings} 项提示），处理后再运行")
+    if failures:
+        print(f"{failures} 项必须先处理，处理后再运行", flush=True)
         return 1
-
     if args.check:
-        print(f"{GREEN}检查通过{RESET}（{warnings} 项提示）")
+        print("检查通过", flush=True)
         return 0
-
-    if not args.skip_install:
-        if not install_deps():
-            return 1
-    print()
-
-    # Start backend — no --reload on Windows (file watcher + asyncio issues).
-    backend_cmd = ["uv", "run", "uvicorn", "app:app",
-                   "--host", HOST, "--port", str(API_PORT),
-                   "--timeout-graceful-shutdown", "3"]
-    if not IS_WIN:
-        backend_cmd.append("--reload")
-        backend_cmd += ["--reload-include", ".env"]
-
-    creationflags = 0
-    if IS_WIN:
-        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
-    api = subprocess.Popen(backend_cmd, cwd=BACKEND, creationflags=creationflags)
-    children.append(api)
-
-    # Start frontend.
-    npm_cmd = ["npm", "run", "dev"]
-    web = subprocess.Popen(npm_cmd, cwd=FRONT, shell=IS_WIN, creationflags=creationflags)
-    children.append(web)
-
     signal.signal(signal.SIGINT, on_signal)
-    if not IS_WIN:
-        signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGTERM, on_signal)
+    if IS_WIN:
+        signal.signal(signal.SIGBREAK, on_signal)
     import atexit
     atexit.register(cleanup)
-
-    # Wait for backend health, then open the browser.
-    if wait_for_health(API_PORT):
-        url = f"http://localhost:{WEB_PORT}"
-        if not args.no_browser:
-            threading.Thread(target=lambda: (time.sleep(0.5), webbrowser.open(url)), daemon=True).start()
-        print(f"\n{BOLD}就绪{RESET}  打开 {BOLD}{url}{RESET}"
-              f"  （后端 http://localhost:{API_PORT}；Ctrl+C 停止）\n")
-    else:
-        warn(f"后端在 {API_PORT} 上 {WAIT_TIMEOUT} 秒内未就绪，请查看日志")
-
-    # Wait for either process to exit or Ctrl+C.
     try:
-        while True:
-            if api.poll() is not None:
-                warn("后端已退出")
-                break
-            if web.poll() is not None:
-                warn("前端已退出")
-                break
-            time.sleep(0.5)
+        if not args.skip_install and not install_deps():
+            return 1
+        if not backend_python().is_file() or not (FRONT / "node_modules").is_dir():
+            fail("尚未安装依赖，请去掉 --skip-install 后重试")
+            return 1
+        env = child_environment()
+        backend_cmd = [str(backend_python()), "-m", "uvicorn", "app:app", "--host", HOST,
+                       "--port", str(API_PORT), "--timeout-graceful-shutdown", "3"]
+        processes.start(backend_cmd, cwd=BACKEND, env=env)
+        npm = shutil.which("npm")
+        if not npm:
+            fail("找不到 npm，请重新安装 Node.js LTS")
+            return 1
+        processes.start([npm, "run", "dev", "--", "--host", HOST], cwd=FRONT, env=env, shell=IS_WIN)
+        if not wait_for_health(API_PORT, WAIT_TIMEOUT) or not wait_for_health(WEB_PORT, WAIT_TIMEOUT, frontend=True):
+            fail("服务未能就绪，请查看上面的启动日志")
+            return 1
+        url = f"http://{HOST}:{WEB_PORT}"
+        print(f"\n就绪  {url}（Ctrl+C 停止）", flush=True)
+        if not args.no_browser:
+            webbrowser.open(url)
+        while all(child.poll() is None for child in processes.children):
+            time.sleep(0.2)
+        fail("本机服务意外退出，请查看启动日志")
+        return 1
     except KeyboardInterrupt:
-        pass
+        print("\n正在停止本次启动的服务…", flush=True)
+        return 0
+    except OSError:
+        fail("启动失败，请检查工具安装、目录权限和端口占用情况")
+        return 1
     finally:
         cleanup()
-    return 0
 
 
 if __name__ == "__main__":
