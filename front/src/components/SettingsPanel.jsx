@@ -86,8 +86,16 @@ function SettingsContent({ initialTab, accountFocus, onClose, publicDemo }) {
   useEffect(() => {
     alive.current = true
     const previous = document.activeElement
-    dialog.current?.querySelector('.history__close')?.focus()
-    return () => { alive.current = false; previous?.focus?.() }
+    let focusFrame
+    const focusWhenVisible = () => {
+      if (dialog.current?.contains(document.activeElement)) return
+      const close = dialog.current?.querySelector('.history__close')
+      // The animated header starts visibility:hidden; focus only once it can receive focus.
+      if (close && getComputedStyle(close).visibility === 'visible') close.focus({ preventScroll: true })
+      else focusFrame = requestAnimationFrame(focusWhenVisible)
+    }
+    focusWhenVisible()
+    return () => { alive.current = false; cancelAnimationFrame(focusFrame); previous?.focus?.({ preventScroll: true }) }
   }, [])
   const apply = useCallback((data) => {
     if (data.groups) setGroups(data.groups)
