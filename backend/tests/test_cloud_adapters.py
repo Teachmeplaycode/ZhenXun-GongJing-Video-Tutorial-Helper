@@ -25,7 +25,7 @@ def test_cpu_asr_preserves_timestamps_and_filters_hallucinations(monkeypatch, tm
 
 
 def test_rapidocr_normalizes_top_left_boxes(monkeypatch):
-    monkeypatch.setitem(sys.modules, "cv2", SimpleNamespace(imread=lambda _: np.zeros((100, 200, 3))))
+    monkeypatch.setattr(ocr, "_imread", lambda _: np.zeros((100, 200, 3)))
     monkeypatch.setattr(ocr, "_rapid_engine", lambda: lambda _: (
         [[[[20, 30], [100, 30], [100, 50], [20, 50]], "字幕", 0.9]], None))
     assert ocr._rapid_recognize("frame.jpg") == [ocr.Line("字幕", 0.9, 0.1, 0.3, 0.4, 0.2)]
