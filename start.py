@@ -82,7 +82,7 @@ def fail(msg: str) -> None:
 
 def _run_quiet(args: list[str], timeout: float = 5) -> str:
     try:
-        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
         return (r.stdout or "").strip()
     except (OSError, subprocess.TimeoutExpired):
         return ""
