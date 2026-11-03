@@ -10,6 +10,8 @@ The model still decides: the matches go to it as a hint next to the screenshot, 
 """
 from __future__ import annotations
 
+from modules import cv_compat as cv_io
+
 import math
 import re
 from dataclasses import dataclass, field
@@ -40,7 +42,7 @@ def words(text: str) -> set[str]:
 
 
 def thumb(path) -> np.ndarray | None:
-    image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+    image = cv_io.imread(str(path), cv2.IMREAD_GRAYSCALE)
     if image is None:
         return None
     small = cv2.resize(image, THUMB, interpolation=cv2.INTER_AREA).astype(np.float32)

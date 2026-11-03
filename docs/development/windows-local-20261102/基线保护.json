@@ -1,0 +1,16 @@
+{
+  "base_commit": "0a17ddd8def71d92b5c67505b6349061628e37a5",
+  "baseline_branch": "codex/baseline-before-local-20261102",
+  "development_branch": "codex/windows-local-settings",
+  "original_worktree": "/Users/linyi/project/Huawei/MyTargetProject",
+  "development_worktree": "/Users/linyi/project/Huawei/MyTargetProject-windows-local",
+  "original_changes_preserved": true,
+  "original_changes_snapshot": "/Users/linyi/project/Huawei/backups/windows-local-baseline-20261102",
+  "implementation_owner": "网页码道",
+  "acceptance_owner": "Codex",
+  "merge_status": "尚未合并",
+  "backup_archived_files": 485,
+  "backup_sha256": "7fe47b3c3722347e6bc3d1367b3fd87b93c459fded1c1fd4da1c7d8003cd4724",
+  "backup_verified_files": 485,
+  "cloud_worktree": "/workspace/gongjing-win"
+}

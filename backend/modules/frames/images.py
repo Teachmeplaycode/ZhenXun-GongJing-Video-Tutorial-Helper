@@ -10,6 +10,8 @@ each address and the headers its CDN wants) or from an upload (`extra["images"]`
 """
 from __future__ import annotations
 
+from modules import cv_compat as cv_io
+
 import asyncio
 from pathlib import Path
 
@@ -44,7 +46,7 @@ def normalise(data: bytes, out: Path) -> bool:
     if w > MAX_WIDTH:
         image = cv2.resize(image, (MAX_WIDTH, round(h * MAX_WIDTH / w)), interpolation=cv2.INTER_AREA)
     out.parent.mkdir(parents=True, exist_ok=True)
-    return bool(cv2.imwrite(str(out), image, [cv2.IMWRITE_JPEG_QUALITY, 90]))
+    return bool(cv_io.imwrite(str(out), image, [cv2.IMWRITE_JPEG_QUALITY, 90]))
 
 
 async def _download(client: httpx.AsyncClient, item: dict) -> bytes | None:

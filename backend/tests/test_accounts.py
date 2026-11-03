@@ -1,3 +1,4 @@
+import os
 """Platform logins: where cookies are saved, B 站's QR flow, and who may call the endpoints."""
 import asyncio
 
@@ -45,16 +46,18 @@ def bili(monkeypatch, *, poll_codes=(86101,), logged_in=True):
 
 def test_save_keeps_other_lines_and_removes_with_none(files):
     _, saved = files
-    saved.write_text("# 说明\nOTHER=1\n")
+    saved.write_text("# 说明\nOTHER=1\n", encoding="utf-8")
     accounts.save({"BILIBILI_COOKIE": 'SESSDATA=a"b\n', "X": "y"})
     accounts.save({"X": None})
-    assert saved.read_text() == '# 说明\nOTHER=1\nBILIBILI_COOKIE="SESSDATA=ab"\n'
-    assert oct(saved.stat().st_mode & 0o777) == "0o600"
+    assert saved.read_text(encoding="utf-8") == '# 说明\nOTHER=1\nBILIBILI_COOKIE="SESSDATA=ab"\n'
+    # Windows st_mode exposes read-only flags, not NTFS ACLs. Keep all content assertions there.
+    if os.name != "nt":
+        assert oct(saved.stat().st_mode & 0o777) == "0o600"
 
 
 def test_ui_login_wins_over_env_file_but_not_environment(files, monkeypatch):
     env, saved = files
-    env.write_text('YUANBAO_COOKIE="hy_user=old; hy_token=old"\n')
+    env.write_text('YUANBAO_COOKIE="hy_user=old; hy_token=old"\n', encoding="utf-8")
     assert accounts.source("YUANBAO_COOKIE") == "env"
     accounts.save({"YUANBAO_COOKIE": "hy_user=new; hy_token=new"})
     assert settings_module.settings()["YUANBAO_COOKIE"].endswith("new") and accounts.source("YUANBAO_COOKIE") == "ui"

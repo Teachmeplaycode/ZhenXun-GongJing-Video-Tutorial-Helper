@@ -57,7 +57,7 @@ def temperature() -> float:
     if EXACT.get() is not None:
         return EXACT.get()
     try:
-        return float(os.environ.get("LLM_TEMPERATURE", "0.3"))
+        return float(settings().get("LLM_TEMPERATURE", "0.3"))
     except ValueError:
         return 0.3
 
@@ -94,14 +94,14 @@ class LLMConfig:
         if not key and env.get("LLM_KEY_FILE"):
             key = read_key_file(Path(env["LLM_KEY_FILE"]).expanduser())
         if not key:
-            raise LLMError("no_api_key", "未配置模型密钥：请在 backend/.env 中设置 DEEPSEEK_API_KEY（或 LLM_API_KEY）后重启后端")
+            raise LLMError("no_api_key", "未配置模型密钥：请打开首页设置填写 API Key，或选择本机 Ollama")
         return cls(env.get("LLM_BASE_URL", DEFAULT_BASE_URL).rstrip("/"), env.get("LLM_MODEL", DEFAULT_MODEL), key,
                    first_token_timeout=float(env.get("LLM_FIRST_TOKEN_TIMEOUT", FIRST_TOKEN_TIMEOUT)))
 
 
 def read_key_file(path: Path) -> str:
     try:
-        lines = [line.strip() for line in path.read_text().splitlines() if line.strip() and not line.startswith("#")]
+        lines = [line.strip() for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip() and not line.startswith("#")]
     except OSError:
         raise LLMError("no_api_key", f"无法读取密钥文件 {path}")
     if len(lines) != 1:
