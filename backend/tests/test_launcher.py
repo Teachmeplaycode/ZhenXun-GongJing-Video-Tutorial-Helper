@@ -115,3 +115,23 @@ def test_help_exits_zero():
     assert "--check" in r.stdout
     assert "--no-browser" in r.stdout
     assert "--skip-install" in r.stdout
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='POSIX SO_REUSEADDR / TIME_WAIT behavior')
+def test_recently_stopped_service_does_not_block_restart(monkeypatch):
+    import importlib.util
+    import socket
+    monkeypatch.syspath_prepend(str(ROOT))
+    spec = importlib.util.spec_from_file_location('launcher_acceptance', ROOT / 'start.py')
+    launcher = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(launcher)
+    with socket.socket() as listener, socket.socket() as client:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(('127.0.0.1', 0))
+        port = listener.getsockname()[1]
+        listener.listen()
+        client.connect(('127.0.0.1', port))
+        peer, _ = listener.accept()
+        peer.close()
+        assert client.recv(1) == b''
+    assert launcher.port_in_use(port) is False
