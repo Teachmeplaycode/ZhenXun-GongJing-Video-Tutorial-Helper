@@ -14,6 +14,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
@@ -36,7 +38,9 @@ from modules.decide import Decider
 from modules.decide import enabled as decision_enabled
 from modules.llm import ChatClient, LLMConfig, LLMError, OllamaClient, Usage, create_client, exact
 from modules.store import SessionStore
-from modules.settings import overlay as settings_overlay, vault as settings_vault
+from modules.settings import overlay as settings_overlay, vault as settings_vault, settings as all_settings, SETTINGS_GROUPS, write_local
+from modules import cv_compat as cv_io, local_config
+from modules.local_config import SettingsUpdate
 from modules.screentext import ScreenText, run_screentext
 from modules.screentext.hybrid import ClientOCRService
 from modules.factcheck.api import create_router as create_factcheck_router
@@ -66,6 +70,9 @@ jobs: dict[str, FrameJob] = {}  # active jobs; saved sessions are restored on de
 tasks: set[asyncio.Task] = set()
 llm: ChatClient | OllamaClient | None = None
 decider: Decider | None = None
+# Clients replaced by a settings change. We do not close the one in use: a stream still holding it
+# finishes its answer; the new request gets a fresh client. These are closed on shutdown.
+_stale_llm: list = []
 
 
 @asynccontextmanager
@@ -80,6 +87,11 @@ async def lifespan(_: FastAPI):
     await registry.aclose()
     if llm is not None:
         await llm.aclose()
+    for old in _stale_llm:
+        try:
+            await old.aclose()
+        except Exception:
+            pass
     if decider is not None:
         await decider.aclose()
     await accounts.shutdown()
@@ -394,6 +406,18 @@ def get_llm() -> ChatClient | OllamaClient:
     return llm
 
 
+def reset_llm() -> None:
+    """Drop the cached client so the next call builds one from the current settings.
+
+    The client in use by an in-flight answer is not closed: it is moved to `_stale_llm` and closed
+    on shutdown. A settings change must not cut off a stream that is still answering.
+    """
+    global llm
+    if llm is not None:
+        _stale_llm.append(llm)
+    llm = None
+
+
 def get_decider() -> Decider | None:
     """The local decision model (DECISION=off disables it); every decision is logged for calibration."""
     global decider
@@ -419,7 +443,7 @@ def sse(event: dict) -> str:
 async def health():
     try:
         model = get_llm().config.model
-    except LLMError:
+    except (LLMError, ValueError):
         model = None
     platforms = [r.platform for r in registry.resolvers]
     if visitors.enabled():
@@ -677,7 +701,7 @@ async def job_frame(job_id: str, index: int, detail: bool = False):
             binding_key = "-" + sha256(settings().get("BILIBILI_COOKIE", "").strip().encode()).hexdigest()[:16]
         target = folder / f"{index}-{round(job.slots[index].time * 1000)}{binding_key}.jpg"
         async with job.detail_lock:
-            cached = await asyncio.to_thread(cv2.imread, str(target)) if target.is_file() else None
+            cached = await asyncio.to_thread(cv_io.imread, str(target)) if target.is_file() else None
             # A low-resolution fallback should be retried after the person logs in to the
             # video platform; don't permanently cache that fallback as the best source.
             fresh = cached is not None and (cached.shape[1] >= 1920 or time.time() - target.stat().st_mtime < 60)
@@ -686,7 +710,7 @@ async def job_frame(job_id: str, index: int, detail: bool = False):
                 if not available and cached is None:
                     raise HTTPException(503, "暂时无法读取高清帧，仍可查看预览图")
                 if available:
-                    cached = await asyncio.to_thread(cv2.imread, str(target))
+                    cached = await asyncio.to_thread(cv_io.imread, str(target))
             if cached is None:
                 raise HTTPException(503, "高清帧无法读取，仍可查看预览图")
             height, width = cached.shape[:2]
@@ -793,7 +817,7 @@ async def upload_attachment(job_id: str, file: UploadFile = File(...)):
     folder = DATA_DIR / job.id / "attachments"
     folder.mkdir(parents=True, exist_ok=True)
     attachment_id = uuid.uuid4().hex[:12]
-    cv2.imwrite(str(folder / f"{attachment_id}.jpg"), image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    cv_io.imwrite(str(folder / f"{attachment_id}.jpg"), image, [cv2.IMWRITE_JPEG_QUALITY, 85])
     return {"id": attachment_id, "url": f"/api/link-jobs/{job.id}/attachments/{attachment_id}.jpg",
             "width": image.shape[1], "height": image.shape[0]}
 
@@ -1493,6 +1517,45 @@ def platform_or_404(platform: str) -> str:
 def login_owner() -> str:
     """Whose QR logins these are: the signed-in person in the web demo, nobody in particular locally."""
     return visitors.current.get() if visitors.enabled() else ""
+
+
+# Changing any of these rebuilds the cached LLM client on the next request.
+_LLM_CLIENT_FIELDS = {"LLM_PROVIDER", "LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY",
+                      "OLLAMA_NUM_CTX", "LLM_FIRST_TOKEN_TIMEOUT"}
+
+
+@app.exception_handler(RequestValidationError)
+async def settings_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path == "/api/settings":
+        return JSONResponse({"code": "invalid_settings", "message": "设置格式有误，请检查输入"}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
+
+
+@app.get("/api/settings")
+async def get_settings(request: Request):
+    if visitors.enabled():
+        return {"groups": [], "values": {}, "public": True, "readonly": True}
+    local_config.local_only(request)
+    return {"groups": SETTINGS_GROUPS, "values": local_config.view(),
+            "public": False, "readonly": False}
+
+
+@app.put("/api/settings")
+async def update_settings(body: SettingsUpdate, request: Request):
+    if visitors.enabled():
+        raise HTTPException(403, "公开演示不能修改服务器配置")
+    local_config.local_only(request)
+    updates = local_config.validate(body.values, body.clear)
+    if updates:
+        before = all_settings()
+        try:
+            write_local(updates)
+        except (OSError, ValueError):
+            raise HTTPException(500, "无法保存设置，请检查本地配置文件的编码和写入权限") from None
+        after = all_settings()
+        if any(before.get(name) != after.get(name) for name in _LLM_CLIENT_FIELDS):
+            reset_llm()
+    return {"values": local_config.view()}
 
 
 class CookieBody(BaseModel):

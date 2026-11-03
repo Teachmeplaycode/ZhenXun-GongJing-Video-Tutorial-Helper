@@ -10,6 +10,8 @@ levels, must not. Measured on 10 minutes of a screen-recorded maths lecture (BV1
 """
 from __future__ import annotations
 
+from modules import cv_compat as cv_io
+
 from pathlib import Path
 
 import cv2
@@ -22,7 +24,7 @@ MIN_PIXELS = 24      # changed pixels that make a frame new (a short stroke is a
 
 def signature(path: str | Path) -> np.ndarray | None:
     """A frame in grey, or None if it can't be read (then it is always recognised)."""
-    image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+    image = cv_io.imread(str(path), cv2.IMREAD_GRAYSCALE)
     if image is None:
         return None
     h, w = image.shape

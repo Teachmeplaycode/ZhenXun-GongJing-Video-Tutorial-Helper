@@ -11,6 +11,7 @@ import sys
 from dataclasses import dataclass
 from functools import lru_cache
 
+from modules.cv_compat import imread as _imread
 from modules.settings import settings
 
 
@@ -84,7 +85,7 @@ class _RapidReader:
         import cv2
 
         e = self.engine
-        image = cv2.imread(path)
+        image = _imread(path)
         if image is None:
             return []
         raw_h, raw_w = image.shape[:2]
@@ -130,7 +131,7 @@ def recognizer():
 def _rapid_recognize(path: str) -> list[Line]:
     import cv2
 
-    image = cv2.imread(path)
+    image = _imread(path)
     if image is None:
         return []
     height, width = image.shape[:2]

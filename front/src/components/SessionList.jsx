@@ -59,6 +59,12 @@ export function useStaggeredDrawer(rootRef, open) {
     const layers = root.querySelectorAll('.history__layer')
     const rows = root.querySelectorAll('.history__head, .history__empty, .session-item, .account-card')
     timeline.current?.kill()
+    // Settings unmounts its contents on close to discard secrets and QR sessions.
+    if (!panel) {
+      first.current = false
+      gsap.set(layers, { xPercent: 105, autoAlpha: 0 })
+      return undefined
+    }
     if (first.current || prefersReducedMotion()) {
       first.current = false
       gsap.set(panel, { xPercent: open ? 0 : 105, autoAlpha: open ? 1 : 0 })

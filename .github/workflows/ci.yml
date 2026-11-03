@@ -81,6 +81,50 @@ jobs:
           path: front/test-results/
           retention-days: 7
 
+  windows-local:
+    name: Windows (local launcher + Unicode paths)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: 帧寻 Local App
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: 帧寻 Local App
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: astral-sh/setup-uv@v6
+      - name: Install ffmpeg
+        run: choco install ffmpeg --no-progress -y
+      - name: Install locked dependencies including Windows ASR and OCR
+        run: |
+          Push-Location backend
+          uv sync --frozen --python 3.12 --extra cloud
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          Push-Location front
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run build
+          exit $LASTEXITCODE
+      - name: Verify native imports and targeted backend behavior
+        run: |
+          Push-Location backend
+          .venv/Scripts/python.exe -c "import faster_whisper, rapidocr_onnxruntime, cv2; print('Windows ASR/OCR/native imports OK')"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .venv/Scripts/python.exe -m pytest -q tests/test_settings_api.py tests/test_settings_acceptance.py tests/test_accounts.py tests/test_launcher.py tests/test_transcript.py
+          exit $LASTEXITCODE
+      - name: Start real local services and upload a Unicode-path video
+        run: |
+          backend/.venv/Scripts/python.exe scripts/local_launcher_smoke.py
+          exit $LASTEXITCODE
+
   deploy:
     name: Deploy (linyi.work/ZhenXun)
     needs: [backend, frontend]

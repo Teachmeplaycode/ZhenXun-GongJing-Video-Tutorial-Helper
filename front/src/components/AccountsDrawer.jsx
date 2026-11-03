@@ -28,33 +28,40 @@ function QrLogin({ account, onDone, mine = false }) {
   const [error, setError] = useState('')
   const [left, setLeft] = useState(0)
   const live = useRef(null)
+  const generation = useRef(0)
 
   const begin = useCallback(async () => {
+    const current = ++generation.current
     setError('')
     setLogin(null)
     if (live.current) cancelLogin(live.current)
     try {
       const l = await startLogin(account.id)
+      if (generation.current !== current) { cancelLogin(l.id); return }
       live.current = l.id
       setLogin(l)
       setLeft(l.expires_in)
     } catch (err) {
-      setError(err.message)
+      if (generation.current === current) setError(err.message)
     }
   }, [account.id])
 
   useEffect(() => {
     begin()
-    return () => { if (live.current) cancelLogin(live.current) }
+    return () => { generation.current++; if (live.current) cancelLogin(live.current); live.current = null }
   }, [begin])
 
   const id = login?.id
   const state = login?.state
   useEffect(() => {
     if (!id || state === 'done' || state === 'expired' || state === 'error') return undefined
+    let cancelled = false, pending = false
     const t = setInterval(async () => {
+      if (pending) return
+      pending = true
       try {
         const next = await pollLogin(id)
+        if (cancelled) return
         setLogin((cur) => (cur && cur.id === id ? { ...cur, ...next } : cur))
         setLeft(next.expires_in)
         if (next.state === 'done') {
@@ -62,10 +69,10 @@ function QrLogin({ account, onDone, mine = false }) {
           onDone(next.account)
         }
       } catch (err) {
-        setLogin((cur) => (cur ? { ...cur, state: 'error', message: err.message } : cur))
-      }
+        if (!cancelled) setLogin((cur) => (cur ? { ...cur, state: 'error', message: err.message } : cur))
+      } finally { pending = false }
     }, POLL_MS)
-    return () => clearInterval(t)
+    return () => { cancelled = true; clearInterval(t) }
   }, [id, state, onDone])
 
   if (error) {
@@ -188,22 +195,31 @@ function AccountCard({ account, onChange, mine = false }) {
   )
 }
 
+// The account list, reusable inside the Settings panel's "平台账号" tab.
+export function AccountsList({ focus = null, mine = false }) {
+  const [accounts, setAccounts] = useState([])
+  const [error, setError] = useState('')
+  useEffect(() => {
+    listAccounts().then((list) => { setAccounts(list); setError('') }).catch((err) => setError(err.message))
+  }, [])
+  const replace = useCallback((next) => setAccounts((list) => list.map((a) => (a.id === next.id ? next : a))), [])
+  const ordered = focus ? [...accounts].sort((a, b) => (b.id === focus) - (a.id === focus)) : accounts
+  return (
+    <>
+      {error ? <p className="history__empty">{error}</p> : null}
+      <ul className="account-list">
+        {ordered.map((a) => <AccountCard key={a.id} account={a} onChange={replace} mine={mine} />)}
+      </ul>
+    </>
+  )
+}
+
 // `mine`: the web demo, where these are the signed-in person's own logins (scan only, kept encrypted,
 // used only for their own imports).
 export default function AccountsDrawer({ open, focus = null, onClose, mine = false }) {
   useEscape(onClose, open)
   const rootRef = useRef(null)
-  const [accounts, setAccounts] = useState([])
-  const [error, setError] = useState('')
   useStaggeredDrawer(rootRef, open)
-
-  useEffect(() => {
-    if (!open) return
-    listAccounts().then((list) => { setAccounts(list); setError('') }).catch((err) => setError(err.message))
-  }, [open])
-
-  const replace = useCallback((next) => setAccounts((list) => list.map((a) => (a.id === next.id ? next : a))), [])
-  const ordered = focus ? [...accounts].sort((a, b) => (b.id === focus) - (a.id === focus)) : accounts
 
   return (
     <div ref={rootRef} className="history" data-open={open || undefined} aria-hidden={!open} inert={open ? undefined : ''}>
@@ -220,10 +236,7 @@ export default function AccountsDrawer({ open, focus = null, onClose, mine = fal
             绑定你自己的平台账号后，解析时会用你的登录（比如 B 站可以看 1080P 和需要登录的视频）。登录凭证加密保存，只用于你自己导入的视频，随时可以解除绑定。
           </p>
         ) : null}
-        {error ? <p className="history__empty">{error}</p> : null}
-        <ul className="account-list">
-          {open ? ordered.map((a) => <AccountCard key={a.id} account={a} onChange={replace} mine={mine} />) : null}
-        </ul>
+        {open ? <AccountsList focus={focus} mine={mine} /> : null}
       </aside>
     </div>
   )
