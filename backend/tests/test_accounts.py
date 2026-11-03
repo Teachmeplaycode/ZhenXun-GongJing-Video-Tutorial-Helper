@@ -1,3 +1,4 @@
+import os
 """Platform logins: where cookies are saved, B 站's QR flow, and who may call the endpoints."""
 import asyncio
 
@@ -49,7 +50,9 @@ def test_save_keeps_other_lines_and_removes_with_none(files):
     accounts.save({"BILIBILI_COOKIE": 'SESSDATA=a"b\n', "X": "y"})
     accounts.save({"X": None})
     assert saved.read_text(encoding="utf-8") == '# 说明\nOTHER=1\nBILIBILI_COOKIE="SESSDATA=ab"\n'
-    assert oct(saved.stat().st_mode & 0o777) == "0o600"
+    # Windows st_mode exposes read-only flags, not NTFS ACLs. Keep all content assertions there.
+    if os.name != "nt":
+        assert oct(saved.stat().st_mode & 0o777) == "0o600"
 
 
 def test_ui_login_wins_over_env_file_but_not_environment(files, monkeypatch):
