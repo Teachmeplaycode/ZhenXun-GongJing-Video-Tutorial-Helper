@@ -11,6 +11,8 @@ second to look at, never filled in.
 """
 from __future__ import annotations
 
+from modules import cv_compat as cv_io
+
 import json
 import re
 from difflib import SequenceMatcher
@@ -258,7 +260,7 @@ def contact_sheet(frames: list[tuple[float, Path]], out: Path) -> Path | None:
         frames = [frames[round(i * (len(frames) - 1) / (SHEET_MAX - 1))] for i in range(SHEET_MAX)]
     cells = []
     for t, path in frames:
-        image = cv2.imread(str(path))
+        image = cv_io.imread(str(path))
         if image is None:
             continue
         cell = cv2.resize(image, THUMB, interpolation=cv2.INTER_AREA)
@@ -270,7 +272,7 @@ def contact_sheet(frames: list[tuple[float, Path]], out: Path) -> Path | None:
     while len(cells) % SHEET_COLS:
         cells.append(np.zeros_like(cells[0]))
     rows = [np.hstack(cells[i:i + SHEET_COLS]) for i in range(0, len(cells), SHEET_COLS)]
-    cv2.imwrite(str(out), np.vstack(rows), [cv2.IMWRITE_JPEG_QUALITY, 80])
+    cv_io.imwrite(str(out), np.vstack(rows), [cv2.IMWRITE_JPEG_QUALITY, 80])
     return out
 
 
@@ -282,7 +284,7 @@ def crop_editor(path: Path, out: Path) -> Path:
     import cv2
     import numpy as np
 
-    image = cv2.imread(str(path))
+    image = cv_io.imread(str(path))
     if image is None:
         return path
     h, w = image.shape[:2]
@@ -301,7 +303,7 @@ def crop_editor(path: Path, out: Path) -> Path:
     if (x1 - x0) * (y1 - y0) > 0.8 * w * h:  # the editor is most of the frame already
         return path
     crop = cv2.resize(image[y0:y1, x0:x1], None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-    cv2.imwrite(str(out), crop, [cv2.IMWRITE_JPEG_QUALITY, 92])
+    cv_io.imwrite(str(out), crop, [cv2.IMWRITE_JPEG_QUALITY, 92])
     return out
 
 
@@ -322,7 +324,7 @@ def picture_height(shots: list[tuple[float, Path]]) -> int:
 
     heights = []
     for _, path in shots:
-        image = cv2.imread(str(path))
+        image = cv_io.imread(str(path))
         if image is not None:
             heights.append(image.shape[0])
     return max(heights, default=0)

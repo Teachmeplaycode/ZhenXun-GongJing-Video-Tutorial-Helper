@@ -1,6 +1,8 @@
 """Transcribe a link job's audio track alongside frame sampling; progress goes out as job events."""
 from __future__ import annotations
 
+import asyncio
+
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,11 +59,14 @@ async def run_transcript(job: FrameJob, *, read: ReadAudio = read_audio, transcr
         state.status, state.message = status, message
         job.emit({"type": "transcript", **state.summary()})
 
-    transcribe = transcribe or (asr.transcribe if asr.available() else None)
-    if transcribe is None:
-        return finish("unavailable", "当前环境未安装可用的语音识别引擎，只分析画面")
     if not job.video.audio_streams:
         return finish("none", "该视频没有可读取的音轨，只分析画面")
+    # Importing a recognition engine can load scipy/ONNX for seconds on a first run.
+    # Do not block the HTTP event loop while the background job checks availability.
+    if transcribe is None:
+        transcribe = asr.transcribe if await asyncio.to_thread(asr.available) else None
+    if transcribe is None:
+        return finish("unavailable", "当前环境未安装可用的语音识别引擎，只分析画面")
 
     state.status, state.segments, state.stages = "running", [], {}
     timing.STAGES.set(state.stages)

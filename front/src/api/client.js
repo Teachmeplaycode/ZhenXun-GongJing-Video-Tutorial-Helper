@@ -370,7 +370,7 @@ export const logoutAccount = (platform) => linkRequest(`/api/accounts/${platform
 // ---- Settings (model/API/runtime; written to gitignored backend/.env.local) -------------
 
 /** { groups, values, public, readonly }: values are desensitised (secrets report `configured` only). */
-export const getSettings = () => linkRequest('/api/settings')
+export const getSettings = (signal) => linkRequest('/api/settings', { signal })
 
 /** Save settings: `values` to set, `clear` to remove. Secrets keep their old value when sent empty. */
 export const saveSettings = (values, clear = []) => linkRequest('/api/settings', {

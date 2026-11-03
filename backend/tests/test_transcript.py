@@ -144,3 +144,13 @@ def test_store_saves_restores_and_migrates(tmp_path):
     store.save_transcript(job)
     assert store.restore("s1", None, job.root).transcript.status == "failed"  # cut off by a restart
     assert json.loads(store.get("s1")["transcript"])["status"] == "running"
+
+
+def test_no_audio_never_imports_recognition_engine(tmp_path, monkeypatch):
+    from modules.transcript import asr
+    def unavailable_import():
+        raise AssertionError('A silent video must not import the recognition stack')
+    monkeypatch.setattr(asr, 'available', unavailable_import)
+    job = make_job(tmp_path, video(audio=()))
+    asyncio.run(run_transcript(job))
+    assert job.transcript.status == 'none'
