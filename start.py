@@ -150,6 +150,10 @@ def check_tools() -> None:
 
 def port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        if not IS_WIN:
+            # Match uvicorn's POSIX bind: TIME_WAIT after stopping is reusable,
+            # while an existing listening service still refuses this bind.
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             sock.bind((HOST, port))
         except OSError:

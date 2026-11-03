@@ -108,6 +108,10 @@ def main():
                     time.sleep(.2)
                 assert closed(api) and closed(web), 'launcher left an owned service running'
                 print('PASS owned backend/frontend process trees removed on launcher exit', flush=True)
+                if os.name != 'nt':
+                    restarted = subprocess.run([sys.executable, str(ROOT / 'start.py'), '--check'], env=env, capture_output=True, text=True, encoding='utf-8', timeout=30)
+                    assert restarted.returncode == 0, restarted.stdout
+                    print('PASS immediate restart check after stopping services', flush=True)
         except BaseException:
             service_log = tmp / 'services.txt'
             if service_log.exists():
