@@ -81,7 +81,7 @@ def test_imwrite_with_unicode_path(tmp_path):
 def _run_launcher(*args: str, timeout: float = 30) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(ROOT / "start.py"), *args],
-        capture_output=True, text=True, timeout=timeout,
+        capture_output=True, text=True, encoding="utf-8", timeout=timeout,
     )
 
 

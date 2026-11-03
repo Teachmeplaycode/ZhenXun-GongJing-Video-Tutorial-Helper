@@ -145,7 +145,7 @@ function SettingsContent({ initialTab, accountFocus, onClose, publicDemo }) {
   return (
       <aside ref={dialog} className="history__panel settings-panel" role="dialog" aria-modal="true" aria-label="设置" onKeyDown={(e) => {
         if (e.key !== 'Tab') return
-        const controls = [...dialog.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]')].filter((el) => el.getClientRects().length)
+        const controls = [...dialog.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]')].filter((el) => el.tabIndex >= 0 && el.getClientRects().length)
         const first = controls[0], last = controls.at(-1)
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }

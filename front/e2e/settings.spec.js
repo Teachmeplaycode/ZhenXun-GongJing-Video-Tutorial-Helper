@@ -133,6 +133,8 @@ test('公开站点不显示服务端配置，键盘可以切换分类', async ({
   await expect(page.getByRole('tab', { name: '平台账号' })).toHaveAttribute('aria-selected', 'true')
   await page.keyboard.press('Home')
   await expect(page.getByRole('tab', { name: '模型与 API' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '关闭', exact: true })).toBeFocused()
 })
 
 for (const [width, theme] of [[1440, 'light'], [360, 'light'], [360, 'dark']]) {
