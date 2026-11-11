@@ -14,6 +14,8 @@ Windows / 本机浏览器版：双击 `start.cmd`（先安装 Python、Node.js�
 
 ## 演示视频
 
+[评审材料：完整 PPT、码道证明和验证脚本](docs/submission/README.md)
+
 [![帧寻完整演示：点击播放](docs/media/zhenxun-demo-poster.jpg)](docs/media/zhenxun-demo.mp4)
 
 **[▶ 播放完整演示（2 分 57 秒，1080p）](docs/media/zhenxun-demo.mp4)**　本地也可以打开 [视频播放页](docs/media/index.html)。

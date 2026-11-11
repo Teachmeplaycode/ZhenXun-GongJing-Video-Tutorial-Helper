@@ -1,0 +1,109 @@
+============================= test session starts ==============================
+collecting ... collected 6 items
+
+tests/test_zoom_attachment_order.py::test_no_attachments_keeps_question_last[hand-replay] PASSED [ 16%]
+tests/test_zoom_attachment_order.py::test_no_attachments_keeps_question_last[question-slowmo] PASSED [ 33%]
+tests/test_zoom_attachment_order.py::test_two_attachments_last_one_located[hand-replay] FAILED [ 50%]
+tests/test_zoom_attachment_order.py::test_two_attachments_last_one_located[question-slowmo] FAILED [ 66%]
+tests/test_zoom_attachment_order.py::test_two_attachments_only_first_located[hand-replay] FAILED [ 83%]
+tests/test_zoom_attachment_order.py::test_two_attachments_only_first_located[question-slowmo] FAILED [100%]
+
+=================================== FAILURES ===================================
+______________ test_two_attachments_last_one_located[hand-replay] ______________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-10/test_two_attachments_last_one_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff82fb1190>
+replay_grab = [(30.0, 32.0, 8.0, 16)], by_hand = True
+
+    @pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
+    def test_two_attachments_last_one_located(tmp_path, monkeypatch, replay_grab, by_hand):
+        parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=2, located=(1, 2), by_hand=by_hand)
+>       assert got == want, f"parts are: {[p.get('text', p['type'])[:30] for p in parts]}"
+E       AssertionError: parts are: ['范围：整段视频，共提供 2 帧画面', '问题：这一步该怎么点？', '用户随问题附上了 2 张自己的图片——不是视频里的画面，常见', '你的截图 1', 'image_url', '按画面文字和画面相似度自动比对，和你的截图 1 最像的视频画', '你的截图 2', 'image_url', '用户提问前刚在时间轴上手动慢放了 00:30.00–00:3', '复看 · 00:30.00', 'image_url', '复看 · 00:30.12', 'image_url', '复看 · 00:30.25', 'image_url', '复看 · 00:30.38', 'image_url', '复看 · 00:30.50', 'image_url', '复看 · 00:30.62', 'image_url', '复看 · 00:30.75', 'image_url', '复看 · 00:30.88', 'image_url', '复看 · 00:31.00', 'image_url', '复看 · 00:31.12', 'image_url', '复看 · 00:31.25', 'image_url', '复看 · 00:31.38', 'image_url', '复看 · 00:31.50', 'image_url', '复看 · 00:31.62', 'image_url', '复看 · 00:31.75', 'image_url', '复看 · 00:31.88', 'image_url', '按画面文字和画面相似度自动比对，和你的截图 2 最像的视频画']
+E       assert ['scope', 'qu...located', ...] == ['scope', 'at...h_label', ...]
+E         
+E         At index 1 diff: 'question' != 'attach_note'
+E         
+E         Full diff:
+E           [
+E               'scope',
+E         +     'question',...
+E         
+E         ...Full output truncated (43 lines hidden), use '-vv' to show
+
+tests/test_zoom_attachment_order.py:174: AssertionError
+____________ test_two_attachments_last_one_located[question-slowmo] ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-10/test_two_attachments_last_one_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff97f01730>
+replay_grab = [(30.0, 32.0, 8.0, 16)], by_hand = False
+
+    @pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
+    def test_two_attachments_last_one_located(tmp_path, monkeypatch, replay_grab, by_hand):
+        parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=2, located=(1, 2), by_hand=by_hand)
+>       assert got == want, f"parts are: {[p.get('text', p['type'])[:30] for p in parts]}"
+E       AssertionError: parts are: ['范围：整段视频，共提供 2 帧画面', '问题：慢放 00:30 到 00:32 看他做了什么', '用户随问题附上了 2 张自己的图片——不是视频里的画面，常见', '你的截图 1', 'image_url', '按画面文字和画面相似度自动比对，和你的截图 1 最像的视频画', '你的截图 2', 'image_url', '问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用', '复看 · 00:30.00', 'image_url', '复看 · 00:30.12', 'image_url', '复看 · 00:30.25', 'image_url', '复看 · 00:30.38', 'image_url', '复看 · 00:30.50', 'image_url', '复看 · 00:30.62', 'image_url', '复看 · 00:30.75', 'image_url', '复看 · 00:30.88', 'image_url', '复看 · 00:31.00', 'image_url', '复看 · 00:31.12', 'image_url', '复看 · 00:31.25', 'image_url', '复看 · 00:31.38', 'image_url', '复看 · 00:31.50', 'image_url', '复看 · 00:31.62', 'image_url', '复看 · 00:31.75', 'image_url', '复看 · 00:31.88', 'image_url', '按画面文字和画面相似度自动比对，和你的截图 2 最像的视频画']
+E       assert ['scope', 'qu...located', ...] == ['scope', 'at...h_label', ...]
+E         
+E         At index 1 diff: 'question' != 'attach_note'
+E         
+E         Full diff:
+E           [
+E               'scope',
+E         +     'question',...
+E         
+E         ...Full output truncated (43 lines hidden), use '-vv' to show
+
+tests/test_zoom_attachment_order.py:174: AssertionError
+_____________ test_two_attachments_only_first_located[hand-replay] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-10/test_two_attachments_only_firs0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff82fe1dc0>
+replay_grab = [(30.0, 32.0, 8.0, 16)], by_hand = True
+
+    @pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
+    def test_two_attachments_only_first_located(tmp_path, monkeypatch, replay_grab, by_hand):
+        parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=2, located=(1,), by_hand=by_hand)
+>       assert got == want, f"parts are: {[p.get('text', p['type'])[:30] for p in parts]}"
+E       AssertionError: parts are: ['范围：整段视频，共提供 2 帧画面', '问题：这一步该怎么点？', '用户随问题附上了 2 张自己的图片——不是视频里的画面，常见', '你的截图 1', 'image_url', '按画面文字和画面相似度自动比对，和你的截图 1 最像的视频画', '你的截图 2', '用户提问前刚在时间轴上手动慢放了 00:30.00–00:3', '复看 · 00:30.00', 'image_url', '复看 · 00:30.12', 'image_url', '复看 · 00:30.25', 'image_url', '复看 · 00:30.38', 'image_url', '复看 · 00:30.50', 'image_url', '复看 · 00:30.62', 'image_url', '复看 · 00:30.75', 'image_url', '复看 · 00:30.88', 'image_url', '复看 · 00:31.00', 'image_url', '复看 · 00:31.12', 'image_url', '复看 · 00:31.25', 'image_url', '复看 · 00:31.38', 'image_url', '复看 · 00:31.50', 'image_url', '复看 · 00:31.62', 'image_url', '复看 · 00:31.75', 'image_url', '复看 · 00:31.88', 'image_url', 'image_url']
+E       assert ['scope', 'qu...located', ...] == ['scope', 'at...h_label', ...]
+E         
+E         At index 1 diff: 'question' != 'attach_note'
+E         
+E         Full diff:
+E           [
+E               'scope',
+E         +     'question',...
+E         
+E         ...Full output truncated (42 lines hidden), use '-vv' to show
+
+tests/test_zoom_attachment_order.py:181: AssertionError
+___________ test_two_attachments_only_first_located[question-slowmo] ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-10/test_two_attachments_only_firs1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0xffff82fe25d0>
+replay_grab = [(30.0, 32.0, 8.0, 16)], by_hand = False
+
+    @pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
+    def test_two_attachments_only_first_located(tmp_path, monkeypatch, replay_grab, by_hand):
+        parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=2, located=(1,), by_hand=by_hand)
+>       assert got == want, f"parts are: {[p.get('text', p['type'])[:30] for p in parts]}"
+E       AssertionError: parts are: ['范围：整段视频，共提供 2 帧画面', '问题：慢放 00:30 到 00:32 看他做了什么', '用户随问题附上了 2 张自己的图片——不是视频里的画面，常见', '你的截图 1', 'image_url', '按画面文字和画面相似度自动比对，和你的截图 1 最像的视频画', '你的截图 2', '问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用', '复看 · 00:30.00', 'image_url', '复看 · 00:30.12', 'image_url', '复看 · 00:30.25', 'image_url', '复看 · 00:30.38', 'image_url', '复看 · 00:30.50', 'image_url', '复看 · 00:30.62', 'image_url', '复看 · 00:30.75', 'image_url', '复看 · 00:30.88', 'image_url', '复看 · 00:31.00', 'image_url', '复看 · 00:31.12', 'image_url', '复看 · 00:31.25', 'image_url', '复看 · 00:31.38', 'image_url', '复看 · 00:31.50', 'image_url', '复看 · 00:31.62', 'image_url', '复看 · 00:31.75', 'image_url', '复看 · 00:31.88', 'image_url', 'image_url']
+E       assert ['scope', 'qu...located', ...] == ['scope', 'at...h_label', ...]
+E         
+E         At index 1 diff: 'question' != 'attach_note'
+E         
+E         Full diff:
+E           [
+E               'scope',
+E         +     'question',...
+E         
+E         ...Full output truncated (42 lines hidden), use '-vv' to show
+
+tests/test_zoom_attachment_order.py:181: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_zoom_attachment_order.py::test_two_attachments_last_one_located[hand-replay]
+FAILED tests/test_zoom_attachment_order.py::test_two_attachments_last_one_located[question-slowmo]
+FAILED tests/test_zoom_attachment_order.py::test_two_attachments_only_first_located[hand-replay]
+FAILED tests/test_zoom_attachment_order.py::test_two_attachments_only_first_located[question-slowmo]
+========================= 4 failed, 2 passed in 0.48s ==========================
