@@ -177,3 +177,9 @@ cd backend && uv run python scripts/log_stats.py      # 最近 7 天的使用统
 - [前端自定义](docs/frontend-customization.md)：文案、视觉和界面配置。
 
 前端使用 React 18、Vite、Three.js 与 GSAP；后端使用 Python、FastAPI、SQLite 和 ffmpeg，通过 SSE 推送解析与问答过程，模型接口兼容 OpenAI 协议，也支持本地 Ollama。
+
+## 许可证
+
+本项目自行编写的代码和文档采用 [MIT License](LICENSE)，已有单独许可或来源声明的内容除外。
+
+第三方代码、依赖、字体、模型权重、数据集和示例媒体保留原有授权，详见 [第三方许可说明](THIRD_PARTY_NOTICES.md)。其中 React Bits 的引入版本附带 Commons Clause 限制，GSAP 使用自身许可，不能将仓库内全部内容笼统称为 MIT。
