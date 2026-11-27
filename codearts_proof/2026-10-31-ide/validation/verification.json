@@ -1,0 +1,32 @@
+{
+  "reviewed_core_files_unchanged": {
+    "backend/modules/agent/run.py": "614e68d2b32f75846852eb280a71ea84e048e552bb5077a1650f19e7a00d2579",
+    "backend/tests/test_agent.py": "754ca41bece8fb5c9d834c400aea63675e19daa2a55d55d62855aa43fa5bf9ca"
+  },
+  "original_regression": {
+    "baseline": {
+      "passed": 2,
+      "failed": 4,
+      "exit_code": 1
+    },
+    "patched": {
+      "passed": 6,
+      "failed": 0,
+      "exit_code": 0
+    }
+  },
+  "new_edges": {
+    "baseline": {
+      "passed": 2,
+      "failed": 0,
+      "exit_code": 0
+    },
+    "patched": {
+      "passed": 2,
+      "failed": 0,
+      "exit_code": 0
+    }
+  },
+  "scope": "本次为临时副本中的专项测试，不是当前主工作区的全量验收，未调用真实视频问答模型",
+  "test_file_sha256": "3f49dffed0f76633d6f1e19fcd8fd3d360be9a1d392759452b846afc8ef3ebec"
+}

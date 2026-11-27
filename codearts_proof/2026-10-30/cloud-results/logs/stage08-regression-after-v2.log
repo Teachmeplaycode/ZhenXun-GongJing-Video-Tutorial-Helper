@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+collecting ... collected 6 items
+
+tests/test_zoom_attachment_order.py::test_no_attachments_keeps_question_last[hand-replay] PASSED [ 16%]
+tests/test_zoom_attachment_order.py::test_no_attachments_keeps_question_last[question-slowmo] PASSED [ 33%]
+tests/test_zoom_attachment_order.py::test_two_attachments_last_one_located[hand-replay] PASSED [ 50%]
+tests/test_zoom_attachment_order.py::test_two_attachments_last_one_located[question-slowmo] PASSED [ 66%]
+tests/test_zoom_attachment_order.py::test_two_attachments_only_first_located[hand-replay] PASSED [ 83%]
+tests/test_zoom_attachment_order.py::test_two_attachments_only_first_located[question-slowmo] PASSED [100%]
+
+============================== 6 passed in 0.46s ===============================

@@ -1,0 +1,23 @@
+{
+  "gitee_temporary_personal_key_id": "6153862",
+  "gitee_current_key_count": 0,
+  "cloud_auth_files_deleted": [
+    "id_ed25519_gitee_repro",
+    "id_ed25519_gitee_repro.pub",
+    "ssh_config",
+    "known_hosts"
+  ],
+  "browser_tabs_remaining": [
+    "CodeArts original conversation",
+    "Gitee reproduction branch"
+  ],
+  "cloud_test_ports_still_listening": [
+    17431,
+    17432,
+    14331,
+    17433
+  ],
+  "download_port_stop_attempt": "ESRCH; process still reported listening; cause unconfirmed",
+  "download_directory_and_copy": "removed",
+  "notes": "Cleanup addenda are stored separately from the frozen original result archive"
+}

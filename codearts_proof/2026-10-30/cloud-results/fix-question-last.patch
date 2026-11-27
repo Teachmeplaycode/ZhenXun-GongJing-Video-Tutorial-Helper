@@ -1,0 +1,294 @@
+From 594d70878d2b94aba9520879ffa3729774183d67 Mon Sep 17 00:00:00 2001
+From: Teachmeplaycode <1262993264@qq.com>
+Date: Fri, 30 Oct 2026 23:55:13 +0800
+Subject: [PATCH] Keep the question last without guessing which part it is
+
+The pre-look injection used to pop the last part of the final user
+message to move the question behind the replay frames. With pictures
+attached the last parts are the attachments, so a label, a picture or
+its located note was carried behind the frames instead.
+
+build_messages now takes the pre-look as ready-made parts and assembles
+the final user message from named groups: [scope, question, attachments]
+without one (unchanged), [scope, attachments, pre-look, question] with.
+The call moved after the zoom tools run; nothing scans text prefixes or
+relies on which part happens to be last.
+
+Regression tests run the real run_agent against a mocked model and check
+the grouping: the question exactly once at the end, every screenshot
+label next to its picture and located note, the replay lead next to the
+labelled frames.
+---
+ backend/modules/agent/run.py                |  32 ++--
+ backend/tests/test_zoom_attachment_order.py | 185 ++++++++++++++++++++
+ 2 files changed, 206 insertions(+), 11 deletions(-)
+ create mode 100644 backend/tests/test_zoom_attachment_order.py
+
+diff --git a/backend/modules/agent/run.py b/backend/modules/agent/run.py
+index 4cee73f..1bda150 100644
+--- a/backend/modules/agent/run.py
++++ b/backend/modules/agent/run.py
+@@ -339,7 +339,10 @@ ATTACHED_NOTE = ("用户随问题附上了 {n} 张自己的图片——不是视
+ 
+ def build_messages(job: FrameJob, frames: list, question: str, history: list[dict], scope_all: bool,
+                    transcript: tuple[list[str], str] = ([], ""), screen: tuple[list[str], str] = ([], ""),
+-                   images: list | None = None, located: dict | None = None) -> list[dict]:
++                   images: list | None = None, located: dict | None = None,
++                   prelook: list[dict] | None = None) -> list[dict]:
++    """`prelook`: ready-made parts of the up-front close look (lead text + labelled frames), only
++    known after the zoom tools have run — with it the final user message ends with the question."""
+     video = job.video
+     coverage = job.coverage()
+     pictures = picture_sets.is_images(video)
+@@ -398,12 +401,19 @@ def build_messages(job: FrameJob, frames: list, question: str, history: list[dic
+     # video), so the provider's context cache serves it from the second question on; the conversation and
+     # this question come after it. Measured on an Excel tutorial, three questions in a row: 4-11 % of the
+     # prompt read from the cache before, most of it after (see the commit).
++    # The final user message is assembled from named groups, not by scanning text or guessing which
++    # part is last: [scope, the question, the attachments] without a pre-look (the original shape),
++    # [scope, the attachments, the pre-look, the question] with one — the pre-look frames are only
++    # known after the zoom tools run, so they arrive here as ready-made parts (`prelook`).
++    question_part = {"type": "text", "text": f"问题：{question}"}
++    attachments = attached_parts(images or [], located)
++    final = ([{"type": "text", "text": scope}, question_part, *attachments] if prelook is None
++             else [{"type": "text", "text": scope}, *attachments, *prelook, question_part])
+     return [{"role": "system", "content": SYSTEM_PROMPT},
+             {"role": "user", "content": content},
+             {"role": "assistant", "content": MATERIAL_READ},
+             *past,
+-            {"role": "user", "content": [{"type": "text", "text": scope}, {"type": "text", "text": f"问题：{question}"},
+-                                         *attached_parts(images or [], located)]}]
++            {"role": "user", "content": final}]
+ 
+ 
+ LOCATED_NOTE = "按画面文字和画面相似度自动比对，和你的截图 {i} 最像的视频画面：{matches}。这只是线索，请对照画面自己确认是哪一步"
+@@ -582,12 +592,6 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question:
+     rounds = tool_rounds()
+     tools = AgentTools(job, decider=decider, llm=client)
+     audience = tools.audience()
+-    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
+-                              images=images, located=located)
+-    if summary:
+-        chapters = response_plan.chapter_context(job)
+-        if chapters:
+-            messages[1]["content"].append({"type": "text", "text": chapters})
+ 
+     # A question naming a time range gets a closer look at it up front: a small local model
+     # rarely decides on its own that the sampled frames are too sparse there.
+@@ -611,14 +615,20 @@ async def run_agent(job: FrameJob, client: ChatClient | OllamaClient, question:
+         yield tool(tid, "output", stdout=result.text, exit_code=1 if result.error else 0, data=result.data)
+         yield tool(tid, "completed", result_count=result.count)
+         zoomed += result.images
++    prelook = None
+     if zoomed:
+-        question_part = messages[-1]["content"].pop()  # keep the question last
+         spans = "、".join(f"{fine_clock(float(a))}–{fine_clock(float(b))}" for a, b in slow)
+         lead = (f"用户提问前刚在时间轴上手动慢放了 {spans}，下面是这段的逐帧画面（标了精确时间）。问题里说的"
+                 "「这段」「慢放的部分」「刚才」指的就是它；不用再调用 replay 看同一段：" if by_hand
+                 else "问题要求慢放的这一段已经复看好了（逐帧，标了精确时间），不用再调用 replay 看同一段：" if slow
+                 else "问题所问时间段的加密画面：")
+-        messages[-1]["content"] += [{"type": "text", "text": lead}] + image_message(zoomed)["content"] + [question_part]
++        prelook = [{"type": "text", "text": lead}, *image_message(zoomed)["content"]]
++    messages = build_messages(job, chosen, question, history or [], scope_all=not frames, transcript=transcript, screen=screen,
++                              images=images, located=located, prelook=prelook)
++    if summary:
++        chapters = response_plan.chapter_context(job)
++        if chapters:
++            messages[1]["content"].append({"type": "text", "text": chapters})
+     if rounds:
+         allowed = allowed_tools(job, web, papers, audience)
+         lookup = any(d["function"]["name"] in WEB_TOOLS for d in allowed)
+diff --git a/backend/tests/test_zoom_attachment_order.py b/backend/tests/test_zoom_attachment_order.py
+new file mode 100644
+index 0000000..c47391b
+--- /dev/null
++++ b/backend/tests/test_zoom_attachment_order.py
+@@ -0,0 +1,185 @@
++"""The final question message when attachments meet an injected pre-look.
++
++The pre-look injection used to move the question to the end of the message by popping its last
++part — an assumption that nothing follows the question. With pictures attached the last parts are
++the attachments (a label, a picture, a located note), so one of those was carried behind the
++replay frames, splitting a screenshot from its label or its note. These tests run the real
++run_agent against a mocked model, intercept what is actually sent, and check the grouping:
++
++- the question appears exactly once and stays the last part;
++- every screenshot label is followed by its picture, then its located note (when there is one);
++- the pre-look lead is followed by the replay frames, each labelled with its time.
++"""
++import asyncio
++import json
++import re
++
++import httpx
++import pytest
++
++import modules.agent.run as run_module
++from modules.agent.locate import Match
++from modules.frames import FrameJob, GrabResult
++from modules.frames import replay as slowmo
++from modules.agent.run import run_agent
++from modules.llm import ChatClient, LLMConfig
++from modules.video_source import ResolvedVideo, Stream
++
++
++def make_job(tmp_path):
++    v = ResolvedVideo("test", "v1", "https://x/v1", "标题", 100.0, [Stream("https://a", {}, "s")], description="简介")
++    job = FrameJob("j", v, None, tmp_path, count=2)
++    tmp_path.mkdir(exist_ok=True)
++    for slot in job.slots:
++        slot.status = "ok"
++        job.frame_path(slot.index).write_bytes(b"\xff\xd8jpg")
++    return job
++
++
++def sse_body(*chunks):
++    lines = [f"data: {json.dumps(c, ensure_ascii=False)}\n\n" for c in chunks]
++    return "".join(lines) + "data: [DONE]\n\n"
++
++
++def client_for(handler):
++    return ChatClient(LLMConfig("https://api.deepseek.com", "deepseek-flash", "sk-test"),
++                     transport=httpx.MockTransport(handler))
++
++
++def collect(gen):
++    async def go():
++        return [e async for e in gen]
++    return asyncio.run(go())
++
++
++def attachments(tmp_path, n):
++    paths = []
++    for i in range(1, n + 1):
++        p = tmp_path / f"attach{i}.jpg"
++        p.write_bytes(b"\xff\xd8shot")
++        paths.append(p)
++    return paths
++
++
++def fake_locate(which):
++    """locate_shots replacement: screenshots listed in `which` (1-based) each match the first slot."""
++
++    async def locate_shots(job, images):
++        out = {}
++        for i, path in enumerate(images, 1):
++            if i in which:
++                out[str(path)] = [Match(job.slots[0], 0.9, 0.8, 0.5, shared=["数据", "验证"])]
++        return out
++    return locate_shots
++
++
++@pytest.fixture
++def replay_grab(monkeypatch):
++    calls = []
++
++    async def grab_clip(stream, p, folder, timeout=45):
++        calls.append((p.start, p.end, p.fps, p.count))
++        folder.mkdir(parents=True, exist_ok=True)
++        for i in range(1, p.count + 1):
++            (folder / f"{i:02d}.jpg").write_bytes(b"\xff\xd8replay")
++        return GrabResult(True)
++
++    monkeypatch.setattr(slowmo, "grab_clip", grab_clip)
++    return calls
++
++
++ATTACH_NOTE = "用户随问题附上了"
++BY_HAND_LEAD = "用户提问前刚在时间轴上手动慢放了"
++SLOW_LEAD = "问题要求慢放的这一段已经复看好了"
++
++
++def kinds_of(parts):
++    """Reduce the final user message's parts to what each one is, images by the label before them."""
++    out, pending_image = [], None
++    for p in parts:
++        if p["type"] == "image_url":
++            out.append(f"{pending_image or 'orphan'}_image")
++            pending_image = None
++            continue
++        t = str(p.get("text", ""))
++        if t.startswith("问题："):
++            out.append("question")
++        elif t.startswith("范围："):
++            out.append("scope")
++        elif t.startswith(ATTACH_NOTE):
++            out.append("attach_note")
++        elif re.fullmatch(r"你的截图 \d+", t):
++            out.append("attach_label")
++            pending_image = "attach"
++        elif t.startswith("按画面文字和画面相似度自动比对"):
++            out.append("located")
++        elif t.startswith("复看 · "):
++            out.append("zoom_label")
++            pending_image = "zoom"
++        elif t.startswith(BY_HAND_LEAD) or t.startswith(SLOW_LEAD):
++            out.append("zoom_lead")
++        else:
++            out.append("other")
++    return out
++
++
++def expected_kinds(n_attach, located, lead_kind, n_zoom):
++    seq = ["scope"]
++    if n_attach:
++        seq.append("attach_note")
++        for i in range(1, n_attach + 1):
++            seq += ["attach_label", "attach_image"]
++            if i in located:
++                seq.append("located")
++    seq.append("zoom_lead")
++    seq += ["zoom_label", "zoom_image"] * n_zoom
++    seq.append("question")
++    return seq
++
++
++def run_case(tmp_path, monkeypatch, replay_grab, *, n_attach, located, by_hand):
++    job = make_job(tmp_path / "job")
++    images = attachments(tmp_path, n_attach)
++    if n_attach:
++        monkeypatch.setattr(run_module, "locate_shots", fake_locate(located))
++    seen = []
++
++    def handler(request):
++        seen.append(json.loads(request.content))
++        return httpx.Response(200, text=sse_body(
++            {"choices": [{"delta": {"content": "看过了"}, "finish_reason": "stop"}]},
++            {"choices": [], "usage": {"prompt_tokens": 10, "completion_tokens": 3}},
++        ))
++
++    question = "这一步该怎么点？" if by_hand else "慢放 00:30 到 00:32 看他做了什么"
++    events = collect(run_agent(job, client_for(handler), question,
++                               framed=[(30.0, 32.0)] if by_hand else None,
++                               images=images or None))
++    assert events[-1]["type"] == "run.completed", events[-1]
++    assert seen and seen[0]["messages"], "nothing reached the model"
++    parts = seen[0]["messages"][-1]["content"]
++    lead_kind = BY_HAND_LEAD if by_hand else SLOW_LEAD
++    return parts, kinds_of(parts), expected_kinds(n_attach, located, lead_kind, replay_grab and 16), lead_kind
++
++
++@pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
++def test_no_attachments_keeps_question_last(tmp_path, monkeypatch, replay_grab, by_hand):
++    parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=0, located=(), by_hand=by_hand)
++    assert got == want
++
++
++@pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
++def test_two_attachments_last_one_located(tmp_path, monkeypatch, replay_grab, by_hand):
++    parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=2, located=(1, 2), by_hand=by_hand)
++    assert got == want, f"parts are: {[p.get('text', p['type'])[:30] for p in parts]}"
++    assert sum(1 for p in parts if str(p.get("text", "")).startswith("问题：")) == 1
++
++
++@pytest.mark.parametrize("by_hand", [True, False], ids=["hand-replay", "question-slowmo"])
++def test_two_attachments_only_first_located(tmp_path, monkeypatch, replay_grab, by_hand):
++    parts, got, want, lead = run_case(tmp_path, monkeypatch, replay_grab, n_attach=2, located=(1,), by_hand=by_hand)
++    assert got == want, f"parts are: {[p.get('text', p['type'])[:30] for p in parts]}"
++    notes = [p["text"] for p in parts if str(p.get("text", "")).startswith("按画面文字和画面相似度自动比对")]
++    assert notes and "截图 1" in notes[0] and all("截图 2" not in n for n in notes)
++    zoom_labels = [p["text"] for p in parts if str(p.get("text", "")).startswith("复看 · ")]
++    assert len(zoom_labels) == 16 and zoom_labels[0].startswith("复看 · 00:30")
+-- 
+2.33.0
+

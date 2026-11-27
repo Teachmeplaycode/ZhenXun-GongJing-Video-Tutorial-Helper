@@ -1,0 +1,62 @@
+
+> video-comprehensive-front@0.1.0 test:ocr
+> node --test test/clientOcr.test.mjs
+
+TAP version 13
+# Subtest: API base is applied once
+ok 1 - API base is applied once
+  ---
+  duration_ms: 1.11226
+  type: 'test'
+  ...
+# Subtest: server mode never initializes worker
+ok 2 - server mode never initializes worker
+  ---
+  duration_ms: 5.36559
+  type: 'test'
+  ...
+# Subtest: submission retries without repeating inference, accepts idempotent 0
+ok 3 - submission retries without repeating inference, accepts idempotent 0
+  ---
+  duration_ms: 529.8238
+  type: 'test'
+  ...
+# Subtest: duplicate subscribers and StrictMode remount share one active lease
+ok 4 - duplicate subscribers and StrictMode remount share one active lease
+  ---
+  duration_ms: 11.96013
+  type: 'test'
+  ...
+# Subtest: model error releases before claiming work
+ok 5 - model error releases before claiming work
+  ---
+  duration_ms: 6.74701
+  type: 'test'
+  ...
+# Subtest: closing busy pool rejects queued work immediately
+ok 6 - closing busy pool rejects queued work immediately
+  ---
+  duration_ms: 0.71175
+  type: 'test'
+  ...
+# Subtest: stalled claim times out and releases session
+ok 7 - stalled claim times out and releases session
+  ---
+  duration_ms: 22.57103
+  type: 'test'
+  ...
+# Subtest: BFCache return resumes existing subscribers without switching local mode
+ok 8 - BFCache return resumes existing subscribers without switching local mode
+  ---
+  duration_ms: 15.82714
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 714.44234

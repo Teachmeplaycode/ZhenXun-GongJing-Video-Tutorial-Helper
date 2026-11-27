@@ -1,0 +1,121 @@
+[
+  {
+    "file": "001_官方插件已安装_等待登录.jpg",
+    "recorded_at": "2026-10-30T16:53:31.682967+00:00",
+    "timestamp_note": "本条为归档登记时间，截图在本轮安装完成后实际捕获，不是插件问答完成时间",
+    "sha256": "1f24768a3f6c66a421bc3a98c67c0e3eb58108555fbf44fe535af21005043f7d",
+    "bytes": 416627,
+    "width": 2582,
+    "height": 1710,
+    "status": "installed_awaiting_login",
+    "note": "VS Code 官方市场安装 HuaweiCloud.vscode-codebot 26.10.2，尚未完成登录或项目问答"
+  },
+  {
+    "file": "002_插件实际审阅_读取核心代码.jpg",
+    "captured_at": "2026-10-31T01:30:24.914Z",
+    "note": "登录后在项目内实际提交审阅任务，插件读取真实源码与已有补丁，保留工具操作过程",
+    "sha256": "40ff43ec043296f7bede3564c2dfc743c90eb43aca4c5183954465d66701d356",
+    "bytes": 881929,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "003_插件命令遇到zsh通配符错误.jpg",
+    "captured_at": "2026-10-31T01:31:44.494Z",
+    "note": "插件实际执行 grep --include=*.py 时被 zsh 展开导致 no matches found，随后继续检查调用方，未人工制造错误",
+    "sha256": "a23ddeebcf3b7bb859928e2c4a953466fd555f2ec3daf7214b3603564c1b1abe",
+    "bytes": 886635,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "004_插件审阅末页_覆盖建议.jpg",
+    "captured_at": "2026-10-31T01:36:50.800Z",
+    "note": "插件首轮回复末页，包含覆盖建议和只读审阅说明，后续提问进一步纠正其中已被补丁覆盖的场景",
+    "sha256": "ae108840c01b9fdd37dd8d8f9a2f0d797926236680531ad1c4b05b0b1068a5f6",
+    "bytes": 909282,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "005_插件复核与补充边界测试的真实提问.jpg",
+    "captured_at": "2026-10-31T01:39:43.008Z",
+    "note": "对首轮审阅中的覆盖误判和附件说明误判提出具体纠正，要求在两份临时副本实跑原有回归并生成两项新增边界测试",
+    "sha256": "a5cf8b1d8f4773d39761218f2c40f5e1aa45fdbfec0d2187f3afec9bc426751f",
+    "bytes": 837880,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "006_插件执行原实现回归.jpg",
+    "captured_at": "2026-10-31T01:42:23.371Z",
+    "note": "插件使用项目虚拟环境在临时 baseline 副本执行补丁自带的真实 run_agent 回归，输出及退出码写入 validation",
+    "sha256": "66702e48e72e2d5b06481f6dbb5f55a24774ce109497dca6cd793f1735d1bfd7",
+    "bytes": 900207,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "007_修复副本六项回归通过.jpg",
+    "captured_at": "2026-10-31T01:44:11.296Z",
+    "note": "插件实际在 patched 副本执行六项 run_agent 回归，日志为 6 passed 且 EXIT_CODE=0，未修改主工作区源码",
+    "sha256": "af43aff07b4a43b58d3c8c265192f7e5ed52f0d9477d7ca29bd25a30ba345cf5",
+    "bytes": 870151,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "008_插件生成两项真实入口边界测试.jpg",
+    "captured_at": "2026-10-31T01:46:00.308Z",
+    "note": "插件创建独立 pytest 文件并在 baseline 副本执行，覆盖无预看时的兼容顺序与附件全部缺失时不虚构附件说明",
+    "sha256": "99d2a59ed9747ef8851ce5eba8df502d562cfae1898d9fe2d28589d5fe38d63a",
+    "bytes": 911511,
+    "height": 1710,
+    "width": 2582
+  },
+  {
+    "file": "009_采纳插件生成的边界测试.jpg",
+    "captured_at": "2026-10-31T01:48:48.183Z",
+    "note": "已核对新建测试的真实入口和 MockTransport，采纳插件在 validation 中生成的唯一代码文件，主 backend 未改",
+    "sha256": "5df242f5d76feabd7d97df4cbb4027a438969a1545f63dcabe47e1bb94d80503",
+    "bytes": 184889,
+    "height": 672,
+    "width": 1016
+  },
+  {
+    "file": "010_插件最终复核汇总.jpg",
+    "captured_at": "2026-10-31T01:53:45.223Z",
+    "note": "插件基于四份真实测试日志汇总原实现与修复实现结果，明确纠正之前的覆盖误判和兼容性误判，未继续调用工具",
+    "sha256": "2c9a8c4cbd73dc719da754413b2baa6b0043896163ebe9b64239ed21db347021",
+    "bytes": 160725,
+    "height": 672,
+    "width": 1016
+  },
+  {
+    "file": "011_真实插件活动日志入口与节选.jpg",
+    "captured_at": "2026-10-31T01:54:56.488Z",
+    "note": "通过插件官方打开日志入口确定原始日志路径，当前编辑器展示从该日志按行筛选的活动节选，来源哈希与原始行号另存 provenance",
+    "sha256": "5d0829b1d9da74212df2a6268f92a0b2cc9395472b42277149b47db00d072d05",
+    "bytes": 222781,
+    "height": 672,
+    "width": 1016
+  },
+  {
+    "file": "012_最终测试结果表与真实IDE日志.jpg",
+    "captured_at": "2026-10-31T01:56:33.964Z",
+    "note": "同屏显示插件汇总的四组通过失败数与退出码，以及实际活动日志节选，完整原始测试输出另存 validation",
+    "sha256": "8e3610742238a2fd770d264644c4de46b483eb2f7fb699b9c6e0263e735c6c2e",
+    "bytes": 231952,
+    "height": 672,
+    "width": 1016
+  },
+  {
+    "file": "013_连续收尾_纠正判断与主区未改动.jpg",
+    "captured_at": "2026-10-31T01:56:37.976Z",
+    "note": "与上一张连续重叠，继续显示对旧判断的纠正及主工作区未修改说明",
+    "sha256": "e935d0885295a83439e6a4f899c620ce18ccb6b935838f54d03552465511b917",
+    "bytes": 235049,
+    "height": 672,
+    "width": 1016
+  }
+]

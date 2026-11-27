@@ -1,0 +1,1644 @@
+Unable to detect release version (use '--releasever' to specify release version)
+Last metadata expiration check: 0:00:11 ago on Fri Oct 30 22:06:42 2026.
+Dependencies resolved.
+===============================================================================================================
+ Package                                Arch     Version                                      Repository   Size
+===============================================================================================================
+Installing:
+ ffmpeg                                 aarch64  4.2.4-4.oe2203                               update      1.4 M
+Installing dependencies:
+ LibRaw                                 aarch64  0.20.2-7.oe2203                              update      341 k
+ SDL2                                   aarch64  2.0.12-6.oe2203                              update      420 k
+ SDL2-devel                             aarch64  2.0.12-6.oe2203                              update      266 k
+ acl                                    aarch64  2.3.1-2.oe2203                               update       51 k
+ adobe-mappings-cmap                    noarch   20190730-3.oe2203                            OS           15 k
+ adobe-mappings-cmap-lang               noarch   20190730-3.oe2203                            OS          2.5 M
+ adobe-mappings-pdf                     noarch   20190401-2.oe2203                            OS          755 k
+ adwaita-cursor-theme                   noarch   41.0-1.oe2203                                OS          649 k
+ adwaita-icon-theme                     noarch   41.0-1.oe2203                                OS           11 M
+ alsa-lib                               aarch64  1.2.5.1-1.oe2203                             OS          424 k
+ at-spi2-atk                            aarch64  2.38.0-1.oe2203                              OS           74 k
+ at-spi2-core                           aarch64  2.42.0-1.oe2203                              OS          171 k
+ atk                                    aarch64  2.36.0-2.oe2203                              update      260 k
+ attr                                   aarch64  2.5.1-2.oe2203                               OS           55 k
+ audit-libs                             aarch64  1:3.0.1-3.oe2203                             OS           94 k
+ avahi                                  aarch64  0.8-19.oe2203                                update      245 k
+ avahi-devel                            aarch64  0.8-19.oe2203                                update       43 k
+ avahi-libs                             aarch64  0.8-19.oe2203                                update       59 k
+ babeltrace                             aarch64  1.5.8-2.oe2203                               OS          194 k
+ basesystem                             noarch   12-2.oe2203                                  OS          7.0 k
+ bash                                   aarch64  5.1.8-6.oe2203                               update      1.2 M
+ bc                                     aarch64  1.07.1-11.oe2203                             update       86 k
+ bluez-libs                             aarch64  5.54-19.oe2203                               update       57 k
+ brotli                                 aarch64  1.0.9-2.oe2203                               OS          305 k
+ bullet                                 aarch64  2.87-6.oe2203                                everything  1.1 M
+ bullet-devel                           aarch64  2.87-6.oe2203                                everything  529 k
+ bzip2                                  aarch64  1.0.8-6.oe2203                               update       66 k
+ bzip2-devel                            aarch64  1.0.8-6.oe2203                               update       39 k
+ ca-certificates                        noarch   2023.2.60-2.oe2203                           update      411 k
+ cairo                                  aarch64  1.17.4-1.oe2203                              OS          613 k
+ cairo-gobject                          aarch64  1.17.4-1.oe2203                              OS           17 k
+ cdparanoia-libs                        aarch64  10.2-31.oe2203                               OS           46 k
+ chkconfig                              aarch64  1.20-1.oe2203                                OS          172 k
+ cmake                                  aarch64  3.22.0-8.oe2203                              update      9.0 M
+ cmake-data                             noarch   3.22.0-8.oe2203                              update      1.7 M
+ cmake-filesystem                       aarch64  3.22.0-8.oe2203                              update       12 k
+ cmake-rpm-macros                       noarch   3.22.0-8.oe2203                              update       11 k
+ colord-libs                            aarch64  1.4.5-4.oe2203                               update      181 k
+ coreutils                              aarch64  9.0-5.oe2203                                 update      2.7 M
+ cpio                                   aarch64  2.13-10.oe2203                               update      253 k
+ cracklib                               aarch64  2.9.7-8.oe2203                               OS          3.9 M
+ crontabs                               noarch   1.11-22.oe2203                               OS           17 k
+ crypto-policies                        noarch   20200619-2.git781bbd4.oe2203                 OS           81 k
+ cups-libs                              aarch64  1:2.4.0-10.oe2203                            update      240 k
+ curl                                   aarch64  7.79.1-28.oe2203                             update      139 k
+ cyrus-sasl-lib                         aarch64  2.1.27-15.oe2203                             update       72 k
+ dbus                                   aarch64  1:1.12.20-10.oe2203                          update       63 k
+ dbus-c++                               aarch64  0.9.0-20.oe2203                              everything  126 k
+ dbus-common                            noarch   1:1.12.20-10.oe2203                          update       13 k
+ dbus-daemon                            aarch64  1:1.12.20-10.oe2203                          update      164 k
+ dbus-devel                             aarch64  1:1.12.20-10.oe2203                          update       36 k
+ dbus-libs                              aarch64  1:1.12.20-10.oe2203                          update      136 k
+ dbus-tools                             aarch64  1:1.12.20-10.oe2203                          update       26 k
+ device-mapper                          aarch64  8:1.02.181-4.oe2203                          OS          213 k
+ dracut                                 aarch64  055-10.oe2203                                update      292 k
+ e2fsprogs                              aarch64  1.46.4-21.oe2203                             update      1.1 M
+ e2fsprogs-devel                        aarch64  1.46.4-21.oe2203                             update      297 k
+ efi-srpm-macros                        noarch   4-5.oe2203                                   update       22 k
+ efl                                    aarch64  1.25.1-1.oe2203                              everything   22 M
+ efl-devel                              aarch64  1.25.1-1.oe2203                              everything  2.2 M
+ elfutils                               aarch64  0.185-13.oe2203                              update      580 k
+ emacs-filesystem                       noarch   1:27.2-13.oe2203                             update      8.2 k
+ expat                                  aarch64  2.4.1-10.oe2203                              update       75 k
+ ffmpeg-libs                            aarch64  4.2.4-4.oe2203                               update      6.1 M
+ file                                   aarch64  5.41-3.oe2203                                update       36 k
+ file-libs                              aarch64  5.41-3.oe2203                                update      655 k
+ filesystem                             aarch64  3.16-4.oe2203                                OS          1.1 M
+ findutils                              aarch64  2:4.8.0-3.oe2203                             OS          382 k
+ fontconfig                             aarch64  2.13.94-1.oe2203                             OS          225 k
+ fontconfig-devel                       aarch64  2.13.94-1.oe2203                             OS           18 k
+ fonts-filesystem                       noarch   2.0.5-2.oe2203                               OS          8.3 k
+ freeglut                               aarch64  3.0.0-12.oe2203                              update      135 k
+ freetype                               aarch64  2.11.0-3.oe2203                              update      349 k
+ freetype-devel                         aarch64  2.11.0-3.oe2203                              update      170 k
+ fribidi                                aarch64  1.0.10-2.oe2203                              update       83 k
+ fribidi-devel                          aarch64  1.0.10-2.oe2203                              update       26 k
+ fuse                                   aarch64  2.9.9-9.oe2203                               OS          135 k
+ fuse-common                            aarch64  3.10.5-3.oe2203                              OS          9.0 k
+ gawk                                   aarch64  5.1.1-4.oe2203                               update      344 k
+ gc                                     aarch64  8.0.6-1.oe2203                               OS          236 k
+ gdb-headless                           aarch64  11.1-7.oe2203                                update      3.0 M
+ gdbm                                   aarch64  1:1.22-11.oe2203                             update      166 k
+ gdk-pixbuf2                            aarch64  2.42.6-5.oe2203                              update      455 k
+ gdk-pixbuf2-modules                    aarch64  2.42.6-5.oe2203                              update       67 k
+ gettext                                aarch64  0.21-4.oe2203                                OS          1.1 M
+ ghostscript                            aarch64  9.55.0-6.oe2203                              update      3.2 M
+ giflib                                 aarch64  5.2.1-6.oe2203                               update       47 k
+ glew                                   aarch64  2.1.0-4.oe2203                               OS          222 k
+ glib2                                  aarch64  2.68.1-21.oe2203                             update      2.6 M
+ glib2-devel                            aarch64  2.68.1-21.oe2203                             update      3.5 M
+ glibc                                  aarch64  2.34-149.oe2203                              update      2.8 M
+ glibc-common                           aarch64  2.34-149.oe2203                              update      2.7 M
+ glibmm24                               aarch64  2.64.5-1.oe2203                              everything  589 k
+ gmp                                    aarch64  1:6.2.1-1.oe2203                             OS          247 k
+ gnutls                                 aarch64  3.7.2-13.oe2203                              update      884 k
+ gobject-introspection                  aarch64  1.70.0-1.oe2203                              OS          252 k
+ google-droid-sans-fonts                noarch   20200215-1.oe2203                            OS          2.4 M
+ graphene                               aarch64  1.10.6-1.oe2203                              OS           86 k
+ graphite2                              aarch64  1.3.14-5.oe2203                              OS           87 k
+ graphite2-devel                        aarch64  1.3.14-5.oe2203                              OS           42 k
+ grep                                   aarch64  3.7-9.oe2203                                 update      293 k
+ groff                                  aarch64  1.22.4-11.oe2203                             update      908 k
+ groff-base                             aarch64  1.22.4-11.oe2203                             update      858 k
+ grub2-common                           noarch   1:2.06-41.oe2203                             update      2.9 M
+ grub2-tools                            aarch64  1:2.06-41.oe2203                             update      1.8 M
+ grub2-tools-minimal                    aarch64  1:2.06-41.oe2203                             update      346 k
+ gsm                                    aarch64  1.0.18-5.oe2203                              OS           36 k
+ gstreamer1                             aarch64  1.19.3-1.oe2203                              OS          1.2 M
+ gstreamer1-plugins-bad-free            aarch64  1.16.2-9.oe2203                              update      1.5 M
+ gstreamer1-plugins-base                aarch64  1.18.4-7.oe2203                              update      1.8 M
+ gtk3                                   aarch64  3.24.30-5.oe2203                             OS          4.6 M
+ guile                                  aarch64  5:2.0.14-18.oe2203                           update      3.3 M
+ gzip                                   aarch64  1.11-3.oe2203                                update      104 k
+ harfbuzz                               aarch64  2.8.2-4.oe2203                               update      638 k
+ harfbuzz-devel                         aarch64  2.8.2-4.oe2203                               update      165 k
+ hicolor-icon-theme                     noarch   0.17-6.oe2203                                update       44 k
+ ibus-libs                              aarch64  1.5.23-1.oe2203                              OS          312 k
+ ima-evm-utils-libs                     aarch64  1.3.2-3.oe2203                               OS           18 k
+ info                                   aarch64  6.8-3.oe2203                                 OS          163 k
+ iso-codes                              noarch   4.7.0-1.oe2203                               OS          3.7 M
+ jack-audio-connection-kit              aarch64  1.9.14-3.oe2203                              everything  455 k
+ jbig2dec                               aarch64  0.19-3.oe2203                                update       72 k
+ jbigkit-libs                           aarch64  2.1-19.oe2203                                update       33 k
+ json-c                                 aarch64  0.15-6.oe2203                                update       36 k
+ jsoncpp                                aarch64  1.9.5-3.oe2203                               OS           82 k
+ kbd-legacy                             noarch   2.4.0-1.oe2203                               OS          525 k
+ kbd-misc                               noarch   2.4.0-1.oe2203                               OS          1.6 M
+ keyutils-libs                          aarch64  1.6.3-3.oe2203                               OS           25 k
+ keyutils-libs-devel                    aarch64  1.6.3-3.oe2203                               OS           12 k
+ kmod                                   aarch64  29-3.oe2203                                  OS           85 k
+ kmod-libs                              aarch64  29-3.oe2203                                  OS           57 k
+ krb5-devel                             aarch64  1.19.2-8.oe2203                              update      163 k
+ krb5-libs                              aarch64  1.19.2-8.oe2203                              update      628 k
+ lame                                   aarch64  3.100-9.oe2203                               everything  444 k
+ lcms2                                  aarch64  2.12-1.oe2203                                OS          145 k
+ less                                   aarch64  590-6.oe2203                                 update      101 k
+ libICE                                 aarch64  1.0.10-4.oe2203                              update       51 k
+ libSM                                  aarch64  1.2.3-4.oe2203                               update       22 k
+ libX11                                 aarch64  1.7.2-8.oe2203                               update      716 k
+ libX11-devel                           aarch64  1.7.2-8.oe2203                               update       55 k
+ libXScrnSaver                          aarch64  1.2.3-4.oe2203                               everything   14 k
+ libXau                                 aarch64  1.0.9-2.oe2203                               OS           14 k
+ libXau-devel                           aarch64  1.0.9-2.oe2203                               OS           10 k
+ libXcomposite                          aarch64  0.4.5-1.oe2203                               OS           13 k
+ libXcursor                             aarch64  1.2.0-1.oe2203                               OS           26 k
+ libXdamage                             aarch64  1.1.5-1.oe2203                               OS           13 k
+ libXext                                aarch64  1.3.4-4.oe2203                               update       34 k
+ libXfixes                              aarch64  6.0.0-1.oe2203                               OS           17 k
+ libXft                                 aarch64  2.3.4-1.oe2203                               OS           43 k
+ libXi                                  aarch64  1.8-2.oe2203                                 update       34 k
+ libXinerama                            aarch64  1.1.4-5.oe2203                               OS           13 k
+ libXrandr                              aarch64  1.5.2-1.oe2203                               OS           24 k
+ libXrender                             aarch64  0.9.10-10.oe2203                             OS           24 k
+ libXt                                  aarch64  1.2.1-1.oe2203                               OS          155 k
+ libXtst                                aarch64  1.2.3-10.oe2203                              OS           19 k
+ libXv                                  aarch64  1.0.11-11.oe2203                             OS           17 k
+ libXxf86vm                             aarch64  1.1.4-13.oe2203                              OS           16 k
+ libacl                                 aarch64  2.3.1-2.oe2203                               update       22 k
+ libaom                                 aarch64  1.0.0-1.oe2203                               everything  1.0 M
+ libarchive                             aarch64  3.5.2-6.oe2203                               update      320 k
+ libass                                 aarch64  0.15.0-2.oe2203                              everything   85 k
+ libasyncns                             aarch64  0.8-17.oe2203                                OS           26 k
+ libavdevice                            aarch64  4.2.4-4.oe2203                               update       60 k
+ libblkid                               aarch64  2.37.2-28.oe2203                             update      147 k
+ libbluray                              aarch64  1.1.2-4.oe2203                               everything  168 k
+ libcap                                 aarch64  2.61-5.oe2203                                update       62 k
+ libcap-ng                              aarch64  0.8.2-1.oe2203                               OS           43 k
+ libcdio                                aarch64  2.1.0-4.oe2203                               OS          181 k
+ libcdio-paranoia                       aarch64  10.2+2.0.0-2.oe2203                          OS           68 k
+ libconfig                              aarch64  1.7.3-1.oe2203                               OS           63 k
+ libcurl                                aarch64  7.79.1-28.oe2203                             update      264 k
+ libdaemon                              aarch64  0.14-20.oe2203                               OS           30 k
+ libdatrie                              aarch64  0.2.13-1.oe2203                              OS           30 k
+ libdav1d                               aarch64  0.5.2-2.oe2203                               everything  261 k
+ libdb                                  aarch64  5.3.28-37.oe2203                             OS          2.7 M
+ libdrm                                 aarch64  2.4.109-3.oe2203                             update      111 k
+ libedit                                aarch64  3.1-28.oe2203                                OS           88 k
+ libepoxy                               aarch64  1.5.9-1.oe2203                               OS          201 k
+ libev                                  aarch64  4.33-2.oe2203                                OS           47 k
+ libevdev                               aarch64  1.11.0-2.oe2203                              OS           36 k
+ libevent                               aarch64  2.1.12-4.oe2203                              OS          221 k
+ libevent-devel                         aarch64  2.1.12-4.oe2203                              OS          100 k
+ libfdisk                               aarch64  2.37.2-28.oe2203                             update      191 k
+ libffado                               aarch64  2.4.1-6.oe2203                               everything  1.0 M
+ libffi                                 aarch64  3.4.2-2.oe2203                               OS           26 k
+ libffi-devel                           aarch64  3.4.2-2.oe2203                               OS           14 k
+ libgcc                                 aarch64  10.3.1-23.oe2203                             update       67 k
+ libgcrypt                              aarch64  1.9.4-2.oe2203                               update      414 k
+ libglvnd                               aarch64  1:1.3.4-2.oe2203                             OS           57 k
+ libglvnd-core-devel                    aarch64  1:1.3.4-2.oe2203                             OS           19 k
+ libglvnd-devel                         aarch64  1:1.3.4-2.oe2203                             OS          179 k
+ libglvnd-egl                           aarch64  1:1.3.4-2.oe2203                             OS           39 k
+ libglvnd-gles                          aarch64  1:1.3.4-2.oe2203                             OS           27 k
+ libglvnd-glx                           aarch64  1:1.3.4-2.oe2203                             OS          112 k
+ libglvnd-opengl                        aarch64  1:1.3.4-2.oe2203                             OS           34 k
+ libgomp                                aarch64  10.3.1-23.oe2203                             update      224 k
+ libgpg-error                           aarch64  1.43-2.oe2203                                update      268 k
+ libgudev                               aarch64  237-1.oe2203                                 OS           31 k
+ libgusb                                aarch64  0.3.8-1.oe2203                               OS           41 k
+ libicu                                 aarch64  69.1-7.oe2203                                update      9.3 M
+ libicu-devel                           aarch64  69.1-7.oe2203                                update      803 k
+ libidn                                 aarch64  1.38-3.oe2203                                OS          139 k
+ libidn2                                aarch64  2.3.2-2.oe2203                               OS          112 k
+ libiec61883                            aarch64  1.2.0-23.oe2203                              everything   41 k
+ libijs                                 aarch64  0.35-9.oe2203                                OS           27 k
+ libinput                               aarch64  1.19.2-2.oe2203                              update      174 k
+ libinput-devel                         aarch64  1.19.2-2.oe2203                              update       40 k
+ libjpeg-turbo                          aarch64  2.1.1-2.oe2203                               update      121 k
+ libjpeg-turbo-devel                    aarch64  2.1.1-2.oe2203                               update      103 k
+ libkcapi                               aarch64  1.3.1-7.oe2203                               update      164 k
+ libmodplug                             aarch64  1:0.8.9.0-10.oe2203                          everything  152 k
+ libmount                               aarch64  2.37.2-28.oe2203                             update      169 k
+ libnghttp2                             aarch64  1.46.0-5.oe2203                              update       67 k
+ libnice                                aarch64  0.1.14-12.oe2203                             everything  155 k
+ libnsl2                                aarch64  2.0.0-4.oe2203                               update       28 k
+ libogg                                 aarch64  2:1.3.5-1.oe2203                             OS           31 k
+ libpaper                               aarch64  1.1.28-1.oe2203                              OS           34 k
+ libpipeline                            aarch64  1.5.4-1.oe2203                               OS           50 k
+ libpng                                 aarch64  2:1.6.37-4.oe2203                            update       99 k
+ libpng-devel                           aarch64  2:1.6.37-4.oe2203                            update       53 k
+ libpsl                                 aarch64  0.21.1-5.oe2203                              update       72 k
+ libpwquality                           aarch64  1.4.4-4.oe2203                               update       86 k
+ libraw1394                             aarch64  2.1.2-9.oe2203                               everything   54 k
+ librsvg2                               aarch64  2.50.5-6.oe2203                              update      2.2 M
+ libsamplerate                          aarch64  0.1.9-4.oe2203                               OS          1.0 M
+ libseccomp                             aarch64  2.5.3-1.oe2203                               OS           59 k
+ libselinux                             aarch64  3.3-5.oe2203                                 update      109 k
+ libselinux-devel                       aarch64  3.3-5.oe2203                                 update      106 k
+ libsemanage                            aarch64  3.3-3.oe2203                                 OS           98 k
+ libsepol                               aarch64  3.3-6.oe2203                                 update      266 k
+ libsepol-devel                         aarch64  3.3-6.oe2203                                 update      362 k
+ libsigc++20                            aarch64  2.10.6-2.oe2203                              everything   36 k
+ libsigsegv                             aarch64  2.13-1.oe2203                                OS           42 k
+ libsmartcols                           aarch64  2.37.2-28.oe2203                             update      115 k
+ libsndfile                             aarch64  1.0.31-2.oe2203                              update      186 k
+ libsndfile-devel                       aarch64  1.0.31-2.oe2203                              update       82 k
+ libspectre                             aarch64  0.2.8-9.oe2203                               OS           42 k
+ libssh                                 aarch64  0.9.6-8.oe2203                               update      182 k
+ libstdc++                              aarch64  10.3.1-23.oe2203                             update      484 k
+ libtasn1                               aarch64  4.17.0-3.oe2203                              update       77 k
+ libthai                                aarch64  0.1.28-4.oe2203                              OS          197 k
+ libtheora                              aarch64  1:1.1.1-25.oe2203                            OS          150 k
+ libtiff                                aarch64  4.3.0-37.oe2203                              update      166 k
+ libtirpc                               aarch64  1.3.2-3.oe2203                               update       81 k
+ libtool-ltdl                           aarch64  2.4.6-34.oe2203                              OS           32 k
+ libunistring                           aarch64  0.9.10-8.oe2203                              OS          401 k
+ libunwind                              aarch64  2:1.5.0-2.oe2203                             update       52 k
+ libunwind-devel                        aarch64  2:1.5.0-2.oe2203                             update       26 k
+ libusbx                                aarch64  1.0.24-1.oe2203                              OS           67 k
+ libutempter                            aarch64  1.2.1-2.oe2203                               OS           24 k
+ libuuid                                aarch64  2.37.2-28.oe2203                             update       30 k
+ libuv                                  aarch64  1:1.42.0-6.oe2203                            update       76 k
+ libv4l                                 aarch64  1.14.2-6.oe2203                              OS          168 k
+ libva                                  aarch64  2.13.0-1.oe2203                              everything   88 k
+ libvdpau                               aarch64  1.2-1.oe2203                                 everything  486 k
+ libverto                               aarch64  0.3.2-1.oe2203                               OS           26 k
+ libverto-devel                         aarch64  0.3.2-1.oe2203                               OS           17 k
+ libvisual                              aarch64  1:0.4.0-27.oe2203                            OS          142 k
+ libvorbis                              aarch64  1:1.3.7-2.oe2203                             OS          174 k
+ libvpx                                 aarch64  1.7.0-10.oe2203                              update      836 k
+ libwacom                               aarch64  1.12-1.oe2203                                OS           43 k
+ libwacom-data                          noarch   1.12-1.oe2203                                OS           99 k
+ libwebp                                aarch64  1.2.1-4.oe2203                               update      211 k
+ libxcb                                 aarch64  1.14-2.oe2203                                update      195 k
+ libxcb-devel                           aarch64  1.14-2.oe2203                                update      320 k
+ libxcrypt                              aarch64  4.4.26-2.oe2203                              OS          118 k
+ libxkbcommon                           aarch64  1.3.1-1.oe2203                               OS          121 k
+ libxkbcommon-devel                     aarch64  1.3.1-1.oe2203                               OS           66 k
+ libxkbcommon-x11                       aarch64  1.3.1-1.oe2203                               OS           20 k
+ libxkbcommon-x11-devel                 aarch64  1.3.1-1.oe2203                               everything   13 k
+ libxml++                               aarch64  2.40.1-8.oe2203                              everything   84 k
+ libxml2                                aarch64  2.9.12-20.oe2203                             update      609 k
+ libxml2-devel                          aarch64  2.9.12-20.oe2203                             update      1.7 M
+ libxshmfence                           aarch64  1.3-7.oe2203                                 update       12 k
+ llvm-libs                              aarch64  12.0.1-4.oe2203                              update       21 M
+ logrotate                              aarch64  3.20.1-1.oe2203                              update       50 k
+ lua                                    aarch64  5.4.3-11.oe2203                              update      136 k
+ luajit                                 aarch64  2.1.0-3.oe2203                               everything  307 k
+ luajit-devel                           aarch64  2.1.0-3.oe2203                               everything   85 k
+ lz4                                    aarch64  1.9.3-2.oe2203                               OS          128 k
+ man-db                                 aarch64  2.9.4-2.oe2203                               OS          1.1 M
+ mesa-demos                             aarch64  8.3.0-14.oe2203                              OS          1.7 M
+ mesa-filesystem                        aarch64  21.3.1-1.oe2203                              OS          8.4 k
+ mesa-libEGL                            aarch64  21.3.1-1.oe2203                              OS           97 k
+ mesa-libEGL-devel                      aarch64  21.3.1-1.oe2203                              everything   11 k
+ mesa-libGL                             aarch64  21.3.1-1.oe2203                              OS          140 k
+ mesa-libGLU                            aarch64  9.0.2-1.oe2203                               OS          161 k
+ mesa-libgbm                            aarch64  21.3.1-1.oe2203                              OS           31 k
+ mesa-libglapi                          aarch64  21.3.1-1.oe2203                              OS           58 k
+ mpfr                                   aarch64  4.1.0-1.oe2203                               OS          378 k
+ mtdev                                  aarch64  1.1.6-2.oe2203                               OS           19 k
+ ncurses                                aarch64  6.3-8.oe2203                                 update      674 k
+ ncurses-base                           noarch   6.3-8.oe2203                                 update       54 k
+ ncurses-libs                           aarch64  6.3-8.oe2203                                 update      265 k
+ nettle                                 aarch64  3.8.1-1.oe2203                               update      935 k
+ newt                                   aarch64  0.52.21-8.oe2203                             update       94 k
+ nspr                                   aarch64  4.32.0-1.oe2203                              OS          128 k
+ nss                                    aarch64  3.72.0-5.oe2203                              update      599 k
+ nss-softokn                            aarch64  3.72.0-5.oe2203                              update      626 k
+ nss-util                               aarch64  3.72.0-5.oe2203                              update      454 k
+ ocl-icd                                aarch64  2.2.12-2.oe2203                              everything   40 k
+ openEuler-gpg-keys                     aarch64  1.0-3.6.oe2203                               update      9.7 k
+ openEuler-release                      aarch64  22.03LTS-54.oe2203                           update       22 k
+ openEuler-repos                        aarch64  1.0-3.6.oe2203                               update      8.8 k
+ openEuler-rpm-config                   aarch64  30-30.oe2203                                 update       49 k
+ openal-soft                            aarch64  1.18.2-8.oe2203                              everything  361 k
+ opencore-amr                           aarch64  0.1.5-7.oe2203                               everything  165 k
+ openjpeg2                              aarch64  2.4.0-6.oe2203                               update      136 k
+ openldap                               aarch64  2.6.0-6.oe2203                               update      207 k
+ openssl                                aarch64  1:1.1.1m-28.oe2203                           update      424 k
+ openssl-devel                          aarch64  1:1.1.1m-28.oe2203                           update      1.7 M
+ openssl-libs                           aarch64  1:1.1.1m-28.oe2203                           update      1.2 M
+ opus                                   aarch64  1.3.1-3.oe2203                               update      186 k
+ orc                                    aarch64  0.4.32-1.oe2203                              OS          150 k
+ os-prober                              aarch64  1.79-1.oe2203                                OS           48 k
+ p11-kit                                aarch64  0.24.0-2.oe2203                              update      217 k
+ p11-kit-trust                          aarch64  0.24.0-2.oe2203                              update      120 k
+ pam                                    aarch64  1.5.2-7.oe2203                               update      437 k
+ pango                                  aarch64  1.49.3-3.oe2203                              update      243 k
+ pcre                                   aarch64  8.45-2.oe2203                                update      389 k
+ pcre-devel                             aarch64  8.45-2.oe2203                                update      358 k
+ pcre2                                  aarch64  10.39-9.oe2203                               update      510 k
+ pcre2-devel                            aarch64  10.39-9.oe2203                               update      409 k
+ perl                                   aarch64  4:5.34.0-12.oe2203                           update      3.2 M
+ perl-Algorithm-Diff                    noarch   1:1.201-1.oe2203                             OS           27 k
+ perl-Archive-Tar                       noarch   2.40-1.oe2203                                OS           42 k
+ perl-B-Debug                           noarch   1.26-5.oe2203                                OS           18 k
+ perl-CPAN-Meta                         noarch   2.150010-419.oe2203                          OS          108 k
+ perl-CPAN-Meta-Requirements            noarch   2.140-419.oe2203                             OS           26 k
+ perl-CPAN-Meta-YAML                    noarch   0.018-420.oe2203                             OS           24 k
+ perl-Carp                              noarch   1.50-418.oe2203                              OS           21 k
+ perl-Compress-Raw-Bzip2                aarch64  2.101-1.oe2203                               OS           25 k
+ perl-Compress-Raw-Zlib                 aarch64  1:2.101-1.oe2203                             OS           41 k
+ perl-Config-Perl-V                     noarch   0.33-1.oe2203                                OS           17 k
+ perl-Data-Dumper                       aarch64  2.183-1.oe2203                               OS           44 k
+ perl-Devel-PPPort                      aarch64  3.63-1.oe2203                                OS          187 k
+ perl-Digest                            noarch   1.20-1.oe2203                                OS           17 k
+ perl-Digest-MD5                        aarch64  2.58-1.oe2203                                OS           29 k
+ perl-Digest-SHA                        aarch64  1:6.02-7.oe2203                              OS           49 k
+ perl-Encode                            aarch64  4:3.16-3.oe2203                              update      1.4 M
+ perl-Env                               noarch   1.04-397.oe2203                              OS           17 k
+ perl-Exporter                          noarch   5.74-1.oe2203                                OS           22 k
+ perl-ExtUtils-Command                  noarch   1:7.62-1.oe2203                              OS           11 k
+ perl-ExtUtils-Install                  noarch   2.20-1.oe2203                                OS           33 k
+ perl-ExtUtils-MakeMaker                noarch   1:7.62-1.oe2203                              OS          169 k
+ perl-ExtUtils-Manifest                 noarch   1:1.73-1.oe2203                              OS           23 k
+ perl-ExtUtils-ParseXS                  noarch   2:3.35-1.oe2203                              OS           55 k
+ perl-File-Fetch                        noarch   1.00-1.oe2203                                OS           22 k
+ perl-File-HomeDir                      noarch   1.006-2.oe2203                               OS           35 k
+ perl-File-Path                         noarch   2.18-1.oe2203                                OS           21 k
+ perl-File-Temp                         noarch   1:0.2311-2.oe2203                            OS           50 k
+ perl-File-Which                        noarch   1.27-1.oe2203                                OS           24 k
+ perl-Filter                            aarch64  2:1.60-3.oe2203                              OS           49 k
+ perl-Filter-Simple                     noarch   1:0.94-1.oe2203                              OS           16 k
+ perl-Getopt-Long                       noarch   1:2.52-1.oe2203                              OS           45 k
+ perl-HTTP-Tiny                         noarch   0.080-2.oe2203                               update       35 k
+ perl-IO-Compress                       noarch   2.101-2.oe2203                               OS          110 k
+ perl-IO-Socket-IP                      noarch   0.41-2.oe2203                                OS           31 k
+ perl-IPC-Cmd                           noarch   2:1.04-4.oe2203                              OS           32 k
+ perl-IPC-SysV                          aarch64  2.09-1.oe2203                                OS           25 k
+ perl-IPC-System-Simple                 noarch   1.30-2.oe2203                                OS           31 k
+ perl-JSON-PP                           noarch   1:4.06-1.oe2203                              OS           44 k
+ perl-Locale-Codes                      noarch   3.68-1.oe2203                                OS          264 k
+ perl-Locale-Maketext                   noarch   1:1.29-1.oe2203                              OS           53 k
+ perl-MIME-Base64                       aarch64  3.16-1.oe2203                                OS           20 k
+ perl-Math-BigInt                       noarch   1:1.9998.27-1.oe2203                         OS          121 k
+ perl-Math-BigInt-FastCalc              aarch64  0.5012-2.oe2203                              update       19 k
+ perl-Math-BigRat                       noarch   0.2620-1.oe2203                              OS           27 k
+ perl-Module-CoreList                   noarch   1:5.20211020-1.oe2203                        OS           86 k
+ perl-Module-Load                       noarch   1:0.36-1.oe2203                              OS           13 k
+ perl-Module-Load-Conditional           noarch   0.74-1.oe2203                                OS           18 k
+ perl-Module-Metadata                   noarch   1.000037-1.oe2203                            OS           31 k
+ perl-Net-SSLeay                        aarch64  1.90-1.oe2203                                OS          250 k
+ perl-Params-Check                      noarch   1:0.38-418.oe2203                            OS           15 k
+ perl-PathTools                         aarch64  3.80-1.oe2203                                OS           59 k
+ perl-Perl-OSType                       noarch   1.010-421.oe2203                             OS           20 k
+ perl-PerlIO-via-QuotedPrint            noarch   0.09-1.oe2203                                OS           11 k
+ perl-Pod-Checker                       noarch   4:1.74-1.oe2203                              OS           23 k
+ perl-Pod-Escapes                       noarch   1:1.07-420.oe2203                            OS           14 k
+ perl-Pod-Parser                        noarch   1.63-398.oe2203                              OS           57 k
+ perl-Pod-Perldoc                       noarch   1:3.28-4.oe2203                              OS           44 k
+ perl-Pod-Simple                        noarch   1:3.43-1.oe2203                              OS          137 k
+ perl-Pod-Usage                         noarch   4:2.01-2.oe2203                              OS           25 k
+ perl-Scalar-List-Utils                 aarch64  4:1.60-1.oe2203                              OS           49 k
+ perl-Socket                            aarch64  4:2.032-1.oe2203                             OS           43 k
+ perl-Storable                          aarch64  1:3.25-1.oe2203                              OS           74 k
+ perl-Sys-Syslog                        aarch64  0.36-1.oe2203                                OS           37 k
+ perl-Term-ANSIColor                    noarch   5.01-1.oe2203                                OS           30 k
+ perl-Term-Cap                          noarch   1.17-510.oe2203                              OS           18 k
+ perl-Test-Harness                      noarch   2:3.42-2.oe2203                              update      130 k
+ perl-Test-Simple                       noarch   2:1.302188-1.oe2203                          OS          201 k
+ perl-Text-Balanced                     noarch   2.04-1.oe2203                                OS           29 k
+ perl-Text-Diff                         noarch   1.45-7.oe2203                                OS           27 k
+ perl-Text-ParseWords                   noarch   3.30-419.oe2203                              OS           12 k
+ perl-Text-Tabs+Wrap                    noarch   2021.0814-1.oe2203                           OS           13 k
+ perl-Thread-Queue                      noarch   3.13-3.oe2203                                OS           14 k
+ perl-Time-HiRes                        aarch64  4:1.9767-2.oe2203                            update       47 k
+ perl-Time-Local                        noarch   2:1.300-1.oe2203                             OS           22 k
+ perl-URI                               noarch   5.10-1.oe2203                                OS           72 k
+ perl-Unicode-Collate                   aarch64  1.31-1.oe2203                                OS          667 k
+ perl-Unicode-Normalize                 aarch64  1.28-1.oe2203                                OS           70 k
+ perl-autodie                           noarch   2.34-2.oe2203                                OS           55 k
+ perl-bignum                            noarch   0.63-1.oe2203                                OS           19 k
+ perl-constant                          noarch   1.33-421.oe2203                              OS           17 k
+ perl-experimental                      noarch   0.025-1.oe2203                               OS           18 k
+ perl-libnet                            noarch   3.13-2.oe2203                                update       75 k
+ perl-libs                              aarch64  4:5.34.0-12.oe2203                           update      1.6 M
+ perl-parent                            noarch   1:0.238-1.oe2203                             OS           11 k
+ perl-perlfaq                           noarch   5.20210520-1.oe2203                          OS          177 k
+ perl-podlators                         noarch   1:4.14-1.oe2203                              OS           63 k
+ perl-threads                           aarch64  2:2.26-1.oe2203                              OS           35 k
+ perl-threads-shared                    aarch64  1.62-1.oe2203                                OS           30 k
+ perl-version                           aarch64  8:0.99.29-1.oe2203                           OS           45 k
+ pixman                                 aarch64  0.40.0-3.oe2203                              update      148 k
+ pkgconf                                aarch64  1.8.0-3.oe2203                               update       57 k
+ poppler                                aarch64  0.90.0-6.oe2203                              update      894 k
+ poppler-cpp                            aarch64  0.90.0-6.oe2203                              update       44 k
+ poppler-data                           noarch   0.4.10-1.oe2203                              OS          2.3 M
+ popt                                   aarch64  1.18-3.oe2203                                update       49 k
+ procps-ng                              aarch64  3.3.17-5.oe2203                              update      207 k
+ publicsuffix-list                      noarch   20211113-2.oe2203                            update      128 k
+ pulseaudio-libs                        aarch64  15.0-4.oe2203                                OS          230 k
+ pulseaudio-libs-devel                  aarch64  15.0-4.oe2203                                everything   86 k
+ pulseaudio-libs-glib2                  aarch64  15.0-4.oe2203                                OS           14 k
+ python-pip-wheel                       noarch   21.3.1-2.oe2203                              update      1.5 M
+ python-qt5-rpm-macros                  noarch   5.15.6-1.oe2203                              everything  8.6 k
+ python-setuptools                      noarch   59.4.0-5.oe2203                              update      509 k
+ python3                                aarch64  3.9.9-28.oe2203                              update      7.8 M
+ python3-dbus                           aarch64  1.2.18-2.oe2203                              OS          118 k
+ python3-pyparsing                      noarch   3.0.6-1.oe2203                               OS          216 k
+ python3-pyqt5-sip                      aarch64  4.19.25-1.oe2203                             everything   87 k
+ python3-qt5                            aarch64  5.15.6-1.oe2203                              everything  1.2 M
+ python3-qt5-base                       aarch64  5.15.6-1.oe2203                              everything  2.5 M
+ qt-settings                            noarch   29.1-3.oe2203                                OS          7.7 k
+ qt5-qtbase                             aarch64  5.15.2-14.oe2203                             update      3.3 M
+ qt5-qtbase-common                      noarch   5.15.2-14.oe2203                             update      9.2 k
+ qt5-qtbase-gui                         aarch64  5.15.2-14.oe2203                             update      5.6 M
+ qt5-qtconnectivity                     aarch64  5.15.2-1.oe2203                              everything  462 k
+ qt5-qtdeclarative                      aarch64  5.15.2-1.oe2203                              everything  3.7 M
+ qt5-qtenginio                          aarch64  1:1.6.2-20.oe2203                            everything  150 k
+ qt5-qtlocation                         aarch64  5.15.2-1.oe2203                              everything  2.6 M
+ qt5-qtmultimedia                       aarch64  5.15.2-1.oe2203                              everything  667 k
+ qt5-qtsensors                          aarch64  5.15.2-1.oe2203                              everything  420 k
+ qt5-qtserialport                       aarch64  5.15.2-1.oe2203                              everything   61 k
+ qt5-qtsvg                              aarch64  5.15.2-1.oe2203                              OS          165 k
+ qt5-qttools                            aarch64  5.15.2-3.oe2203                              everything  3.5 M
+ qt5-qtwebchannel                       aarch64  5.15.2-1.oe2203                              everything   91 k
+ qt5-qtwebsockets                       aarch64  5.15.2-1.oe2203                              everything   84 k
+ qt5-qtx11extras                        aarch64  5.15.2-1.oe2203                              everything   33 k
+ qt5-qtxmlpatterns                      aarch64  5.15.2-1.oe2203                              everything  971 k
+ qt5-srpm-macros                        noarch   5.15.2-1.oe2203                              OS          8.3 k
+ readline                               aarch64  8.1-3.oe2203                                 update      146 k
+ rpm                                    aarch64  4.17.0-33.oe2203                             update      492 k
+ rpm-libs                               aarch64  4.17.0-33.oe2203                             update      340 k
+ sed                                    aarch64  4.8-3.oe2203                                 update      162 k
+ setup                                  noarch   2.13.9.1-1.oe2203                            OS          150 k
+ sgml-common                            noarch   0.6.3-51.oe2203                              OS           53 k
+ shadow                                 aarch64  2:4.9-13.oe2203                              update      598 k
+ shared-mime-info                       aarch64  2.1-1.oe2203                                 OS          294 k
+ slang                                  aarch64  2.3.2-8.oe2203                               OS          533 k
+ soxr                                   aarch64  0.1.3-5.oe2203                               everything   65 k
+ speex                                  aarch64  1.2.0-6.oe2203                               update       71 k
+ speexdsp                               aarch64  1.2.0-2.oe2203                               OS           44 k
+ sqlite                                 aarch64  3.37.2-7.oe2203                              update      1.1 M
+ srt-libs                               aarch64  1.4.1-4.oe2203                               everything  217 k
+ systemd                                aarch64  249-75.oe2203                                update      3.2 M
+ systemd-devel                          aarch64  249-75.oe2203                                update      441 k
+ systemd-libs                           aarch64  249-75.oe2203                                update      453 k
+ systemd-pam                            aarch64  249-75.oe2203                                update      193 k
+ systemd-udev                           aarch64  249-75.oe2203                                update      1.2 M
+ systemtap-sdt-devel                    aarch64  4.5-2.oe2203                                 OS           19 k
+ tcl                                    aarch64  1:8.6.10-4.oe2203                            update      1.1 M
+ tpm2-tss                               aarch64  3.1.0-5.oe2203                               update      489 k
+ tzdata                                 noarch   2022a-18.oe2203                              update      429 k
+ unbound-libs                           aarch64  1.13.2-11.oe2203                             update      464 k
+ urw-base35-bookman-fonts               noarch   20200910-1.oe2203                            OS          854 k
+ urw-base35-c059-fonts                  noarch   20200910-1.oe2203                            OS          881 k
+ urw-base35-d050000l-fonts              noarch   20200910-1.oe2203                            OS           76 k
+ urw-base35-fonts                       noarch   20200910-1.oe2203                            OS          9.5 k
+ urw-base35-fonts-common                noarch   20200910-1.oe2203                            OS           21 k
+ urw-base35-gothic-fonts                noarch   20200910-1.oe2203                            OS          651 k
+ urw-base35-nimbus-mono-ps-fonts        noarch   20200910-1.oe2203                            OS          798 k
+ urw-base35-nimbus-roman-fonts          noarch   20200910-1.oe2203                            OS          862 k
+ urw-base35-nimbus-sans-fonts           noarch   20200910-1.oe2203                            OS          1.3 M
+ urw-base35-p052-fonts                  noarch   20200910-1.oe2203                            OS          979 k
+ urw-base35-standard-symbols-ps-fonts   noarch   20200910-1.oe2203                            OS           41 k
+ urw-base35-z003-fonts                  noarch   20200910-1.oe2203                            OS          276 k
+ util-linux                             aarch64  2.37.2-28.oe2203                             update      2.3 M
+ util-linux-devel                       aarch64  2.37.2-28.oe2203                             update       38 k
+ valgrind                               aarch64  1:3.16.0-3.oe2203                            OS          6.0 M
+ valgrind-devel                         aarch64  1:3.16.0-3.oe2203                            OS           46 k
+ vid.stab                               aarch64  1.1.0-1.oe2203                               everything   41 k
+ vo-amrwbenc                            aarch64  0.1.3-1.oe2203                               everything   70 k
+ wayland                                aarch64  1.19.91-4.oe2203                             update       59 k
+ wayland-devel                          aarch64  1.19.91-4.oe2203                             update      105 k
+ which                                  aarch64  2.21-14.oe2203                               OS           30 k
+ x264-libs                              aarch64  0.157-13.20190717git34c06d1_bootstrap.oe2203 everything  498 k
+ x265                                   aarch64  3.4-2.oe2203                                 everything  446 k
+ xcb-util                               aarch64  0.4.0-13.oe2203                              OS           16 k
+ xcb-util-image                         aarch64  0.4.0-12.oe2203                              OS           17 k
+ xcb-util-keysyms                       aarch64  0.4.0-10.oe2203                              OS           13 k
+ xcb-util-renderutil                    aarch64  0.3.9-13.oe2203                              OS           16 k
+ xcb-util-wm                            aarch64  0.4.1-15.oe2203                              OS           27 k
+ xkeyboard-config                       noarch   2.33-1.oe2203                                OS          793 k
+ xorg-x11-proto-devel                   noarch   2021.5-1.oe2203                              OS          278 k
+ xvidcore                               aarch64  1.3.7-1.oe2203                               everything  209 k
+ xz                                     aarch64  5.2.5-2.oe2203                               update      141 k
+ xz-devel                               aarch64  5.2.5-2.oe2203                               update      137 k
+ xz-libs                                aarch64  5.2.5-2.oe2203                               update       79 k
+ zimg                                   aarch64  2.9.3-2.oe2203                               everything   85 k
+ zip                                    aarch64  3.0-29.oe2203                                OS          217 k
+ zlib                                   aarch64  1.2.11-24.oe2203                             update       91 k
+ zlib-devel                             aarch64  1.2.11-24.oe2203                             update       93 k
+ zstd                                   aarch64  1.5.0-4.oe2203                               update      686 k
+ zvbi                                   aarch64  0.2.35-7.oe2203                              everything  445 k
+Installing weak dependencies:
+ cronie                                 aarch64  1.5.7-1.oe2203                               OS          103 k
+ dconf                                  aarch64  0.40.0-3.oe2203                              update       83 k
+ diffutils                              aarch64  3.8-2.oe2203                                 OS          315 k
+ e2fsprogs-help                         noarch   1.46.4-21.oe2203                             update      102 k
+ elfutils-extra                         aarch64  0.185-13.oe2203                              update      220 k
+ fuse-help                              aarch64  2.9.9-9.oe2203                               OS           13 k
+ grubby                                 aarch64  8.40-28.oe2203                               OS           52 k
+ kbd                                    aarch64  2.4.0-1.oe2203                               OS          251 k
+ kpartx                                 aarch64  0.8.7-6.oe2203                               update       42 k
+ libiec61883-help                       aarch64  1.2.0-23.oe2203                              everything   12 k
+ libraw1394-help                        aarch64  2.1.2-9.oe2203                               everything   11 k
+ mesa-dri-drivers                       aarch64  21.3.1-1.oe2203                              OS          4.7 M
+ openssl-pkcs11                         aarch64  0.4.11-5.oe2203                              OS           59 k
+ perl-Encode-Locale                     noarch   1.05-12.oe2203                               OS           14 k
+ perl-IO-Socket-SSL                     noarch   2.072-1.oe2203                               OS          181 k
+ perl-Mozilla-CA                        noarch   1:20211001-1.oe2203                          OS           10 k
+ perl-devel                             aarch64  4:5.34.0-12.oe2203                           update      2.1 M
+ pigz                                   aarch64  2.6-1.oe2203                                 OS           61 k
+ python3-pip                            noarch   21.3.1-2.oe2203                              update      2.2 M
+ python3-setuptools                     noarch   59.4.0-5.oe2203                              update      964 k
+ trousers                               aarch64  0.3.15-1.oe2203                              OS          266 k
+
+Transaction Summary
+===============================================================================================================
+Install  537 Packages
+
+Total download size: 297 M
+Installed size: 1.2 G
+Downloading Packages:
+(1/537): adobe-mappings-cmap-20190730-3.oe2203.  54 kB/s |  15 kB     00:00    
+(2/537): adobe-mappings-pdf-20190401-2.oe2203.n 2.6 MB/s | 755 kB     00:00    
+(3/537): adobe-mappings-cmap-lang-20190730-3.oe 8.5 MB/s | 2.5 MB     00:00    
+(4/537): adwaita-cursor-theme-41.0-1.oe2203.noa 6.4 MB/s | 649 kB     00:00    
+(5/537): alsa-lib-1.2.5.1-1.oe2203.aarch64.rpm  4.3 MB/s | 424 kB     00:00    
+(6/537): at-spi2-atk-2.38.0-1.oe2203.aarch64.rp 867 kB/s |  74 kB     00:00    
+(7/537): at-spi2-core-2.42.0-1.oe2203.aarch64.r 2.0 MB/s | 171 kB     00:00    
+(8/537): attr-2.5.1-2.oe2203.aarch64.rpm        676 kB/s |  55 kB     00:00    
+(9/537): audit-libs-3.0.1-3.oe2203.aarch64.rpm  1.1 MB/s |  94 kB     00:00    
+(10/537): adwaita-icon-theme-41.0-1.oe2203.noar  31 MB/s |  11 MB     00:00    
+(11/537): babeltrace-1.5.8-2.oe2203.aarch64.rpm 2.2 MB/s | 194 kB     00:00    
+(12/537): basesystem-12-2.oe2203.noarch.rpm      86 kB/s | 7.0 kB     00:00    
+(13/537): brotli-1.0.9-2.oe2203.aarch64.rpm     3.6 MB/s | 305 kB     00:00    
+(14/537): cairo-gobject-1.17.4-1.oe2203.aarch64 190 kB/s |  17 kB     00:00    
+(15/537): cairo-1.17.4-1.oe2203.aarch64.rpm     6.0 MB/s | 613 kB     00:00    
+(16/537): cdparanoia-libs-10.2-31.oe2203.aarch6 573 kB/s |  46 kB     00:00    
+(17/537): chkconfig-1.20-1.oe2203.aarch64.rpm   2.1 MB/s | 172 kB     00:00    
+(18/537): cracklib-2.9.7-8.oe2203.aarch64.rpm    32 MB/s | 3.9 MB     00:00    
+(19/537): cronie-1.5.7-1.oe2203.aarch64.rpm     1.2 MB/s | 103 kB     00:00    
+(20/537): crontabs-1.11-22.oe2203.noarch.rpm    224 kB/s |  17 kB     00:00    
+(21/537): crypto-policies-20200619-2.git781bbd4 988 kB/s |  81 kB     00:00    
+(22/537): device-mapper-1.02.181-4.oe2203.aarch 2.6 MB/s | 213 kB     00:00    
+(23/537): diffutils-3.8-2.oe2203.aarch64.rpm    3.4 MB/s | 315 kB     00:00    
+(24/537): filesystem-3.16-4.oe2203.aarch64.rpm   12 MB/s | 1.1 MB     00:00    
+(25/537): findutils-4.8.0-3.oe2203.aarch64.rpm  4.2 MB/s | 382 kB     00:00    
+(26/537): fontconfig-2.13.94-1.oe2203.aarch64.r 2.7 MB/s | 225 kB     00:00    
+(27/537): fontconfig-devel-2.13.94-1.oe2203.aar 228 kB/s |  18 kB     00:00    
+(28/537): fuse-2.9.9-9.oe2203.aarch64.rpm       1.4 MB/s | 135 kB     00:00    
+(29/537): fonts-filesystem-2.0.5-2.oe2203.noarc  76 kB/s | 8.3 kB     00:00    
+(30/537): fuse-common-3.10.5-3.oe2203.aarch64.r 113 kB/s | 9.0 kB     00:00    
+(31/537): fuse-help-2.9.9-9.oe2203.aarch64.rpm  161 kB/s |  13 kB     00:00    
+(32/537): gettext-0.21-4.oe2203.aarch64.rpm      12 MB/s | 1.1 MB     00:00    
+(33/537): gc-8.0.6-1.oe2203.aarch64.rpm         1.6 MB/s | 236 kB     00:00    
+(34/537): gmp-6.2.1-1.oe2203.aarch64.rpm        2.8 MB/s | 247 kB     00:00    
+(35/537): gobject-introspection-1.70.0-1.oe2203 3.0 MB/s | 252 kB     00:00    
+(36/537): graphene-1.10.6-1.oe2203.aarch64.rpm  1.1 MB/s |  86 kB     00:00    
+(37/537): google-droid-sans-fonts-20200215-1.oe  24 MB/s | 2.4 MB     00:00    
+(38/537): graphite2-1.3.14-5.oe2203.aarch64.rpm 1.0 MB/s |  87 kB     00:00    
+(39/537): graphite2-devel-1.3.14-5.oe2203.aarch 540 kB/s |  42 kB     00:00    
+(40/537): glew-2.1.0-4.oe2203.aarch64.rpm       611 kB/s | 222 kB     00:00    
+(41/537): grubby-8.40-28.oe2203.aarch64.rpm     647 kB/s |  52 kB     00:00    
+(42/537): gsm-1.0.18-5.oe2203.aarch64.rpm       447 kB/s |  36 kB     00:00    
+(43/537): gstreamer1-1.19.3-1.oe2203.aarch64.rp  13 MB/s | 1.2 MB     00:00    
+(44/537): ibus-libs-1.5.23-1.oe2203.aarch64.rpm 3.4 MB/s | 312 kB     00:00    
+(45/537): gtk3-3.24.30-5.oe2203.aarch64.rpm      31 MB/s | 4.6 MB     00:00    
+(46/537): ima-evm-utils-libs-1.3.2-3.oe2203.aar 224 kB/s |  18 kB     00:00    
+(47/537): info-6.8-3.oe2203.aarch64.rpm         1.3 MB/s | 163 kB     00:00    
+(48/537): jsoncpp-1.9.5-3.oe2203.aarch64.rpm    1.0 MB/s |  82 kB     00:00    
+(49/537): kbd-2.4.0-1.oe2203.aarch64.rpm        3.0 MB/s | 251 kB     00:00    
+(50/537): kbd-legacy-2.4.0-1.oe2203.noarch.rpm  5.6 MB/s | 525 kB     00:00    
+(51/537): kbd-misc-2.4.0-1.oe2203.noarch.rpm     16 MB/s | 1.6 MB     00:00    
+(52/537): keyutils-libs-1.6.3-3.oe2203.aarch64. 315 kB/s |  25 kB     00:00    
+(53/537): iso-codes-4.7.0-1.oe2203.noarch.rpm    14 MB/s | 3.7 MB     00:00    
+(54/537): kmod-29-3.oe2203.aarch64.rpm          1.1 MB/s |  85 kB     00:00    
+(55/537): keyutils-libs-devel-1.6.3-3.oe2203.aa 144 kB/s |  12 kB     00:00    
+(56/537): kmod-libs-29-3.oe2203.aarch64.rpm     659 kB/s |  57 kB     00:00    
+(57/537): lcms2-2.12-1.oe2203.aarch64.rpm       1.7 MB/s | 145 kB     00:00    
+(58/537): libXau-1.0.9-2.oe2203.aarch64.rpm     183 kB/s |  14 kB     00:00    
+(59/537): libXau-devel-1.0.9-2.oe2203.aarch64.r 121 kB/s |  10 kB     00:00    
+(60/537): libXcursor-1.2.0-1.oe2203.aarch64.rpm 336 kB/s |  26 kB     00:00    
+(61/537): libXcomposite-0.4.5-1.oe2203.aarch64. 171 kB/s |  13 kB     00:00    
+(62/537): libXdamage-1.1.5-1.oe2203.aarch64.rpm 156 kB/s |  13 kB     00:00    
+(63/537): libXft-2.3.4-1.oe2203.aarch64.rpm     563 kB/s |  43 kB     00:00    
+(64/537): libXfixes-6.0.0-1.oe2203.aarch64.rpm  193 kB/s |  17 kB     00:00    
+(65/537): libXinerama-1.1.4-5.oe2203.aarch64.rp 167 kB/s |  13 kB     00:00    
+(66/537): libXrandr-1.5.2-1.oe2203.aarch64.rpm  303 kB/s |  24 kB     00:00    
+(67/537): libXrender-0.9.10-10.oe2203.aarch64.r 304 kB/s |  24 kB     00:00    
+(68/537): libXt-1.2.1-1.oe2203.aarch64.rpm      1.9 MB/s | 155 kB     00:00    
+(69/537): libXtst-1.2.3-10.oe2203.aarch64.rpm   231 kB/s |  19 kB     00:00    
+(70/537): libXv-1.0.11-11.oe2203.aarch64.rpm    213 kB/s |  17 kB     00:00    
+(71/537): libXxf86vm-1.1.4-13.oe2203.aarch64.rp 198 kB/s |  16 kB     00:00    
+(72/537): libasyncns-0.8-17.oe2203.aarch64.rpm  324 kB/s |  26 kB     00:00    
+(73/537): libcap-ng-0.8.2-1.oe2203.aarch64.rpm  532 kB/s |  43 kB     00:00    
+(74/537): libcdio-2.1.0-4.oe2203.aarch64.rpm    2.2 MB/s | 181 kB     00:00    
+(75/537): libcdio-paranoia-10.2+2.0.0-2.oe2203. 848 kB/s |  68 kB     00:00    
+(76/537): libconfig-1.7.3-1.oe2203.aarch64.rpm  806 kB/s |  63 kB     00:00    
+(77/537): libdaemon-0.14-20.oe2203.aarch64.rpm  367 kB/s |  30 kB     00:00    
+(78/537): libdatrie-0.2.13-1.oe2203.aarch64.rpm 351 kB/s |  30 kB     00:00    
+(79/537): libdb-5.3.28-37.oe2203.aarch64.rpm     26 MB/s | 2.7 MB     00:00    
+(80/537): libedit-3.1-28.oe2203.aarch64.rpm     1.1 MB/s |  88 kB     00:00    
+(81/537): libepoxy-1.5.9-1.oe2203.aarch64.rpm   2.4 MB/s | 201 kB     00:00    
+(82/537): libev-4.33-2.oe2203.aarch64.rpm       608 kB/s |  47 kB     00:00    
+(83/537): libevdev-1.11.0-2.oe2203.aarch64.rpm  455 kB/s |  36 kB     00:00    
+(84/537): libevent-2.1.12-4.oe2203.aarch64.rpm  2.4 MB/s | 221 kB     00:00    
+(85/537): libevent-devel-2.1.12-4.oe2203.aarch6 1.3 MB/s | 100 kB     00:00    
+(86/537): libffi-3.4.2-2.oe2203.aarch64.rpm     292 kB/s |  26 kB     00:00    
+(87/537): libffi-devel-3.4.2-2.oe2203.aarch64.r 171 kB/s |  14 kB     00:00    
+(88/537): libglvnd-1.3.4-2.oe2203.aarch64.rpm   730 kB/s |  57 kB     00:00    
+(89/537): libglvnd-core-devel-1.3.4-2.oe2203.aa 204 kB/s |  19 kB     00:00    
+(90/537): libglvnd-devel-1.3.4-2.oe2203.aarch64 2.2 MB/s | 179 kB     00:00    
+(91/537): libglvnd-egl-1.3.4-2.oe2203.aarch64.r 486 kB/s |  39 kB     00:00    
+(92/537): libglvnd-gles-1.3.4-2.oe2203.aarch64. 288 kB/s |  27 kB     00:00    
+(93/537): libglvnd-opengl-1.3.4-2.oe2203.aarch6 444 kB/s |  34 kB     00:00    
+(94/537): libglvnd-glx-1.3.4-2.oe2203.aarch64.r 1.3 MB/s | 112 kB     00:00    
+(95/537): libgudev-237-1.oe2203.aarch64.rpm     364 kB/s |  31 kB     00:00    
+(96/537): libgusb-0.3.8-1.oe2203.aarch64.rpm    528 kB/s |  41 kB     00:00    
+(97/537): libidn-1.38-3.oe2203.aarch64.rpm      1.6 MB/s | 139 kB     00:00    
+(98/537): libidn2-2.3.2-2.oe2203.aarch64.rpm    1.3 MB/s | 112 kB     00:00    
+(99/537): libijs-0.35-9.oe2203.aarch64.rpm      336 kB/s |  27 kB     00:00    
+(100/537): libogg-1.3.5-1.oe2203.aarch64.rpm    335 kB/s |  31 kB     00:00    
+(101/537): libpaper-1.1.28-1.oe2203.aarch64.rpm 427 kB/s |  34 kB     00:00    
+(102/537): libpipeline-1.5.4-1.oe2203.aarch64.r 611 kB/s |  50 kB     00:00    
+(103/537): libsamplerate-0.1.9-4.oe2203.aarch64  11 MB/s | 1.0 MB     00:00    
+(104/537): libseccomp-2.5.3-1.oe2203.aarch64.rp 661 kB/s |  59 kB     00:00    
+(105/537): libsemanage-3.3-3.oe2203.aarch64.rpm 1.2 MB/s |  98 kB     00:00    
+(106/537): libsigsegv-2.13-1.oe2203.aarch64.rpm 511 kB/s |  42 kB     00:00    
+(107/537): libthai-0.1.28-4.oe2203.aarch64.rpm  2.3 MB/s | 197 kB     00:00    
+(108/537): libspectre-0.2.8-9.oe2203.aarch64.rp 482 kB/s |  42 kB     00:00    
+(109/537): libtheora-1.1.1-25.oe2203.aarch64.rp 1.8 MB/s | 150 kB     00:00    
+(110/537): libunistring-0.9.10-8.oe2203.aarch64 4.7 MB/s | 401 kB     00:00    
+(111/537): libusbx-1.0.24-1.oe2203.aarch64.rpm  797 kB/s |  67 kB     00:00    
+(112/537): libutempter-1.2.1-2.oe2203.aarch64.r 248 kB/s |  24 kB     00:00    
+(113/537): libtool-ltdl-2.4.6-34.oe2203.aarch64 159 kB/s |  32 kB     00:00    
+(114/537): libv4l-1.14.2-6.oe2203.aarch64.rpm   1.9 MB/s | 168 kB     00:00    
+(115/537): libverto-0.3.2-1.oe2203.aarch64.rpm  312 kB/s |  26 kB     00:00    
+(116/537): libverto-devel-0.3.2-1.oe2203.aarch6 217 kB/s |  17 kB     00:00    
+(117/537): libvisual-0.4.0-27.oe2203.aarch64.rp 1.5 MB/s | 142 kB     00:00    
+(118/537): libvorbis-1.3.7-2.oe2203.aarch64.rpm 2.0 MB/s | 174 kB     00:00    
+(119/537): libwacom-1.12-1.oe2203.aarch64.rpm   516 kB/s |  43 kB     00:00    
+(120/537): libwacom-data-1.12-1.oe2203.noarch.r 1.1 MB/s |  99 kB     00:00    
+(121/537): libxcrypt-4.4.26-2.oe2203.aarch64.rp 1.4 MB/s | 118 kB     00:00    
+(122/537): libxkbcommon-1.3.1-1.oe2203.aarch64. 1.5 MB/s | 121 kB     00:00    
+(123/537): libxkbcommon-devel-1.3.1-1.oe2203.aa 804 kB/s |  66 kB     00:00    
+(124/537): libxkbcommon-x11-1.3.1-1.oe2203.aarc 245 kB/s |  20 kB     00:00    
+(125/537): lz4-1.9.3-2.oe2203.aarch64.rpm       1.6 MB/s | 128 kB     00:00    
+(126/537): man-db-2.9.4-2.oe2203.aarch64.rpm     12 MB/s | 1.1 MB     00:00    
+(127/537): mesa-demos-8.3.0-14.oe2203.aarch64.r  16 MB/s | 1.7 MB     00:00    
+(128/537): mesa-filesystem-21.3.1-1.oe2203.aarc 101 kB/s | 8.4 kB     00:00    
+(129/537): mesa-dri-drivers-21.3.1-1.oe2203.aar  36 MB/s | 4.7 MB     00:00    
+(130/537): mesa-libEGL-21.3.1-1.oe2203.aarch64. 1.1 MB/s |  97 kB     00:00    
+(131/537): mesa-libGL-21.3.1-1.oe2203.aarch64.r 1.7 MB/s | 140 kB     00:00    
+(132/537): mesa-libGLU-9.0.2-1.oe2203.aarch64.r 1.6 MB/s | 161 kB     00:00    
+(133/537): mesa-libgbm-21.3.1-1.oe2203.aarch64. 383 kB/s |  31 kB     00:00    
+(134/537): mesa-libglapi-21.3.1-1.oe2203.aarch6 734 kB/s |  58 kB     00:00    
+(135/537): mpfr-4.1.0-1.oe2203.aarch64.rpm      4.2 MB/s | 378 kB     00:00    
+(136/537): mtdev-1.1.6-2.oe2203.aarch64.rpm     234 kB/s |  19 kB     00:00    
+(137/537): nspr-4.32.0-1.oe2203.aarch64.rpm     1.5 MB/s | 128 kB     00:00    
+(138/537): openssl-pkcs11-0.4.11-5.oe2203.aarch 733 kB/s |  59 kB     00:00    
+(139/537): orc-0.4.32-1.oe2203.aarch64.rpm      1.7 MB/s | 150 kB     00:00    
+(140/537): os-prober-1.79-1.oe2203.aarch64.rpm  612 kB/s |  48 kB     00:00    
+(141/537): perl-Algorithm-Diff-1.201-1.oe2203.n 327 kB/s |  27 kB     00:00    
+(142/537): perl-Archive-Tar-2.40-1.oe2203.noarc 437 kB/s |  42 kB     00:00    
+(143/537): perl-B-Debug-1.26-5.oe2203.noarch.rp 226 kB/s |  18 kB     00:00    
+(144/537): perl-CPAN-Meta-2.150010-419.oe2203.n 1.1 MB/s | 108 kB     00:00    
+(145/537): perl-CPAN-Meta-YAML-0.018-420.oe2203 307 kB/s |  24 kB     00:00    
+(146/537): perl-CPAN-Meta-Requirements-2.140-41 286 kB/s |  26 kB     00:00    
+(147/537): perl-Carp-1.50-418.oe2203.noarch.rpm 262 kB/s |  21 kB     00:00    
+(148/537): perl-Compress-Raw-Bzip2-2.101-1.oe22 293 kB/s |  25 kB     00:00    
+(149/537): perl-Compress-Raw-Zlib-2.101-1.oe220 477 kB/s |  41 kB     00:00    
+(150/537): perl-Config-Perl-V-0.33-1.oe2203.noa 155 kB/s |  17 kB     00:00    
+(151/537): perl-Data-Dumper-2.183-1.oe2203.aarc 518 kB/s |  44 kB     00:00    
+(152/537): perl-Devel-PPPort-3.63-1.oe2203.aarc 2.2 MB/s | 187 kB     00:00    
+(153/537): perl-Digest-1.20-1.oe2203.noarch.rpm 206 kB/s |  17 kB     00:00    
+(154/537): perl-Digest-MD5-2.58-1.oe2203.aarch6 360 kB/s |  29 kB     00:00    
+(155/537): perl-Digest-SHA-6.02-7.oe2203.aarch6 556 kB/s |  49 kB     00:00    
+(156/537): perl-Encode-Locale-1.05-12.oe2203.no 173 kB/s |  14 kB     00:00    
+(157/537): perl-Env-1.04-397.oe2203.noarch.rpm  208 kB/s |  17 kB     00:00    
+(158/537): perl-Exporter-5.74-1.oe2203.noarch.r 244 kB/s |  22 kB     00:00    
+(159/537): perl-ExtUtils-Command-7.62-1.oe2203. 139 kB/s |  11 kB     00:00    
+(160/537): perl-ExtUtils-Install-2.20-1.oe2203. 407 kB/s |  33 kB     00:00    
+(161/537): perl-ExtUtils-MakeMaker-7.62-1.oe220 2.0 MB/s | 169 kB     00:00    
+(162/537): perl-ExtUtils-Manifest-1.73-1.oe2203 285 kB/s |  23 kB     00:00    
+(163/537): perl-ExtUtils-ParseXS-3.35-1.oe2203. 669 kB/s |  55 kB     00:00    
+(164/537): perl-File-Fetch-1.00-1.oe2203.noarch 272 kB/s |  22 kB     00:00    
+(165/537): perl-File-HomeDir-1.006-2.oe2203.noa 423 kB/s |  35 kB     00:00    
+(166/537): perl-File-Path-2.18-1.oe2203.noarch. 269 kB/s |  21 kB     00:00    
+(167/537): perl-File-Temp-0.2311-2.oe2203.noarc 586 kB/s |  50 kB     00:00    
+(168/537): perl-File-Which-1.27-1.oe2203.noarch 291 kB/s |  24 kB     00:00    
+(169/537): perl-Filter-1.60-3.oe2203.aarch64.rp 614 kB/s |  49 kB     00:00    
+(170/537): perl-Filter-Simple-0.94-1.oe2203.noa 195 kB/s |  16 kB     00:00    
+(171/537): perl-Getopt-Long-2.52-1.oe2203.noarc 521 kB/s |  45 kB     00:00    
+(172/537): perl-IO-Compress-2.101-2.oe2203.noar 1.3 MB/s | 110 kB     00:00    
+(173/537): perl-IO-Socket-IP-0.41-2.oe2203.noar 356 kB/s |  31 kB     00:00    
+(174/537): perl-IPC-Cmd-1.04-4.oe2203.noarch.rp 407 kB/s |  32 kB     00:00    
+(175/537): perl-IO-Socket-SSL-2.072-1.oe2203.no 2.1 MB/s | 181 kB     00:00    
+(176/537): perl-IPC-SysV-2.09-1.oe2203.aarch64. 261 kB/s |  25 kB     00:00    
+(177/537): perl-JSON-PP-4.06-1.oe2203.noarch.rp 562 kB/s |  44 kB     00:00    
+(178/537): perl-IPC-System-Simple-1.30-2.oe2203 337 kB/s |  31 kB     00:00    
+(179/537): perl-Locale-Codes-3.68-1.oe2203.noar 2.7 MB/s | 264 kB     00:00    
+(180/537): perl-Locale-Maketext-1.29-1.oe2203.n 647 kB/s |  53 kB     00:00    
+(181/537): perl-MIME-Base64-3.16-1.oe2203.aarch 228 kB/s |  20 kB     00:00    
+(182/537): perl-Math-BigInt-1.9998.27-1.oe2203. 1.5 MB/s | 121 kB     00:00    
+(183/537): perl-Math-BigRat-0.2620-1.oe2203.noa 313 kB/s |  27 kB     00:00    
+(184/537): perl-Module-CoreList-5.20211020-1.oe 722 kB/s |  86 kB     00:00    
+(185/537): perl-Module-Load-0.36-1.oe2203.noarc 165 kB/s |  13 kB     00:00    
+(186/537): perl-Module-Load-Conditional-0.74-1. 200 kB/s |  18 kB     00:00    
+(187/537): perl-Module-Metadata-1.000037-1.oe22 389 kB/s |  31 kB     00:00    
+(188/537): perl-Mozilla-CA-20211001-1.oe2203.no 119 kB/s |  10 kB     00:00    
+(189/537): perl-Net-SSLeay-1.90-1.oe2203.aarch6 2.8 MB/s | 250 kB     00:00    
+(190/537): perl-Params-Check-0.38-418.oe2203.no 190 kB/s |  15 kB     00:00    
+(191/537): perl-PathTools-3.80-1.oe2203.aarch64 638 kB/s |  59 kB     00:00    
+(192/537): perl-Perl-OSType-1.010-421.oe2203.no 253 kB/s |  20 kB     00:00    
+(193/537): perl-PerlIO-via-QuotedPrint-0.09-1.o 123 kB/s |  11 kB     00:00    
+(194/537): perl-Pod-Checker-1.74-1.oe2203.noarc 295 kB/s |  23 kB     00:00    
+(195/537): perl-Pod-Escapes-1.07-420.oe2203.noa 152 kB/s |  14 kB     00:00    
+(196/537): perl-Pod-Parser-1.63-398.oe2203.noar 709 kB/s |  57 kB     00:00    
+(197/537): perl-Pod-Perldoc-3.28-4.oe2203.noarc 501 kB/s |  44 kB     00:00    
+(198/537): perl-Pod-Simple-3.43-1.oe2203.noarch 1.6 MB/s | 137 kB     00:00    
+(199/537): perl-Pod-Usage-2.01-2.oe2203.noarch. 288 kB/s |  25 kB     00:00    
+(200/537): perl-Scalar-List-Utils-1.60-1.oe2203 624 kB/s |  49 kB     00:00    
+(201/537): perl-Socket-2.032-1.oe2203.aarch64.r 425 kB/s |  43 kB     00:00    
+(202/537): perl-Storable-3.25-1.oe2203.aarch64. 822 kB/s |  74 kB     00:00    
+(203/537): perl-Sys-Syslog-0.36-1.oe2203.aarch6 406 kB/s |  37 kB     00:00    
+(204/537): perl-Term-ANSIColor-5.01-1.oe2203.no 374 kB/s |  30 kB     00:00    
+(205/537): perl-Term-Cap-1.17-510.oe2203.noarch 198 kB/s |  18 kB     00:00    
+(206/537): perl-Test-Simple-1.302188-1.oe2203.n 2.4 MB/s | 201 kB     00:00    
+(207/537): perl-Text-Balanced-2.04-1.oe2203.noa 335 kB/s |  29 kB     00:00    
+(208/537): perl-Text-Diff-1.45-7.oe2203.noarch. 337 kB/s |  27 kB     00:00    
+(209/537): perl-Text-ParseWords-3.30-419.oe2203 142 kB/s |  12 kB     00:00    
+(210/537): perl-Text-Tabs+Wrap-2021.0814-1.oe22 166 kB/s |  13 kB     00:00    
+(211/537): perl-Thread-Queue-3.13-3.oe2203.noar 161 kB/s |  14 kB     00:00    
+(212/537): perl-Time-Local-1.300-1.oe2203.noarc 276 kB/s |  22 kB     00:00    
+(213/537): perl-URI-5.10-1.oe2203.noarch.rpm    817 kB/s |  72 kB     00:00    
+(214/537): perl-Unicode-Collate-1.31-1.oe2203.a 7.8 MB/s | 667 kB     00:00    
+(215/537): perl-Unicode-Normalize-1.28-1.oe2203 783 kB/s |  70 kB     00:00    
+(216/537): perl-autodie-2.34-2.oe2203.noarch.rp 704 kB/s |  55 kB     00:00    
+(217/537): perl-bignum-0.63-1.oe2203.noarch.rpm 222 kB/s |  19 kB     00:00    
+(218/537): perl-constant-1.33-421.oe2203.noarch 213 kB/s |  17 kB     00:00    
+(219/537): perl-experimental-0.025-1.oe2203.noa 203 kB/s |  18 kB     00:00    
+(220/537): perl-parent-0.238-1.oe2203.noarch.rp 144 kB/s |  11 kB     00:00    
+(221/537): perl-perlfaq-5.20210520-1.oe2203.noa 1.9 MB/s | 177 kB     00:00    
+(222/537): perl-podlators-4.14-1.oe2203.noarch. 794 kB/s |  63 kB     00:00    
+(223/537): perl-threads-2.26-1.oe2203.aarch64.r 381 kB/s |  35 kB     00:00    
+(224/537): perl-threads-shared-1.62-1.oe2203.aa 377 kB/s |  30 kB     00:00    
+(225/537): perl-version-0.99.29-1.oe2203.aarch6 520 kB/s |  45 kB     00:00    
+(226/537): pigz-2.6-1.oe2203.aarch64.rpm        773 kB/s |  61 kB     00:00    
+(227/537): poppler-data-0.4.10-1.oe2203.noarch.  21 MB/s | 2.3 MB     00:00    
+(228/537): pulseaudio-libs-15.0-4.oe2203.aarch6 2.8 MB/s | 230 kB     00:00    
+(229/537): pulseaudio-libs-glib2-15.0-4.oe2203. 166 kB/s |  14 kB     00:00    
+(230/537): python3-pyparsing-3.0.6-1.oe2203.noa 2.4 MB/s | 216 kB     00:00    
+(231/537): qt-settings-29.1-3.oe2203.noarch.rpm  95 kB/s | 7.7 kB     00:00    
+(232/537): qt5-qtsvg-5.15.2-1.oe2203.aarch64.rp 2.0 MB/s | 165 kB     00:00    
+(233/537): qt5-srpm-macros-5.15.2-1.oe2203.noar  96 kB/s | 8.3 kB     00:00    
+(234/537): setup-2.13.9.1-1.oe2203.noarch.rpm   1.8 MB/s | 150 kB     00:00    
+(235/537): sgml-common-0.6.3-51.oe2203.noarch.r 583 kB/s |  53 kB     00:00    
+(236/537): python3-dbus-1.2.18-2.oe2203.aarch64 361 kB/s | 118 kB     00:00    
+(237/537): shared-mime-info-2.1-1.oe2203.aarch6 3.6 MB/s | 294 kB     00:00    
+(238/537): slang-2.3.2-8.oe2203.aarch64.rpm     6.0 MB/s | 533 kB     00:00    
+(239/537): systemtap-sdt-devel-4.5-2.oe2203.aar 214 kB/s |  19 kB     00:00    
+(240/537): speexdsp-1.2.0-2.oe2203.aarch64.rpm  415 kB/s |  44 kB     00:00    
+(241/537): trousers-0.3.15-1.oe2203.aarch64.rpm 3.2 MB/s | 266 kB     00:00    
+(242/537): urw-base35-bookman-fonts-20200910-1. 8.7 MB/s | 854 kB     00:00    
+(243/537): urw-base35-c059-fonts-20200910-1.oe2 8.2 MB/s | 881 kB     00:00    
+(244/537): urw-base35-d050000l-fonts-20200910-1 957 kB/s |  76 kB     00:00    
+(245/537): urw-base35-fonts-20200910-1.oe2203.n 120 kB/s | 9.5 kB     00:00    
+(246/537): urw-base35-fonts-common-20200910-1.o 236 kB/s |  21 kB     00:00    
+(247/537): urw-base35-gothic-fonts-20200910-1.o 7.3 MB/s | 651 kB     00:00    
+(248/537): urw-base35-nimbus-mono-ps-fonts-2020 7.2 MB/s | 798 kB     00:00    
+(249/537): urw-base35-nimbus-roman-fonts-202009 8.5 MB/s | 862 kB     00:00    
+(250/537): urw-base35-nimbus-sans-fonts-2020091  10 MB/s | 1.3 MB     00:00    
+(251/537): urw-base35-p052-fonts-20200910-1.oe2 9.8 MB/s | 979 kB     00:00    
+(252/537): urw-base35-standard-symbols-ps-fonts 507 kB/s |  41 kB     00:00    
+(253/537): urw-base35-z003-fonts-20200910-1.oe2 3.0 MB/s | 276 kB     00:00    
+(254/537): valgrind-devel-3.16.0-3.oe2203.aarch 556 kB/s |  46 kB     00:00    
+(255/537): which-2.21-14.oe2203.aarch64.rpm     335 kB/s |  30 kB     00:00    
+(256/537): valgrind-3.16.0-3.oe2203.aarch64.rpm  39 MB/s | 6.0 MB     00:00    
+(257/537): xcb-util-0.4.0-13.oe2203.aarch64.rpm 194 kB/s |  16 kB     00:00    
+(258/537): xcb-util-image-0.4.0-12.oe2203.aarch 189 kB/s |  17 kB     00:00    
+(259/537): xcb-util-keysyms-0.4.0-10.oe2203.aar 160 kB/s |  13 kB     00:00    
+(260/537): xcb-util-renderutil-0.3.9-13.oe2203. 193 kB/s |  16 kB     00:00    
+(261/537): xcb-util-wm-0.4.1-15.oe2203.aarch64. 307 kB/s |  27 kB     00:00    
+(262/537): xkeyboard-config-2.33-1.oe2203.noarc 8.8 MB/s | 793 kB     00:00    
+(263/537): xorg-x11-proto-devel-2021.5-1.oe2203 3.2 MB/s | 278 kB     00:00    
+(264/537): zip-3.0-29.oe2203.aarch64.rpm        2.4 MB/s | 217 kB     00:00    
+(265/537): bullet-2.87-6.oe2203.aarch64.rpm      12 MB/s | 1.1 MB     00:00    
+(266/537): bullet-devel-2.87-6.oe2203.aarch64.r 6.0 MB/s | 529 kB     00:00    
+(267/537): dbus-c++-0.9.0-20.oe2203.aarch64.rpm 1.2 MB/s | 126 kB     00:00    
+(268/537): efl-devel-1.25.1-1.oe2203.aarch64.rp  21 MB/s | 2.2 MB     00:00    
+(269/537): glibmm24-2.64.5-1.oe2203.aarch64.rpm 6.2 MB/s | 589 kB     00:00    
+(270/537): jack-audio-connection-kit-1.9.14-3.o 4.4 MB/s | 455 kB     00:00    
+(271/537): lame-3.100-9.oe2203.aarch64.rpm      4.7 MB/s | 444 kB     00:00    
+(272/537): libXScrnSaver-1.2.3-4.oe2203.aarch64 168 kB/s |  14 kB     00:00    
+(273/537): libass-0.15.0-2.oe2203.aarch64.rpm   1.0 MB/s |  85 kB     00:00    
+(274/537): libaom-1.0.0-1.oe2203.aarch64.rpm    9.2 MB/s | 1.0 MB     00:00    
+(275/537): libdav1d-0.5.2-2.oe2203.aarch64.rpm  3.0 MB/s | 261 kB     00:00    
+(276/537): libbluray-1.1.2-4.oe2203.aarch64.rpm 1.8 MB/s | 168 kB     00:00    
+(277/537): libiec61883-1.2.0-23.oe2203.aarch64. 497 kB/s |  41 kB     00:00    
+(278/537): libffado-2.4.1-6.oe2203.aarch64.rpm  8.6 MB/s | 1.0 MB     00:00    
+(279/537): libiec61883-help-1.2.0-23.oe2203.aar 135 kB/s |  12 kB     00:00    
+(280/537): libmodplug-0.8.9.0-10.oe2203.aarch64 1.6 MB/s | 152 kB     00:00    
+(281/537): libnice-0.1.14-12.oe2203.aarch64.rpm 1.7 MB/s | 155 kB     00:00    
+(282/537): libraw1394-2.1.2-9.oe2203.aarch64.rp 652 kB/s |  54 kB     00:00    
+(283/537): libraw1394-help-2.1.2-9.oe2203.aarch 125 kB/s |  11 kB     00:00    
+(284/537): libsigc++20-2.10.6-2.oe2203.aarch64. 443 kB/s |  36 kB     00:00    
+(285/537): libva-2.13.0-1.oe2203.aarch64.rpm    881 kB/s |  88 kB     00:00    
+(286/537): libvdpau-1.2-1.oe2203.aarch64.rpm    5.1 MB/s | 486 kB     00:00    
+(287/537): libxkbcommon-x11-devel-1.3.1-1.oe220 122 kB/s |  13 kB     00:00    
+(288/537): libxml++-2.40.1-8.oe2203.aarch64.rpm 956 kB/s |  84 kB     00:00    
+(289/537): luajit-devel-2.1.0-3.oe2203.aarch64. 1.0 MB/s |  85 kB     00:00    
+(290/537): luajit-2.1.0-3.oe2203.aarch64.rpm    3.0 MB/s | 307 kB     00:00    
+(291/537): mesa-libEGL-devel-21.3.1-1.oe2203.aa 123 kB/s |  11 kB     00:00    
+(292/537): ocl-icd-2.2.12-2.oe2203.aarch64.rpm  295 kB/s |  40 kB     00:00    
+(293/537): openal-soft-1.18.2-8.oe2203.aarch64. 3.9 MB/s | 361 kB     00:00    
+(294/537): opencore-amr-0.1.5-7.oe2203.aarch64. 1.8 MB/s | 165 kB     00:00    
+(295/537): pulseaudio-libs-devel-15.0-4.oe2203. 1.0 MB/s |  86 kB     00:00    
+(296/537): python-qt5-rpm-macros-5.15.6-1.oe220 100 kB/s | 8.6 kB     00:00    
+(297/537): python3-pyqt5-sip-4.19.25-1.oe2203.a 1.0 MB/s |  87 kB     00:00    
+(298/537): python3-qt5-5.15.6-1.oe2203.aarch64.  11 MB/s | 1.2 MB     00:00    
+(299/537): python3-qt5-base-5.15.6-1.oe2203.aar  18 MB/s | 2.5 MB     00:00    
+(300/537): qt5-qtconnectivity-5.15.2-1.oe2203.a 2.6 MB/s | 462 kB     00:00    
+(301/537): qt5-qtenginio-1.6.2-20.oe2203.aarch6 1.7 MB/s | 150 kB     00:00    
+(302/537): qt5-qtdeclarative-5.15.2-1.oe2203.aa  17 MB/s | 3.7 MB     00:00    
+(303/537): qt5-qtmultimedia-5.15.2-1.oe2203.aar 7.4 MB/s | 667 kB     00:00    
+(304/537): qt5-qtlocation-5.15.2-1.oe2203.aarch  23 MB/s | 2.6 MB     00:00    
+(305/537): qt5-qtsensors-5.15.2-1.oe2203.aarch6 4.5 MB/s | 420 kB     00:00    
+(306/537): qt5-qtserialport-5.15.2-1.oe2203.aar 633 kB/s |  61 kB     00:00    
+(307/537): qt5-qtwebchannel-5.15.2-1.oe2203.aar 967 kB/s |  91 kB     00:00    
+(308/537): qt5-qttools-5.15.2-3.oe2203.aarch64.  29 MB/s | 3.5 MB     00:00    
+(309/537): qt5-qtwebsockets-5.15.2-1.oe2203.aar 957 kB/s |  84 kB     00:00    
+(310/537): qt5-qtx11extras-5.15.2-1.oe2203.aarc 408 kB/s |  33 kB     00:00    
+(311/537): soxr-0.1.3-5.oe2203.aarch64.rpm      804 kB/s |  65 kB     00:00    
+(312/537): qt5-qtxmlpatterns-5.15.2-1.oe2203.aa 9.4 MB/s | 971 kB     00:00    
+(313/537): srt-libs-1.4.1-4.oe2203.aarch64.rpm  2.4 MB/s | 217 kB     00:00    
+(314/537): vid.stab-1.1.0-1.oe2203.aarch64.rpm  505 kB/s |  41 kB     00:00    
+(315/537): vo-amrwbenc-0.1.3-1.oe2203.aarch64.r 807 kB/s |  70 kB     00:00    
+(316/537): x264-libs-0.157-13.20190717git34c06d 5.3 MB/s | 498 kB     00:00    
+(317/537): xvidcore-1.3.7-1.oe2203.aarch64.rpm  2.5 MB/s | 209 kB     00:00    
+(318/537): x265-3.4-2.oe2203.aarch64.rpm        4.7 MB/s | 446 kB     00:00    
+(319/537): zimg-2.9.3-2.oe2203.aarch64.rpm      944 kB/s |  85 kB     00:00    
+(320/537): zvbi-0.2.35-7.oe2203.aarch64.rpm     4.8 MB/s | 445 kB     00:00    
+(321/537): SDL2-2.0.12-6.oe2203.aarch64.rpm     4.6 MB/s | 420 kB     00:00    
+(322/537): LibRaw-0.20.2-7.oe2203.aarch64.rpm   3.6 MB/s | 341 kB     00:00    
+(323/537): acl-2.3.1-2.oe2203.aarch64.rpm       625 kB/s |  51 kB     00:00    
+(324/537): SDL2-devel-2.0.12-6.oe2203.aarch64.r 2.9 MB/s | 266 kB     00:00    
+(325/537): atk-2.36.0-2.oe2203.aarch64.rpm      2.9 MB/s | 260 kB     00:00    
+(326/537): avahi-0.8-19.oe2203.aarch64.rpm      2.8 MB/s | 245 kB     00:00    
+(327/537): avahi-libs-0.8-19.oe2203.aarch64.rpm 731 kB/s |  59 kB     00:00    
+(328/537): avahi-devel-0.8-19.oe2203.aarch64.rp 415 kB/s |  43 kB     00:00    
+(329/537): bash-5.1.8-6.oe2203.aarch64.rpm       11 MB/s | 1.2 MB     00:00    
+(330/537): bc-1.07.1-11.oe2203.aarch64.rpm      1.0 MB/s |  86 kB     00:00    
+(331/537): bzip2-1.0.8-6.oe2203.aarch64.rpm     802 kB/s |  66 kB     00:00    
+(332/537): bluez-libs-5.54-19.oe2203.aarch64.rp 651 kB/s |  57 kB     00:00    
+(333/537): efl-1.25.1-1.oe2203.aarch64.rpm      6.7 MB/s |  22 MB     00:03    
+(334/537): bzip2-devel-1.0.8-6.oe2203.aarch64.r 402 kB/s |  39 kB     00:00    
+(335/537): ca-certificates-2023.2.60-2.oe2203.n 4.2 MB/s | 411 kB     00:00    
+(336/537): cmake-filesystem-3.22.0-8.oe2203.aar 142 kB/s |  12 kB     00:00    
+(337/537): cmake-data-3.22.0-8.oe2203.noarch.rp  18 MB/s | 1.7 MB     00:00    
+(338/537): cmake-rpm-macros-3.22.0-8.oe2203.noa 132 kB/s |  11 kB     00:00    
+(339/537): colord-libs-1.4.5-4.oe2203.aarch64.r 2.1 MB/s | 181 kB     00:00    
+(340/537): cmake-3.22.0-8.oe2203.aarch64.rpm     41 MB/s | 9.0 MB     00:00    
+(341/537): cpio-2.13-10.oe2203.aarch64.rpm      2.9 MB/s | 253 kB     00:00    
+(342/537): coreutils-9.0-5.oe2203.aarch64.rpm    23 MB/s | 2.7 MB     00:00    
+(343/537): cups-libs-2.4.0-10.oe2203.aarch64.rp 2.7 MB/s | 240 kB     00:00    
+(344/537): curl-7.79.1-28.oe2203.aarch64.rpm    1.5 MB/s | 139 kB     00:00    
+(345/537): cyrus-sasl-lib-2.1.27-15.oe2203.aarc 877 kB/s |  72 kB     00:00    
+(346/537): dbus-1.12.20-10.oe2203.aarch64.rpm   616 kB/s |  63 kB     00:00    
+(347/537): dbus-common-1.12.20-10.oe2203.noarch 152 kB/s |  13 kB     00:00    
+(348/537): dbus-daemon-1.12.20-10.oe2203.aarch6 1.9 MB/s | 164 kB     00:00    
+(349/537): dbus-devel-1.12.20-10.oe2203.aarch64 392 kB/s |  36 kB     00:00    
+(350/537): dbus-libs-1.12.20-10.oe2203.aarch64. 1.6 MB/s | 136 kB     00:00    
+(351/537): dbus-tools-1.12.20-10.oe2203.aarch64 302 kB/s |  26 kB     00:00    
+(352/537): dconf-0.40.0-3.oe2203.aarch64.rpm    816 kB/s |  83 kB     00:00    
+(353/537): dracut-055-10.oe2203.aarch64.rpm     3.3 MB/s | 292 kB     00:00    
+(354/537): e2fsprogs-1.46.4-21.oe2203.aarch64.r  11 MB/s | 1.1 MB     00:00    
+(355/537): e2fsprogs-devel-1.46.4-21.oe2203.aar 3.2 MB/s | 297 kB     00:00    
+(356/537): e2fsprogs-help-1.46.4-21.oe2203.noar 1.2 MB/s | 102 kB     00:00    
+(357/537): efi-srpm-macros-4-5.oe2203.noarch.rp 277 kB/s |  22 kB     00:00    
+(358/537): elfutils-extra-0.185-13.oe2203.aarch 2.6 MB/s | 220 kB     00:00    
+(359/537): elfutils-0.185-13.oe2203.aarch64.rpm 5.4 MB/s | 580 kB     00:00    
+(360/537): expat-2.4.1-10.oe2203.aarch64.rpm    908 kB/s |  75 kB     00:00    
+(361/537): ffmpeg-4.2.4-4.oe2203.aarch64.rpm     14 MB/s | 1.4 MB     00:00    
+(362/537): emacs-filesystem-27.2-13.oe2203.noar  41 kB/s | 8.2 kB     00:00    
+(363/537): file-5.41-3.oe2203.aarch64.rpm       430 kB/s |  36 kB     00:00    
+(364/537): ffmpeg-libs-4.2.4-4.oe2203.aarch64.r  41 MB/s | 6.1 MB     00:00    
+(365/537): file-libs-5.41-3.oe2203.aarch64.rpm  7.1 MB/s | 655 kB     00:00    
+(366/537): freeglut-3.0.0-12.oe2203.aarch64.rpm 1.5 MB/s | 135 kB     00:00    
+(367/537): freetype-2.11.0-3.oe2203.aarch64.rpm 4.0 MB/s | 349 kB     00:00    
+(368/537): freetype-devel-2.11.0-3.oe2203.aarch 2.0 MB/s | 170 kB     00:00    
+(369/537): fribidi-1.0.10-2.oe2203.aarch64.rpm  997 kB/s |  83 kB     00:00    
+(370/537): fribidi-devel-1.0.10-2.oe2203.aarch6 314 kB/s |  26 kB     00:00    
+(371/537): gawk-5.1.1-4.oe2203.aarch64.rpm      3.7 MB/s | 344 kB     00:00    
+(372/537): gdbm-1.22-11.oe2203.aarch64.rpm      2.0 MB/s | 166 kB     00:00    
+(373/537): gdb-headless-11.1-7.oe2203.aarch64.r  25 MB/s | 3.0 MB     00:00    
+(374/537): gdk-pixbuf2-2.42.6-5.oe2203.aarch64. 5.1 MB/s | 455 kB     00:00    
+(375/537): gdk-pixbuf2-modules-2.42.6-5.oe2203. 789 kB/s |  67 kB     00:00    
+(376/537): giflib-5.2.1-6.oe2203.aarch64.rpm    585 kB/s |  47 kB     00:00    
+(377/537): ghostscript-9.55.0-6.oe2203.aarch64.  29 MB/s | 3.2 MB     00:00    
+(378/537): glib2-2.68.1-21.oe2203.aarch64.rpm    20 MB/s | 2.6 MB     00:00    
+(379/537): glibc-2.34-149.oe2203.aarch64.rpm     26 MB/s | 2.8 MB     00:00    
+(380/537): glib2-devel-2.68.1-21.oe2203.aarch64  26 MB/s | 3.5 MB     00:00    
+(381/537): gnutls-3.7.2-13.oe2203.aarch64.rpm   9.8 MB/s | 884 kB     00:00    
+(382/537): grep-3.7-9.oe2203.aarch64.rpm        3.5 MB/s | 293 kB     00:00    
+(383/537): glibc-common-2.34-149.oe2203.aarch64  23 MB/s | 2.7 MB     00:00    
+(384/537): groff-1.22.4-11.oe2203.aarch64.rpm   9.4 MB/s | 908 kB     00:00    
+(385/537): groff-base-1.22.4-11.oe2203.aarch64. 8.9 MB/s | 858 kB     00:00    
+(386/537): grub2-common-2.06-41.oe2203.noarch.r  25 MB/s | 2.9 MB     00:00    
+(387/537): grub2-tools-minimal-2.06-41.oe2203.a 4.0 MB/s | 346 kB     00:00    
+(388/537): grub2-tools-2.06-41.oe2203.aarch64.r  17 MB/s | 1.8 MB     00:00    
+(389/537): gstreamer1-plugins-bad-free-1.16.2-9  13 MB/s | 1.5 MB     00:00    
+(390/537): gstreamer1-plugins-base-1.18.4-7.oe2  18 MB/s | 1.8 MB     00:00    
+(391/537): gzip-1.11-3.oe2203.aarch64.rpm       1.2 MB/s | 104 kB     00:00    
+(392/537): harfbuzz-2.8.2-4.oe2203.aarch64.rpm  4.7 MB/s | 638 kB     00:00    
+(393/537): harfbuzz-devel-2.8.2-4.oe2203.aarch6 1.9 MB/s | 165 kB     00:00    
+(394/537): hicolor-icon-theme-0.17-6.oe2203.noa 547 kB/s |  44 kB     00:00    
+(395/537): jbig2dec-0.19-3.oe2203.aarch64.rpm   857 kB/s |  72 kB     00:00    
+(396/537): guile-2.0.14-18.oe2203.aarch64.rpm   9.7 MB/s | 3.3 MB     00:00    
+(397/537): jbigkit-libs-2.1-19.oe2203.aarch64.r 406 kB/s |  33 kB     00:00    
+(398/537): json-c-0.15-6.oe2203.aarch64.rpm     398 kB/s |  36 kB     00:00    
+(399/537): kpartx-0.8.7-6.oe2203.aarch64.rpm    517 kB/s |  42 kB     00:00    
+(400/537): krb5-devel-1.19.2-8.oe2203.aarch64.r 1.9 MB/s | 163 kB     00:00    
+(401/537): krb5-libs-1.19.2-8.oe2203.aarch64.rp 6.8 MB/s | 628 kB     00:00    
+(402/537): less-590-6.oe2203.aarch64.rpm        1.2 MB/s | 101 kB     00:00    
+(403/537): libICE-1.0.10-4.oe2203.aarch64.rpm   610 kB/s |  51 kB     00:00    
+(404/537): libSM-1.2.3-4.oe2203.aarch64.rpm     260 kB/s |  22 kB     00:00    
+(405/537): libX11-1.7.2-8.oe2203.aarch64.rpm    7.8 MB/s | 716 kB     00:00    
+(406/537): libX11-devel-1.7.2-8.oe2203.aarch64. 531 kB/s |  55 kB     00:00    
+(407/537): libXext-1.3.4-4.oe2203.aarch64.rpm   413 kB/s |  34 kB     00:00    
+(408/537): libXi-1.8-2.oe2203.aarch64.rpm       408 kB/s |  34 kB     00:00    
+(409/537): libarchive-3.5.2-6.oe2203.aarch64.rp 3.7 MB/s | 320 kB     00:00    
+(410/537): libacl-2.3.1-2.oe2203.aarch64.rpm    242 kB/s |  22 kB     00:00    
+(411/537): libavdevice-4.2.4-4.oe2203.aarch64.r 693 kB/s |  60 kB     00:00    
+(412/537): libcap-2.61-5.oe2203.aarch64.rpm     753 kB/s |  62 kB     00:00    
+(413/537): libblkid-2.37.2-28.oe2203.aarch64.rp 1.7 MB/s | 147 kB     00:00    
+(414/537): libcurl-7.79.1-28.oe2203.aarch64.rpm 2.9 MB/s | 264 kB     00:00    
+(415/537): libfdisk-2.37.2-28.oe2203.aarch64.rp 2.2 MB/s | 191 kB     00:00    
+(416/537): libdrm-2.4.109-3.oe2203.aarch64.rpm  1.0 MB/s | 111 kB     00:00    
+(417/537): libgcc-10.3.1-23.oe2203.aarch64.rpm  813 kB/s |  67 kB     00:00    
+(418/537): libgcrypt-1.9.4-2.oe2203.aarch64.rpm 4.6 MB/s | 414 kB     00:00    
+(419/537): libgomp-10.3.1-23.oe2203.aarch64.rpm 2.6 MB/s | 224 kB     00:00    
+(420/537): libgpg-error-1.43-2.oe2203.aarch64.r 3.0 MB/s | 268 kB     00:00    
+(421/537): libicu-devel-69.1-7.oe2203.aarch64.r 8.5 MB/s | 803 kB     00:00    
+(422/537): libinput-1.19.2-2.oe2203.aarch64.rpm 2.0 MB/s | 174 kB     00:00    
+(423/537): libicu-69.1-7.oe2203.aarch64.rpm      43 MB/s | 9.3 MB     00:00    
+(424/537): libjpeg-turbo-2.1.1-2.oe2203.aarch64 1.3 MB/s | 121 kB     00:00    
+(425/537): libinput-devel-1.19.2-2.oe2203.aarch 349 kB/s |  40 kB     00:00    
+(426/537): libmount-2.37.2-28.oe2203.aarch64.rp 2.0 MB/s | 169 kB     00:00    
+(427/537): libjpeg-turbo-devel-2.1.1-2.oe2203.a 1.2 MB/s | 103 kB     00:00    
+(428/537): libkcapi-1.3.1-7.oe2203.aarch64.rpm  1.7 MB/s | 164 kB     00:00    
+(429/537): libnghttp2-1.46.0-5.oe2203.aarch64.r 814 kB/s |  67 kB     00:00    
+(430/537): libnsl2-2.0.0-4.oe2203.aarch64.rpm   327 kB/s |  28 kB     00:00    
+(431/537): libpng-1.6.37-4.oe2203.aarch64.rpm   1.1 MB/s |  99 kB     00:00    
+(432/537): libpng-devel-1.6.37-4.oe2203.aarch64 635 kB/s |  53 kB     00:00    
+(433/537): libpsl-0.21.1-5.oe2203.aarch64.rpm   870 kB/s |  72 kB     00:00    
+(434/537): libpwquality-1.4.4-4.oe2203.aarch64. 1.0 MB/s |  86 kB     00:00    
+(435/537): libselinux-3.3-5.oe2203.aarch64.rpm  1.2 MB/s | 109 kB     00:00    
+(436/537): librsvg2-2.50.5-6.oe2203.aarch64.rpm  21 MB/s | 2.2 MB     00:00    
+(437/537): libselinux-devel-3.3-5.oe2203.aarch6 1.2 MB/s | 106 kB     00:00    
+(438/537): libsepol-3.3-6.oe2203.aarch64.rpm    3.0 MB/s | 266 kB     00:00    
+(439/537): libsmartcols-2.37.2-28.oe2203.aarch6 1.4 MB/s | 115 kB     00:00    
+(440/537): libsepol-devel-3.3-6.oe2203.aarch64. 3.3 MB/s | 362 kB     00:00    
+(441/537): libsndfile-1.0.31-2.oe2203.aarch64.r 2.1 MB/s | 186 kB     00:00    
+(442/537): libsndfile-devel-1.0.31-2.oe2203.aar 974 kB/s |  82 kB     00:00    
+(443/537): libssh-0.9.6-8.oe2203.aarch64.rpm    2.1 MB/s | 182 kB     00:00    
+(444/537): libstdc++-10.3.1-23.oe2203.aarch64.r 5.3 MB/s | 484 kB     00:00    
+(445/537): libtasn1-4.17.0-3.oe2203.aarch64.rpm 904 kB/s |  77 kB     00:00    
+(446/537): libtiff-4.3.0-37.oe2203.aarch64.rpm  1.9 MB/s | 166 kB     00:00    
+(447/537): libtirpc-1.3.2-3.oe2203.aarch64.rpm  971 kB/s |  81 kB     00:00    
+(448/537): libunwind-1.5.0-2.oe2203.aarch64.rpm 550 kB/s |  52 kB     00:00    
+(449/537): libunwind-devel-1.5.0-2.oe2203.aarch 313 kB/s |  26 kB     00:00    
+(450/537): libuuid-2.37.2-28.oe2203.aarch64.rpm 352 kB/s |  30 kB     00:00    
+(451/537): libvpx-1.7.0-10.oe2203.aarch64.rpm   8.4 MB/s | 836 kB     00:00    
+(452/537): libuv-1.42.0-6.oe2203.aarch64.rpm    553 kB/s |  76 kB     00:00    
+(453/537): libwebp-1.2.1-4.oe2203.aarch64.rpm   1.7 MB/s | 211 kB     00:00    
+(454/537): libxcb-1.14-2.oe2203.aarch64.rpm     2.2 MB/s | 195 kB     00:00    
+(455/537): libxcb-devel-1.14-2.oe2203.aarch64.r 3.6 MB/s | 320 kB     00:00    
+(456/537): libxml2-2.9.12-20.oe2203.aarch64.rpm 6.2 MB/s | 609 kB     00:00    
+(457/537): libxml2-devel-2.9.12-20.oe2203.aarch  17 MB/s | 1.7 MB     00:00    
+(458/537): libxshmfence-1.3-7.oe2203.aarch64.rp 146 kB/s |  12 kB     00:00    
+(459/537): logrotate-3.20.1-1.oe2203.aarch64.rp 614 kB/s |  50 kB     00:00    
+(460/537): lua-5.4.3-11.oe2203.aarch64.rpm      1.1 MB/s | 136 kB     00:00    
+(461/537): ncurses-6.3-8.oe2203.aarch64.rpm     6.6 MB/s | 674 kB     00:00    
+(462/537): ncurses-base-6.3-8.oe2203.noarch.rpm 647 kB/s |  54 kB     00:00    
+(463/537): ncurses-libs-6.3-8.oe2203.aarch64.rp 2.9 MB/s | 265 kB     00:00    
+(464/537): nettle-3.8.1-1.oe2203.aarch64.rpm     10 MB/s | 935 kB     00:00    
+(465/537): newt-0.52.21-8.oe2203.aarch64.rpm    1.1 MB/s |  94 kB     00:00    
+(466/537): nss-3.72.0-5.oe2203.aarch64.rpm      6.4 MB/s | 599 kB     00:00    
+(467/537): nss-softokn-3.72.0-5.oe2203.aarch64. 6.0 MB/s | 626 kB     00:00    
+(468/537): nss-util-3.72.0-5.oe2203.aarch64.rpm 5.0 MB/s | 454 kB     00:00    
+(469/537): openEuler-gpg-keys-1.0-3.6.oe2203.aa 115 kB/s | 9.7 kB     00:00    
+(470/537): openEuler-release-22.03LTS-54.oe2203 269 kB/s |  22 kB     00:00    
+(471/537): openEuler-repos-1.0-3.6.oe2203.aarch 108 kB/s | 8.8 kB     00:00    
+(472/537): openEuler-rpm-config-30-30.oe2203.aa 609 kB/s |  49 kB     00:00    
+(473/537): openjpeg2-2.4.0-6.oe2203.aarch64.rpm 1.6 MB/s | 136 kB     00:00    
+(474/537): openldap-2.6.0-6.oe2203.aarch64.rpm  2.4 MB/s | 207 kB     00:00    
+(475/537): openssl-1.1.1m-28.oe2203.aarch64.rpm 4.6 MB/s | 424 kB     00:00    
+(476/537): openssl-devel-1.1.1m-28.oe2203.aarch  16 MB/s | 1.7 MB     00:00    
+(477/537): openssl-libs-1.1.1m-28.oe2203.aarch6  13 MB/s | 1.2 MB     00:00    
+(478/537): opus-1.3.1-3.oe2203.aarch64.rpm      2.0 MB/s | 186 kB     00:00    
+(479/537): p11-kit-0.24.0-2.oe2203.aarch64.rpm  2.5 MB/s | 217 kB     00:00    
+(480/537): p11-kit-trust-0.24.0-2.oe2203.aarch6 1.4 MB/s | 120 kB     00:00    
+(481/537): pam-1.5.2-7.oe2203.aarch64.rpm       5.0 MB/s | 437 kB     00:00    
+(482/537): pango-1.49.3-3.oe2203.aarch64.rpm    2.8 MB/s | 243 kB     00:00    
+(483/537): pcre-devel-8.45-2.oe2203.aarch64.rpm 4.0 MB/s | 358 kB     00:00    
+(484/537): pcre-8.45-2.oe2203.aarch64.rpm       2.8 MB/s | 389 kB     00:00    
+(485/537): pcre2-10.39-9.oe2203.aarch64.rpm     5.5 MB/s | 510 kB     00:00    
+(486/537): pcre2-devel-10.39-9.oe2203.aarch64.r 3.7 MB/s | 409 kB     00:00    
+(487/537): perl-5.34.0-12.oe2203.aarch64.rpm     26 MB/s | 3.2 MB     00:00    
+(488/537): perl-Encode-3.16-3.oe2203.aarch64.rp  15 MB/s | 1.4 MB     00:00    
+(489/537): perl-HTTP-Tiny-0.080-2.oe2203.noarch 424 kB/s |  35 kB     00:00    
+(490/537): perl-Math-BigInt-FastCalc-0.5012-2.o 238 kB/s |  19 kB     00:00    
+(491/537): perl-Test-Harness-3.42-2.oe2203.noar 1.5 MB/s | 130 kB     00:00    
+(492/537): perl-Time-HiRes-1.9767-2.oe2203.aarc 583 kB/s |  47 kB     00:00    
+(493/537): perl-libnet-3.13-2.oe2203.noarch.rpm 888 kB/s |  75 kB     00:00    
+(494/537): perl-devel-5.34.0-12.oe2203.aarch64.  21 MB/s | 2.1 MB     00:00    
+(495/537): pixman-0.40.0-3.oe2203.aarch64.rpm   1.8 MB/s | 148 kB     00:00    
+(496/537): perl-libs-5.34.0-12.oe2203.aarch64.r  16 MB/s | 1.6 MB     00:00    
+(497/537): pkgconf-1.8.0-3.oe2203.aarch64.rpm   700 kB/s |  57 kB     00:00    
+(498/537): poppler-0.90.0-6.oe2203.aarch64.rpm  9.8 MB/s | 894 kB     00:00    
+(499/537): poppler-cpp-0.90.0-6.oe2203.aarch64. 532 kB/s |  44 kB     00:00    
+(500/537): popt-1.18-3.oe2203.aarch64.rpm       274 kB/s |  49 kB     00:00    
+(501/537): procps-ng-3.3.17-5.oe2203.aarch64.rp 1.2 MB/s | 207 kB     00:00    
+(502/537): publicsuffix-list-20211113-2.oe2203. 1.5 MB/s | 128 kB     00:00    
+(503/537): python-pip-wheel-21.3.1-2.oe2203.noa  16 MB/s | 1.5 MB     00:00    
+(504/537): python-setuptools-59.4.0-5.oe2203.no 6.0 MB/s | 509 kB     00:00    
+(505/537): python3-pip-21.3.1-2.oe2203.noarch.r  23 MB/s | 2.2 MB     00:00    
+(506/537): python3-3.9.9-28.oe2203.aarch64.rpm   47 MB/s | 7.8 MB     00:00    
+(507/537): python3-setuptools-59.4.0-5.oe2203.n  11 MB/s | 964 kB     00:00    
+(508/537): qt5-qtbase-common-5.15.2-14.oe2203.n 115 kB/s | 9.2 kB     00:00    
+(509/537): qt5-qtbase-5.15.2-14.oe2203.aarch64.  21 MB/s | 3.3 MB     00:00    
+(510/537): readline-8.1-3.oe2203.aarch64.rpm    1.8 MB/s | 146 kB     00:00    
+(511/537): qt5-qtbase-gui-5.15.2-14.oe2203.aarc  40 MB/s | 5.6 MB     00:00    
+(512/537): rpm-4.17.0-33.oe2203.aarch64.rpm     5.7 MB/s | 492 kB     00:00    
+(513/537): rpm-libs-4.17.0-33.oe2203.aarch64.rp 4.2 MB/s | 340 kB     00:00    
+(514/537): sed-4.8-3.oe2203.aarch64.rpm         1.9 MB/s | 162 kB     00:00    
+(515/537): shadow-4.9-13.oe2203.aarch64.rpm     7.1 MB/s | 598 kB     00:00    
+(516/537): llvm-libs-12.0.1-4.oe2203.aarch64.rp 7.4 MB/s |  21 MB     00:02    
+(517/537): speex-1.2.0-6.oe2203.aarch64.rpm     712 kB/s |  71 kB     00:00    
+(518/537): sqlite-3.37.2-7.oe2203.aarch64.rpm    12 MB/s | 1.1 MB     00:00    
+(519/537): systemd-devel-249-75.oe2203.aarch64. 5.4 MB/s | 441 kB     00:00    
+(520/537): systemd-libs-249-75.oe2203.aarch64.r 5.2 MB/s | 453 kB     00:00    
+(521/537): systemd-249-75.oe2203.aarch64.rpm     26 MB/s | 3.2 MB     00:00    
+(522/537): systemd-pam-249-75.oe2203.aarch64.rp 2.3 MB/s | 193 kB     00:00    
+(523/537): systemd-udev-249-75.oe2203.aarch64.r  13 MB/s | 1.2 MB     00:00    
+(524/537): tcl-8.6.10-4.oe2203.aarch64.rpm       12 MB/s | 1.1 MB     00:00    
+(525/537): tpm2-tss-3.1.0-5.oe2203.aarch64.rpm  5.5 MB/s | 489 kB     00:00    
+(526/537): tzdata-2022a-18.oe2203.noarch.rpm    5.2 MB/s | 429 kB     00:00    
+(527/537): unbound-libs-1.13.2-11.oe2203.aarch6 4.8 MB/s | 464 kB     00:00    
+(528/537): util-linux-devel-2.37.2-28.oe2203.aa 489 kB/s |  38 kB     00:00    
+(529/537): util-linux-2.37.2-28.oe2203.aarch64.  18 MB/s | 2.3 MB     00:00    
+(530/537): wayland-1.19.91-4.oe2203.aarch64.rpm 713 kB/s |  59 kB     00:00    
+(531/537): xz-5.2.5-2.oe2203.aarch64.rpm        1.8 MB/s | 141 kB     00:00    
+(532/537): wayland-devel-1.19.91-4.oe2203.aarch 951 kB/s | 105 kB     00:00    
+(533/537): xz-devel-5.2.5-2.oe2203.aarch64.rpm  1.5 MB/s | 137 kB     00:00    
+(534/537): xz-libs-5.2.5-2.oe2203.aarch64.rpm   989 kB/s |  79 kB     00:00    
+(535/537): zlib-1.2.11-24.oe2203.aarch64.rpm    1.1 MB/s |  91 kB     00:00    
+(536/537): zlib-devel-1.2.11-24.oe2203.aarch64. 1.1 MB/s |  93 kB     00:00    
+(537/537): zstd-1.5.0-4.oe2203.aarch64.rpm      6.8 MB/s | 686 kB     00:00    
+--------------------------------------------------------------------------------
+Total                                            14 MB/s | 297 MB     00:21     
+retrieving repo key for OS unencrypted from http://repo.openeuler.org/openEuler-22.03-LTS/OS/aarch64/RPM-GPG-KEY-openEuler
+OS                                              7.0 kB/s | 2.1 kB     00:00    
+Importing GPG key 0xB25E7F66:
+ Userid     : "private OBS (key without passphrase) <defaultkey@localobs>"
+ Fingerprint: 12EA 74AC 9DF4 8D46 C69C A0BE D557 065E B25E 7F66
+ From       : http://repo.openeuler.org/openEuler-22.03-LTS/OS/aarch64/RPM-GPG-KEY-openEuler
+Key imported successfully
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+The downloaded packages were saved in cache until the next successful transaction.
+You can remove cached packages by executing 'dnf clean packages'.
+Error: Transaction test error:
+  installing package libgcc-10.3.1-23.oe2203.aarch64 needs 252KB more space on the /etc filesystem
+  installing package adobe-mappings-cmap-lang-20190730-3.oe2203.noarch needs 17MB more space on the /etc filesystem
+  installing package adobe-mappings-cmap-20190730-3.oe2203.noarch needs 17MB more space on the /etc filesystem
+  installing package ncurses-base-6.3-8.oe2203.noarch needs 17MB more space on the /etc filesystem
+  installing package google-droid-sans-fonts-20200215-1.oe2203.noarch needs 23MB more space on the /etc filesystem
+  installing package tzdata-2022a-18.oe2203.noarch needs 28MB more space on the /etc filesystem
+  installing package python-setuptools-59.4.0-5.oe2203.noarch needs 29MB more space on the /etc filesystem
+  installing package openEuler-gpg-keys-1.0-3.6.oe2203.aarch64 needs 29MB more space on the /etc filesystem
+  installing package openEuler-repos-1.0-3.6.oe2203.aarch64 needs 29MB more space on the /etc filesystem
+  installing package libselinux-3.3-5.oe2203.aarch64 needs 30MB more space on the /etc filesystem
+  installing package glibc-common-2.34-149.oe2203.aarch64 needs 51MB more space on the /etc filesystem
+  installing package ncurses-libs-6.3-8.oe2203.aarch64 needs 52MB more space on the /etc filesystem
+  installing package info-6.8-3.oe2203.aarch64 needs 53MB more space on the /etc filesystem
+  installing package bash-5.1.8-6.oe2203.aarch64 needs 59MB more space on the /etc filesystem
+  installing package setup-2.13.9.1-1.oe2203.noarch needs 60MB more space on the /etc filesystem
+  installing package filesystem-3.16-4.oe2203.aarch64 needs 60MB more space on the /etc filesystem
+  installing package glibc-2.34-149.oe2203.aarch64 needs 85MB more space on the /etc filesystem
+  installing package readline-8.1-3.oe2203.aarch64 needs 85MB more space on the /etc filesystem
+  installing package libsepol-3.3-6.oe2203.aarch64 needs 86MB more space on the /etc filesystem
+  installing package pcre2-10.39-9.oe2203.aarch64 needs 88MB more space on the /etc filesystem
+  installing package bc-1.07.1-11.oe2203.aarch64 needs 89MB more space on the /etc filesystem
+  installing package openEuler-release-22.03LTS-54.oe2203.aarch64 needs 89MB more space on the /etc filesystem
+  installing package libstdc++-10.3.1-23.oe2203.aarch64 needs 91MB more space on the /etc filesystem
+  installing package zlib-1.2.11-24.oe2203.aarch64 needs 91MB more space on the /etc filesystem
+  installing package pkgconf-1.8.0-3.oe2203.aarch64 needs 91MB more space on the /etc filesystem
+  installing package xz-libs-5.2.5-2.oe2203.aarch64 needs 92MB more space on the /etc filesystem
+  installing package libxml2-2.9.12-20.oe2203.aarch64 needs 93MB more space on the /etc filesystem
+  installing package libpng-2:1.6.37-4.oe2203.aarch64 needs 94MB more space on the /etc filesystem
+  installing package expat-2.4.1-10.oe2203.aarch64 needs 94MB more space on the /etc filesystem
+  installing package grep-3.7-9.oe2203.aarch64 needs 95MB more space on the /etc filesystem
+  installing package bzip2-1.0.8-6.oe2203.aarch64 needs 96MB more space on the /etc filesystem
+  installing package freetype-2.11.0-3.oe2203.aarch64 needs 97MB more space on the /etc filesystem
+  installing package libxcrypt-4.4.26-2.oe2203.aarch64 needs 97MB more space on the /etc filesystem
+  installing package perl-Carp-1.50-418.oe2203.noarch needs 97MB more space on the /etc filesystem
+  installing package perl-Exporter-5.74-1.oe2203.noarch needs 97MB more space on the /etc filesystem
+  installing package perl-libs-4:5.34.0-12.oe2203.aarch64 needs 107MB more space on the /etc filesystem
+  installing package perl-Scalar-List-Utils-4:1.60-1.oe2203.aarch64 needs 107MB more space on the /etc filesystem
+  installing package urw-base35-fonts-common-20200910-1.oe2203.noarch needs 107MB more space on the /etc filesystem
+  installing package libjpeg-turbo-2.1.1-2.oe2203.aarch64 needs 107MB more space on the /etc filesystem
+  installing package libffi-3.4.2-2.oe2203.aarch64 needs 108MB more space on the /etc filesystem
+  installing package libdrm-2.4.109-3.oe2203.aarch64 needs 108MB more space on the /etc filesystem
+  installing package wayland-1.19.91-4.oe2203.aarch64 needs 109MB more space on the /etc filesystem
+  installing package perl-MIME-Base64-3.16-1.oe2203.aarch64 needs 109MB more space on the /etc filesystem
+  installing package libuuid-2.37.2-28.oe2203.aarch64 needs 109MB more space on the /etc filesystem
+  installing package perl-parent-1:0.238-1.oe2203.noarch needs 109MB more space on the /etc filesystem
+  installing package gmp-1:6.2.1-1.oe2203.aarch64 needs 110MB more space on the /etc filesystem
+  installing package popt-1.18-3.oe2203.aarch64 needs 110MB more space on the /etc filesystem
+  installing package zlib-devel-1.2.11-24.oe2203.aarch64 needs 110MB more space on the /etc filesystem
+  installing package fribidi-1.0.10-2.oe2203.aarch64 needs 111MB more space on the /etc filesystem
+  installing package perl-Text-ParseWords-3.30-419.oe2203.noarch needs 111MB more space on the /etc filesystem
+  installing package gdbm-1:1.22-11.oe2203.aarch64 needs 111MB more space on the /etc filesystem
+  installing package lcms2-2.12-1.oe2203.aarch64 needs 112MB more space on the /etc filesystem
+  installing package libglvnd-1:1.3.4-2.oe2203.aarch64 needs 113MB more space on the /etc filesystem
+  installing package libunistring-0.9.10-8.oe2203.aarch64 needs 115MB more space on the /etc filesystem
+  installing package SDL2-2.0.12-6.oe2203.aarch64 needs 117MB more space on the /etc filesystem
+  installing package libICE-1.0.10-4.oe2203.aarch64 needs 117MB more space on the /etc filesystem
+  installing package libgomp-10.3.1-23.oe2203.aarch64 needs 117MB more space on the /etc filesystem
+  installing package libsndfile-1.0.31-2.oe2203.aarch64 needs 118MB more space on the /etc filesystem
+  installing package p11-kit-0.24.0-2.oe2203.aarch64 needs 119MB more space on the /etc filesystem
+  installing package perl-Term-ANSIColor-5.01-1.oe2203.noarch needs 119MB more space on the /etc filesystem
+  installing package perl-Time-HiRes-4:1.9767-2.oe2203.aarch64 needs 119MB more space on the /etc filesystem
+  installing package libicu-69.1-7.oe2203.aarch64 needs 154MB more space on the /etc filesystem
+  installing package pcre-8.45-2.oe2203.aarch64 needs 156MB more space on the /etc filesystem
+  installing package zstd-1.5.0-4.oe2203.aarch64 needs 159MB more space on the /etc filesystem
+  installing package elfutils-extra-0.185-13.oe2203.aarch64 needs 160MB more space on the /etc filesystem
+  installing package elfutils-0.185-13.oe2203.aarch64 needs 164MB more space on the /etc filesystem
+  installing package attr-2.5.1-2.oe2203.aarch64 needs 164MB more space on the /etc filesystem
+  installing package libacl-2.3.1-2.oe2203.aarch64 needs 164MB more space on the /etc filesystem
+  installing package sed-4.8-3.oe2203.aarch64 needs 165MB more space on the /etc filesystem
+  installing package libogg-2:1.3.5-1.oe2203.aarch64 needs 165MB more space on the /etc filesystem
+  installing package nspr-4.32.0-1.oe2203.aarch64 needs 166MB more space on the /etc filesystem
+  installing package openjpeg2-2.4.0-6.oe2203.aarch64 needs 166MB more space on the /etc filesystem
+  installing package opus-1.3.1-3.oe2203.aarch64 needs 167MB more space on the /etc filesystem
+  installing package gettext-0.21-4.oe2203.aarch64 needs 174MB more space on the /etc filesystem
+  installing package libSM-1.2.3-4.oe2203.aarch64 needs 174MB more space on the /etc filesystem
+  installing package libidn2-2.3.2-2.oe2203.aarch64 needs 175MB more space on the /etc filesystem
+  installing package nettle-3.8.1-1.oe2203.aarch64 needs 176MB more space on the /etc filesystem
+  installing package perl-Digest-1.20-1.oe2203.noarch needs 176MB more space on the /etc filesystem
+  installing package perl-Digest-MD5-2.58-1.oe2203.aarch64 needs 176MB more space on the /etc filesystem
+  installing package mesa-libgbm-21.3.1-1.oe2203.aarch64 needs 176MB more space on the /etc filesystem
+  installing package libsigc++20-2.10.6-2.oe2203.aarch64 needs 176MB more space on the /etc filesystem
+  installing package keyutils-libs-1.6.3-3.oe2203.aarch64 needs 177MB more space on the /etc filesystem
+  installing package libcap-ng-0.8.2-1.oe2203.aarch64 needs 177MB more space on the /etc filesystem
+  installing package audit-libs-1:3.0.1-3.oe2203.aarch64 needs 177MB more space on the /etc filesystem
+  installing package lz4-1.9.3-2.oe2203.aarch64 needs 178MB more space on the /etc filesystem
+  installing package mesa-libglapi-21.3.1-1.oe2203.aarch64 needs 178MB more space on the /etc filesystem
+  installing package libunwind-2:1.5.0-2.oe2203.aarch64 needs 179MB more space on the /etc filesystem
+  installing package libtheora-1:1.1.1-25.oe2203.aarch64 needs 179MB more space on the /etc filesystem
+  installing package libvorbis-1:1.3.7-2.oe2203.aarch64 needs 180MB more space on the /etc filesystem
+  installing package libpng-devel-2:1.6.37-4.oe2203.aarch64 needs 180MB more space on the /etc filesystem
+  installing package mpfr-4.1.0-1.oe2203.aarch64 needs 182MB more space on the /etc filesystem
+  installing package libffi-devel-3.4.2-2.oe2203.aarch64 needs 182MB more space on the /etc filesystem
+  installing package perl-Unicode-Normalize-1.28-1.oe2203.aarch64 needs 182MB more space on the /etc filesystem
+  installing package xz-5.2.5-2.oe2203.aarch64 needs 183MB more space on the /etc filesystem
+  installing package xorg-x11-proto-devel-2021.5-1.oe2203.noarch needs 185MB more space on the /etc filesystem
+  installing package file-libs-5.41-3.oe2203.aarch64 needs 194MB more space on the /etc filesystem
+  installing package file-5.41-3.oe2203.aarch64 needs 194MB more space on the /etc filesystem
+  installing package graphite2-1.3.14-5.oe2203.aarch64 needs 195MB more space on the /etc filesystem
+  installing package bullet-2.87-6.oe2203.aarch64 needs 199MB more space on the /etc filesystem
+  installing package groff-base-1.22.4-11.oe2203.aarch64 needs 204MB more space on the /etc filesystem
+  installing package ncurses-6.3-8.oe2203.aarch64 needs 212MB more space on the /etc filesystem
+  installing package lua-5.4.3-11.oe2203.aarch64 needs 212MB more space on the /etc filesystem
+  installing package findutils-2:4.8.0-3.oe2203.aarch64 needs 214MB more space on the /etc filesystem
+  installing package gsm-1.0.18-5.oe2203.aarch64 needs 214MB more space on the /etc filesystem
+  installing package libXau-1.0.9-2.oe2203.aarch64 needs 214MB more space on the /etc filesystem
+  installing package libxcb-1.14-2.oe2203.aarch64 needs 217MB more space on the /etc filesystem
+  installing package libX11-1.7.2-8.oe2203.aarch64 needs 220MB more space on the /etc filesystem
+  installing package libXext-1.3.4-4.oe2203.aarch64 needs 220MB more space on the /etc filesystem
+  installing package libXrender-0.9.10-10.oe2203.aarch64 needs 220MB more space on the /etc filesystem
+  installing package libXfixes-6.0.0-1.oe2203.aarch64 needs 220MB more space on the /etc filesystem
+  installing package libXi-1.8-2.oe2203.aarch64 needs 220MB more space on the /etc filesystem
+  installing package libXtst-1.2.3-10.oe2203.aarch64 needs 220MB more space on the /etc filesystem
+  installing package libXcursor-1.2.0-1.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package libXdamage-1.1.5-1.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package libXrandr-1.5.2-1.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package libXinerama-1.1.4-5.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package libXxf86vm-1.1.4-13.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package libXcomposite-0.4.5-1.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package xcb-util-0.4.0-13.oe2203.aarch64 needs 221MB more space on the /etc filesystem
+  installing package orc-0.4.32-1.oe2203.aarch64 needs 222MB more space on the /etc filesystem
+  installing package which-2.21-14.oe2203.aarch64 needs 222MB more space on the /etc filesystem
+  installing package luajit-2.1.0-3.oe2203.aarch64 needs 223MB more space on the /etc filesystem
+  installing package ocl-icd-2.2.12-2.oe2203.aarch64 needs 223MB more space on the /etc filesystem
+  installing package libtasn1-4.17.0-3.oe2203.aarch64 needs 224MB more space on the /etc filesystem
+  installing package libwebp-1.2.1-4.oe2203.aarch64 needs 225MB more space on the /etc filesystem
+  installing package libxshmfence-1.3-7.oe2203.aarch64 needs 225MB more space on the /etc filesystem
+  installing package libglvnd-egl-1:1.3.4-2.oe2203.aarch64 needs 225MB more space on the /etc filesystem
+  installing package mesa-libEGL-21.3.1-1.oe2203.aarch64 needs 225MB more space on the /etc filesystem
+  installing package libglvnd-gles-1:1.3.4-2.oe2203.aarch64 needs 226MB more space on the /etc filesystem
+  installing package pixman-0.40.0-3.oe2203.aarch64 needs 226MB more space on the /etc filesystem
+  installing package grub2-common-1:2.06-41.oe2203.noarch needs 234MB more space on the /etc filesystem
+  installing package libglvnd-glx-1:1.3.4-2.oe2203.aarch64 needs 235MB more space on the /etc filesystem
+  installing package mesa-libGL-21.3.1-1.oe2203.aarch64 needs 236MB more space on the /etc filesystem
+  installing package glew-2.1.0-4.oe2203.aarch64 needs 237MB more space on the /etc filesystem
+  installing package mesa-libGLU-9.0.2-1.oe2203.aarch64 needs 238MB more space on the /etc filesystem
+  installing package libva-2.13.0-1.oe2203.aarch64 needs 238MB more space on the /etc filesystem
+  installing package freeglut-3.0.0-12.oe2203.aarch64 needs 239MB more space on the /etc filesystem
+  installing package mesa-demos-8.3.0-14.oe2203.aarch64 needs 263MB more space on the /etc filesystem
+  installing package x264-libs-0.157-13.20190717git34c06d1_bootstrap.oe2203.aarch64 needs 265MB more space on the /etc filesystem
+  installing package luajit-devel-2.1.0-3.oe2203.aarch64 needs 265MB more space on the /etc filesystem
+  installing package xcb-util-image-0.4.0-12.oe2203.aarch64 needs 265MB more space on the /etc filesystem
+  installing package libXv-1.0.11-11.oe2203.aarch64 needs 266MB more space on the /etc filesystem
+  installing package libXScrnSaver-1.2.3-4.oe2203.aarch64 needs 266MB more space on the /etc filesystem
+  installing package libvdpau-1.2-1.oe2203.aarch64 needs 269MB more space on the /etc filesystem
+  installing package libXt-1.2.1-1.oe2203.aarch64 needs 269MB more space on the /etc filesystem
+  installing package xcb-util-keysyms-0.4.0-10.oe2203.aarch64 needs 269MB more space on the /etc filesystem
+  installing package xcb-util-renderutil-0.3.9-13.oe2203.aarch64 needs 270MB more space on the /etc filesystem
+  installing package xcb-util-wm-0.4.1-15.oe2203.aarch64 needs 270MB more space on the /etc filesystem
+  installing package libXau-devel-1.0.9-2.oe2203.aarch64 needs 270MB more space on the /etc filesystem
+  installing package libxcb-devel-1.14-2.oe2203.aarch64 needs 274MB more space on the /etc filesystem
+  installing package libX11-devel-1.7.2-8.oe2203.aarch64 needs 274MB more space on the /etc filesystem
+  installing package graphite2-devel-1.3.14-5.oe2203.aarch64 needs 274MB more space on the /etc filesystem
+  installing package xz-devel-5.2.5-2.oe2203.aarch64 needs 275MB more space on the /etc filesystem
+  installing package libxml2-devel-2.9.12-20.oe2203.aarch64 needs 287MB more space on the /etc filesystem
+  installing package wayland-devel-1.19.91-4.oe2203.aarch64 needs 288MB more space on the /etc filesystem
+  installing package libunwind-devel-2:1.5.0-2.oe2203.aarch64 needs 288MB more space on the /etc filesystem
+  installing package libsemanage-3.3-3.oe2203.aarch64 needs 288MB more space on the /etc filesystem
+  installing package keyutils-libs-devel-1.6.3-3.oe2203.aarch64 needs 288MB more space on the /etc filesystem
+  installing package acl-2.3.1-2.oe2203.aarch64 needs 289MB more space on the /etc filesystem
+  installing package pcre-devel-8.45-2.oe2203.aarch64 needs 290MB more space on the /etc filesystem
+  installing package libicu-devel-69.1-7.oe2203.aarch64 needs 296MB more space on the /etc filesystem
+  installing package libsndfile-devel-1.0.31-2.oe2203.aarch64 needs 296MB more space on the /etc filesystem
+  installing package soxr-0.1.3-5.oe2203.aarch64 needs 296MB more space on the /etc filesystem
+  installing package vid.stab-1.1.0-1.oe2203.aarch64 needs 296MB more space on the /etc filesystem
+  installing package LibRaw-0.20.2-7.oe2203.aarch64 needs 299MB more space on the /etc filesystem
+  installing package libglvnd-opengl-1:1.3.4-2.oe2203.aarch64 needs 299MB more space on the /etc filesystem
+  installing package fribidi-devel-1.0.10-2.oe2203.aarch64 needs 299MB more space on the /etc filesystem
+  installing package perl-PerlIO-via-QuotedPrint-0.09-1.oe2203.noarch needs 299MB more space on the /etc filesystem
+  installing package libv4l-1.14.2-6.oe2203.aarch64 needs 300MB more space on the /etc filesystem
+  installing package libjpeg-turbo-devel-2.1.1-2.oe2203.aarch64 needs 300MB more space on the /etc filesystem
+  installing package perl-Perl-OSType-1.010-421.oe2203.noarch needs 301MB more space on the /etc filesystem
+  installing package perl-perlfaq-5.20210520-1.oe2203.noarch needs 301MB more space on the /etc filesystem
+  installing package zip-3.0-29.oe2203.aarch64 needs 302MB more space on the /etc filesystem
+  installing package bzip2-devel-1.0.8-6.oe2203.aarch64 needs 302MB more space on the /etc filesystem
+  installing package freetype-devel-2.11.0-3.oe2203.aarch64 needs 303MB more space on the /etc filesystem
+  installing package libglvnd-core-devel-1:1.3.4-2.oe2203.aarch64 needs 303MB more space on the /etc filesystem
+  installing package libglvnd-devel-1:1.3.4-2.oe2203.aarch64 needs 306MB more space on the /etc filesystem
+  installing package mesa-libEGL-devel-21.3.1-1.oe2203.aarch64 needs 306MB more space on the /etc filesystem
+  installing package SDL2-devel-2.0.12-6.oe2203.aarch64 needs 307MB more space on the /etc filesystem
+  installing package libsepol-devel-3.3-6.oe2203.aarch64 needs 309MB more space on the /etc filesystem
+  installing package pcre2-devel-10.39-9.oe2203.aarch64 needs 311MB more space on the /etc filesystem
+  installing package libselinux-devel-3.3-5.oe2203.aarch64 needs 312MB more space on the /etc filesystem
+  installing package pigz-2.6-1.oe2203.aarch64 needs 312MB more space on the /etc filesystem
+  installing package tcl-1:8.6.10-4.oe2203.aarch64 needs 317MB more space on the /etc filesystem
+  installing package sqlite-3.37.2-7.oe2203.aarch64 needs 321MB more space on the /etc filesystem
+  installing package gc-8.0.6-1.oe2203.aarch64 needs 322MB more space on the /etc filesystem
+  installing package jsoncpp-1.9.5-3.oe2203.aarch64 needs 323MB more space on the /etc filesystem
+  installing package libcdio-2.1.0-4.oe2203.aarch64 needs 324MB more space on the /etc filesystem
+  installing package libcdio-paranoia-10.2+2.0.0-2.oe2203.aarch64 needs 324MB more space on the /etc filesystem
+  installing package libconfig-1.7.3-1.oe2203.aarch64 needs 324MB more space on the /etc filesystem
+  installing package libdb-5.3.28-37.oe2203.aarch64 needs 336MB more space on the /etc filesystem
+  installing package libmodplug-1:0.8.9.0-10.oe2203.aarch64 needs 337MB more space on the /etc filesystem
+  installing package x265-3.4-2.oe2203.aarch64 needs 338MB more space on the /etc filesystem
+  installing package zimg-2.9.3-2.oe2203.aarch64 needs 338MB more space on the /etc filesystem
+  installing package libvpx-1.7.0-10.oe2203.aarch64 needs 342MB more space on the /etc filesystem
+  installing package brotli-1.0.9-2.oe2203.aarch64 needs 343MB more space on the /etc filesystem
+  installing package cdparanoia-libs-10.2-31.oe2203.aarch64 needs 343MB more space on the /etc filesystem
+  installing package diffutils-3.8-2.oe2203.aarch64 needs 345MB more space on the /etc filesystem
+  installing package libasyncns-0.8-17.oe2203.aarch64 needs 345MB more space on the /etc filesystem
+  installing package libdaemon-0.14-20.oe2203.aarch64 needs 345MB more space on the /etc filesystem
+  installing package libdatrie-0.2.13-1.oe2203.aarch64 needs 345MB more space on the /etc filesystem
+  installing package libthai-0.1.28-4.oe2203.aarch64 needs 346MB more space on the /etc filesystem
+  installing package libedit-3.1-28.oe2203.aarch64 needs 346MB more space on the /etc filesystem
+  installing package llvm-libs-12.0.1-4.oe2203.aarch64 needs 438MB more space on the /etc filesystem
+  installing package mesa-dri-drivers-21.3.1-1.oe2203.aarch64 needs 457MB more space on the /etc filesystem
+  installing package libepoxy-1.5.9-1.oe2203.aarch64 needs 458MB more space on the /etc filesystem
+  installing package libev-4.33-2.oe2203.aarch64 needs 458MB more space on the /etc filesystem
+  installing package libevdev-1.11.0-2.oe2203.aarch64 needs 459MB more space on the /etc filesystem
+  installing package libidn-1.38-3.oe2203.aarch64 needs 459MB more space on the /etc filesystem
+  installing package libijs-0.35-9.oe2203.aarch64 needs 460MB more space on the /etc filesystem
+  installing package libpaper-1.1.28-1.oe2203.aarch64 needs 460MB more space on the /etc filesystem
+  installing package libpipeline-1.5.4-1.oe2203.aarch64 needs 460MB more space on the /etc filesystem
+  installing package libseccomp-2.5.3-1.oe2203.aarch64 needs 460MB more space on the /etc filesystem
+  installing package libsigsegv-2.13-1.oe2203.aarch64 needs 460MB more space on the /etc filesystem
+  installing package gawk-5.1.1-4.oe2203.aarch64 needs 462MB more space on the /etc filesystem
+  installing package libtool-ltdl-2.4.6-34.oe2203.aarch64 needs 462MB more space on the /etc filesystem
+  installing package libvisual-1:0.4.0-27.oe2203.aarch64 needs 463MB more space on the /etc filesystem
+  installing package mtdev-1.1.6-2.oe2203.aarch64 needs 463MB more space on the /etc filesystem
+  installing package speexdsp-1.2.0-2.oe2203.aarch64 needs 463MB more space on the /etc filesystem
+  installing package speex-1.2.0-6.oe2203.aarch64 needs 463MB more space on the /etc filesystem
+  installing package lame-3.100-9.oe2203.aarch64 needs 465MB more space on the /etc filesystem
+  installing package libaom-1.0.0-1.oe2203.aarch64 needs 468MB more space on the /etc filesystem
+  installing package libdav1d-0.5.2-2.oe2203.aarch64 needs 469MB more space on the /etc filesystem
+  installing package openal-soft-1.18.2-8.oe2203.aarch64 needs 469MB more space on the /etc filesystem
+  installing package opencore-amr-0.1.5-7.oe2203.aarch64 needs 470MB more space on the /etc filesystem
+  installing package vo-amrwbenc-0.1.3-1.oe2203.aarch64 needs 470MB more space on the /etc filesystem
+  installing package xvidcore-1.3.7-1.oe2203.aarch64 needs 471MB more space on the /etc filesystem
+  installing package bluez-libs-5.54-19.oe2203.aarch64 needs 471MB more space on the /etc filesystem
+  installing package cpio-2.13-10.oe2203.aarch64 needs 472MB more space on the /etc filesystem
+  installing package giflib-5.2.1-6.oe2203.aarch64 needs 472MB more space on the /etc filesystem
+  installing package jbig2dec-0.19-3.oe2203.aarch64 needs 473MB more space on the /etc filesystem
+  installing package jbigkit-libs-2.1-19.oe2203.aarch64 needs 473MB more space on the /etc filesystem
+  installing package libtiff-4.3.0-37.oe2203.aarch64 needs 473MB more space on the /etc filesystem
+  installing package json-c-0.15-6.oe2203.aarch64 needs 474MB more space on the /etc filesystem
+  installing package less-590-6.oe2203.aarch64 needs 474MB more space on the /etc filesystem
+  installing package libgpg-error-1.43-2.oe2203.aarch64 needs 475MB more space on the /etc filesystem
+  installing package libgcrypt-1.9.4-2.oe2203.aarch64 needs 476MB more space on the /etc filesystem
+  installing package libnghttp2-1.46.0-5.oe2203.aarch64 needs 476MB more space on the /etc filesystem
+  installing package libsmartcols-2.37.2-28.oe2203.aarch64 needs 477MB more space on the /etc filesystem
+  installing package libuv-1:1.42.0-6.oe2203.aarch64 needs 477MB more space on the /etc filesystem
+  installing package publicsuffix-list-20211113-2.oe2203.noarch needs 477MB more space on the /etc filesystem
+  installing package python-qt5-rpm-macros-5.15.6-1.oe2203.noarch needs 477MB more space on the /etc filesystem
+  installing package libraw1394-help-2.1.2-9.oe2203.aarch64 needs 477MB more space on the /etc filesystem
+  installing package libraw1394-2.1.2-9.oe2203.aarch64 needs 478MB more space on the /etc filesystem
+  installing package libiec61883-help-1.2.0-23.oe2203.aarch64 needs 478MB more space on the /etc filesystem
+  installing package libiec61883-1.2.0-23.oe2203.aarch64 needs 478MB more space on the /etc filesystem
+  installing package xkeyboard-config-2.33-1.oe2203.noarch needs 485MB more space on the /etc filesystem
+  installing package libxkbcommon-1.3.1-1.oe2203.aarch64 needs 485MB more space on the /etc filesystem
+  installing package libxkbcommon-x11-1.3.1-1.oe2203.aarch64 needs 485MB more space on the /etc filesystem
+  installing package libxkbcommon-devel-1.3.1-1.oe2203.aarch64 needs 486MB more space on the /etc filesystem
+  installing package libxkbcommon-x11-devel-1.3.1-1.oe2203.aarch64 needs 486MB more space on the /etc filesystem
+  installing package qt5-srpm-macros-5.15.2-1.oe2203.noarch needs 486MB more space on the /etc filesystem
+  installing package qt-settings-29.1-3.oe2203.noarch needs 486MB more space on the /etc filesystem
+  installing package poppler-data-0.4.10-1.oe2203.noarch needs 499MB more space on the /etc filesystem
+  installing package libwacom-data-1.12-1.oe2203.noarch needs 501MB more space on the /etc filesystem
+  installing package kbd-misc-2.4.0-1.oe2203.noarch needs 505MB more space on the /etc filesystem
+  installing package kbd-legacy-2.4.0-1.oe2203.noarch needs 506MB more space on the /etc filesystem
+  installing package fuse-common-3.10.5-3.oe2203.aarch64 needs 506MB more space on the /etc filesystem
+  installing package python3-pyparsing-3.0.6-1.oe2203.noarch needs 507MB more space on the /etc filesystem
+  installing package perl-Algorithm-Diff-1:1.201-1.oe2203.noarch needs 507MB more space on the /etc filesystem
+  installing package perl-Net-SSLeay-1.90-1.oe2203.aarch64 needs 509MB more space on the /etc filesystem
+  installing package systemtap-sdt-devel-4.5-2.oe2203.aarch64 needs 509MB more space on the /etc filesystem
+  installing package perl-URI-5.10-1.oe2203.noarch needs 509MB more space on the /etc filesystem
+  installing package efi-srpm-macros-4-5.oe2203.noarch needs 509MB more space on the /etc filesystem
+  installing package perl-IPC-System-Simple-1.30-2.oe2203.noarch needs 509MB more space on the /etc filesystem
+  installing package perl-Text-Diff-1.45-7.oe2203.noarch needs 509MB more space on the /etc filesystem
+  installing package perl-Mozilla-CA-1:20211001-1.oe2203.noarch needs 509MB more space on the /etc filesystem
+  installing package perl-Encode-Locale-1.05-12.oe2203.noarch needs 509MB more space on the /etc filesystem
+  installing package perl-IO-Socket-SSL-2.072-1.oe2203.noarch needs 510MB more space on the /etc filesystem
+  installing package perl-devel-4:5.34.0-12.oe2203.aarch64 needs 526MB more space on the /etc filesystem
+  installing package perl-B-Debug-1.26-5.oe2203.noarch needs 527MB more space on the /etc filesystem
+  installing package perl-CPAN-Meta-YAML-0.018-420.oe2203.noarch needs 527MB more space on the /etc filesystem
+  installing package perl-Config-Perl-V-0.33-1.oe2203.noarch needs 527MB more space on the /etc filesystem
+  installing package perl-Devel-PPPort-3.63-1.oe2203.aarch64 needs 528MB more space on the /etc filesystem
+  installing package perl-Env-1.04-397.oe2203.noarch needs 528MB more space on the /etc filesystem
+  installing package perl-Filter-2:1.60-3.oe2203.aarch64 needs 528MB more space on the /etc filesystem
+  installing package perl-IPC-SysV-2.09-1.oe2203.aarch64 needs 528MB more space on the /etc filesystem
+  installing package perl-Locale-Maketext-1:1.29-1.oe2203.noarch needs 528MB more space on the /etc filesystem
+  installing package perl-Params-Check-1:0.38-418.oe2203.noarch needs 528MB more space on the /etc filesystem
+  installing package perl-Pod-Escapes-1:1.07-420.oe2203.noarch needs 528MB more space on the /etc filesystem
+  installing package perl-Socket-4:2.032-1.oe2203.aarch64 needs 528MB more space on the /etc filesystem
+  installing package perl-Storable-1:3.25-1.oe2203.aarch64 needs 529MB more space on the /etc filesystem
+  installing package perl-Term-Cap-1.17-510.oe2203.noarch needs 529MB more space on the /etc filesystem
+  installing package perl-Filter-Simple-1:0.94-1.oe2203.noarch needs 529MB more space on the /etc filesystem
+  installing package perl-Text-Balanced-2.04-1.oe2203.noarch needs 529MB more space on the /etc filesystem
+  installing package perl-Text-Tabs+Wrap-2021.0814-1.oe2203.noarch needs 529MB more space on the /etc filesystem
+  installing package perl-Compress-Raw-Bzip2-2.101-1.oe2203.aarch64 needs 529MB more space on the /etc filesystem
+  installing package perl-Compress-Raw-Zlib-1:2.101-1.oe2203.aarch64 needs 529MB more space on the /etc filesystem
+  installing package perl-IO-Socket-IP-0.41-2.oe2203.noarch needs 529MB more space on the /etc filesystem
+  installing package perl-Locale-Codes-3.68-1.oe2203.noarch needs 532MB more space on the /etc filesystem
+  installing package perl-Math-BigRat-0.2620-1.oe2203.noarch needs 532MB more space on the /etc filesystem
+  installing package perl-Math-BigInt-FastCalc-0.5012-2.oe2203.aarch64 needs 532MB more space on the /etc filesystem
+  installing package perl-Math-BigInt-1:1.9998.27-1.oe2203.noarch needs 532MB more space on the /etc filesystem
+  installing package perl-ExtUtils-Command-1:7.62-1.oe2203.noarch needs 532MB more space on the /etc filesystem
+  installing package perl-ExtUtils-Install-2.20-1.oe2203.noarch needs 533MB more space on the /etc filesystem
+  installing package perl-ExtUtils-Manifest-1:1.73-1.oe2203.noarch needs 533MB more space on the /etc filesystem
+  installing package perl-File-Which-1.27-1.oe2203.noarch needs 533MB more space on the /etc filesystem
+  installing package perl-Module-Load-1:0.36-1.oe2203.noarch needs 533MB more space on the /etc filesystem
+  installing package perl-Sys-Syslog-0.36-1.oe2203.aarch64 needs 533MB more space on the /etc filesystem
+  installing package perl-Time-Local-2:1.300-1.oe2203.noarch needs 533MB more space on the /etc filesystem
+  installing package perl-Unicode-Collate-1.31-1.oe2203.aarch64 needs 539MB more space on the /etc filesystem
+  installing package perl-autodie-2.34-2.oe2203.noarch needs 539MB more space on the /etc filesystem
+  installing package perl-bignum-0.63-1.oe2203.noarch needs 539MB more space on the /etc filesystem
+  installing package perl-threads-2:2.26-1.oe2203.aarch64 needs 539MB more space on the /etc filesystem
+  installing package perl-Test-Simple-2:1.302188-1.oe2203.noarch needs 540MB more space on the /etc filesystem
+  installing package perl-Thread-Queue-3.13-3.oe2203.noarch needs 540MB more space on the /etc filesystem
+  installing package perl-threads-shared-1.62-1.oe2203.aarch64 needs 540MB more space on the /etc filesystem
+  installing package perl-CPAN-Meta-Requirements-2.140-419.oe2203.noarch needs 540MB more space on the /etc filesystem
+  installing package perl-Module-Metadata-1.000037-1.oe2203.noarch needs 540MB more space on the /etc filesystem
+  installing package perl-experimental-0.025-1.oe2203.noarch needs 540MB more space on the /etc filesystem
+  installing package perl-version-8:0.99.29-1.oe2203.aarch64 needs 540MB more space on the /etc filesystem
+  installing package perl-Digest-SHA-1:6.02-7.oe2203.aarch64 needs 540MB more space on the /etc filesystem
+  installing package perl-ExtUtils-ParseXS-2:3.35-1.oe2203.noarch needs 541MB more space on the /etc filesystem
+  installing package perl-Archive-Tar-2.40-1.oe2203.noarch needs 541MB more space on the /etc filesystem
+  installing package perl-IO-Compress-2.101-2.oe2203.noarch needs 542MB more space on the /etc filesystem
+  installing package perl-CPAN-Meta-2.150010-419.oe2203.noarch needs 542MB more space on the /etc filesystem
+  installing package perl-JSON-PP-1:4.06-1.oe2203.noarch needs 542MB more space on the /etc filesystem
+  installing package perl-Pod-Simple-1:3.43-1.oe2203.noarch needs 543MB more space on the /etc filesystem
+  installing package perl-Encode-4:3.16-3.oe2203.aarch64 needs 553MB more space on the /etc filesystem
+  installing package perl-Test-Harness-2:3.42-2.oe2203.noarch needs 554MB more space on the /etc filesystem
+  installing package perl-File-Fetch-1.00-1.oe2203.noarch needs 554MB more space on the /etc filesystem
+  installing package perl-IPC-Cmd-2:1.04-4.oe2203.noarch needs 554MB more space on the /etc filesystem
+  installing package perl-Module-Load-Conditional-0.74-1.oe2203.noarch needs 554MB more space on the /etc filesystem
+  installing package perl-Module-CoreList-1:5.20211020-1.oe2203.noarch needs 555MB more space on the /etc filesystem
+  installing package perl-Pod-Checker-4:1.74-1.oe2203.noarch needs 555MB more space on the /etc filesystem
+  installing package perl-Pod-Parser-1.63-398.oe2203.noarch needs 556MB more space on the /etc filesystem
+  installing package perl-podlators-1:4.14-1.oe2203.noarch needs 556MB more space on the /etc filesystem
+  installing package perl-Pod-Usage-4:2.01-2.oe2203.noarch needs 556MB more space on the /etc filesystem
+  installing package perl-Pod-Perldoc-1:3.28-4.oe2203.noarch needs 556MB more space on the /etc filesystem
+  installing package perl-HTTP-Tiny-0.080-2.oe2203.noarch needs 556MB more space on the /etc filesystem
+  installing package perl-libnet-3.13-2.oe2203.noarch needs 556MB more space on the /etc filesystem
+  installing package perl-ExtUtils-MakeMaker-1:7.62-1.oe2203.noarch needs 557MB more space on the /etc filesystem
+  installing package openEuler-rpm-config-30-30.oe2203.aarch64 needs 557MB more space on the /etc filesystem
+  installing package perl-Data-Dumper-2.183-1.oe2203.aarch64 needs 557MB more space on the /etc filesystem
+  installing package perl-File-Path-2.18-1.oe2203.noarch needs 557MB more space on the /etc filesystem
+  installing package perl-File-Temp-1:0.2311-2.oe2203.noarch needs 558MB more space on the /etc filesystem
+  installing package perl-File-HomeDir-1.006-2.oe2203.noarch needs 558MB more space on the /etc filesystem
+  installing package perl-PathTools-3.80-1.oe2203.aarch64 needs 558MB more space on the /etc filesystem
+  installing package perl-constant-1.33-421.oe2203.noarch needs 558MB more space on the /etc filesystem
+  installing package perl-Getopt-Long-1:2.52-1.oe2203.noarch needs 558MB more space on the /etc filesystem
+  installing package perl-4:5.34.0-12.oe2203.aarch64 needs 573MB more space on the /etc filesystem
+  installing package shared-mime-info-2.1-1.oe2203.aarch64 needs 575MB more space on the /etc filesystem
+  installing package groff-1.22.4-11.oe2203.aarch64 needs 581MB more space on the /etc filesystem
+  installing package fuse-help-2.9.9-9.oe2203.aarch64 needs 581MB more space on the /etc filesystem
+  installing package fuse-2.9.9-9.oe2203.aarch64 needs 582MB more space on the /etc filesystem
+  installing package libevent-2.1.12-4.oe2203.aarch64 needs 583MB more space on the /etc filesystem
+  installing package glib2-2.68.1-21.oe2203.aarch64 needs 597MB more space on the /etc filesystem
+  installing package libverto-0.3.2-1.oe2203.aarch64 needs 598MB more space on the /etc filesystem
+  installing package man-db-2.9.4-2.oe2203.aarch64 needs 602MB more space on the /etc filesystem
+  installing package e2fsprogs-help-1.46.4-21.oe2203.noarch needs 602MB more space on the /etc filesystem
+  installing package slang-2.3.2-8.oe2203.aarch64 needs 605MB more space on the /etc filesystem
+  installing package newt-0.52.21-8.oe2203.aarch64 needs 606MB more space on the /etc filesystem
+  installing package chkconfig-1.20-1.oe2203.aarch64 needs 607MB more space on the /etc filesystem
+  installing package p11-kit-trust-0.24.0-2.oe2203.aarch64 needs 607MB more space on the /etc filesystem
+  installing package logrotate-3.20.1-1.oe2203.aarch64 needs 608MB more space on the /etc filesystem
+  installing package cyrus-sasl-lib-2.1.27-15.oe2203.aarch64 needs 608MB more space on the /etc filesystem
+  installing package libarchive-3.5.2-6.oe2203.aarch64 needs 609MB more space on the /etc filesystem
+  installing package openssl-1:1.1.1m-28.oe2203.aarch64 needs 610MB more space on the /etc filesystem
+  installing package curl-7.79.1-28.oe2203.aarch64 needs 611MB more space on the /etc filesystem
+  installing package libnsl2-2.0.0-4.oe2203.aarch64 needs 611MB more space on the /etc filesystem
+  installing package python-pip-wheel-21.3.1-2.oe2203.noarch needs 612MB more space on the /etc filesystem
+  installing package cracklib-2.9.7-8.oe2203.aarch64 needs 623MB more space on the /etc filesystem
+  installing package gzip-1.11-3.oe2203.aarch64 needs 623MB more space on the /etc filesystem
+  installing package libpwquality-1.4.4-4.oe2203.aarch64 needs 624MB more space on the /etc filesystem
+  installing package procps-ng-3.3.17-5.oe2203.aarch64 needs 625MB more space on the /etc filesystem
+  installing package krb5-libs-1.19.2-8.oe2203.aarch64 needs 628MB more space on the /etc filesystem
+  installing package libssh-0.9.6-8.oe2203.aarch64 needs 628MB more space on the /etc filesystem
+  installing package openldap-2.6.0-6.oe2203.aarch64 needs 629MB more space on the /etc filesystem
+  installing package openssl-pkcs11-0.4.11-5.oe2203.aarch64 needs 629MB more space on the /etc filesystem
+  installing package grub2-tools-minimal-1:2.06-41.oe2203.aarch64 needs 631MB more space on the /etc filesystem
+  installing package kpartx-0.8.7-6.oe2203.aarch64 needs 631MB more space on the /etc filesystem
+  installing package libkcapi-1.3.1-7.oe2203.aarch64 needs 632MB more space on the /etc filesystem
+  installing package libpsl-0.21.1-5.oe2203.aarch64 needs 632MB more space on the /etc filesystem
+  installing package python3-pip-21.3.1-2.oe2203.noarch needs 645MB more space on the /etc filesystem
+  installing package python3-setuptools-59.4.0-5.oe2203.noarch needs 650MB more space on the /etc filesystem
+  installing package libtirpc-1.3.2-3.oe2203.aarch64 needs 651MB more space on the /etc filesystem
+  installing package e2fsprogs-1.46.4-21.oe2203.aarch64 needs 656MB more space on the /etc filesystem
+  installing package rpm-4.17.0-33.oe2203.aarch64 needs 660MB more space on the /etc filesystem
+  installing package ima-evm-utils-libs-1.3.2-3.oe2203.aarch64 needs 660MB more space on the /etc filesystem
+  installing package kmod-29-3.oe2203.aarch64 needs 660MB more space on the /etc filesystem
+  installing package kmod-libs-29-3.oe2203.aarch64 needs 660MB more space on the /etc filesystem
+  installing package libfdisk-2.37.2-28.oe2203.aarch64 needs 661MB more space on the /etc filesystem
+  installing package libmount-2.37.2-28.oe2203.aarch64 needs 661MB more space on the /etc filesystem
+  installing package kbd-2.4.0-1.oe2203.aarch64 needs 663MB more space on the /etc filesystem
+  installing package libcap-2.61-5.oe2203.aarch64 needs 664MB more space on the /etc filesystem
+  installing package pam-1.5.2-7.oe2203.aarch64 needs 669MB more space on the /etc filesystem
+  installing package coreutils-9.0-5.oe2203.aarch64 needs 690MB more space on the /etc filesystem
+  installing package systemd-libs-249-75.oe2203.aarch64 needs 691MB more space on the /etc filesystem
+  installing package shadow-2:4.9-13.oe2203.aarch64 needs 696MB more space on the /etc filesystem
+  installing package libblkid-2.37.2-28.oe2203.aarch64 needs 696MB more space on the /etc filesystem
+  installing package ca-certificates-2023.2.60-2.oe2203.noarch needs 697MB more space on the /etc filesystem
+  installing package libutempter-1.2.1-2.oe2203.aarch64 needs 697MB more space on the /etc filesystem
+  installing package util-linux-2.37.2-28.oe2203.aarch64 needs 716MB more space on the /etc filesystem
+  installing package crontabs-1.11-22.oe2203.noarch needs 716MB more space on the /etc filesystem
+  installing package device-mapper-8:1.02.181-4.oe2203.aarch64 needs 716MB more space on the /etc filesystem
+  installing package os-prober-1.79-1.oe2203.aarch64 needs 717MB more space on the /etc filesystem
+  installing package grubby-8.40-28.oe2203.aarch64 needs 717MB more space on the /etc filesystem
+  installing package dracut-055-10.oe2203.aarch64 needs 719MB more space on the /etc filesystem
+  installing package openssl-libs-1:1.1.1m-28.oe2203.aarch64 needs 722MB more space on the /etc filesystem
+  installing package python3-3.9.9-28.oe2203.aarch64 needs 766MB more space on the /etc filesystem
+  installing package systemd-249-75.oe2203.aarch64 needs 782MB more space on the /etc filesystem
+  installing package crypto-policies-20200619-2.git781bbd4.oe2203.noarch needs 783MB more space on the /etc filesystem
+  installing package systemd-udev-249-75.oe2203.aarch64 needs 793MB more space on the /etc filesystem
+  installing package libcurl-7.79.1-28.oe2203.aarch64 needs 793MB more space on the /etc filesystem
+  installing package rpm-libs-4.17.0-33.oe2203.aarch64 needs 795MB more space on the /etc filesystem
+  installing package grub2-tools-1:2.06-41.oe2203.aarch64 needs 805MB more space on the /etc filesystem
+  installing package tpm2-tss-3.1.0-5.oe2203.aarch64 needs 808MB more space on the /etc filesystem
+  installing package cronie-1.5.7-1.oe2203.aarch64 needs 808MB more space on the /etc filesystem
+  installing package dbus-libs-1:1.12.20-10.oe2203.aarch64 needs 809MB more space on the /etc filesystem
+  installing package qt5-qtbase-common-5.15.2-14.oe2203.noarch needs 809MB more space on the /etc filesystem
+  installing package qt5-qtbase-5.15.2-14.oe2203.aarch64 needs 820MB more space on the /etc filesystem
+  installing package harfbuzz-2.8.2-4.oe2203.aarch64 needs 823MB more space on the /etc filesystem
+  installing package alsa-lib-1.2.5.1-1.oe2203.aarch64 needs 824MB more space on the /etc filesystem
+  installing package gdk-pixbuf2-2.42.6-5.oe2203.aarch64 needs 827MB more space on the /etc filesystem
+  installing package pulseaudio-libs-15.0-4.oe2203.aarch64 needs 828MB more space on the /etc filesystem
+  installing package gstreamer1-1.19.3-1.oe2203.aarch64 needs 834MB more space on the /etc filesystem
+  installing package avahi-libs-0.8-19.oe2203.aarch64 needs 834MB more space on the /etc filesystem
+  installing package atk-2.36.0-2.oe2203.aarch64 needs 836MB more space on the /etc filesystem
+  installing package pulseaudio-libs-glib2-15.0-4.oe2203.aarch64 needs 836MB more space on the /etc filesystem
+  installing package python3-dbus-1.2.18-2.oe2203.aarch64 needs 836MB more space on the /etc filesystem
+  installing package nss-softokn-3.72.0-5.oe2203.aarch64 needs 839MB more space on the /etc filesystem
+  installing package nss-util-3.72.0-5.oe2203.aarch64 needs 842MB more space on the /etc filesystem
+  installing package nss-3.72.0-5.oe2203.aarch64 needs 844MB more space on the /etc filesystem
+  installing package fontconfig-2.13.94-1.oe2203.aarch64 needs 846MB more space on the /etc filesystem
+  installing package zvbi-0.2.35-7.oe2203.aarch64 needs 848MB more space on the /etc filesystem
+  installing package cairo-1.17.4-1.oe2203.aarch64 needs 849MB more space on the /etc filesystem
+  installing package cairo-gobject-1.17.4-1.oe2203.aarch64 needs 849MB more space on the /etc filesystem
+  installing package cmake-rpm-macros-3.22.0-8.oe2203.noarch needs 849MB more space on the /etc filesystem
+  installing package cmake-data-3.22.0-8.oe2203.noarch needs 867MB more space on the /etc filesystem
+  installing package cmake-3.22.0-8.oe2203.aarch64 needs 895MB more space on the /etc filesystem
+  installing package util-linux-devel-2.37.2-28.oe2203.aarch64 needs 895MB more space on the /etc filesystem
+  installing package libgudev-237-1.oe2203.aarch64 needs 895MB more space on the /etc filesystem
+  installing package libusbx-1.0.24-1.oe2203.aarch64 needs 896MB more space on the /etc filesystem
+  installing package sgml-common-0.6.3-51.oe2203.noarch needs 896MB more space on the /etc filesystem
+  installing package glibmm24-2.64.5-1.oe2203.aarch64 needs 899MB more space on the /etc filesystem
+  installing package libxml++-2.40.1-8.oe2203.aarch64 needs 899MB more space on the /etc filesystem
+  installing package iso-codes-4.7.0-1.oe2203.noarch needs 922MB more space on the /etc filesystem
+  installing package dbus-devel-1:1.12.20-10.oe2203.aarch64 needs 922MB more space on the /etc filesystem
+  installing package libgusb-0.3.8-1.oe2203.aarch64 needs 922MB more space on the /etc filesystem
+  installing package colord-libs-1.4.5-4.oe2203.aarch64 needs 923MB more space on the /etc filesystem
+  installing package libwacom-1.12-1.oe2203.aarch64 needs 924MB more space on the /etc filesystem
+  installing package libinput-1.19.2-2.oe2203.aarch64 needs 925MB more space on the /etc filesystem
+  installing package libinput-devel-1.19.2-2.oe2203.aarch64 needs 925MB more space on the /etc filesystem
+  installing package bullet-devel-2.87-6.oe2203.aarch64 needs 929MB more space on the /etc filesystem
+  installing package fontconfig-devel-2.13.94-1.oe2203.aarch64 needs 929MB more space on the /etc filesystem
+  installing package libXft-2.3.4-1.oe2203.aarch64 needs 929MB more space on the /etc filesystem
+  installing package pango-1.49.3-3.oe2203.aarch64 needs 930MB more space on the /etc filesystem
+  installing package librsvg2-2.50.5-6.oe2203.aarch64 needs 939MB more space on the /etc filesystem
+  installing package urw-base35-bookman-fonts-20200910-1.oe2203.noarch needs 941MB more space on the /etc filesystem
+  installing package urw-base35-c059-fonts-20200910-1.oe2203.noarch needs 942MB more space on the /etc filesystem
+  installing package urw-base35-d050000l-fonts-20200910-1.oe2203.noarch needs 942MB more space on the /etc filesystem
+  installing package urw-base35-gothic-fonts-20200910-1.oe2203.noarch needs 944MB more space on the /etc filesystem
+  installing package urw-base35-nimbus-mono-ps-fonts-20200910-1.oe2203.noarch needs 945MB more space on the /etc filesystem
+  installing package urw-base35-nimbus-roman-fonts-20200910-1.oe2203.noarch needs 946MB more space on the /etc filesystem
+  installing package urw-base35-nimbus-sans-fonts-20200910-1.oe2203.noarch needs 949MB more space on the /etc filesystem
+  installing package urw-base35-p052-fonts-20200910-1.oe2203.noarch needs 951MB more space on the /etc filesystem
+  installing package urw-base35-standard-symbols-ps-fonts-20200910-1.oe2203.noarch needs 951MB more space on the /etc filesystem
+  installing package urw-base35-z003-fonts-20200910-1.oe2203.noarch needs 951MB more space on the /etc filesystem
+  installing package urw-base35-fonts-20200910-1.oe2203.noarch needs 951MB more space on the /etc filesystem
+  installing package libass-0.15.0-2.oe2203.aarch64 needs 951MB more space on the /etc filesystem
+  installing package libbluray-1.1.2-4.oe2203.aarch64 needs 952MB more space on the /etc filesystem
+  installing package poppler-0.90.0-6.oe2203.aarch64 needs 956MB more space on the /etc filesystem
+  installing package poppler-cpp-0.90.0-6.oe2203.aarch64 needs 956MB more space on the /etc filesystem
+  installing package gdk-pixbuf2-modules-2.42.6-5.oe2203.aarch64 needs 957MB more space on the /etc filesystem
+  installing package libsamplerate-0.1.9-4.oe2203.aarch64 needs 959MB more space on the /etc filesystem
+  installing package qt5-qtserialport-5.15.2-1.oe2203.aarch64 needs 959MB more space on the /etc filesystem
+  installing package qt5-qtwebsockets-5.15.2-1.oe2203.aarch64 needs 959MB more space on the /etc filesystem
+  installing package dbus-tools-1:1.12.20-10.oe2203.aarch64 needs 960MB more space on the /etc filesystem
+  installing package trousers-0.3.15-1.oe2203.aarch64 needs 961MB more space on the /etc filesystem
+  installing package dbus-common-1:1.12.20-10.oe2203.noarch needs 961MB more space on the /etc filesystem
+  installing package dbus-daemon-1:1.12.20-10.oe2203.aarch64 needs 961MB more space on the /etc filesystem
+  installing package dbus-1:1.12.20-10.oe2203.aarch64 needs 962MB more space on the /etc filesystem
+  installing package at-spi2-core-2.42.0-1.oe2203.aarch64 needs 962MB more space on the /etc filesystem
+  installing package at-spi2-atk-2.38.0-1.oe2203.aarch64 needs 963MB more space on the /etc filesystem
+  installing package avahi-0.8-19.oe2203.aarch64 needs 964MB more space on the /etc filesystem
+  installing package dconf-0.40.0-3.oe2203.aarch64 needs 965MB more space on the /etc filesystem
+  installing package systemd-pam-249-75.oe2203.aarch64 needs 965MB more space on the /etc filesystem
+  installing package systemd-devel-249-75.oe2203.aarch64 needs 968MB more space on the /etc filesystem
+  installing package python3-pyqt5-sip-4.19.25-1.oe2203.aarch64 needs 969MB more space on the /etc filesystem
+  installing package unbound-libs-1.13.2-11.oe2203.aarch64 needs 970MB more space on the /etc filesystem
+  installing package gnutls-3.7.2-13.oe2203.aarch64 needs 973MB more space on the /etc filesystem
+  installing package cups-libs-1:2.4.0-10.oe2203.aarch64 needs 974MB more space on the /etc filesystem
+  installing package qt5-qtbase-gui-5.15.2-14.oe2203.aarch64 needs 995MB more space on the /etc filesystem
+  installing package qt5-qtdeclarative-5.15.2-1.oe2203.aarch64 needs 1011MB more space on the /etc filesystem
+  installing package qt5-qtconnectivity-5.15.2-1.oe2203.aarch64 needs 1013MB more space on the /etc filesystem
+  installing package qt5-qtenginio-1:1.6.2-20.oe2203.aarch64 needs 1014MB more space on the /etc filesystem
+  installing package qt5-qtlocation-5.15.2-1.oe2203.aarch64 needs 1024MB more space on the /etc filesystem
+  installing package qt5-qtsensors-5.15.2-1.oe2203.aarch64 needs 1027MB more space on the /etc filesystem
+  installing package qt5-qtwebchannel-5.15.2-1.oe2203.aarch64 needs 1028MB more space on the /etc filesystem
+  installing package qt5-qtxmlpatterns-5.15.2-1.oe2203.aarch64 needs 1032MB more space on the /etc filesystem
+  installing package qt5-qtsvg-5.15.2-1.oe2203.aarch64 needs 1033MB more space on the /etc filesystem
+  installing package python3-qt5-base-5.15.6-1.oe2203.aarch64 needs 1051MB more space on the /etc filesystem
+  installing package qt5-qttools-5.15.2-3.oe2203.aarch64 needs 1060MB more space on the /etc filesystem
+  installing package qt5-qtx11extras-5.15.2-1.oe2203.aarch64 needs 1060MB more space on the /etc filesystem
+  installing package libnice-0.1.14-12.oe2203.aarch64 needs 1060MB more space on the /etc filesystem
+  installing package srt-libs-1.4.1-4.oe2203.aarch64 needs 1061MB more space on the /etc filesystem
+  installing package ffmpeg-libs-4.2.4-4.oe2203.aarch64 needs 1078MB more space on the /etc filesystem
+  installing package libevent-devel-2.1.12-4.oe2203.aarch64 needs 1078MB more space on the /etc filesystem
+  installing package avahi-devel-0.8-19.oe2203.aarch64 needs 1078MB more space on the /etc filesystem
+  installing package guile-5:2.0.14-18.oe2203.aarch64 needs 1092MB more space on the /etc filesystem
+  installing package hicolor-icon-theme-0.17-6.oe2203.noarch needs 1092MB more space on the /etc filesystem
+  installing package e2fsprogs-devel-1.46.4-21.oe2203.aarch64 needs 1093MB more space on the /etc filesystem
+  installing package libverto-devel-0.3.2-1.oe2203.aarch64 needs 1093MB more space on the /etc filesystem
+  installing package krb5-devel-1.19.2-8.oe2203.aarch64 needs 1094MB more space on the /etc filesystem
+  installing package openssl-devel-1:1.1.1m-28.oe2203.aarch64 needs 1102MB more space on the /etc filesystem
+  installing package babeltrace-1.5.8-2.oe2203.aarch64 needs 1103MB more space on the /etc filesystem
+  installing package gdb-headless-11.1-7.oe2203.aarch64 needs 1114MB more space on the /etc filesystem
+  installing package glib2-devel-2.68.1-21.oe2203.aarch64 needs 1151MB more space on the /etc filesystem
+  installing package pulseaudio-libs-devel-15.0-4.oe2203.aarch64 needs 1152MB more space on the /etc filesystem
+  installing package harfbuzz-devel-2.8.2-4.oe2203.aarch64 needs 1154MB more space on the /etc filesystem
+  installing package gobject-introspection-1.70.0-1.oe2203.aarch64 needs 1155MB more space on the /etc filesystem
+  installing package ibus-libs-1.5.23-1.oe2203.aarch64 needs 1156MB more space on the /etc filesystem
+  installing package graphene-1.10.6-1.oe2203.aarch64 needs 1157MB more space on the /etc filesystem
+  installing package gstreamer1-plugins-base-1.18.4-7.oe2203.aarch64 needs 1165MB more space on the /etc filesystem
+  installing package gstreamer1-plugins-bad-free-1.16.2-9.oe2203.aarch64 needs 1174MB more space on the /etc filesystem
+  installing package qt5-qtmultimedia-5.15.2-1.oe2203.aarch64 needs 1178MB more space on the /etc filesystem
+  installing package python3-qt5-5.15.6-1.oe2203.aarch64 needs 1187MB more space on the /etc filesystem
+  installing package valgrind-1:3.16.0-3.oe2203.aarch64 needs 1213MB more space on the /etc filesystem
+  installing package valgrind-devel-1:3.16.0-3.oe2203.aarch64 needs 1213MB more space on the /etc filesystem
+  installing package adwaita-cursor-theme-41.0-1.oe2203.noarch needs 1226MB more space on the /etc filesystem
+  installing package adwaita-icon-theme-41.0-1.oe2203.noarch needs 1256MB more space on the /etc filesystem
+  installing package gtk3-3.24.30-5.oe2203.aarch64 needs 1277MB more space on the /etc filesystem
+  installing package adobe-mappings-pdf-20190401-2.oe2203.noarch needs 1282MB more space on the /etc filesystem
+  installing package ghostscript-9.55.0-6.oe2203.aarch64 needs 1306MB more space on the /etc filesystem
+  installing package libspectre-0.2.8-9.oe2203.aarch64 needs 1306MB more space on the /etc filesystem
+  installing package efl-devel-1.25.1-1.oe2203.aarch64 needs 1330MB more space on the /etc filesystem
+  installing package efl-1.25.1-1.oe2203.aarch64 needs 1386MB more space on the /etc filesystem
+  installing package dbus-c++-0.9.0-20.oe2203.aarch64 needs 1386MB more space on the /etc filesystem
+  installing package libffado-2.4.1-6.oe2203.aarch64 needs 1392MB more space on the /etc filesystem
+  installing package jack-audio-connection-kit-1.9.14-3.oe2203.aarch64 needs 1395MB more space on the /etc filesystem
+  installing package libavdevice-4.2.4-4.oe2203.aarch64 needs 1395MB more space on the /etc filesystem
+  installing package ffmpeg-4.2.4-4.oe2203.aarch64 needs 1397MB more space on the /etc filesystem
+
+Error Summary
+-------------
+Disk Requirements:
+   At least 1397MB more space needed on the /etc filesystem.
+

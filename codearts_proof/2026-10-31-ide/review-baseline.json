@@ -1,0 +1,10 @@
+{
+  "created_from": "git archive HEAD backend",
+  "commit": "0a17ddd8def71d92b5c67505b6349061628e37a5",
+  "baseline": "/private/tmp/zhenxun-codearts-ide-20261031/baseline",
+  "patched": "/private/tmp/zhenxun-codearts-ide-20261031/patched",
+  "patch_sha256": "48cad0cec3ebc26c6b6f084e542a45bd3f17d81f676ca918771910e1854d8b60",
+  "main_source_unchanged": true,
+  "secrets_copied": false,
+  "note": "仅导出已跟踪 backend，未复制 .env、.venv 或未提交更改，baseline 额外加入补丁自带回归以比较原实现与修复实现"
+}

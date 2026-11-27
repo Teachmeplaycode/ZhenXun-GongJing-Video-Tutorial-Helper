@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+collecting ... collected 7 items
+
+tests/test_cuts.py::test_parse_keeps_one_cut_per_burst_and_skips_the_first_frame PASSED [ 14%]
+tests/test_cuts.py::test_detect_finds_the_cuts_of_a_real_video PASSED    [ 28%]
+tests/test_cuts.py::test_run_reports_an_unreadable_video PASSED          [ 42%]
+tests/test_cuts.py::test_a_stalled_detection_tries_the_next_address_and_once_more PASSED [ 57%]
+tests/test_cuts.py::test_cuts_endpoint_serves_the_cache_and_starts_detection_once PASSED [ 71%]
+tests/test_cuts.py::test_manual_replay_is_saved_but_kept_out_of_the_models_history PASSED [ 85%]
+tests/test_cuts.py::test_manual_replay_reports_an_unreadable_stretch PASSED [100%]
+
+============================== 7 passed in 1.06s ===============================

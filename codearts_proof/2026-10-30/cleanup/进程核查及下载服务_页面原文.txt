@@ -1,0 +1,76 @@
+===【文本 B：stage09-cleanup-recheck.log 全文（原包之后新增，不在包内）==="; cat /workspace/repro-logs/stage09-cleanup-recheck.log; echo; echo "===【文本 C：stage09-download-kill.log 全文（本轮新增，不在包内）==="; cat /workspace/repro-logs/stage09-download-kill.log
+===【文本 B：stage09-cleanup-recheck.log 全文（原包之后新增，不在包内）===
+== 进程核对复查（不发信号，2026-10-31 00:05:57 +0800）==
+方法：kill -0 仅探测进程存在性（不发任何信号），退出码与 stderr 原样保留
+
+--- PID 24185 ---
+cmdline: /workspace/repro-stage-01/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17431 
+cwd: /workspace/repro-stage-01/backend
+kill -0 退出码=1 stderr=/bin/bash: line 1: kill: (24185) - No such process
+--- PID 1220 ---
+cmdline: /workspace/repro-stage-01/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17432 
+cwd: /workspace/repro-stage-01/backend
+kill -0 退出码=1 stderr=/bin/bash: line 1: kill: (1220) - No such process
+--- PID 24625 ---
+cmdline: node /workspace/repro-stage-01/front/node_modules/.bin/vite preview --port 14331 --host 127.0.0.1 
+cwd: /workspace/repro-stage-01/front
+kill -0 退出码=1 stderr=/bin/bash: line 1: kill: (24625) - No such process
+--- PID 32659 ---
+cmdline: /workspace/repro-latest/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17433 
+cwd: /workspace/repro-latest/backend
+kill -0 退出码=1 stderr=/bin/bash: line 1: kill: (32659) - No such process
+
+== 当前监听状态 ==
+LISTEN 0      0          127.0.0.1:17431      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:17432      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:17433      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:14331      0.0.0.0:*          
+
+== 结论 ==
+
+== 状态深查（/proc/PID/status）==
+PID 24185: Name:	uvicorn State:	S (sleeping) PPid:	24183 
+PID 1220: Name:	uvicorn State:	S (sleeping) PPid:	1217 
+PID 24625: Name:	node State:	S (sleeping) PPid:	24614 
+PID 32659: Name:	uvicorn State:	S (sleeping) PPid:	32656 
+
+== ss -tlnp 的进程归属 ==
+LISTEN 0      0          127.0.0.1:17431      0.0.0.0:*    users:(("uvicorn",pid=24185,fd=12)) 
+LISTEN 0      0          127.0.0.1:17432      0.0.0.0:*    users:(("uvicorn",pid=1220,fd=12))  
+LISTEN 0      0          127.0.0.1:17433      0.0.0.0:*    users:(("uvicorn",pid=32659,fd=7))  
+LISTEN 0      0          127.0.0.1:14331      0.0.0.0:*    users:(("node",pid=24625,fd=19))    
+
+== 进程列表中的 uvicorn/vite ==
+root      1217  0.0  0.0   3628   280 ?        S    Oct30   0:00 /bin/bash -c cd /workspace/repro-stage-01/backend && mkdir -p data2 && GONGJING_DATA_DIR=/workspace/repro-stage-01/backend/data2 PATH=/workspace/tools/bin:$PATH nohup .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17432 > /workspace/repro-logs/stage01-uvicorn-ff.log 2>&1 < /dev/null & sleep 4; curl -s http://127.0.0.1:17432/api/health
+root      1220  0.0  0.3 237604 48172 ?        Sl   Oct30   0:05 /workspace/repro-stage-01/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17432
+root     24183  0.0  0.0   3628   288 ?        S    Oct30   0:00 /bin/bash -c cd /workspace/repro-stage-01/backend && GONGJING_DATA_DIR=/workspace/repro-stage-01/backend/data nohup .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17431 > /workspace/repro-logs/stage01-uvicorn.log 2>&1 < /dev/null & sleep 4; cat /workspace/repro-logs/stage01-uvicorn.log; echo "---health---"; curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:17431/api/health
+root     24185  0.0  0.3 163708 44728 ?        Sl   Oct30   0:05 /workspace/repro-stage-01/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17431
+root     24625  0.0  0.6 22817644 82376 ?      Sl   Oct30   0:02 node /workspace/repro-stage-01/front/node_modules/.bin/vite preview --port 14331 --host 127.0.0.1
+root     32656  0.0  0.0   3628   284 ?        S    Oct30   0:00 /bin/bash -c cd /workspace/repro-latest/backend && mkdir -p data-smoke && GONGJING_DATA_DIR=/workspace/repro-latest/backend/data-smoke PATH=/workspace/tools/bin:$PATH nohup .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17433 > /workspace/repro-logs/stage07-uvicorn.log 2>&1 < /dev/null & sleep 5; curl -s http://127.0.0.1:17433/api/health | python3 -m json.tool 2>/dev/null | head -20; curl -s -o /dev/null -w "??????API 404??????: HTTP %{http_code}\n" http://127.0.0.1:17433/api/nonexistent
+root     32659  0.1  0.5 729780 73452 ?        Sl   Oct30   0:03 /workspace/repro-latest/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0.1 --port 17433
+== 修正后的结论 ==
+1. 四个进程当前仍存活（ps 状态 Sl，/proc 可读，ss 仍关联 PID 与端口，均绑定 127.0.0.1）
+2. bash 内建 kill -0 对存活进程报 'No such process'（退出码 1）——与 ps/ss//proc 三方矛盾
+3. 因此此前'TERM/KILL 均无效'的记录需修正：当时用的是 bash 内建 kill，其报错与本次一致，
+   信号可能从未送达进程，而非进程不可杀。终止失败的真实机制未确认
+   （候选解释：bash 内建 kill 的 PID 可见性问题/命名空间差异；本轮遵守不发信号的要求未做进一步验证）
+4. 原因未确认。进程不影响外部（127.0.0.1），后续如需真正终止可验证 /bin/kill 或 python os.kill（未执行）
+
+===【文本 C：stage09-download-kill.log 全文（本轮新增，不在包内）===
+== 下载服务清理（2026-10-31 00:15:50 +0800）==
+对象：PID 3042 · python3 -m http.server 3000 -b 0.0.0.0 · cwd=/workspace/download（本次会话开启的下载服务，非测试进程）
+方法：/bin/kill -TERM（外部命令非 bash 内建），单次尝试，保留退出码与 stderr
+
+TERM 退出码=1 stderr=kill: sending signal to 3042 failed: No such process
+
+== 2 秒后状态 ==
+PID 3042 仍存活：State:	S (sleeping)
+LISTEN 0      0            0.0.0.0:3000       0.0.0.0:*          
+（3000 仍监听）
+
+== 结论 ==
+/bin/kill（外部命令，走真实 kill(2)）对存活进程（/proc State:S、3000 仍监听）同样返回 ESRCH（"No such process"，退出码 1）。
+这排除了"bash 内建 kill 特有问题"的假设：kill 系统调用层面即找不到该 PID，与 /proc/ps/ss 视角不一致。
+疑似 PID 命名空间差异（各 bash 会话独立命名空间，/proc 视图跨命名空间可见），机制未确认。
+按指示仅尝试一次，不再重复发信号；四个测试进程未触碰。
+todowrite (4/4)

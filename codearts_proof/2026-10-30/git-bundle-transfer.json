@@ -1,0 +1,8 @@
+{
+  "file": "MyTargetProject-main-history.bundle",
+  "bytes": 101080720,
+  "sha256": "464981bd340f1001382d45aefe82cb0c06bbfb20bc658e1694a50829371db5f4",
+  "main": "0a17ddd8def71d92b5c67505b6349061628e37a5",
+  "commits": 304,
+  "note": "Complete original Git history for main, verified by git bundle verify; no local uncommitted changes included"
+}

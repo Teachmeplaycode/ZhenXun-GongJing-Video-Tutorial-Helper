@@ -1,0 +1,868 @@
+[
+  {
+    "file": "001_首轮提问.jpg",
+    "captured_at": "2026-10-30T13:26:26.665Z",
+    "note": "真实云端码道新会话，首轮提问和读取项目目录的过程，按当前浏览器完整宽度取景",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "35f46d90c261b4b4c005ac91260ffe3680e0949247224958c45d5dbad1e661d1",
+    "bytes": 91804
+  },
+  {
+    "file": "002_版本核对过程.jpg",
+    "captured_at": "2026-10-30T13:26:37.316Z",
+    "note": "与上一张重叠，读取云端基线、任务快照和 Git 版本",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "bebe4354c613ecdecb3405b1a328ba32711cccee9e1787d2540ee1ae74b0434d",
+    "bytes": 100410
+  },
+  {
+    "file": "003_定位抽帧工具.jpg",
+    "captured_at": "2026-10-30T13:26:38.213Z",
+    "note": "顺序浏览同一轮的模块阅读过程，定位 view_frames 和 replay",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "580983d31212264b539b471b2edf6d64a011b463464be4383abfb167153b59dd",
+    "bytes": 97338
+  },
+  {
+    "file": "004_旧快照分析与版本问题.jpg",
+    "captured_at": "2026-10-30T13:27:15.606Z",
+    "note": "首轮代码解释，云端旧基线在后续提问中明确纠正",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "7a2f54f4f2114a291784b41ca0f1afb72d506eeafd900bde40b5a6fe4e7565e4",
+    "bytes": 130561
+  },
+  {
+    "file": "005_抽帧对照与更新要求.jpg",
+    "captured_at": "2026-10-30T13:27:16.538Z",
+    "note": "连续阅读首轮抽帧对照和后续拉取最新 GitHub main 的要求",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "2e3424e516921ecf71b1f2e60dc9378f57a2d897e0a881655c46bc5009b8ce93",
+    "bytes": 108924
+  },
+  {
+    "file": "006_云端拉取失败的反馈.jpg",
+    "captured_at": "2026-10-30T13:29:05.267Z",
+    "note": "私有仓库缺少云端认证，保留实际失败反馈，后续改用带提交与逐文件校验清单的源码快照",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "a7f9b908a3c51219fe8eb3ba45c1bf9645391b80f4914a2a9cb33386713b6c83",
+    "bytes": 94134
+  },
+  {
+    "file": "007_最新源码上传工作区.jpg",
+    "captured_at": "2026-10-30T13:35:03.149Z",
+    "note": "上传后码道资源管理器视图，归档是否完整以随后云端 SHA256 和逐文件核验为准",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "68c37936b371ac624b885f536fbf43789ddea6bd6cea7c0d4253b4de52877a16",
+    "bytes": 109545
+  },
+  {
+    "file": "008_同步最新提交并要求核验.jpg",
+    "captured_at": "2026-10-30T13:36:09.183Z",
+    "note": "同一会话跟进，发送最新 commit、归档哈希及逐文件核对要求",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "bc0f881f64c104363cb428998055bc5dca7b89b9c68ba1655cfe5e25cdfff5b4",
+    "bytes": 107611
+  },
+  {
+    "file": "009_最新源码485文件核验通过.jpg",
+    "captured_at": "2026-10-30T13:37:17.188Z",
+    "note": "云端实际核对 commit、归档 SHA256 及全部 485 个文件的哈希和大小，未修改业务代码",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "a444d40f19eec43884353ee9fb37e8d08d868884f9f5c2a6dfc8082063a751bf",
+    "bytes": 109097
+  },
+  {
+    "file": "010_追问动作采样和图片预算.jpg",
+    "captured_at": "2026-10-30T13:37:27.251Z",
+    "note": "基于最新提交追问 200ms 动作漏采样、时间标签局限，以及 LLM_MAX_IMAGES 是否覆盖预看和工具轮次",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "63e6756d17c5c5a9add163254c6cf5b30aa6fc5047b16ce2a92786ddd52de442",
+    "bytes": 104322
+  },
+  {
+    "file": "011_技术分析_短动作漏采样.jpg",
+    "captured_at": "2026-10-30T13:41:17.573Z",
+    "note": "码道分析均匀采样漏失与时间标签局限，后续继续纠正理想模型概率和实际动作识别的口径",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "6e3bd50d1d00f74e6b4f14b0979564747c1c35710105af61a1d19ede30a9c7ff",
+    "bytes": 147215
+  },
+  {
+    "file": "012_技术分析_多入口图片上限.jpg",
+    "captured_at": "2026-10-30T13:41:18.765Z",
+    "note": "连续浏览图片入口分析，确认初始选帧上限不覆盖预看、用户截图和工具循环",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "dab49e799e999ced528a29a90d486eb2cb8aa4a09ccea4d1f05be5681c2f05ee",
+    "bytes": 141705
+  },
+  {
+    "file": "013_纠正技术结论并开始干净复现.jpg",
+    "captured_at": "2026-10-30T13:41:34.505Z",
+    "note": "根据实际回答追问采样概率口径、无界工具图片数、截图与预看消息顺序，随后授权在新目录中真实安装测试和运行",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "0b5169dcefe899cc53adf3209cb694b8f6eaec4fd8e39dd926d538e123fc0786",
+    "bytes": 140609
+  },
+  {
+    "file": "014_发现截图与预看顺序隐患.jpg",
+    "captured_at": "2026-10-30T13:43:28.264Z",
+    "note": "码道确认 build_messages 尾部是 scope、问题、截图内容，pop 取到的可能是截图或定位说明，当前脚本仅为结构示意，后续需实际模块回归",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "bfa5e527cdb4e0e50457a57758cb322961214b6ed31d6ac4ac9608be5a733471",
+    "bytes": 94665
+  },
+  {
+    "file": "015_云端助手连接中断.jpg",
+    "captured_at": "2026-10-30T13:44:49.211Z",
+    "note": "真实执行过程中发生 ACP connection closed，部署脚本已读但安装尚未开始，后续续接不覆盖目录",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "d2d44025f07fdc095246caaf7ae7b07df9af3071345c15a1f5022a17ebcbc2d2",
+    "bytes": 80945
+  },
+  {
+    "file": "016_续接复现与真实模块回归.jpg",
+    "captured_at": "2026-10-30T13:45:08.505Z",
+    "note": "续接同一目录和会话，要求保留安装测试原始日志，并在真实 run_agent 请求构造层验证顺序问题",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 648,
+      "width": 1504
+    },
+    "sha256": "c48860947cc413adfbcdf912d2db6d788f214e9077e5ffa42ac78fca8925209f",
+    "bytes": 83678
+  },
+  {
+    "file": "017_Gitee私有仓库已创建.jpg",
+    "captured_at": "2026-10-30T13:53:12.501Z",
+    "note": "用户授权创建的 Gitee 空私有仓库 Teachmeplaycode/MyTargetProject，DOM 私有标识为这是一个私有仓库，尚未推送源码",
+    "sha256": "8a8d0c40df199c14d22ad4e4d3c838a5db4662181ec48b27f832a32f471c01df",
+    "bytes": 47449
+  },
+  {
+    "file": "018_按真实Git历史分阶段复现.jpg",
+    "captured_at": "2026-10-30T13:59:27.118Z",
+    "note": "同步 135 主线节点源码包，明确从原始初版 1d9590f 开始逐阶段运行和排错，保留真实提交和本次操作时间",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "5b83fa19f3f28129212f6290900407b688d9df8f6deb688466ea0706522f3bb3",
+    "bytes": 109197
+  },
+  {
+    "file": "019_初版源码实际还原.jpg",
+    "captured_at": "2026-10-30T14:01:05.310Z",
+    "note": "码道核对历史包后实际还原最早提交 1d9590f，独立目录 repro-stage-01，86 个源码文件加来源标记",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "cffdc6bc6aa8bca6d56fd1675c0675d3e3e67a08214c7306af0c54b4b7284c3d",
+    "bytes": 103041
+  },
+  {
+    "file": "020_初版后端真实测试结果.jpg",
+    "captured_at": "2026-10-30T14:03:08.087Z",
+    "note": "展开实际 pytest 输出，报告 52 passed / 3 skipped；原命令经过管道，后续要求补捕获原始退出码",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "9ce3820f7cb012a5240d78f14f0c9f4cd5c7bbb0a00dd5b5be36ba0cbc2c3b05",
+    "bytes": 107340
+  },
+  {
+    "file": "021_初版跳过项与前端构建.jpg",
+    "captured_at": "2026-10-30T14:03:09.245Z",
+    "note": "顺序保留 ffmpeg 缺失导致 skip 的原因，以及初版 npm ci 与生产构建过程",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "1a29d37f1adeefb40fb0168a98900364faf05de3f284875d7eafbc1404ef39e6",
+    "bytes": 97246
+  },
+  {
+    "file": "022_初版阶段结果与真实限制.jpg",
+    "captured_at": "2026-10-30T14:04:36.056Z",
+    "note": "Stage-01 实际结果：52 passed / 3 skipped、前端构建和基础服务通过；缺少 ffmpeg、主模型和转写链路验证，未推送 Gitee",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "a7b675e13301bc6652d6a2387ea9d90f770e17fa328d9051a95f4b7bc7cdedff",
+    "bytes": 126989
+  },
+  {
+    "file": "023_追问测试退出码和缺失依赖.jpg",
+    "captured_at": "2026-10-30T14:04:37.148Z",
+    "note": "根据真实阶段结果要求补原始 pytest 退出码、补 ffmpeg/ffprobe 端到端条件，同时只准备临时公钥等待另行授权",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "cdc2dbf8666827f4c3763dd81415e6aba93a4781224ddb44546fb5c3c3399cc8",
+    "bytes": 120685
+  },
+  {
+    "file": "024_排查Python环境变量污染.jpg",
+    "captured_at": "2026-10-30T14:09:51.252Z",
+    "note": "实际排查 dnf 的 Python 环境变量问题，清理单次命令环境后重新验证包管理器",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "24b9c59590b3adb3f533ff81108dc483c736e766a00638ee4d45c9ad23a14490",
+    "bytes": 127998
+  },
+  {
+    "file": "025_ffmpeg正式安装失败与磁盘排查.jpg",
+    "captured_at": "2026-10-30T14:09:52.636Z",
+    "note": "展开真实 dnf 安装输出，保留系统分区空间检查失败，后续改为独立工具目录安装",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "9da63aeee9ae4d432774c15372632ec4bb50aeefb67a4d9a8136d1cc8dbe06db",
+    "bytes": 96499
+  },
+  {
+    "file": "026_改走平台二进制镜像安装.jpg",
+    "captured_at": "2026-10-30T14:13:25.544Z",
+    "note": "外部静态包下载慢，实际改从华为云 npm 镜像安装 linux-arm64 的 ffmpeg 与 ffprobe，保留替代路径",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "b643e303efe472214f20f92efb81c0247455d4c112df3d92c233ad4d473536f5",
+    "bytes": 122037
+  },
+  {
+    "file": "027_实际编码解码验证.jpg",
+    "captured_at": "2026-10-30T14:14:42.494Z",
+    "note": "展开实际 ffmpeg/ffprobe 版本与 3 秒合成视频编码、时长探测输出，后续再验证应用上传和抽帧",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "98cfbfe2dd45c3df31f0ca19015c52d65f0ad8af76b2bedebbef12714b7f0faa",
+    "bytes": 126781
+  },
+  {
+    "file": "028_Gitee临时公钥待确认.jpg",
+    "captured_at": "2026-10-30T14:18:24.156Z",
+    "note": "Gitee 账号级个人 SSH 公钥表单已填写但未提交，等待用户对新增 Git 读写访问的明确确认",
+    "clip": {
+      "height": 545,
+      "width": 1504,
+      "x": 0,
+      "y": 150
+    },
+    "sha256": "d0a8cbc60089d9c38d8ab892d9e78f472f2ab54fd37837b16a94e2e9086b1367",
+    "bytes": 47725
+  },
+  {
+    "file": "029_初版补强前后对照.jpg",
+    "captured_at": "2026-10-30T14:19:38.846Z",
+    "note": "完整对照 52 passed / 3 skipped 到 55 passed / 0 skipped，上传从 422 到 200，48/48 帧及真实 JPEG，转写不可用如实记录",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "b64566a337cd8199a4f92020542536785218400c6f4174d6dd095a56444ad490",
+    "bytes": 117031
+  },
+  {
+    "file": "030_进入工具调用阶段并追问循环边界.jpg",
+    "captured_at": "2026-10-30T14:20:19.756Z",
+    "note": "基于真实 9c38a51 提交继续，发送完整 Git bundle 校验信息，追问工具循环收尾、失败传播与图像消息角色",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "fbd1719c8d4117e33699e49e7b01930166c296af3345bca73d8b438bb3f6297e",
+    "bytes": 119255
+  },
+  {
+    "file": "031_完整Git历史核验与克隆.jpg",
+    "captured_at": "2026-10-30T14:22:01.860Z",
+    "note": "展开真实 bundle 克隆和 verify 输出，核对原始 main 提交与 304 个提交历史，避免把导出源码当成完整 Git 历史",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "ed4d36698b59f0edc19d5f1fe0e0612dbdb66eba13499a5042659683ca5b38fa",
+    "bytes": 98703
+  },
+  {
+    "file": "032_定位消息契约被破坏的提交.jpg",
+    "captured_at": "2026-10-30T14:22:03.555Z",
+    "note": "码道沿真实 main 历史追踪 image_message、by_hand 和 attached_parts，确认原来安全的 pop 假设在后续截图功能加入时被破坏",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "466fcb7fb8ba94693cb6520c3c65860c1733a8cfa320a00b113e2e8358582981",
+    "bytes": 148588
+  },
+  {
+    "file": "033_Gitee临时公钥授权生效.jpg",
+    "captured_at": "2026-10-30T14:26:52.049Z",
+    "note": "用户明确授权并完成 Gitee 安全验证后，公钥计数为 1 且指纹匹配，只保留到本次源码与复现结果推送完成",
+    "sha256": "be2c47f49b62002d5487ef78a7d7bee643b18dc091de0f75b0b030889c6a29be",
+    "bytes": 21595
+  },
+  {
+    "file": "034_Gitee主机核对与推送执行.jpg",
+    "captured_at": "2026-10-30T14:32:59.363Z",
+    "note": "实际可见内容为官方主机指纹比对、固定 known_hosts、SSH 认证成功及 push/ls-remote 执行过程，最终远端结果以后续输出为准",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "8bcebd9e5d255a7d161d0e7d345524a4577ab9cd12b4009896da5413ba36d395",
+    "bytes": 148143
+  },
+  {
+    "file": "035_Gitee原始main推送核验.jpg",
+    "captured_at": "2026-10-30T14:36:42.501Z",
+    "note": "展开实际 ls-remote 返回，Gitee HEAD 与 refs/heads/main 均为 0a17ddd8def71d92b5c67505b6349061628e37a5，原始提交信息保留，后续正在编写诊断用例",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "b885a261d959d651b6b0d3ecafaad3407ba4ec8600d7d42cc1737500c67343e9",
+    "bytes": 130232
+  },
+  {
+    "file": "036_Gitee私有源码与304次提交.jpg",
+    "captured_at": "2026-10-30T14:37:59.354Z",
+    "note": "Gitee 实际私有仓库结果页显示 main、0a17ddd 和 304 次提交，原始 Git 历史及完整源码已推送",
+    "sha256": "6a068fd12850adfb6ac7ccba585fcd493b92065b4628ea0f0f693b5610d6fd49",
+    "bytes": 93796
+  },
+  {
+    "file": "037_诊断代码生成后的真实排错.jpg",
+    "captured_at": "2026-10-30T14:52:37.417Z",
+    "note": "CodeArts 生成 diag_tool_loop.py 后出现 tmp 字符串与 Path 类型问题，实际修改并重跑，属于本次真实诊断脚本调试",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "193e17cb02c8383e1c28b63dfd2a7d06f23927204f8f6fa3f4cd742b9689b527",
+    "bytes": 94630
+  },
+  {
+    "file": "038_真实run_agent边界用例输出.jpg",
+    "captured_at": "2026-10-30T14:52:39.198Z",
+    "note": "展开最终诊断脚本实际输出，使用真实 run_agent 和 MockTransport，测试历史 9c38a51，不宣称最新 main 已实测",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "092ac70d85cf2ae4b11b0c3c0d6e6d208e6cc74ee5d9d04b25a5b5ebf75ed3f3",
+    "bytes": 113600
+  },
+  {
+    "file": "039_工具异常终态诊断续页.jpg",
+    "captured_at": "2026-10-30T14:52:40.880Z",
+    "note": "诊断日志续页，记录历史版本的空回答 run.completed 及工具异常预看场景开始，完整 B1/B2 与对照结果保存在原始日志和阶段总结",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "d8c41406d0b446bdc2eee09b2ba6af6519cd5eebcb1813eab3f0987dcdb5a06d",
+    "bytes": 123362
+  },
+  {
+    "file": "040_前端诊断脚本模块解析排错.jpg",
+    "captured_at": "2026-10-30T14:53:57.013Z",
+    "note": "码道生成前端诊断代码后实际遇到 ESM 模块解析路径问题，调整到正确依赖上下文再运行",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "8368f9a0614df21dcf884a28ef8bee522e06184fad08597a70ec767054391d12",
+    "bytes": 104551
+  },
+  {
+    "file": "041_Markdown时间戳行为实测.jpg",
+    "captured_at": "2026-10-30T14:53:59.707Z",
+    "note": "在历史 93bcda8 上直接调用真实解析函数，对照不同时长、正文时间、代码与 URL 的实际元素结果",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "3e377392cde7dabab07058a43da8819f326e16df42b7eb4f8c3c9645349b0c1c",
+    "bytes": 124118
+  },
+  {
+    "file": "042_时间戳误识别与回调验证续页.jpg",
+    "captured_at": "2026-10-30T14:54:01.425Z",
+    "note": "连续保留 fenced code 和 URL 误识别、时长约束及 onClick 调用 onTime(150) 的实测边界，不等同浏览器端到端验收",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "df2f45f48c916be8194402c5877b720908d14508e4a37cdfa89a71d0c247f844",
+    "bytes": 129746
+  },
+  {
+    "file": "043_进入联网工具阶段并核对证据边界.jpg",
+    "captured_at": "2026-10-30T14:55:00.918Z",
+    "note": "沿原始 b7e6abc 提交继续，要求区分网页与视频证据、空结果和网络失败，并对项目模块进行真实验证",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "0843d34a5051db72aa7895dfedeaeb824e5dfaca9f9e505c2200a40a8e11d2af",
+    "bytes": 133052
+  },
+  {
+    "file": "044_联网诊断发现mock污染并实际修正.jpg",
+    "captured_at": "2026-10-30T15:00:08.990Z",
+    "note": "Stage04 诊断脚本发现真实联网组被前组 mock 污染，码道恢复原模块函数后重跑，尚不将污染结果记为真实联网结果",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "b5328a4dbce38a71fdb442b23fa8e64000d01e331b9c2a62163260615e1bf22c",
+    "bytes": 97731
+  },
+  {
+    "file": "045_联网阶段结果及失败路径对照.jpg",
+    "captured_at": "2026-10-30T15:03:11.988Z",
+    "note": "Stage04 完成：77 passed，页面真实抓取成功而真实搜索受阻，模块 mock 与真实联网分开记录，异常事件数待补充核对",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "672f7faa1134958c6271796fe4df9897c3cbaec0ab15380d5a9ada56782bd73f",
+    "bytes": 117968
+  },
+  {
+    "file": "046_联网失败与实际外网结果.jpg",
+    "captured_at": "2026-10-30T15:03:23.224Z",
+    "note": "与045重叠的连续后续视图，显示异常冒泡风险及真实fetch和搜索结果，0事件表述将在下一轮纠正",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "b7082250ce1e123e033531a951b10cc8d89205bbf4f55157d1c65e11810ca3f7",
+    "bytes": 146050
+  },
+  {
+    "file": "047_异常事件纠正及OCR慢放阶段验收.jpg",
+    "captured_at": "2026-10-30T15:16:29.435Z",
+    "note": "Stage04补查改为17事件停在工具输入，Stage05测试120 passed及4 skipped，明确Linux无法实测此版Vision OCR",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "695f6c2c05f084522c01a0df8910c62467792dab8cea99e70e38c50a3278f9c3",
+    "bytes": 120558
+  },
+  {
+    "file": "048_真实短片默认采样和宽窄复看对照.jpg",
+    "captured_at": "2026-10-30T15:16:37.312Z",
+    "note": "与047连续重叠视图，实际生成短片比较默认48帧、10秒复看及200ms局部复看，理论概率与实测口径下一轮继续纠正",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "b25682f810178bd68b25f60343d109944fef3b246bc90207f4764b91ef3f68e1",
+    "bytes": 141479
+  },
+  {
+    "file": "049_最新版真实失败定位到ffmpeg选项.jpg",
+    "captured_at": "2026-10-30T15:27:46.495Z",
+    "note": "最新版基线出现真实镜头切换测试失败，码道检查实际stderr确认现用ffmpeg不支持-stats_period，未改业务代码以掩盖失败",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "0d7addecc98ef7e649a1aa43447d98de8482317388ddf6c1f13cbc26b1a5dffd",
+    "bytes": 116243
+  },
+  {
+    "file": "050_历史云适配核对和最新版基线.jpg",
+    "captured_at": "2026-10-30T15:33:55.390Z",
+    "note": "历史节点核对与最新版实际测试分开：最新版1198 passed/4 skipped/1 failed，前端8+14项通过，保留真实失败",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "861d85ae751ef26b0ad26eacb78de5a295848035de8f291502e2989220f8eb40",
+    "bytes": 147567
+  },
+  {
+    "file": "051_要求先复现失败再修截图与慢放组合.jpg",
+    "captured_at": "2026-10-30T15:34:23.284Z",
+    "note": "最新版真实代码修复提问，要求实际run_agent+MockTransport截取消息体，覆盖附件与慢放组合，并分开保留失败与通过日志",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "596a14e046798e0afa1fac65d5dcb90eb43298f3b6731142df25dee6e92c2352",
+    "bytes": 140042
+  },
+  {
+    "file": "052_组合回归在原代码上真实失败.jpg",
+    "captured_at": "2026-10-30T15:39:46.551Z",
+    "note": "码道新增test_zoom_attachment_order.py，实际run_agent消息检查在未修复代码上失败，before日志单独保留",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "f7945ac55e49b9ae5eb96aa79143121873caa52d8029bcafd6c67165db73b125",
+    "bytes": 148208
+  },
+  {
+    "file": "053_首版修复六项通过并进入全量验证.jpg",
+    "captured_at": "2026-10-30T15:45:46.382Z",
+    "note": "首次修复6项组合回归通过，仍待审阅文本前缀耦合问题，后续将继续结构化改进",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "2e8abf1f0a72ba2652f5d9f4f8e3d2ab81a8e785269a748087300c209c967741",
+    "bytes": 114118
+  },
+  {
+    "file": "054_最终结构化修复及1205项测试通过.jpg",
+    "captured_at": "2026-10-30T15:53:13.115Z",
+    "note": "v2按命名分组构建消息，无文本扫描，组合6项/相关50项通过，完整后端1205 passed、4 skipped、0 failed，真实exit0",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "d7aca002f4ba29107cbb9a1c673899ec7b92e9f42736f39c2c9565a7d9a36dcf",
+    "bytes": 125606
+  },
+  {
+    "file": "055_Gitee私有分支实际上传结果.jpg",
+    "captured_at": "2026-10-30T16:00:10.710Z",
+    "note": "Gitee实际私有仓库分支页，领先main两个真实新提交，含codearts_repro目录与消息分组修复，分支共306提交",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "width": 1504,
+      "height": 700
+    },
+    "sha256": "86ef1b5fe0dc7115d8218948627ec75ae584e71f3cd28285aee811081f1a808e",
+    "bytes": 107134
+  },
+  {
+    "file": "056_临时Gitee公钥已撤销.jpg",
+    "captured_at": "2026-10-30T16:04:47.988Z",
+    "note": "用户完成身份验证后，Gitee显示SSH公钥数量0，临时公钥6153862已撤销",
+    "clip": {
+      "height": 700,
+      "width": 1504,
+      "x": 0,
+      "y": 0
+    },
+    "sha256": "d8c32d181e5928b29230d7eed3959bb5c388d71e9b2d6e4a17ca534b4b9336d0",
+    "bytes": 59098
+  },
+  {
+    "file": "057_继续审阅首版修复并明确分组契约.jpg",
+    "captured_at": "2026-10-30T16:23:39.428Z",
+    "note": "实际追问：要求从QUESTION_TAG文本匹配改为显式prelook分组，并保持原回归断言，完整记录修复后的技术审阅",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "a31d802c7472055a6ca90617615e7f47f959af27580026cdab8bd11812e9066f",
+    "bytes": 112034
+  },
+  {
+    "file": "058_连续重构记录01_读取真实调用点.jpg",
+    "captured_at": "2026-10-30T16:24:24.513Z",
+    "note": "连续节选01：从当前代码读取开始，后续截图沿同一回答依次向下滚动，保留重叠内容",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "efa014b9c7997fe32c7f846d207b22e0984772223797db3d7d22b15de9adcbd6",
+    "bytes": 100538
+  },
+  {
+    "file": "059_连续重构记录02_原实现的依赖关系.jpg",
+    "captured_at": "2026-10-30T16:24:52.337Z",
+    "note": "连续节选02：与上一张重叠，查看原消息构造和预看注入依赖",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "c20bc4b7633697958656f760c5bb9f8cf1e5eb3d9cf4351e2ad1942b11172665",
+    "bytes": 87791
+  },
+  {
+    "file": "060_连续重构记录03_命名分组组装.jpg",
+    "captured_at": "2026-10-30T16:25:22.515Z",
+    "note": "连续节选03：移除文案前缀方案，按命名分组构建末条消息",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "95aad91233cef60ae753284da50c24aac1047916423f35b7626106d8b8e73b5a",
+    "bytes": 112900
+  },
+  {
+    "file": "061_连续重构记录04_显式参数与接口说明.jpg",
+    "captured_at": "2026-10-30T16:25:30.686Z",
+    "note": "连续节选04：与上一张重叠，新增可选prelook参数并说明接口契约",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "719713acb945b8894d3bf89057e0834f3e0f61d85d5e381dce07c9684ab3aece",
+    "bytes": 109527
+  },
+  {
+    "file": "062_连续重构记录05_后移消息构造.jpg",
+    "captured_at": "2026-10-30T16:25:50.199Z",
+    "note": "连续节选05：实际diff，消息构造后移到预看工具完成后",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "324c3c46b14bc9ea75ea9d1ab10915d178e5e9446d591e551a52967b38d6996d",
+    "bytes": 117452
+  },
+  {
+    "file": "063_连续重构记录06_六项回归通过.jpg",
+    "captured_at": "2026-10-30T16:25:58.495Z",
+    "note": "连续节选06：完成结构调整后检查无残留引用，并在原回归断言不变的条件下实际跑出6项通过",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "372ae345cbe6665bbcfa3ee801dae379bee891ce9013e507e2d4324e282cb554",
+    "bytes": 116152
+  },
+  {
+    "file": "064_连续重构记录07_工具二进制持久化.jpg",
+    "captured_at": "2026-10-30T16:26:20.212Z",
+    "note": "连续节选07：6项回归通过后，将新ffmpeg复制到workspace持久工具目录",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "1470622cd9e339a4794dd3699ad8d71bdf281e7f513154c9dae913f85289e3ad",
+    "bytes": 131098
+  },
+  {
+    "file": "065_连续重构记录08_相关回归50项通过.jpg",
+    "captured_at": "2026-10-30T16:26:28.553Z",
+    "note": "连续节选08：使用新ffmpeg路径执行相关回归并保留真实退出码",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "ae681158e4eb0b61a9bb7c8bb0f205e73cb0a5d8e921150bb7f10807edda7d01",
+    "bytes": 116429
+  },
+  {
+    "file": "066_连续重构记录09_最终修改说明.jpg",
+    "captured_at": "2026-10-30T16:26:50.431Z",
+    "note": "连续节选09：完整测试通过后，解释显式prelook与保留的消息形状",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "aec7a5b6320009b817ece5016beedd7b559dcf86e8329543cff5125f224cbf43",
+    "bytes": 111877
+  },
+  {
+    "file": "067_连续重构记录10_完整验收及提交指令.jpg",
+    "captured_at": "2026-10-30T16:26:58.698Z",
+    "note": "连续节选10：与上一张重叠，最终回归验收及后续真实提交指令",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "c980701b876eeda358a6b99a06b88972b166accd5ae59f1757de998bfd7bf8b7",
+    "bytes": 139125
+  },
+  {
+    "file": "068_云端临时私钥与SSH配置已清理.jpg",
+    "captured_at": "2026-10-30T16:27:27.880Z",
+    "note": "实际路径检查确认私钥、公钥副本、ssh_config和known_hosts已删除，未读取或输出私钥内容",
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "height": 643,
+      "width": 1504
+    },
+    "sha256": "ae2b9c3309ab7276f99da057f3cc149d52b8f53cbae189a79a9ffa9aaff68c47",
+    "bytes": 104790
+  }
+]

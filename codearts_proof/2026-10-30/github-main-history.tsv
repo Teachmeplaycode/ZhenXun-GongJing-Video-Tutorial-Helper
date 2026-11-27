@@ -1,0 +1,135 @@
+1d9590fdd1c89529f15bad9590bc0fbcfea2b40f	2026-10-15T12:13:08+08:00	Initial commit: GongJ!ng? video understanding workbench
+9c38a518f2224e1f91e9a1626bd6a33598a489ff	2026-10-15T12:25:09+08:00	Add tool calling to video Q&A
+93bcda8d9d80092f13b825d5d65b0765120f000e	2026-10-15T13:29:48+08:00	Render answers as Markdown with clickable times
+c7a35ee2f5c314d8885c364cefc605f6c51c1d75	2026-10-15T21:15:19+08:00	Document the verified WeChat Channels run and cookie tips
+b7e6abc35e873306a76e3ebc887504d9d00136d7	2026-10-15T21:33:14+08:00	Add web search, page reading and paper search tools
+de495185f2cf37e43ee4f54f5e84e22c945b375e	2026-10-15T21:36:29+08:00	Support an OpenAlex API key and explain its daily budget
+5e247642868db35eea23fe48211f90d490f4a4d3	2026-10-15T21:48:14+08:00	Add Tavily, Bocha, PubMed, search time ranges and optional rerank
+c9858149ccf0d02c3f3ebcb783992530fdcf5712	2026-10-15T22:39:15+08:00	Add a Jev-style decision module on the local Ollama model
+f1a79514925b034a05c86296aaf3aec9d4318657	2026-10-15T22:58:26+08:00	Rework the chat like Claude / Codex: steps inline, wider, foldable timeline
+a7189b06f55a338cfa85396cbdfbb1312f38b01c	2026-10-15T23:37:32+08:00	Update the frontend design spec for the reworked chat
+4be2bd046914807d390b19a64759b2b97a0e6c39	2026-10-16T07:20:01+08:00	Add dev.sh: one command to check and start backend and frontend
+819d8b408aa3dfb684fcc78918d3cd70e3be20b2	2026-10-16T07:28:05+08:00	Add the 2026-10-15 conversation export, Yuanbao cookie values redacted
+e9e512ea25a37f068b9eff6ad593f2b499c523fa	2026-10-16T07:46:09+08:00	Add frontend end-to-end tests with Playwright
+aea5a91d1f4c78da14fbefa07310d02c95d72c9b	2026-10-16T12:36:36+08:00	Add browser operation: a browse tool on headless Chromium, shown live in the chat
+7347d2f274220e41ec2f731368f856f5bf872f0d	2026-10-16T12:50:33+08:00	Read what viewers left: Bilibili comments and danmaku as agent tools
+84a96919340fcdff297aa803700b3d5a7a9a7c09	2026-10-16T13:09:10+08:00	Log in to Bilibili and Yuanbao by scanning a QR code on the page
+587d6e83b4998b0bfdfeae4cfc1402e2108dfe87	2026-10-16T13:09:28+08:00	Note that logged-in comment paging was verified with a real account
+71e51c8e5eca084078830c8c9b66c620fb8e88bd	2026-10-16T13:52:35+08:00	Add structured logs and a fixed answer-quality eval set
+c7d44c1318db2b732905c842a8c3498ca670fb07	2026-10-16T13:52:35+08:00	Drop Whisper's "字幕志愿者 李宗盛" hallucination from transcripts
+69d415ae3452d625d0ae006a78488dae3e37710b	2026-10-16T13:52:35+08:00	Add a dark theme and a phone layout for the chat
+c7708e5d7d7dd18fe775a05d6189ad94cbc4ece1	2026-10-16T13:57:45+08:00	Reveal a new theme through a circle growing from the theme button
+5d8798ae0c9fce5ed834752b6b70d1130279301c	2026-10-16T19:32:15+08:00	Eval: add 13 harder cases on long videos and fix the video cache
+0d5167e617427f1f2fcdb979e800e24a4e942899	2026-10-16T19:32:15+08:00	Add the S1 snake mark, dock navigation and click sparks
+30396d93f0371144434b377950acdf4871d4bc9f	2026-10-16T20:49:23+08:00	Read on-screen text across the whole video, once per second
+089cd2dffd5b4dd391959fdec626a87fd06c511d	2026-10-16T21:07:22+08:00	Add slow-motion replay: many frames from a few seconds, one seek
+92e33b4f8847a3230728f73af8e6d1e89cdf53ae	2026-10-17T07:55:06+08:00	Measure motion with calibrated instruments; learn from past answers; MotionBench runs
+06b88732a2800805f191e64a05fa3fcb297bf27b	2026-10-17T09:35:12+08:00	Recall only the relevant kinds of lessons; round-2 experience
+8eb9fdca6141627466a19200d77b873a0e411606	2026-10-17T10:32:56+08:00	Validation split and temperature for experiments; written lessons don't hold up
+a2d7384ac112dc18c05e2ba773a24cd58c396497	2026-10-17T11:07:07+08:00	Learn instrument calibration from practice questions; config E
+3f0958cd6a63bd6a3f2e25443a6c4514955f8068	2026-10-17T11:45:55+08:00	Growth curve: calibration from 0, 20, 50 and all practice questions
+a03a8697bc1787713a570f5a1451ba09e9d1debd	2026-10-17T11:49:58+08:00	Experiment log: summary of findings, where the data lives, how to resume
+61366974b8c0fa2b7d752bcebc7f7e135b2ffa04	2026-10-17T20:46:34+08:00	Timeline: replayed frames, framing a stretch to replay, shot-change and cited-time marks
+cf88edcdb686384fb850ba084e7ccf0636185fb3	2026-10-17T20:58:04+08:00	Questions right after a hand replay see that replay
+45691180baea3a519a1e30ea6ab09e44af1a9d2d	2026-10-17T20:58:04+08:00	Back goes up a level behind the pixel wipe too
+6938027300d040fa8642ee4ec03f6bac712a7937	2026-10-17T20:58:04+08:00	dev.sh: stopping a second copy no longer stops the main frontend
+3c065507220d4623496d1b87835c104d22abcc81	2026-10-18T15:03:39+08:00	CI: run pytest and the Playwright tests on every pull request
+87ba06ece22266232adf6e28ec819a7b1c5184c9	2026-10-18T20:29:34+08:00	Long videos: carry on reads the server cut off; let long answers finish
+3f3e13085ae5a1b5e0e2e32ae4189b41c9ed39d1	2026-10-18T20:54:18+08:00	Merge #16: workbench sidebar, AI lecture notes and canvas editor (with #12–#15)
+a0e258d37e167a71234657364024e4f8fb388c18	2026-10-19T01:45:38+08:00	Merge pull request #18 from Teachmeplaycode/feat/sampling
+4ebef17f8dd56b8e712667c19c6d2f380adcdf34	2026-10-19T01:52:37+08:00	Merge pull request #19 from Teachmeplaycode/feat/alcedo
+835489bd766758b86fb9cc4c5e2a90c151567417	2026-10-19T01:53:52+08:00	Merge pull request #20 from Teachmeplaycode/feat/images
+1d6a4f90f231755e0941814c5542d967992641ae	2026-10-19T08:15:10+08:00	Merge pull request #21 from Teachmeplaycode/feat/deepseek-search
+c868326dc3910a020b3d89eca9dacc7a89909576	2026-10-19T08:16:45+08:00	Merge pull request #22 from Teachmeplaycode/feat/images
+3b5f2d740330715e546213a3f970ea85f13f0a80	2026-10-19T13:31:03+08:00	Merge pull request #23 from Teachmeplaycode/feat/home
+7b2a22c0c6568fb943843f4fb54c00b6976f4fc2	2026-10-19T20:23:52+08:00	Merge pull request #24 from Teachmeplaycode/data/factcheck-eval
+e7229ca3672c2da61554b8d41726bef6da50d2f5	2026-10-20T00:19:18+08:00	Merge pull request #25 from Teachmeplaycode/feat/playback
+3923ac48f50721e7c51d94989d07f103675640f5	2026-10-20T00:50:54+08:00	Merge pull request #26 from Teachmeplaycode/feat/evidence
+9da356d35b572091e1fe236dcbd49d7310a27a71	2026-10-20T07:19:30+08:00	Merge pull request #27 from Teachmeplaycode/feat/skills
+38b972b5272d6624db290e13152e06e02f41bf31	2026-10-20T07:35:19+08:00	Merge pull request #28 from Teachmeplaycode/feat/intent
+34b38f0f74a1b85dd1cba167a4063a6642eab44f	2026-10-20T11:58:44+08:00	Merge pull request #29 from Teachmeplaycode/feat/suggest
+722c3d50558076e0b87bcb2828a0ef18529e3e48	2026-10-20T23:15:04+08:00	Merge pull request #35 from Teachmeplaycode/fix/replay-leak
+d3ce36fbd9f495e1e361598ca72c5d7d1c588146	2026-10-20T23:58:41+08:00	Merge pull request #36 from Teachmeplaycode/perf/prompt-cache
+bee488a8f98ed6bb9fbd95320c2e6d2df6c352ff	2026-10-21T00:16:49+08:00	Merge pull request #33 from Teachmeplaycode/feat/cloud-adapters
+b077e2578b6c203aed4e516aac35129cc6d21621	2026-10-21T07:50:54+08:00	Merge pull request #37 from Teachmeplaycode/feat/visitors
+26e356b299615d0ec6f08d78173b87b325c45c5a	2026-10-21T09:13:21+08:00	Merge pull request #38 from Teachmeplaycode/feat/subpath
+3e4ac1aafe1b1fde07cd3984d1fea23d49097108	2026-10-21T09:23:13+08:00	Merge pull request #39 from Teachmeplaycode/feat/zhenxun
+da245afde12a3566c8f8658b7afd6a048f484715	2026-10-21T09:41:05+08:00	Merge pull request #40 from Teachmeplaycode/feat/home-switch
+4d2db4a2bdb4075542e12588040dcfd61fd69674	2026-10-21T09:49:48+08:00	Merge pull request #41 from Teachmeplaycode/feat/wordmark
+f82b83bb7b84d7be40e87ccc717ec50207454d84	2026-10-21T10:15:26+08:00	Merge pull request #42 from Teachmeplaycode/fix/wordmark-fit
+522ca0aff2f0b9ad410fb5e658775e27e09d9aba	2026-10-21T10:49:12+08:00	Merge pull request #43 from Teachmeplaycode/feat/hero-copy
+adf0b58b7bc31a00a2569b91358046eaf611bc32	2026-10-21T10:51:42+08:00	Merge pull request #44 from Teachmeplaycode/feat/auto-deploy
+79b1d89e8fa8b9107edd44edebe993b6e5148527	2026-10-21T11:05:04+08:00	Merge pull request #45 from Teachmeplaycode/feat/cos-archive
+a05c753ca00bb30e9e358fa5125ae3aa9ef7687d	2026-10-21T11:14:19+08:00	Merge pull request #46 from Teachmeplaycode/feat/members
+24eeb7e6d632187ffbbc15feb681c95e2da7c85b	2026-10-21T11:35:48+08:00	Merge pull request #47 from Teachmeplaycode/feat/paraformer
+5cd4d022ea98e7746f8ea52a3851701d7d056625	2026-10-21T11:51:59+08:00	Merge pull request #48 from Teachmeplaycode/feat/plans
+ca67650b23780f9680c16b93442c72f8320815a0	2026-10-21T12:31:44+08:00	Merge pull request #49 from Teachmeplaycode/feat/guide
+ec4fe84253dfec7a1bec41a895eb20c907e54379	2026-10-21T12:51:41+08:00	Merge pull request #50 from Teachmeplaycode/feat/platform-bind
+93ee2fe8c35addb6d0a076f4aace564c0adbba0a	2026-10-21T13:09:17+08:00	Merge pull request #51 from Teachmeplaycode/feat/alcedo-web
+b0fc5b5e1a36750907294555f5a8bba51e0022ed	2026-10-21T13:25:35+08:00	Merge pull request #52 from Teachmeplaycode/feat/mainland-logins
+94d0ccc4cc92b81d867aacbe5aab9930fe7a6a79	2026-10-21T13:41:26+08:00	Merge pull request #53 from Teachmeplaycode/fix/no-xhs-bind
+85244aeba019fd3a1db845078c431f8bd0523cea	2026-10-21T13:54:01+08:00	Merge pull request #54 from Teachmeplaycode/feat/guest
+ee52862cce9cf9133eb7c1d8f82fd825ef267dd8	2026-10-21T15:01:45+08:00	Merge pull request #55 from Teachmeplaycode/perf/ocr-cache
+7cc410affbec9601189bc9a05fc41a57500fa667	2026-10-21T15:13:01+08:00	Merge pull request #56 from Teachmeplaycode/feat/mobile
+9ee7ab87810387254c84302846872183523d7c90	2026-10-21T20:05:34+08:00	Merge pull request #57 from Teachmeplaycode/feat/ux-batch
+76dd5fef1bc2618feb957a9be4f84dbae2635713	2026-10-21T20:27:11+08:00	Merge pull request #58 from Teachmeplaycode/feat/notes-image
+4b003229fa42c685b1f61937be0d342214cc4656	2026-10-21T20:40:02+08:00	Merge pull request #59 from Teachmeplaycode/fix/longimg-height
+837e457ebb9d94a67606b9e3c8b46f81b578c5fb	2026-10-21T21:06:17+08:00	Merge pull request #60 from Teachmeplaycode/feat/composer-plus
+1ee9ea637e0c8ecea54d2f9461c0f8b8c3cb9a7c	2026-10-21T21:18:17+08:00	Merge pull request #61 from Teachmeplaycode/docs/todo-update
+633bef57ea9e601ead640efe41c84f4ec33d0ae5	2026-10-21T21:31:00+08:00	Merge pull request #62 from Teachmeplaycode/fix/phone-polish
+540da3bbb3031244b3bf882ae3f7f1f1be56535f	2026-10-22T17:35:49+08:00	Merge pull request #64 from Teachmeplaycode/feat/answer-cites-clips
+55932f300cd4cfa4a03c3e77a0d10492f7d85a26	2026-10-22T17:54:04+08:00	Merge pull request #65 from Teachmeplaycode/fix/clip-gif-speed
+9a5e410b73125d7940e31d1e57561884f9341352	2026-10-22T18:22:18+08:00	Merge pull request #66 from Teachmeplaycode/feat/clip-studio
+9480338c91d8058f390462a5a714b7944414d4be	2026-10-22T23:24:09+08:00	Merge pull request #67 from Teachmeplaycode/fix/cites-sync
+e6944dc601a533b609d44f467ffb9402e7115e94	2026-10-23T08:21:50+08:00	Merge pull request #68 from Teachmeplaycode/review/fixes
+68af44d9c5080b6a0980afb4ac1ba0a7f5ba4c51	2026-10-23T08:44:22+08:00	Merge pull request #69 from Teachmeplaycode/feat/clips-cos
+49655f8edf505f931dee52e40aa29c1100024787	2026-10-23T09:08:47+08:00	Merge pull request #70 from Teachmeplaycode/fix/ci-ffmpeg
+0ddda3ef84a82141f64ddae4aca60055d7b4e867	2026-10-23T17:02:37+08:00	Merge pull request #71 from Teachmeplaycode/feat/daily-budget
+e7108b308a1fd7a15928d1e8fc16913e5be193f0	2026-10-23T18:15:13+08:00	Merge pull request #72 from Teachmeplaycode/feat/clip-crop
+8af32f15a60b1936ce4de86cc94f7fdb676e85a5	2026-10-23T18:28:17+08:00	Merge pull request #73 from Teachmeplaycode/fix/ci-ffmpeg2
+aeca0e6b6056a918e66dbd9ae1e7796e4f39b069	2026-10-23T18:45:44+08:00	Merge pull request #74 from Teachmeplaycode/feat/studio-persist
+45c4669be6b786bf448f51ae9652d73375e494c4	2026-10-23T18:54:29+08:00	Merge pull request #75 from Teachmeplaycode/feat/samples
+031818469e077ac13a99cb01657b24215feda5ee	2026-10-23T19:20:46+08:00	Merge pull request #76 from Teachmeplaycode/feat/backups
+7d01fc1c47669d3b03cb7cef2c92910684793c65	2026-10-23T19:43:16+08:00	Merge pull request #77 from Teachmeplaycode/docs/todo-done
+8d1bcee58b4229a6bb744884519580433a6c8051	2026-10-23T20:09:22+08:00	Merge pull request #78 from Teachmeplaycode/feat/screenshot-locate
+db339f4f9cf5e72fe94a77ace80482d14b6e535e	2026-10-24T07:22:07+08:00	Merge pull request #80 from Teachmeplaycode/feat/step-cards
+5eab03797670ee88acbba8558aa0e5cfa5709659	2026-10-24T07:48:00+08:00	Merge pull request #81 from Teachmeplaycode/fix/step-times
+8d6e13d0f2377170d5a70021bdd04d53dc727260	2026-10-24T09:50:42+08:00	Merge pull request #82 from Teachmeplaycode/feat/step-comments
+2e4d646543259fb15ab7a139cbed64ca9e2cb724	2026-10-24T09:58:46+08:00	Merge pull request #83 from Teachmeplaycode/feat/compare
+92bbc9c32210e29faa07198be8a99c11493d4492	2026-10-24T11:03:48+08:00	Merge pull request #84 from Teachmeplaycode/feat/working-hints
+17d5f57294a12d70afa41fb2952e4a4bbc6dcdcd	2026-10-24T11:14:22+08:00	Merge pull request #85 from Teachmeplaycode/feat/recipe
+780d80c47cf668d5c7e56049cb44f1855293c43d	2026-10-24T11:28:47+08:00	Merge pull request #86 from Teachmeplaycode/feat/related
+4d13bf81d264b0e1af1b9a7bd521b33600045377	2026-10-24T19:46:15+08:00	Merge pull request #87 from Teachmeplaycode/feat/recipe-canvas
+5f80c102c3e376688186c57282318be54f94c170	2026-10-24T19:53:25+08:00	Merge pull request #88 from Teachmeplaycode/feat/asr-parallel
+1e89834489fe757f5049fd854c0df4241f25e499	2026-10-24T19:59:53+08:00	Merge pull request #89 from Teachmeplaycode/fix/attachment-image-url
+59d5275b94a03362c290e5bca56f961f91541671	2026-10-24T20:19:01+08:00	Merge pull request #90 from Teachmeplaycode/fix/slow-and-legacy
+146ff51c48ef5f26796a1fade4db88ccb9785cfb	2026-10-24T20:28:53+08:00	Merge pull request #91 from Teachmeplaycode/feat/wait-and-faster-ocr
+6d780e45d6032a04122d164ca7bb9a555d4336b4	2026-10-24T20:57:16+08:00	Merge pull request #92 from Teachmeplaycode/feat/recipe-literal
+9f40c71902e413a1c2ee9a327dae7775edd98a5a	2026-10-24T21:31:16+08:00	Merge pull request #93 from Teachmeplaycode/feat/blender-hd-lookup-script
+e7ccd256c826d9526853538b7b578b73aeca046b	2026-10-25T10:57:54+08:00	Merge pull request #94 from Teachmeplaycode/feat/blender-bridge
+e482c56e405f36c9713aeb3b6e5b056a6b65f40b	2026-10-25T11:14:34+08:00	Merge pull request #95 from Teachmeplaycode/fix/blender-reapply
+cd7a29adebc25f5a528601bde461d22d3079fa09	2026-10-25T11:24:30+08:00	Merge pull request #96 from Teachmeplaycode/docs/readme-refresh
+7551fd75b13fed3bddd9c276b4f38afd2164baa0	2026-10-25T12:25:55+08:00	Merge pull request #97 from Teachmeplaycode/feat/recipe-revise
+e11b79eaf9969e642e724c62b87f105097f69c34	2026-10-25T15:16:21+08:00	Merge pull request #98 from Teachmeplaycode/feat/recipe-off
+29c9d6a467c4b9a13b68d01abf9350ded7ca1d33	2026-10-25T16:22:42+08:00	Refine processing screens and preserve mobile mask transitions
+40d73074365b1f88058aef2c6b07a8ff86c404b9	2026-10-25T16:26:27+08:00	Use desktop 3D sheet animation in the mobile parsing mask
+94596030e0505c2ac8b44876128f28aa7f344deb	2026-10-25T16:29:05+08:00	Use the shared pixel logo wipe for mobile processing transitions
+11c6d94b5c9a5e4ad88af406c09581d32bd891a2	2026-10-26T07:22:27+08:00	Merge pull request #99 from Teachmeplaycode/feat/multi-compare
+3e41e6a7667d68e62fd9528bdaf59553908a33ad	2026-10-26T08:59:49+08:00	Merge pull request #100 from Teachmeplaycode/feat/blender-sample
+248bb4de9bfb571208aad60614e85c35b19e8372	2026-10-26T09:03:01+08:00	Merge pull request #101 from Teachmeplaycode/fix/sharp-refresh
+e4cc460b0f5b12c9bcfcfbcf7a40fc694e341b8c	2026-10-26T10:14:52+08:00	Generate chapters from available frames and serve original-size frame details
+efa03f0d1bf8b9511c3deddd64a06439260b4436	2026-10-26T10:40:22+08:00	Answer from ready evidence and adapt long-video parsing budgets
+8fb041682b67686c722f1dfef6ae6dfb8c88c6de	2026-10-26T11:00:38+08:00	Merge pull request #102 from Teachmeplaycode/chat/overhaul
+143ec0ba1d9293152d330b196cfa3631a8769885	2026-10-26T11:32:11+08:00	Share OCR work between browser devices and the server
+e7dcdb15c4885cfc0da7bd94b0a41cf612790520	2026-10-26T12:22:29+08:00	Separate selected tasks from user-written chat input
+04acd9df54acfd7a5565fba8ae0b1e8ce5259e48	2026-10-26T13:34:38+08:00	Add conversation-led notes, safe revisions and turn navigation
+db871b8d377db8e64b0fc9ad631408ff11de2d9e	2026-10-26T21:02:10+08:00	Render math across chat and notes; keep jump control clear of composer
+c4c2c8be804dad81373f03591bd29347a8ab74b7	2026-10-26T21:11:10+08:00	Preserve Markdown emphasis around rendered math
+c8ffd06e2305f989f69348fc329dfdf05b84d0cf	2026-10-26T23:32:00+08:00	Step cards: no step cap, follow on until the video's end (#103)
+7f98af7fc2e9508438ba2ab545ee73bc2dd9fbed	2026-10-26T23:53:49+08:00	Step cards for every video, and notes that take them as material (#104)
+8739ef7d2fe6874440ab5da2ab28b8f2d819f91c	2026-10-27T00:24:39+08:00	Search when the answer lies outside the video, not only when asked to (#105)
+6d17b9c13a9f7f0450e78b0f4700e0c204e5701b	2026-10-27T00:28:14+08:00	Keyword fallback also searches questions whose answer lies outside the video (#106)
+b255c2a6db4c1f8ae14ecd172fcb67025ba5b7dd	2026-10-27T01:54:18+08:00	Slow replay framed on the timeline plays at once, without blank frames (#107)
+589b3e21c9adffd0c3f845969116f53b4ff7a88f	2026-10-27T01:59:11+08:00	Only a replay just asked for plays by itself (#108)
+2e0e5f54fc4d3334556811c432d58d4051fb1fcf	2026-10-27T02:20:25+08:00	Don't call a link wrong while it is still being typed (#109)
+0a17ddd8def71d92b5c67505b6349061628e37a5	2026-10-30T20:29:42+08:00	README: the full demo video and a GIF per feature (#110)

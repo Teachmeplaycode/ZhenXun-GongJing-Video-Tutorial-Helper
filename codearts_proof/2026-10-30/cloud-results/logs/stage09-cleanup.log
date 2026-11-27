@@ -1,0 +1,18 @@
+== 测试进程清理（2026-10-30 23:54:34 +0800）==
+核对（PID/cmdline/cwd）→ 全部属于 repro-stage-01 或 repro-latest，非平台服务
+PID 24185: /workspace/repro-stage-01/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0 | cwd=/workspace/repro-stage-01/backend
+PID 1220: /workspace/repro-stage-01/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0 | cwd=/workspace/repro-stage-01/backend
+PID 24625: node /workspace/repro-stage-01/front/node_modules/.bin/vite preview --port 14331 --host 12 | cwd=/workspace/repro-stage-01/front
+PID 32659: /workspace/repro-latest/backend/.venv/bin/python3 .venv/bin/uvicorn app:app --host 127.0.0 | cwd=/workspace/repro-latest/backend
+
+清理尝试：kill -TERM 后 2s 检查
+PID 24185: TERM 后仍存活，已发 KILL
+PID 1220: TERM 后仍存活，已发 KILL
+PID 24625: TERM 后仍存活，已发 KILL
+PID 32659: TERM 后仍存活，已发 KILL
+
+最终端口状态：
+LISTEN 0      0          127.0.0.1:17431      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:17432      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:17433      0.0.0.0:*          
+LISTEN 0      0          127.0.0.1:14331      0.0.0.0:*          

@@ -1,0 +1,25 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.2.0, pluggy-1.7.0
+rootdir: /workspace/gongjing-git-main/backend
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1
+collected 62 items
+
+tests/test_agent.py ............                                         [ 19%]
+tests/test_bilibili.py ...............                                   [ 43%]
+tests/test_events.py .                                                   [ 45%]
+tests/test_frames.py ...........                                         [ 62%]
+tests/test_local.py ...                                                  [ 67%]
+tests/test_sessions.py ..                                                [ 70%]
+tests/test_tools.py .......                                              [ 82%]
+tests/test_transcript.py .......                                         [ 93%]
+tests/test_wechat.py ....                                                [100%]
+
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /workspace/gongjing-git-main/backend/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 62 passed, 1 warning in 1.70s =========================

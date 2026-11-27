@@ -1,0 +1,98 @@
+
+> video-comprehensive-front@0.1.0 test:notes
+> node --test test/conversationTurns.test.mjs test/noteRevisionLayout.test.mjs test/math.test.mjs
+
+TAP version 13
+# Subtest: duplicate questions retain their UI keys while matching durable rows in order
+ok 1 - duplicate questions retain their UI keys while matching durable rows in order
+  ---
+  duration_ms: 1.81762
+  type: 'test'
+  ...
+# Subtest: a command-only question matches the independent command metadata
+ok 2 - a command-only question matches the independent command metadata
+  ---
+  duration_ms: 1.44628
+  type: 'test'
+  ...
+# Subtest: running, failed, unsaved and incomplete turns are navigable but cannot enter notes
+ok 3 - running, failed, unsaved and incomplete turns are navigable but cannot enter notes
+  ---
+  duration_ms: 0.49969
+  type: 'test'
+  ...
+# Subtest: manual replays and GIF cards get anchors without becoming note material
+ok 4 - manual replays and GIF cards get anchors without becoming note material
+  ---
+  duration_ms: 0.63778
+  type: 'test'
+  ...
+# Subtest: the streaming answer never inherits a saved id from an older identical response
+ok 5 - the streaming answer never inherits a saved id from an older identical response
+  ---
+  duration_ms: 0.17351
+  type: 'test'
+  ...
+# Subtest: an orphan answer is never selectable as a complete Q&A
+ok 6 - an orphan answer is never selectable as a complete Q&A
+  ---
+  duration_ms: 0.17119
+  type: 'test'
+  ...
+# Subtest: completed skill reports are usable notes even without assistant prose
+ok 7 - completed skill reports are usable notes even without assistant prose
+  ---
+  duration_ms: 0.43076
+  type: 'test'
+  ...
+# Subtest: an incomplete or failed skill report cannot stand in for a completed answer
+ok 8 - an incomplete or failed skill report cannot stand in for a completed answer
+  ---
+  duration_ms: 0.19004
+  type: 'test'
+  ...
+# Subtest: recognizes the four TeX delimiters and numeric expressions
+ok 9 - recognizes the four TeX delimiters and numeric expressions
+  ---
+  duration_ms: 1.83128
+  type: 'test'
+  ...
+# Subtest: leaves incomplete streaming input literal, then renders the completed formula
+ok 10 - leaves incomplete streaming input literal, then renders the completed formula
+  ---
+  duration_ms: 0.54112
+  type: 'test'
+  ...
+# Subtest: preserves code, links, escaped dollars and currency while finding later math
+ok 11 - preserves code, links, escaped dollars and currency while finding later math
+  ---
+  duration_ms: 0.37814
+  type: 'test'
+  ...
+# Subtest: normalizes existing formula fields without changing their source data
+ok 12 - normalizes existing formula fields without changing their source data
+  ---
+  duration_ms: 0.4036
+  type: 'test'
+  ...
+# Subtest: expanded revision pushes only obstructed content and preserves edited columns, sizes and unrelated annotations
+ok 13 - expanded revision pushes only obstructed content and preserves edited columns, sizes and unrelated annotations
+  ---
+  duration_ms: 1.47236
+  type: 'test'
+  ...
+# Subtest: new material respects measured height of the preceding handwritten section
+ok 14 - new material respects measured height of the preceding handwritten section
+  ---
+  duration_ms: 0.41149
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 78.63349

@@ -1,0 +1,9 @@
+{
+  "source": "CodeArts rendered tool output, base64 chunks 1–7",
+  "bytes": 80817,
+  "sha256": "11e8c0c11ef125fb1e3707a86a959ce4eb4bdda450cfb69012009aa85291cd9f",
+  "extracted_files": 52,
+  "main": "0a17ddd8def71d92b5c67505b6349061628e37a5",
+  "fix": "594d70878d2b94aba9520879ffa3729774183d67",
+  "branch_head": "1592c1fdf2a3aee794e4f982fed70a0ef87ab647"
+}

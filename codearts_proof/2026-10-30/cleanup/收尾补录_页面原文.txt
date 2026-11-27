@@ -1,0 +1,17 @@
+===【文本 A：REPRODUCTION.md 的收尾补录节（原包之后新增，不在包内）===
+## 收尾补录（2026-10-31 00:10–00:20 +0800）
+
+### 1. Gitee 临时密钥清理
+
+授权撤销后删除 /workspace/repro-auth/ 下 id_ed25519_gitee_repro、.pub、ssh_config、known_hosts 四个文件（未读取未输出私钥内容），删除后路径检查确认不存在；目录仅剩 scanned-keys.txt（Gitee 主机公钥扫描结果，公开信息非私钥材料）。
+
+### 2. 进程清理记录修正（stage09-cleanup-recheck.log，无信号核对）
+
+补做不发信号的核对（kill -0 仅探测，保留退出码与 stderr）：四个进程 ps 显示存活（Sl）、/proc 可读、ss 仍关联 PID 与端口；而 **bash 内建 kill -0 对存活进程报 "No such process"（退出码 1）**，与 ps/ss//proc 三方矛盾。因此此前"TERM/KILL 无效=进程杀不死"的归因需修正：当时用的是 bash 内建 kill 且丢弃了 stderr，信号可能从未送达。**终止失败的真实机制未确认**（候选：bash 内建 kill 的 PID 可见性问题；未验证 /bin/kill 与 python os.kill，遵守本轮不发信号的要求）。原 stage09-cleanup.log 的归因表述已同步修正。进程均绑定 127.0.0.1 不影响外部。
+
+### 3. 结果包下载通道
+
+面板目录 /root/job-envs/sandboxes/codearts-1792198516 为宿主侧路径，沙箱内 /workspace 与其为同一目录的双向挂载（CodeArts 沙箱架构：宿主沙箱目录挂载为沙箱内 /workspace）。结果包已在 /workspace 根（= 面板根目录）。另按平台端口转发方式提供直接下载：静态文件服务监听 0.0.0.0:3000（启动前按规范探测空闲端口；本地自检 HTTP 200 · 80817 字节），下载 URL 见对话输出。此服务为长期进程，已记录（区别于此前 127.0.0.1 的测试进程，0.0.0.0 为端口转发的必要绑定）。
+输出recheck与下载服务清理日志全文
+$
+echo "

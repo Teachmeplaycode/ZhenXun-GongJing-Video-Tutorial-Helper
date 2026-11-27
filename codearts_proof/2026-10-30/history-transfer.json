@@ -1,0 +1,18 @@
+{
+  "archive": "MyTargetProject-source-history-0a17ddd.tar.gz",
+  "sha256": "f6600f5f1c87253ac9dbf463b0544cc3e629b4126cf512dfee622140378079b8",
+  "first_parent_stages": 135,
+  "unique_blobs": 1413,
+  "bytes": 10539257,
+  "head": "0a17ddd8def71d92b5c67505b6349061628e37a5",
+  "scope": [
+    "backend",
+    "front",
+    "deploy",
+    "scripts",
+    ".github",
+    "README.md",
+    "dev.sh",
+    ".gitignore"
+  ]
+}

@@ -1,0 +1,857 @@
+Window: "test_prelook_attachment_edges.py — MyTargetProject — 未跟踪的", App: Code.
+0 标准窗口 test_prelook_attachment_edges.py — MyTargetProject — 未跟踪的, Secondary Actions: Raise, URL: file:///Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/validation/test_prelook_attachment_edges.py
+	1 container test_prelook_attachment_edges.py — MyTargetProject — 未跟踪的
+		2 container
+			3 HTML 内容 test_prelook_attachment_edges.py — MyTargetProject — 未跟踪的, URL: vscode-file://vscode-app/Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html
+				4 container
+					5 container
+						6 container
+							7 工具栏
+								8 按钮 返回 (⌃-)
+									9 文本 
+								10 按钮 (disabled) 前进 (⌃⇧-)
+									11 文本 
+								12 工具栏 智能体状态
+									13 按钮 打开快速访问
+									14 container
+										15 按钮 切换聊天
+											16 按钮 切换聊天
+												17 文本 
+										18 弹出式按钮 更多操作
+							19 工具栏
+								20 按钮 在智能体窗口中打开 (⇧⌥⌘A)
+							21 工具栏
+								22 按钮 更新
+									23 文本 更新
+							24 工具栏 标题操作
+								25 切换按钮 Description: 切换主侧栏 (⌘B), Value: 1
+									26 文本 
+								27 按钮 自定义布局...
+									28 文本 
+								29 切换按钮 Description: 切换面板 (⌘J), Value: 0
+									30 文本 
+								31 切换按钮 Description: 切换辅助侧栏 (⌥⌘B), Value: 0
+									32 文本 
+						33 container
+							34 container
+								35 标签组 活动视图切换器
+									36 标签 (settable, integer) Description: 资源管理器 (⇧⌘E), Value: 0
+										37 container 资源管理器 (⇧⌘E)
+											38 文本 
+									39 标签 (settable, integer) 搜索 (⇧⌘F), Value: 0
+										40 container 搜索 (⇧⌘F)
+											41 文本 
+									42 标签 (settable, integer) Description: 源代码管理 (⌃⇧G) - 472 个挂起的更改, Value: 0
+										43 container 源代码管理 (⌃⇧G) - 472 个挂起的更改
+											44 文本 
+										45 container 源代码管理 (⌃⇧G) - 472 个挂起的更改
+											46 文本 472
+									47 标签 (settable, integer) 运行和调试 (⇧⌘D), Value: 0
+										48 container 运行和调试 (⇧⌘D)
+											49 文本 
+									50 标签 (settable, integer) Description: 扩展 (⇧⌘X) - 1 需要重启, Value: 0
+										51 container 扩展 (⇧⌘X) - 1 需要重启
+											52 文本 
+										53 container 扩展 (⇧⌘X) - 1 需要重启
+											54 文本 1
+									55 标签 (settable, integer) 测试, Value: 0
+										56 container 测试
+											57 文本 
+									58 标签 (settable, integer) Python, Value: 0
+										59 container Python
+									60 标签 (settable, integer) Description: Continue, Value: 0
+										61 container Continue
+									62 标签 (selected) Description: 华为云码道CodeArts代码智能体, Value: 1
+										63 container 华为云码道CodeArts代码智能体
+									64 标签 (settable, integer) Description: GitHub Copilot modernization, Value: 0
+										65 container GitHub Copilot modernization
+								66 工具栏 管理
+									67 弹出式按钮 帐户
+										68 container 帐户
+									69 弹出式按钮 管理 - 有新的 Code 的更新可用。
+										70 container 管理 - 有新的 Code 的更新可用。
+											71 文本 
+										72 container 管理 - 有新的 Code 的更新可用。
+											73 文本 1
+							74 container
+								75 标题 华为云码道CodeArts代码智能体: 聊天, Value: 2
+									76 文本 华为云码道CodeArts代码智能体: 聊天
+								77 工具栏 华为云码道CodeArts代码智能体: 聊天操作
+									78 按钮 重启AI对话（会重启VSCode的扩展宿主进程）
+								79 container
+							80 container
+								81 container
+									82 container
+										83 container
+											84 标签组
+												85 标签 (settable, integer) Description: yanshi.txt, Value: 0
+													86 container ~/project/Huawei/MyTargetProject/datas/yanshi.txt • 未跟踪的
+														87 文本 
+														88 text yanshi .txt
+														89 文本 U
+													90 工具栏 选项卡操作
+														91 按钮 关闭 (⌘W)
+															92 文本 
+												93 标签 (settable, integer) Description: run.py, Value: 0
+													94 container ~/project/Huawei/MyTargetProject/backend/modules/agent/run.py
+														95 文本 
+														96 text run .py
+													97 工具栏 选项卡操作
+														98 按钮 关闭 (⌘W)
+															99 文本 
+												100 标签 (selected) Description: test_prelook_attachment_edges.py, Value: 1
+													101 container ~/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/validation/test_prelook_attachment_edges.py • 此文件存在 8 个问题 • 未跟踪的
+														102 文本 
+														103 text test_prelook_attachment_edges .py
+														104 文本 8, U
+													105 工具栏 选项卡操作
+														106 按钮 关闭 (⌘W)
+															107 文本 
+												108 标签 (settable, integer) Description: CodeArts Agent-85404-2026-10-31.log，预览, Value: 0
+													109 container CodeArts Agent-85404-2026-10-31
+														110 文本 
+														111 text CodeArts Agent-85404-2026-10-31 .log
+													112 工具栏 选项卡操作
+														113 按钮 关闭 (⌘W)
+															114 文本 
+											115 工具栏 编辑器操作
+												116 按钮 运行 Python 文件
+													117 文本 
+												118 弹出式按钮 运行或调试...
+												119 按钮 打开更改
+													120 文本 
+												121 按钮 向右拆分编辑器 [⌥] 向下拆分编辑器
+													122 文本 
+												123 弹出式按钮 更多操作...
+													124 文本 
+										125 内容列表
+											126 container
+												127 container ~/project/Huawei/MyTargetProject/codearts_proof • 包含强调项
+													128 文本 codearts_proof
+												129 文本 
+											130 container
+												131 container ~/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide • 包含强调项
+													132 文本 2026-10-31-ide
+												133 文本 
+											134 container
+												135 container ~/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/validation • 包含强调项
+													136 文本 validation
+												137 文本 
+											138 container
+												139 container ~/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/validation/test_prelook_attachment_edges.py • 此文件存在 8 个问题 • 未跟踪的
+													140 文本 
+													141 文本 test_prelook_attachment_edges.py
+												142 文本 
+											143 文本 …
+										144 container test_prelook_attachment_edges.py
+											145 container
+												146 编辑器 (settable) Description: test_prelook_attachment_edges.py, Value: """Two edges the pre-look regression suite leaves for their own tests.
+
+1. Without a pre-look the old shape stays: [scope, question, attachments...], the question
+   immediately after the scope and every screenshot label next to its picture and its note.
+2. Every attachment path missing plus a slow-motion question: no attachment note and no
+   screenshot label is invented, and the question still ends the final user message.
+
+Both cases run the real run_agent against a mocked HTTP transport, so no network or account
+configuration is involved.
+"""
+import asyncio
+import json
+import re
+from pathlib import Path
+
+import httpx
+
+import modules.agent.run as run_module
+from modules.agent.locate import Match
+from modules.agent.run import run_agent
+from modules.frames import FrameJob
+from modules.llm import ChatClient, LLMConfig
+from modules.video_source import ResolvedVideo, Stream
+
+
+def make_job(tmp_path):
+    v = ResolvedVideo("test", "v1", "https://x/v1", "标题", 100.0, [Stream("https://a", {}, "s")], description="简介")
+    job = FrameJob("j", v, None, tmp_path, count=2)
+    tmp_path.mkdir(exist_ok=True)
+    for slot in job.slots:
+        slot.status = "ok"
+        job.frame_path(slot.index).write_bytes(b"\xff\xd8jpg")
+    return job
+
+
+def sse_body(*chunks):
+    lines = [f"data: {json.dumps(c, ensure_ascii=False)}\n\n" for c in chunks]
+    return "".join(lines) + "data: [DONE]\n\n"
+
+
+def client_for(handler):
+    return ChatClient(LLMConfig("https://api.deepseek.com", "deepseek-flash", "sk-test"),
+                      transport=httpx.MockTransport(handler))
+
+
+def collect(gen):
+    async def go():
+        return [e async for e in gen]
+    return asyncio.run(go())
+
+
+def shots(tmp_path, n):
+    paths = []
+    for i in range(1, n + 1):
+        p = tmp_path / f"attach{i}.jpg"
+        p.write_bytes(b"\xff\xd8shot")
+        paths.append(p)
+    return paths
+
+
+def parts_kinds(parts):
+    """What each part of the final user message is, images named by the label before them."""
+    out, pending = [], None
+    for p in parts:
+        if p["type"] == "image_url":
+            out.append(f"{pending or 'orphan'}_image")
+            pending = None
+            continue
+        t = str(p.get("text", ""))
+        if t.startswith("范围："):
+            out.append("scope")
+        elif t.startswith("问题："):
+            out.append("question")
+        elif t.startswith("用户随问题附上了"):
+            out.append("attach_note")
+        elif re.fullmatch(r"你的截图 \d+", t):
+            out.append("attach_label")
+            pending = "attach"
+        elif t.startswith("按画面文字和画面相似度自动比对"):
+            out.append("located")
+        elif t.startswith("复看 · "):
+            out.append("zoom_label")
+            pending = "zoom"
+        elif (t.startswith("用户提问前刚在时间轴上手动慢放了")
+              or t.startswith("问题要求慢放的这一段已经复看好了")):
+            out.append("zoom_lead")
+        else:
+            out.append("other")
+    return out
+
+
+def handler_recording(seen):
+    def handler(request):
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, text=sse_body(
+            {"choices": [{"delta": {"content": "看过了"}, "finish_reason": "stop"}]},
+            {"choices": [], "usage": {"prompt_tokens": 10, "completion_tokens": 3}},
+        ))
+    return handler
+
+
+def test_no_prelook_keeps_the_old_attachment_order(tmp_path, monkeypatch):
+    """No slow-motion question and no hand replay: the pre-look branch never runs."""
+    job = make_job(tmp_path / "job")
+    images = shots(tmp_path, 2)
+
+    async def locate_shots(job_, images_):
+        return {str(p): [Match(job_.slots[0], 0.9, 0.8, 0.5, shared=["数据", "验证"])]
+                for p in images_ if Path(p).is_file()}
+    monkeypatch.setattr(run_module, "locate_shots", locate_shots)
+
+    seen = []
+    events = collect(run_agent(job, client_for(handler_recording(seen)), "这一步该怎么点？", images=images))
+    assert events[-1]["type"] == "run.completed", events[-1]
+    assert seen and seen[0]["messages"], "nothing reached the model"
+    parts = seen[0]["messages"][-1]["content"]
+    assert parts_kinds(parts) == [
+        "scope", "question", "attach_note",
+        "attach_label", "attach_image", "located",
+        "attach_label", "attach_image", "located",
+    ]
+    assert parts[1]["text"] == "问题：这一步该怎么点？"
+    assert sum(1 for p in parts if str(p.get("text", "")).startswith("问题：")) == 1
+    assert not any(kind.startswith("zoom") for kind in parts_kinds(parts))
+
+
+def test_missing_attachments_with_slowmo_add_no_attachment_note(tmp_path, monkeypatch):
+    """Every attachment path is gone: attached_parts yields nothing, so the prompt must not
+    claim the user attached pictures, and the question must still come last."""
+    import modules.frames.replay as slowmo
+
+    async def grab_clip(stream, p, folder, timeout=45):
+        from modules.frames import GrabResult
+        folder.mkdir(parents=True, exist_ok=True)
+        for i in range(1, p.count + 1):
+            (folder / f"{i:02d}.jpg").write_bytes(b"\xff\xd8replay")
+        return GrabResult(True)
+    monkeypatch.setattr(slowmo, "grab_clip", grab_clip)
+
+    async def no_locate(job_, images_):
+        return {}
+    monkeypatch.setattr(run_module, "locate_shots", no_locate)
+
+    job = make_job(tmp_path / "job")
+    missing = [tmp_path / "gone1.jpg", tmp_path / "gone2.jpg"]
+    assert not any(p.is_file() for p in missing)
+
+    seen = []
+    events = collect(run_agent(job, client_for(handler_recording(seen)),
+                               "慢放 00:30 到 00:32 看他做了什么", images=missing))
+    assert events[-1]["type"] == "run.completed", events[-1]
+    assert seen and seen[0]["messages"], "nothing reached the model"
+    parts = seen[0]["messages"][-1]["content"]
+    kinds = parts_kinds(parts)
+    assert not any(kind.startswith(("attach", "located")) for kind in kinds), kinds
+    assert kinds[0] == "scope" and kinds[-1] == "question"
+    assert sum(1 for kind in kinds if kind == "question") == 1
+    assert kinds.count("zoom_lead") == 1
+    assert kinds.count("zoom_label") >= 2
+    assert kinds.index("zoom_lead") < kinds.index("zoom_label") < kinds.index("question")
+    assert not any("你的截图" in str(p.get("text", "")) for p in parts)
+													147 文本 """Two edges the pre-look regression suite leaves for their own tests.
+
+1. Without a pre-look the old shape stays: [scope, question, attachments...], the question
+   immediately after the scope and every screenshot label next to its picture and its note.
+2. Every attachment path missing plus a slow-motion question: no attachment note and no
+   screenshot label is invented, and the question still ends the final user message.
+
+Both cases run the real run_agent against a mocked HTTP transport, so no network or
+												148 container
+													149 列表框 显示代码操作(⌘。)
+														150 文本 
+													151 按钮 
+													152 按钮 
+						153 container
+							154 container remote
+								155 按钮 remote
+							156 container MyTargetProject (Git) - main*+, 签出分支/标记...
+								157 按钮 MyTargetProject (Git) - main*+, 签出分支/标记...
+									158 文本 
+									159 文本  main*+
+							160 container MyTargetProject (Git) - 同步更改
+								161 按钮 MyTargetProject (Git) - 同步更改
+							162 container 警告: 8 个
+								163 按钮 警告: 8 个
+									164 文本 
+									165 文本  0 
+									166 文本 
+									167 文本  8
+							168 container 通知
+								169 按钮 通知
+							170 container check Continue, Tab autocomplete is enabled
+								171 按钮 check Continue, Tab autocomplete is enabled
+									172 文本 
+									173 文本  Continue
+							174 container gongjing-backend (3.12.14), /Users/linyi/project/Huawei/MyTargetProject/backend/.venv/bin/python
+								175 按钮 gongjing-backend (3.12.14), /Users/linyi/project/Huawei/MyTargetProject/backend/.venv/bin/python
+							176 container Copilot 状态
+								177 按钮 Copilot 状态
+							178 container Python
+								179 按钮 Python
+							180 container 编辑器语言状态: Inline Suggestions, next: 自动导入补全: false, next: 诊断源: Pylance, next: 语言服务器模式: default, next: 类型检查: off, next: $(copilot) 无内联建议可用，内联建议
+								181 按钮 编辑器语言状态: Inline Suggestions, next: 自动导入补全: false, next: 诊断源: Pylance, next: 语言服务器模式: default, next: 类型检查: off, next: $(copilot) 无内联建议可用，内联建议
+							182 container LF
+								183 按钮 LF
+							184 container UTF-8
+								185 按钮 UTF-8
+							186 container 空格: 4
+								187 按钮 空格: 4
+							188 container 行 1，列 1
+								189 按钮 行 1，列 1
+							190 container 已为屏幕阅读器优化
+								191 按钮 已为屏幕阅读器优化
+					192 文本 ``, 在辅助视图中检查此项 (Option+F2)
+					193 HTML 内容 vscode-webview://0dkm2v658cfqt57edmpclt4mstegn0enp9j1c9kg7d3943ru2sjv/index.html?id=f636bfdd-665f-4db6-b1c1-f58c27de8216&parentId=6&origin=d5957034-3169-420b-8330-1aaf914be217&swVersion=6&extensionId=HuaweiCloud.vscode-codebot&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView
+						194 container 聊天
+							195 HTML 内容 vscode-webview://0dkm2v658cfqt57edmpclt4mstegn0enp9j1c9kg7d3943ru2sjv/index.html?id=f636bfdd-665f-4db6-b1c1-f58c27de8216&parentId=6&origin=d5957034-3169-420b-8330-1aaf914be217&swVersion=6&extensionId=HuaweiCloud.vscode-codebot&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView#/SnapChat
+								196 container
+									197 container
+										198 图像
+										199 图像
+										200 文本 
+										201 文本 
+										202 文本 
+										203 文本 
+										204 container
+											205 文本 帮我审阅一下 backend/modules/agent/run.py 里的 build_messages、attached_parts 和 run_agent 重点看用户截图、定位线索和慢放预看同时出现时，图片跟说明会不会被拆开，问题放置顺序是否合理 这块之前在浏览器码道里修过，补丁在 codearts_proof/2026-10-30/cloud-results/fix-question-last.patch，你对照当前代码和补丁检查一下，再看已有测试覆盖够不够 先给出具体位置、触发条件和覆盖缺口，不要改文件，不要读取 .env、密钥或账号配置
+											206 文本 
+										207 container
+											208 container
+												209 文本 帮我审阅一下 backend/modules/agent/run.py 里的 build_messages、attached_parts 和 run_agent 重点看用户截图、定位线索和慢放预看同时出现时，图片跟说明会不会被拆开，问题放置顺序是否合理 这块之前在浏览器码道里修过，补丁在 codearts_proof/2026-10-30/cloud-results/fix-question-last.patch，你对照当前代码和补丁检查一下，再看已有测试覆盖够不够 先给出具体位置、触发条件和覆盖缺口，不要改文件，不要读取 .env、密钥或账号配置
+												210 文本 
+												211 文本 09:28
+												212 文本 
+												213 文本 
+											214 container
+												215 text 已完成 5min 33s 
+											216 container
+												217 container
+													218 标题 结论, Value: 2
+														219 文本 结论
+													220 文本 补丁 
+													221 文本 没有合入当前代码
+													222 文本 ：
+													223 文本 build_messages
+													224 文本  没有 
+													225 文本 prelook
+													226 文本  参数，
+													227 文本 run_agent
+													228 文本  仍然通过 
+													229 文本 messages[-1]["content"].pop()
+													230 文本  来移动问题；
+													231 文本 backend/tests/test_zoom_attachment_order.py
+													232 文本  也不存在。因此，“用户截图 + 定位线索 + 慢放预看”同时出现时，
+													233 文本 说明与图片会被拆开，问题也不在最后
+													234 文本 。
+													235 标题 具体位置, Value: 2
+														236 文本 具体位置
+													237 内容列表
+														238 container
+															239 AXListMarker • 
+															240 text backend/modules/agent/run.py:405-406 ：最终 user 消息的组成部分是  [范围, 问题, 附件...] ，问题并非最后一组。
+														241 container
+															242 AXListMarker • 
+															243 text backend/modules/agent/run.py:419-432 ：每张截图的顺序是  你的截图 i  → 图片 → 定位线索，三者本来紧挨着。
+														244 container
+															245 AXListMarker • 
+															246 text backend/modules/agent/run.py:614-621 ：核心缺陷。 :615  盲目  pop()  最后一个 part（假设它就是问题）， :621  再把 lead + 复看帧 + 被 pop 的 part 追加回去。
+														247 container
+															248 AXListMarker • 
+															249 text backend/modules/agent/run.py:563-579 ：附件定位并补充  chosen ，是“定位线索”的来源。
+													250 标题 触发条件, Value: 2
+														251 文本 触发条件
+													252 文本 需要同时满足两条：
+													253 内容列表
+														254 container
+															255 AXListMarker 1. 
+															256 text images  至少有一张可读，且不是图集任务（ :563 、 :423 ）；
+														257 container
+															258 AXListMarker 2. 
+															259 text zoomed  非空（ :614 ），来源三选一：
+															260 内容列表
+																261 container
+																	262 AXListMarker • 
+																	263 text 问题命中  slowmo_ranges(question) （如“慢放 00:30 到 00:32”）；
+																264 container
+																	265 AXListMarker • 
+																	266 text 问题命中  asked_ranges(question) （显式时间段）；
+																267 container
+																	268 AXListMarker • 
+																	269 text framed  非空且问题未自带时间段（ :601-603 ，即“刚手动慢放这段”的 by-hand 路径）。
+													270 文本 典型场景：教程操作中用户传了自己的屏幕截图，又刚在时间轴上慢放过一段再提问。
+													271 标题 实际的错误顺序, Value: 2
+														272 文本 实际的错误顺序
+													273 内容列表
+														274 container
+															275 AXListMarker • 
+															276 text 最后一张截图 有 定位线索时： pop  掉的是定位说明，最终变成  [范围, 问题, 附件说明, …, 截图 N, 图 N, 慢放 lead, 复看帧…, 截图 N 的定位线索]  —— 问题被夹在中间，定位线索与图片隔了一整段复看帧。
+														277 container
+															278 AXListMarker • 
+															279 text 最后一张截图 无 定位线索（最常见）时： pop  掉的是图片本身，变成  […, 截图 N 标签, 慢放 lead, 复看帧…, 截图 N 的图片]  —— 标签被孤立，图片落到复看帧之后，模型极易把用户截图当成视频画面。
+														280 container
+															281 AXListMarker • 
+															282 text 所有附件都读不到时：附件为空， pop  到的是问题，重新追加后顺序反而正确（这是偶然结果，但  ATTACHED_NOTE  和 n 也一起丢失了）。
+													283 标题 与补丁的差异, Value: 2
+														284 文本 与补丁的差异
+													285 文本 fix-question-last.patch
+													286 文本  的做法是对的：新增 
+													287 文本 prelook
+													288 文本  参数，按命名分组组装 
+													289 文本 [范围, 附件…, prelook, 问题]
+													290 文本 ，并把 
+													291 文本 build_messages
+													292 文本  移到 zoom 工具之后调用，不再扫描文本或假设“最后一个 part 是问题”。
+													293 内容列表
+														294 container
+															295 AXListMarker • 
+															296 text 当前代码  :592-621  与补丁删除的  :582-592, :611-624  完全一致，说明补丁未应用。
+														297 container
+															298 AXListMarker • 
+															299 text 补丁把  build_messages  后移是安全的： :585  到  :621  之间没有其他使用  messages  的代码， summary  的 chapters 追加仍写在  messages[1] 。
+														300 container
+															301 AXListMarker • 
+															302 text 遗留的设计不一致：无 prelook 时仍是  [范围, 问题, 附件] ，有问题在前、附件在后；有 prelook 时才把问题放最后，同样的问题在两种路径下位置不同。若要彻底一致，建议统一为  [范围, 附件, prelook?, 问题] 。
+													303 标题 测试覆盖缺口, Value: 2
+														304 文本 测试覆盖缺口
+													305 文本 现有测试恰好绕开了交叉组合：
+													306 内容列表
+														307 container
+															308 AXListMarker • 
+															309 text backend/tests/test_replay.py:98-129 ：只测“慢放 + 无附件”， :123  断言问题在最后；因为无附件， pop  恰好 pop 到问题，所以 测不出缺陷 。
+														310 container
+															311 AXListMarker • 
+															312 text backend/tests/test_attachments.py:33-44 ：只测“附件 + 无慢放”，只断言  last[1]  是问题、 last[-1]  是图片，既不校验标签/图片/定位线索的相邻关系，也不含定位线索。
+														313 container
+															314 AXListMarker • 
+															315 text backend/tests/test_locate.py:49-60 ：只在单元层测  attached_parts  的  located ，断言  parts[-1]  是定位说明，未验证最终消息里的分组与顺序。
+													316 文本 缺少的用例（补丁自带的前 4 项应一并补上）：
+													317 内容列表
+														318 container
+															319 AXListMarker 1. 
+															320 文本 附件 × by-hand 慢放、附件 × 问题指定慢放的交叉组合；
+														321 container
+															322 AXListMarker 2. 
+															323 text 断言  问题：  恰好出现一次且为最后 part；
+														324 container
+															325 AXListMarker 3. 
+															326 text 断言每张  你的截图 i  紧跟其图片、再紧跟其定位线索（有匹配时）；
+														327 container
+															328 AXListMarker 4. 
+															329 text 断言  复看 ·  帧紧跟在慢放 lead 之后、且位于问题之前；
+														330 container
+															331 AXListMarker 5. 
+															332 text 多张附件中只有部分命中定位（ located=(1,) ）；
+														333 container
+															334 AXListMarker 6. 
+															335 文本 不可读或缺失的附件路径、以及图集任务不受影响；
+														336 container
+															337 AXListMarker 7. 
+															338 文本 无定位线索的附件（当前最坏路径，标签孤立的场景）。
+													339 文本 只读检查，未改动任何文件，也未读取 
+													340 文本 .env
+													341 文本 、密钥或账号配置。
+												342 文本 产物汇总：
+												343 图像 /jpg.svg
+												344 文本 002_插件实际审阅_读取核心代码.jpg
+												345 文本 JPG | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/002_插件实际审阅_读取核心代码.jpg
+												346 图像 /json.svg
+												347 文本 manifest.json
+												348 文本 JSON | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/manifest.json
+												349 图像 /txt.svg
+												350 文本 002_插件实际审阅_读取核心代码.txt
+												351 文本 TXT | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/session-pages/002_插件实际审阅_读取核心代码.txt
+												352 图像 /jpg.svg
+												353 文本 003_插件命令遇到zsh通配符错误.jpg
+												354 文本 JPG | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/003_插件命令遇到zsh通配符错误.jpg
+												355 图像 /txt.svg
+												356 文本 003_插件命令遇到zsh通配符错误.txt
+												357 文本 TXT | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/session-pages/003_插件命令遇到zsh通配符错误.txt
+												358 文本 
+												359 文本 
+												360 文本 
+												361 图像
+											362 container
+												363 文本 有两处先核对一下 补丁里的 test_two_attachments_only_first_located 已经测了部分截图命中定位，最后一张没有定位的场景也包含了，别把补丁已有覆盖写成缺口 无 prelook 时保持旧顺序是兼容选择，先不扩大改动，所有附件路径缺失时不生成 ATTACHED_NOTE 也是 attached_parts 的预期过滤，不是 pop 把它弄丢了 我已经从当前 HEAD 导出了两份不含 .env 的临时副本 /private/tmp/zhenxun-codearts-ide-20261031/baseline 是原实现，已加补丁自带的六项测试 /private/tmp/zhenxun-codearts-ide-20261031/patched 已应用同一补丁 请用项目 backend/.venv/bin/python 分别跑两份副本里的 tests/test_zoom_attachment_order.py，保存完整输出和退出码 再在 codearts_proof/2026-10-31-ide/validation/ 新建一个 pytest 文件，只补两项边界：无预看时附件和问题的
+												364 文本 
+												365 文本 09:39
+												366 文本 
+												367 文本 
+											368 container
+												369 text 已完成 8min 6s 
+											370 container (showing 2-102 of 102 items)
+												371 图像
+												372 文本 1个文件已更改
+												373 图像
+												374 text +161 -1
+												375 图像 /default.svg
+												376 文本 CodeArts-Agent-runtime-excerpt.log
+												377 文本 LOG | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/logs/CodeArts-Agent-runtime-excerpt.log
+												378 图像 /json.svg
+												379 文本 log-provenance.json
+												380 文本 JSON | /Users/linyi/project/Huawei/MyTargetProject/codearts_proof/2026-10-31-ide/logs/log-provenance.json
+												381 图像 /default.svg
+												382 文本 __init__.cpython-312.pyc
+												383 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/__init__.cpython-312.pyc
+												384 图像 /default.svg
+												385 文本 recipe.cpython-312.pyc
+												386 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/recipe.cpython-312.pyc
+												387 图像 /default.svg
+												388 文本 settings.cpython-312.pyc
+												389 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/settings.cpython-312.pyc
+												390 图像 /default.svg
+												391 文本 spend.cpython-312.pyc
+												392 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/spend.cpython-312.pyc
+												393 图像 /default.svg
+												394 文本 steps.cpython-312.pyc
+												395 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/steps.cpython-312.pyc
+												396 图像 /default.svg
+												397 文本 stuck.cpython-312.pyc
+												398 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/stuck.cpython-312.pyc
+												399 图像 /default.svg
+												400 文本 visitors.cpython-312.pyc
+												401 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/__pycache__/visitors.cpython-312.pyc
+												402 图像 /default.svg
+												403 文本 __init__.cpython-312.pyc
+												404 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/__init__.cpython-312.pyc
+												405 图像 /default.svg
+												406 文本 browser.cpython-312.pyc
+												407 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/browser.cpython-312.pyc
+												408 图像 /default.svg
+												409 文本 commands.cpython-312.pyc
+												410 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/commands.cpython-312.pyc
+												411 图像 /default.svg
+												412 文本 experience.cpython-312.pyc
+												413 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/experience.cpython-312.pyc
+												414 图像 /default.svg
+												415 文本 intent.cpython-312.pyc
+												416 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/intent.cpython-312.pyc
+												417 图像 /default.svg
+												418 文本 locate.cpython-312.pyc
+												419 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/locate.cpython-312.pyc
+												420 图像 /default.svg
+												421 文本 papers.cpython-312.pyc
+												422 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/papers.cpython-312.pyc
+												423 图像 /default.svg
+												424 文本 response_plan.cpython-312.pyc
+												425 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/response_plan.cpython-312.pyc
+												426 图像 /default.svg
+												427 文本 run.cpython-312.pyc
+												428 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/run.cpython-312.pyc
+												429 图像 /default.svg
+												430 文本 skills.cpython-312.pyc
+												431 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/skills.cpython-312.pyc
+												432 图像 /default.svg
+												433 文本 tools.cpython-312.pyc
+												434 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/tools.cpython-312.pyc
+												435 图像 /default.svg
+												436 文本 web.cpython-312.pyc
+												437 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/agent/__pycache__/web.cpython-312.pyc
+												438 图像 /default.svg
+												439 文本 __init__.cpython-312.pyc
+												440 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/decide/__pycache__/__init__.cpython-312.pyc
+												441 图像 /default.svg
+												442 文本 client.cpython-312.pyc
+												443 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/decide/__pycache__/client.cpython-312.pyc
+												444 图像 /default.svg
+												445 文本 questions.cpython-312.pyc
+												446 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/decide/__pycache__/questions.cpython-312.pyc
+												447 图像 /default.svg
+												448 文本 __init__.cpython-312.pyc
+												449 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/__init__.cpython-312.pyc
+												450 图像 /default.svg
+												451 文本 cuts.cpython-312.pyc
+												452 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/cuts.cpython-312.pyc
+												453 图像 /default.svg
+												454 文本 grabber.cpython-312.pyc
+												455 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/grabber.cpython-312.pyc
+												456 图像 /default.svg
+												457 文本 images.cpython-312.pyc
+												458 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/images.cpython-312.pyc
+												459 图像 /default.svg
+												460 文本 instruments.cpython-312.pyc
+												461 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/instruments.cpython-312.pyc
+												462 图像 /default.svg
+												463 文本 job.cpython-312.pyc
+												464 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/job.cpython-312.pyc
+												465 图像 /default.svg
+												466 文本 replay.cpython-312.pyc
+												467 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/replay.cpython-312.pyc
+												468 图像 /default.svg
+												469 文本 resume.cpython-312.pyc
+												470 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/resume.cpython-312.pyc
+												471 图像 /default.svg
+												472 文本 sampling.cpython-312.pyc
+												473 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/frames/__pycache__/sampling.cpython-312.pyc
+												474 图像 /default.svg
+												475 文本 __init__.cpython-312.pyc
+												476 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/knowledge/__pycache__/__init__.cpython-312.pyc
+												477 图像 /default.svg
+												478 文本 __init__.cpython-312.pyc
+												479 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/llm/__pycache__/__init__.cpython-312.pyc
+												480 图像 /default.svg
+												481 文本 client.cpython-312.pyc
+												482 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/llm/__pycache__/client.cpython-312.pyc
+												483 图像 /default.svg
+												484 文本 __init__.cpython-312.pyc
+												485 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/screentext/__pycache__/__init__.cpython-312.pyc
+												486 图像 /default.svg
+												487 文本 change.cpython-312.pyc
+												488 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/screentext/__pycache__/change.cpython-312.pyc
+												489 图像 /default.svg
+												490 文本 merge.cpython-312.pyc
+												491 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/screentext/__pycache__/merge.cpython-312.pyc
+												492 图像 /default.svg
+												493 文本 ocr.cpython-312.pyc
+												494 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/screentext/__pycache__/ocr.cpython-312.pyc
+												495 图像 /default.svg
+												496 文本 task.cpython-312.pyc
+												497 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/screentext/__pycache__/task.cpython-312.pyc
+												498 图像 /default.svg
+												499 文本 __init__.cpython-312.pyc
+												500 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/video_source/__pycache__/__init__.cpython-312.pyc
+												501 图像 /default.svg
+												502 文本 base.cpython-312.pyc
+												503 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/video_source/__pycache__/base.cpython-312.pyc
+												504 图像 /default.svg
+												505 文本 registry.cpython-312.pyc
+												506 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/modules/video_source/__pycache__/registry.cpython-312.pyc
+												507 图像 /default.svg
+												508 文本 test_zoom_attachment_order.cpython-312-pytest-9.1.1.pyc
+												509 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/tests/__pycache__/test_zoom_attachment_order.cpython-312-pytest-9.1.1.pyc
+												510 图像 /default.svg
+												511 文本 __init__.cpython-312.pyc
+												512 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/__init__.cpython-312.pyc
+												513 图像 /default.svg
+												514 文本 recipe.cpython-312.pyc
+												515 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/recipe.cpython-312.pyc
+												516 图像 /default.svg
+												517 文本 settings.cpython-312.pyc
+												518 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/settings.cpython-312.pyc
+												519 图像 /default.svg
+												520 文本 spend.cpython-312.pyc
+												521 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/spend.cpython-312.pyc
+												522 图像 /default.svg
+												523 文本 steps.cpython-312.pyc
+												524 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/steps.cpython-312.pyc
+												525 图像 /default.svg
+												526 文本 stuck.cpython-312.pyc
+												527 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/stuck.cpython-312.pyc
+												528 图像 /default.svg
+												529 文本 visitors.cpython-312.pyc
+												530 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/__pycache__/visitors.cpython-312.pyc
+												531 图像 /default.svg
+												532 文本 __init__.cpython-312.pyc
+												533 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/__init__.cpython-312.pyc
+												534 图像 /default.svg
+												535 文本 browser.cpython-312.pyc
+												536 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/browser.cpython-312.pyc
+												537 图像 /default.svg
+												538 文本 commands.cpython-312.pyc
+												539 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/commands.cpython-312.pyc
+												540 图像 /default.svg
+												541 文本 experience.cpython-312.pyc
+												542 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/experience.cpython-312.pyc
+												543 图像 /default.svg
+												544 文本 intent.cpython-312.pyc
+												545 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/intent.cpython-312.pyc
+												546 图像 /default.svg
+												547 文本 locate.cpython-312.pyc
+												548 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/locate.cpython-312.pyc
+												549 图像 /default.svg
+												550 文本 papers.cpython-312.pyc
+												551 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/papers.cpython-312.pyc
+												552 图像 /default.svg
+												553 文本 response_plan.cpython-312.pyc
+												554 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/response_plan.cpython-312.pyc
+												555 图像 /default.svg
+												556 文本 run.cpython-312.pyc
+												557 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/run.cpython-312.pyc
+												558 图像 /default.svg
+												559 文本 skills.cpython-312.pyc
+												560 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/skills.cpython-312.pyc
+												561 图像 /default.svg
+												562 文本 tools.cpython-312.pyc
+												563 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/tools.cpython-312.pyc
+												564 图像 /default.svg
+												565 文本 web.cpython-312.pyc
+												566 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/agent/__pycache__/web.cpython-312.pyc
+												567 图像 /default.svg
+												568 文本 __init__.cpython-312.pyc
+												569 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/decide/__pycache__/__init__.cpython-312.pyc
+												570 图像 /default.svg
+												571 文本 client.cpython-312.pyc
+												572 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/decide/__pycache__/client.cpython-312.pyc
+												573 图像 /default.svg
+												574 文本 questions.cpython-312.pyc
+												575 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/decide/__pycache__/questions.cpython-312.pyc
+												576 图像 /default.svg
+												577 文本 __init__.cpython-312.pyc
+												578 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/__init__.cpython-312.pyc
+												579 图像 /default.svg
+												580 文本 cuts.cpython-312.pyc
+												581 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/cuts.cpython-312.pyc
+												582 图像 /default.svg
+												583 文本 grabber.cpython-312.pyc
+												584 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/grabber.cpython-312.pyc
+												585 图像 /default.svg
+												586 文本 images.cpython-312.pyc
+												587 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/images.cpython-312.pyc
+												588 图像 /default.svg
+												589 文本 instruments.cpython-312.pyc
+												590 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/instruments.cpython-312.pyc
+												591 图像 /default.svg
+												592 文本 job.cpython-312.pyc
+												593 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/job.cpython-312.pyc
+												594 图像 /default.svg
+												595 文本 replay.cpython-312.pyc
+												596 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/replay.cpython-312.pyc
+												597 图像 /default.svg
+												598 文本 resume.cpython-312.pyc
+												599 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/resume.cpython-312.pyc
+												600 图像 /default.svg
+												601 文本 sampling.cpython-312.pyc
+												602 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/frames/__pycache__/sampling.cpython-312.pyc
+												603 图像 /default.svg
+												604 文本 __init__.cpython-312.pyc
+												605 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/knowledge/__pycache__/__init__.cpython-312.pyc
+												606 图像 /default.svg
+												607 文本 __init__.cpython-312.pyc
+												608 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/llm/__pycache__/__init__.cpython-312.pyc
+												609 图像 /default.svg
+												610 文本 client.cpython-312.pyc
+												611 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/llm/__pycache__/client.cpython-312.pyc
+												612 图像 /default.svg
+												613 文本 __init__.cpython-312.pyc
+												614 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/screentext/__pycache__/__init__.cpython-312.pyc
+												615 图像 /default.svg
+												616 文本 change.cpython-312.pyc
+												617 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/screentext/__pycache__/change.cpython-312.pyc
+												618 图像 /default.svg
+												619 文本 merge.cpython-312.pyc
+												620 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/screentext/__pycache__/merge.cpython-312.pyc
+												621 图像 /default.svg
+												622 文本 ocr.cpython-312.pyc
+												623 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/screentext/__pycache__/ocr.cpython-312.pyc
+												624 图像 /default.svg
+												625 文本 task.cpython-312.pyc
+												626 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/screentext/__pycache__/task.cpython-312.pyc
+												627 图像 /default.svg
+												628 文本 __init__.cpython-312.pyc
+												629 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/video_source/__pycache__/__init__.cpython-312.pyc
+												630 图像 /default.svg
+												631 文本 base.cpython-312.pyc
+												632 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/video_source/__pycache__/base.cpython-312.pyc
+												633 图像 /default.svg
+												634 文本 registry.cpython-312.pyc
+												635 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/modules/video_source/__pycache__/registry.cpython-312.pyc
+												636 图像 /default.svg
+												637 文本 test_zoom_attachment_order.cpython-312-pytest-9.1.1.pyc
+												638 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/tests/__pycache__/test_zoom_attachment_order.cpython-312-pytest-9.1.1.pyc
+												639 图像 /default.svg
+												640 文本 test_prelook_attachment_edges.cpython-312-pytest-9.1.1.pyc
+												641 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/tests/__pycache__/test_prelook_attachment_edges.cpython-312-pytest-9.1.1.pyc
+												642 图像 /python.svg
+												643 文本 test_prelook_attachment_edges.py
+												644 文本 PY | /private/tmp/zhenxun-codearts-ide-20261031/baseline/backend/tests/test_prelook_attachment_edges.py
+												645 图像 /default.svg
+												646 文本 test_prelook_attachment_edges.cpython-312-pytest-9.1.1.pyc
+												647 文本 PYC | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/tests/__pycache__/test_prelook_attachment_edges.cpython-312-pytest-9.1.1.pyc
+												648 图像 /python.svg
+												649 文本 test_prelook_attachment_edges.py
+												650 文本 PY | /private/tmp/zhenxun-codearts-ide-20261031/patched/backend/tests/test_prelook_attachment_edges.py
+												651 text 预估积分消耗: 5.76 09:47
+												652 文本 
+												653 文本 
+												654 文本 
+												655 文本 
+												656 图像
+										657 container
+											658 文本输入区 (settable) / 调用快捷指令, # 添加上下文
+
+												659 文本 / 调用快捷指令, # 添加上下文
+											660 文本 
+											661 图像
+											662 文本 智能体
+											663 文本 
+											664 文本 DeepSeek-V4.1-Flash-1017
+											665 文本 
+											666 图像
+											667 文本 
+											668 文本 
+											669 图像
+											670 text 10.57 ·
+											671 text 5.4% 内容由AI生成
+	672 关闭按钮
+	673 全屏幕按钮 Help: 此按钮也可以执行缩放窗口的操作, Secondary Actions: 缩放窗口
+	674 最小化按钮
+675 menu bar
+	676 Code
+	677 文件
+	678 编辑
+	679 选择
+	680 查看
+	681 转到
+	682 运行
+	683 终端
+	684 窗口
+	685 帮助
+
+The focused UI element is 195 HTML 内容 vscode-webview://0dkm2v658cfqt57edmpclt4mstegn0enp9j1c9kg7d3943ru2sjv/index.html?id=f636bfdd-665f-4db6-b1c1-f58c27de8216&parentId=6&origin=d5957034-3169-420b-8330-1aaf914be217&swVersion=6&extensionId=HuaweiCloud.vscode-codebot&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView#/SnapChat

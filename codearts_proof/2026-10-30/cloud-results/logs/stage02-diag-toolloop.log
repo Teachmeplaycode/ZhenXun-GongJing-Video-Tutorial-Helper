@@ -1,0 +1,53 @@
+诊断对象: 9c38a51 backend/modules/agent/run.py 工具循环（LLM_MAX_TOOL_ROUNDS=1）
+
+===== 边界 A：末轮无 tools，模型仍请求工具调用 =====
+模型请求数: 2
+  第1次请求携带 tools 定义: True
+  第1次请求消息角色序列: ['system', 'user']
+  第2次请求携带 tools 定义: False
+  第2次请求消息角色序列: ['system', 'user', 'assistant', 'tool', 'user']
+事件序列: ['progress.update[整理画面]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[4]', 'progress.update[读取语音]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[1]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[6]', 'progress.update[模型分析]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[10]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[2]', 'progress.update[继续分析（第 2 轮）]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[10]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[2]', 'run.completed']
+回答文本: ''
+终态事件: run.completed
+含 run.error: False · 含 run.completed: True
+判定: 存在问题：未作答即以 run.completed 正常收尾
+
+===== 边界 B1：工具抛异常（zoom 预注入阶段，问题带时间段） =====
+模型请求数: 0
+事件序列: ['progress.update[整理画面]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[4]', 'progress.update[读取语音]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[1]', 'tool_call.started', 'tool_call.input']
+回答文本: ''
+终态事件: tool_call.input
+含 run.error: False · 含 run.completed: False
+冒泡异常: RuntimeError: 模拟工具内部崩溃（如 ffmpeg 输出解析失败）
+判定: 存在问题：异常冒泡，事件流无 run.error 终态
+
+===== 边界 B2：工具抛异常（工具循环阶段，问题不带时间段） =====
+模型请求数: 1
+  第1次请求携带 tools 定义: True
+  第1次请求消息角色序列: ['system', 'user']
+事件序列: ['progress.update[整理画面]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[4]', 'progress.update[读取语音]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[1]', 'progress.update[模型分析]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[4]', 'tool_call.started', 'tool_call.input']
+回答文本: ''
+终态事件: tool_call.input
+含 run.error: False · 含 run.completed: False
+冒泡异常: RuntimeError: 模拟工具内部崩溃（如 ffmpeg 输出解析失败）
+判定: 存在问题：异常冒泡，事件流无 run.error 终态
+
+boom 被调用次数: 2
+
+===== 对照 C：工具返回 error=True（未知工具） =====
+模型请求数: 2
+  第1次请求携带 tools 定义: True
+  第1次请求消息角色序列: ['system', 'user']
+  第2次请求携带 tools 定义: False
+  第2次请求消息角色序列: ['system', 'user', 'assistant', 'tool']
+事件序列: ['progress.update[整理画面]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[4]', 'progress.update[读取语音]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[1]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[6]', 'progress.update[模型分析]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[10]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed[0]', 'progress.update[继续分析（第 2 轮）]', 'tool_call.started', 'tool_call.input', 'progress.update[生成回答]', 'assistant.message.delta', 'tool_call.output', 'tool_call.completed[10]', 'run.completed']
+回答文本: '好的，这里是没有语音内容的说明。'
+终态事件: run.completed
+含 run.error: False · 含 run.completed: True
+判定: 正常
+
+===== 总结论 =====
+A 未作答即收尾: True
+B1 zoom 阶段异常冒泡无 run.error 终态: True
+B2 工具循环阶段异常冒泡无 run.error 终态: True
+C error=True 被优雅处理并作答: True

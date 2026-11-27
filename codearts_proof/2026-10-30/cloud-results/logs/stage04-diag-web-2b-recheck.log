@@ -1,0 +1,4 @@
+冒泡异常: 模拟联网库内部崩溃
+事件数: 17
+事件序列: ['progress.update[整理画面]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed', 'progress.update[读取语音]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed', 'progress.update[模型分析]', 'tool_call.started', 'tool_call.input', 'tool_call.output', 'tool_call.completed', 'tool_call.started', 'tool_call.input']
+停在哪一步: tool_call.input
