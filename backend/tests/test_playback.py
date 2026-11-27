@@ -105,7 +105,7 @@ def cdn(monkeypatch, cut_first=False, refuse=("v0.mp4",)):
         return httpx.Response(206, headers=headers, content=part)
 
     real = httpx.AsyncClient
-    monkeypatch.setattr(playback, "_http", None)  # the shared pool is built from the patched client
+    monkeypatch.setattr(playback, "_http", {})  # the shared pools are built from the patched client
 
     def client(*args, **kwargs):
         kwargs.pop("follow_redirects", None)

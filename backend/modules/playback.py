@@ -38,16 +38,20 @@ class Playable:
 
 
 _cache: dict[str, Playable] = {}
-_http: httpx.AsyncClient | None = None
+_http: dict[str | None, httpx.AsyncClient] = {}
 
 
-def http() -> httpx.AsyncClient:
-    """The relay's connection pool, kept for the server's life (seeking sends many Range requests)."""
-    global _http
-    if _http is None or _http.is_closed:
-        _http = httpx.AsyncClient(timeout=httpx.Timeout(30, read=60), follow_redirects=True,
-                                  limits=httpx.Limits(max_keepalive_connections=8, keepalive_expiry=60))
-    return _http
+def http(url: str = "") -> httpx.AsyncClient:
+    """The relay's connection pool, kept for the server's life (seeking sends many Range requests);
+    a mainland platform's CDN is reached through CN_PROXY (settings.mainland_proxy), one pool per way."""
+    from .settings import mainland_proxy
+
+    proxy = mainland_proxy(url)
+    client = _http.get(proxy)
+    if client is None or client.is_closed:
+        client = _http[proxy] = httpx.AsyncClient(timeout=httpx.Timeout(30, read=60), follow_redirects=True, proxy=proxy,
+                                                  limits=httpx.Limits(max_keepalive_connections=8, keepalive_expiry=60))
+    return client
 
 
 def _combined(job: FrameJob) -> Stream | None:
